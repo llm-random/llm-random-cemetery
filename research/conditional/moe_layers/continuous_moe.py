@@ -1,4 +1,5 @@
 import dataclasses
+import gc
 from typing import Union
 import itertools
 
@@ -168,6 +169,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
                         perm_3 = einops.rearrange(
                             self.lin1, f"{input_order_3} -> {inp3}"
                         ).contiguous()
+                        perm_1 = None
 
                         logging_name = f"merge_and_process_{inp1_clean}__{inp2_clean}__{inp3_clean}__{outp_clean}"
                         with measure_time(self, logging_name):
@@ -176,14 +178,18 @@ class ContinuousMoeBaseClass(LoggingLayer):
                             ).contiguous()
                             # with measure_time(self, logging_name):
 
-                            perm_1 = misc.einsum(
-                                f"{inp1},{inp2},{inp3}->{outp}",
-                                perm_1,
-                                perm_2,
-                                perm_3,
-                                use_opt_einsum=self.use_opt_einsum,
-                            )
+                            # perm_1 = misc.einsum(
+                            #     f"{inp1},{inp2},{inp3}->{outp}",
+                            #     perm_1,
+                            #     perm_2,
+                            #     perm_3,
+                            #     use_opt_einsum=self.use_opt_einsum,
+                            # )
                         del perm_1, perm_2, perm_3
+                        gc.collect()
+                        torch.cuda.empty_cache()
+                        gc.collect()
+                        torch.cuda.empty_cache()
 
     def log_light(self):
         return {}
