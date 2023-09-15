@@ -160,10 +160,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
                         inp3 = " ".join(inp3)
                         outp = " ".join(outp)
 
-                        inp1_clean = inp1.replace(" ", "_")
-                        inp2_clean = inp2.replace(" ", "_")
-                        inp3_clean = inp3.replace(" ", "_")
-                        outp_clean = outp.replace(" ", "_")
+                        inp1_clean = "_".join(inp1.split(" "))
+                        inp2_clean = "_".join(inp2.split(" "))
+                        inp3_clean = "_".join(inp3.split(" "))
+                        outp_clean = "_".join(outp.split(" "))
 
                         perm_2 = einops.rearrange(
                             merge_weights, f"{input_order_2} -> {inp2}"
@@ -172,7 +172,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
                             self.lin1, f"{input_order_3} -> {inp3}"
                         ).contiguous()
 
-                        logging_name = f"merge_and_process_{inp1_clean}__{inp2_clean}__{inp3_clean}__{outp_clean}"
+                        logging_name = f"merge_and_process_{inp1_clean}{inp2_clean}{inp3_clean}{outp_clean}"
                         with measure_time(self, logging_name):
                             perm_1 = einops.rearrange(
                                 copied_x, f"{input_order_1} -> {inp1}"
