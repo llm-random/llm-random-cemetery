@@ -146,24 +146,25 @@ class ContinuousMoeBaseClass(LoggingLayer):
                 use_opt_einsum=self.use_opt_einsum,
             )
             del perm_x
-        inp1s = itertools.permutations(input_order_1.split(" "))
-        inp2s = itertools.permutations(input_order_2.split(" "))
-        inp3s = itertools.permutations(input_order_3.split(" "))
-        for inp1 in inp1s:
-            for inp2 in inp2s:
-                for inp3 in inp3s:
-                    for outp in [
+        inp1s = list(itertools.permutations(input_order_1.split()))
+        inp2s = list(itertools.permutations(input_order_2.split()))
+        inp3s = list(itertools.permutations(input_order_3.split()))
+        for inp1_ in inp1s:
+            for inp2_ in inp2s:
+                print("done with inp2 iteration")
+                for inp3_ in inp3s:
+                    for outp_ in [
                         outpt_order
                     ]:  # itertools.permutations(outpt_order.split(" ")):
-                        inp1 = " ".join(inp1)
-                        inp2 = " ".join(inp2)
-                        inp3 = " ".join(inp3)
-                        outp = " ".join(outp)
+                        inp1 = " ".join(inp1_)
+                        inp2 = " ".join(inp2_)
+                        inp3 = " ".join(inp3_)
+                        outp = " ".join(outp_)
 
-                        inp1_clean = inp1.replace(" ", "_")
-                        inp2_clean = inp2.replace(" ", "_")
-                        inp3_clean = inp3.replace(" ", "_")
-                        outp_clean = outp.replace(" ", "_")
+                        inp1_clean = "_".join(inp1)
+                        inp2_clean = "_".join(inp2)
+                        inp3_clean = "_".join(inp3)
+                        outp_clean = "_".join(outp)
 
                         perm_2 = einops.rearrange(
                             merge_weights, f"{input_order_2} -> {inp2}"
@@ -248,7 +249,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log[f"merge_and_process/best_to_default_ratio"] = merge_best / default_time
         log[f"merge_and_process/best_to_worst_ratio"] = merge_best / merge_worst
 
-        times_fig = px.bar(x=instr_names, y=instr_times)
+        merge_maps, merge_map_names = zip(*sorted(zip(merge_maps, merge_map_names), key=lambda x: x[0]))
+        times_fig = px.bar(x=merge_maps[-20:], y=instr_times[-20:])
         log["forward_pass_times"] = times_fig
 
         # log process_and_emit time
