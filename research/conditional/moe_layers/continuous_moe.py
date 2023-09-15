@@ -1,4 +1,5 @@
 import dataclasses
+import gc
 import time
 from typing import Union
 import itertools
@@ -167,28 +168,32 @@ class ContinuousMoeBaseClass(LoggingLayer):
                         inp3_clean = "".join(inp3.split(" "))
                         outp_clean = "".join(outp.split(" "))
 
-                        perm_2 = einops.rearrange(
-                            merge_weights, f"{input_order_2} -> {inp2}"
-                        ).contiguous()
-                        perm_3 = einops.rearrange(
-                            self.lin1, f"{input_order_3} -> {inp3}"
-                        ).contiguous()
+                        # perm_2 = einops.rearrange(
+                        #     merge_weights, f"{input_order_2} -> {inp2}"
+                        # ).contiguous()
+                        # perm_3 = einops.rearrange(
+                        #     self.lin1, f"{input_order_3} -> {inp3}"
+                        # ).contiguous()
 
                         logging_name = f"merge_and_processx{inp1_clean}{inp2_clean}{inp3_clean}{outp_clean}"
-                        with measure_time(self, logging_name):
-                            perm_1 = einops.rearrange(
-                                copied_x, f"{input_order_1} -> {inp1}"
-                            ).contiguous()
-                            # with measure_time(self, logging_name):
-
-                            perm_1 = misc.einsum(
-                                f"{inp1},{inp2},{inp3}->{outp}",
-                                perm_1,
-                                perm_2,
-                                perm_3,
-                                use_opt_einsum=self.use_opt_einsum,
-                            )
-                        del perm_1, perm_2, perm_3
+                        # with measure_time(self, logging_name):
+                        #     perm_1 = einops.rearrange(
+                        #         copied_x, f"{input_order_1} -> {inp1}"
+                        #     ).contiguous()
+                        #     # with measure_time(self, logging_name):
+                        #
+                        #     perm_1 = misc.einsum(
+                        #         f"{inp1},{inp2},{inp3}->{outp}",
+                        #         perm_1,
+                        #         perm_2,
+                        #         perm_3,
+                        #         use_opt_einsum=self.use_opt_einsum,
+                        #     )
+                        # del perm_1, perm_2, perm_3
+                        # gc.collect()
+                        # torch.cuda.empty_cache()
+                        # gc.collect()
+                        # torch.cuda.empty_cache()
                         end = time.time()
                         print(f"{logging_name}: {end - start}")
                         start = end
