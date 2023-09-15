@@ -176,13 +176,13 @@ class ContinuousMoeBaseClass(LoggingLayer):
                             ).contiguous()
                             # with measure_time(self, logging_name):
 
-                            perm_1 = misc.einsum(
-                                f"{inp1},{inp2},{inp3}->{outp}",
-                                perm_1,
-                                perm_2,
-                                perm_3,
-                                use_opt_einsum=self.use_opt_einsum,
-                            )
+                            # perm_1 = misc.einsum(
+                            #     f"{inp1},{inp2},{inp3}->{outp}",
+                            #     perm_1,
+                            #     perm_2,
+                            #     perm_3,
+                            #     use_opt_einsum=self.use_opt_einsum,
+                            # )
                         del perm_1, perm_2, perm_3
 
     def log_light(self):
