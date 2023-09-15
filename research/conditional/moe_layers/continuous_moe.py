@@ -172,7 +172,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
                             self.lin1, f"{input_order_3} -> {inp3}"
                         ).contiguous()
 
-                        logging_name = f"merge_and_process_{inp1_clean}__{inp2_clean}__{inp3_clean}__{outp_clean}"
+                        logging_name = f"merge_and_process_{inp1_clean}{inp2_clean}{inp3_clean}{outp_clean}"
                         with measure_time(self, logging_name):
                             perm_1 = einops.rearrange(
                                 copied_x, f"{input_order_1} -> {inp1}"
