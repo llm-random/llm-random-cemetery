@@ -177,7 +177,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
                             perm_1 = einops.rearrange(
                                 copied_x, f"{input_order_1} -> {inp1}"
                             ).contiguous()
-                            # with measure_time(self, logging_name):
+                        # with measure_time(self, logging_name):
 
                             perm_1 = misc.einsum(
                                 f"{inp1},{inp2},{inp3}->{outp}",
