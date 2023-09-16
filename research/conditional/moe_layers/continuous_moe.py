@@ -173,11 +173,11 @@ class ContinuousMoeBaseClass(LoggingLayer):
                         ).contiguous()
 
                         logging_name = f"merge_and_process_{inp1_clean}__{inp2_clean}__{inp3_clean}__{outp_clean}"
+                    # with measure_time(self, logging_name):
+                        perm_1 = einops.rearrange(
+                            copied_x, f"{input_order_1} -> {inp1}"
+                        ).contiguous()
                         with measure_time(self, logging_name):
-                            perm_1 = einops.rearrange(
-                                copied_x, f"{input_order_1} -> {inp1}"
-                            ).contiguous()
-                            # with measure_time(self, logging_name):
 
                             perm_1 = misc.einsum(
                                 f"{inp1},{inp2},{inp3}->{outp}",
@@ -233,7 +233,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
                 merge_maps.append(instr_time)
                 merge_map_names.append(instr_name)
 
-        print(merge_maps, merge_map_names)
+        # print(merge_maps, merge_map_names)
         merge_best_id = np.argmin(merge_maps)
         merge_best = merge_maps[merge_best_id]
         merge_best_signature = merge_map_names[merge_best_id]
