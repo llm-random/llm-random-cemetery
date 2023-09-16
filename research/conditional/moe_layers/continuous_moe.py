@@ -147,9 +147,9 @@ class ContinuousMoeBaseClass(LoggingLayer):
             )
             del perm_x
         inp1s = itertools.permutations(input_order_1.split())
-        inp2s = itertools.permutations(input_order_2.split())
-        inp3s = itertools.permutations(input_order_3.split())
-        outps = itertools.permutations(outpt_order.split())
+        inp2s = [input_order_2.split()]  # itertools.permutations(input_order_2.split())
+        inp3s = [input_order_3.split()]  # itertools.permutations(input_order_3.split())
+        outps = [outpt_order.split()]  # itertools.permutations(outpt_order.split())
         for inp1_ in inp1s:
             for inp2_ in inp2s:
                 for inp3_ in inp3s:
@@ -164,26 +164,29 @@ class ContinuousMoeBaseClass(LoggingLayer):
                         inp3_clean = "_".join(inp3_)
                         outp_clean = "_".join(outp_)
 
-                        perm_2 = einops.rearrange(
-                            merge_weights, f"{input_order_2} -> {inp2}"
-                        ).contiguous()
-                        perm_3 = einops.rearrange(
-                            self.lin1, f"{input_order_3} -> {inp3}"
-                        ).contiguous()
+                        # perm_2 = einops.rearrange(
+                        #     merge_weights, f"{input_order_2} -> {inp2}"
+                        # ).contiguous()
+                        perm_2 = merge_weights
+                        # perm_3 = einops.rearrange(
+                        #     self.lin1, f"{input_order_3} -> {inp3}"
+                        # ).contiguous()
+                        perm_3 = self.lin1
 
                         logging_name = f"merge_and_process{inp1_clean}{inp2_clean}{inp3_clean}{outp_clean}"
                         # with measure_time(self, logging_name):
                         perm_1 = einops.rearrange(
                             copied_x, f"{input_order_1} -> {inp1}"
-                        ).contiguous()
-                        with measure_time(self, logging_name):
-                            perm_1 = misc.einsum(
-                                f"{inp1},{inp2},{inp3}->{outp}",
-                                perm_1,
-                                perm_2,
-                                perm_3,
-                                use_opt_einsum=self.use_opt_einsum,
-                            )
+                        )
+                        for _ in range(20):
+                            with measure_time(self, logging_name):
+                                _ = misc.einsum(
+                                    f"{inp1},{inp2},{inp3}->{outp}",
+                                    perm_1,
+                                    perm_2,
+                                    perm_3,
+                                    use_opt_einsum=self.use_opt_einsum,
+                                )
                         del perm_1, perm_2, perm_3
 
     def log_light(self):
@@ -230,6 +233,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
             if "merge_and_process" in instr_name:
                 merge_maps.append(instr_time)
                 merge_map_names.append(instr_name)
+
+        merge_maps = [np.mean(m) for m in merge_maps]
 
         # print(merge_maps, merge_map_names)
         merge_best_id = np.argmin(merge_maps)
