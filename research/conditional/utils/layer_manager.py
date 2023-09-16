@@ -95,6 +95,12 @@ class LoggingLayer(nn.Module):
                     self.logging_cache[key].update(value)
                 else:
                     self.logging_cache[key] = value
+            elif type(value) == float:
+                if key in self.logging_cache:
+                    self.logging_cache[key] = [self.logging_cache[key]]
+                    self.logging_cache[key].append(value)
+                else:
+                    self.logging_cache[key] = value
             else:
                 self.logging_cache[key] = value.clone().detach().cpu()
 
@@ -145,5 +151,4 @@ def measure_time(obj: LoggingLayer, instruction_name: str):
     if obj.logging_switch and torch.cuda.is_available():
         torch.cuda.synchronize()
     end_time = time.time()
-    # print(f"{end_time-start_time}")
-    obj.update_cache_for_logging("time", {instruction_name: end_time - start_time})
+    obj.update_cache_for_logging("time",{instruction_name, end_time - start_time})
