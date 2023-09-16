@@ -50,14 +50,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
         self.init_parameters()
 
     def forward(self, x):
-        with measure_time(self, "reshape_into_token_groups"):
-            x = self.reshape_into_token_groups(x)
-        with measure_time(self, "get_merge_and_emit_weights"):
-            merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
-        with measure_time(self, "merge_map_emit"):
-            x = self.merge_map_emit(x, merge_weights, emit_weights)
-        with measure_time(self, "reshape_into_original"):
-            x = self.reshape_into_original(x)
+        x = self.reshape_into_token_groups(x)
+        merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
+        x = self.merge_map_emit(x, merge_weights, emit_weights)
+        x = self.reshape_into_original(x)
         return x
 
     def reshape_into_token_groups(self, x):
@@ -137,54 +133,62 @@ class ContinuousMoeBaseClass(LoggingLayer):
         outpt_order = "B s e f"
         copied_x = x.clone()
 
-        with measure_time(self, f"mp_default"):
-            perm_x = misc.einsum(
-                f"{input_order_1}, {input_order_2}, {input_order_3} -> {outpt_order}",
-                copied_x,
-                merge_weights,
-                self.lin1,
-                use_opt_einsum=self.use_opt_einsum,
-            )
-            del perm_x
-        inp1s = itertools.permutations(input_order_1.split())
-        inp2s = itertools.permutations(input_order_2.split())
-        inp3s = itertools.permutations(input_order_3.split())
-        outps = itertools.permutations(outpt_order.split())
-        for inp1_ in inp1s:
-            for inp2_ in inp2s:
-                for inp3_ in inp3s:
-                    for outp_ in outps:
-                        inp1 = " ".join(inp1_)
-                        inp2 = " ".join(inp2_)
-                        inp3 = " ".join(inp3_)
-                        outp = " ".join(outp_)
+        for __ in range(20):
+            with measure_time(self, f"mp_default"):
+                _ = misc.einsum(
+                    f"{input_order_1}, {input_order_2}, {input_order_3} -> {outpt_order}",
+                    copied_x,
+                    merge_weights,
+                    self.lin1,
+                    use_opt_einsum=self.use_opt_einsum,
+                )
+            inp1s = itertools.permutations(
+                input_order_1.split()
+            )  # [input_order_1.split()]
+            inp2s = [
+                input_order_2.split()
+            ]  # itertools.permutations(input_order_2.split()) #[input_order_2.split()] #
+            inp3s = [
+                input_order_3.split()
+            ]  # itertools.permutations(input_order_3.split())
+            outps = [outpt_order.split()]  # itertools.permutations(outpt_order.split())
+            for inp1_ in inp1s:
+                for inp2_ in inp2s:
+                    for inp3_ in inp3s:
+                        for outp_ in outps:
+                            inp1 = " ".join(inp1_)
+                            inp2 = " ".join(inp2_)
+                            inp3 = " ".join(inp3_)
+                            outp = " ".join(outp_)
 
-                        inp1_clean = "_".join(inp1_)
-                        inp2_clean = "_".join(inp2_)
-                        inp3_clean = "_".join(inp3_)
-                        outp_clean = "_".join(outp_)
+                            inp1_clean = "_".join(inp1_)
+                            inp2_clean = "_".join(inp2_)
+                            inp3_clean = "_".join(inp3_)
+                            outp_clean = "_".join(outp_)
 
-                        perm_2 = einops.rearrange(
-                            merge_weights, f"{input_order_2} -> {inp2}"
-                        ).contiguous()
-                        perm_3 = einops.rearrange(
-                            self.lin1, f"{input_order_3} -> {inp3}"
-                        ).contiguous()
+                            # perm_2 = einops.rearrange(
+                            #     merge_weights, f"{input_order_2} -> {inp2}"
+                            # )
+                            perm_2 = merge_weights
+                            # perm_3 = einops.rearrange(
+                            #     self.lin1, f"{input_order_3} -> {inp3}"
+                            # )
+                            perm_3 = self.lin1
 
-                        logging_name = f"merge_and_process{inp1_clean}{inp2_clean}{inp3_clean}{outp_clean}"
-                        # with measure_time(self, logging_name):
-                        perm_1 = einops.rearrange(
-                            copied_x, f"{input_order_1} -> {inp1}"
-                        ).contiguous()
-                        with measure_time(self, logging_name):
-                            perm_1 = misc.einsum(
-                                f"{inp1},{inp2},{inp3}->{outp}",
-                                perm_1,
-                                perm_2,
-                                perm_3,
-                                use_opt_einsum=self.use_opt_einsum,
+                            logging_name = f"merge_and_process{inp1_clean}{inp2_clean}{inp3_clean}{outp_clean}"
+                            # with measure_time(self, logging_name):
+                            perm_1 = einops.rearrange(
+                                copied_x, f"{input_order_1} -> {inp1}"
                             )
-                        del perm_1, perm_2, perm_3
+                            with measure_time(self, logging_name):
+                                _ = misc.einsum(
+                                    f"{inp1},{inp2},{inp3}->{outp}",
+                                    perm_1,
+                                    perm_2,
+                                    perm_3,
+                                    use_opt_einsum=self.use_opt_einsum,
+                                )
+                            del perm_1, perm_2, perm_3
 
     def log_light(self):
         return {}
@@ -222,14 +226,22 @@ class ContinuousMoeBaseClass(LoggingLayer):
         )
 
         # make bar plot of values cached in forward with measure_time
-        instr_names = list(self.logging_cache["time"].keys())
-        instr_times = list(self.logging_cache["time"].values())
+        instr_names = list(self.logging_cache.keys())
+        instr_times = list(self.logging_cache.values())
         merge_maps = []
         merge_map_names = []
         for instr_name, instr_time in zip(instr_names, instr_times):
             if "merge_and_process" in instr_name:
-                merge_maps.append(instr_time)
+                print("instr name type: ", type(instr_name))
+                print("instr time: ", instr_time)
+                print(f"len(instr_time) = {len(instr_time)} for {instr_name}")
+                merge_maps.append(np.mean(instr_time))
                 merge_map_names.append(instr_name)
+
+        sanity_default = np.mean(
+            self.logging_cache["merge_and_processB_S_g_dB_s_e_cd_e_fB_s_e_f"]
+        )
+        log["merge_and_process/sanity_default"] = sanity_default
 
         # print(merge_maps, merge_map_names)
         merge_best_id = np.argmin(merge_maps)
@@ -241,13 +253,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
 
         log[f"merge_and_process/best_{merge_best_signature}"] = merge_best
         log[f"merge_and_process/worst_{merge_worst_signature}"] = merge_worst
-        default_time = self.logging_cache["time"]["mp_default"]
+        default_time = np.mean(self.logging_cache["mp_default"])
         log[f"merge_and_process/default_time"] = default_time
         log[f"merge_and_process/best_to_default_ratio"] = merge_best / default_time
         log[f"merge_and_process/best_to_worst_ratio"] = merge_best / merge_worst
-
-        times_fig = px.bar(x=instr_names, y=instr_times)
-        log["forward_pass_times"] = times_fig
 
         # log process_and_emit time
         # log["process_and_emit_time"] = self.logging_cache["time"][
