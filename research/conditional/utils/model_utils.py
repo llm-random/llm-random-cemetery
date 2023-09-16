@@ -18,8 +18,8 @@ from research.conditional.moe_layers.cont_moe_designs.random_grouping import (
 from research.conditional.moe_layers.cont_moe_designs.learn_temp_and_common_base import (
     ContinuousMoEFinal,
 )
-from research.conditional.moe_layers.cont_moe_designs.learnable_temperature import (
-    ContinuousMoEAdaTemp,
+from research.conditional.moe_layers.cont_moe_designs.learnable_temperature_positive import (
+    ContinuousMoEAdaTempPositive,
 )
 from research.conditional.moe_layers.cont_moe_designs.add_layernorms import (
     ContinuousMoELayernorm,
@@ -333,7 +333,7 @@ def get_ff_layer(args):
     elif args.ff_mode == "cont_moe_nosoft":
         return_fn = lambda: ContinuousMoENosoftmax(**default_contmoe_args)
     elif args.ff_mode == "cont_moe_adatemp":
-        return_fn = lambda: ContinuousMoEAdaTemp(
+        return_fn = lambda: ContinuousMoEAdaTempPositive(
             **default_contmoe_args,
             separate_temp_for_experts=args.separate_temp_for_experts,
             separate_temp_for_emit_merge=args.separate_temp_for_emit_merge,
