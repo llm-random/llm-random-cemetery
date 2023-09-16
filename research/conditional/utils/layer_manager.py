@@ -92,6 +92,8 @@ class LoggingLayer(nn.Module):
         if self.logging_switch:
             if type(value) == dict:
                 if key in self.logging_cache:
+                    if type(value) == list:
+                        self.logging_cache[key].extend(value)
                     self.logging_cache[key].update(value)
                 else:
                     self.logging_cache[key] = value
@@ -146,4 +148,4 @@ def measure_time(obj: LoggingLayer, instruction_name: str):
         torch.cuda.synchronize()
     end_time = time.time()
     # print(f"{end_time-start_time}")
-    obj.update_cache_for_logging("time", {instruction_name: end_time - start_time})
+    obj.update_cache_for_logging("time", {instruction_name:[end_time - start_time]})
