@@ -9,7 +9,7 @@ from plotly import express as px
 from lizrd.core import misc, nn
 from lizrd.support.logging import make_histogram
 from research.conditional.utils.misc_tools import stable_softmax_temperature, entropy
-from research.conditional.utils.layer_manager import LoggingLayer
+from research.conditional.utils.layer_manager import LoggingLayer, measure_time
 
 
 @dataclasses.dataclass(eq=False, repr=False)
@@ -72,6 +72,9 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return x
 
     def get_merge_and_emit_weights(self, x):
+        print(
+            f"x shape, controller shape, signature of einsum: {x.shape}, {self.controller.shape}, 'B S g d, d e -> B S e g'"
+        )
         merge_logits = misc.einsum("B S g d, d e -> B S e g", x, self.controller)
         self.update_cache_for_logging("merge_logits", merge_logits)
         merge_weights = stable_softmax_temperature(merge_logits, self.temperature)
@@ -79,21 +82,40 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return merge_weights, merge_weights
 
     def merge_map_emit(self, x, merge_weights, emit_weights):
-        x = misc.einsum(
-            "B S c d, B S e c, d e f -> B S e f",
-            x,
-            merge_weights,
-            self.lin1,
-            use_opt_einsum=self.use_opt_einsum,
+        print(
+            f"x shape, merge weights shape, lin1 shape, signature of einsum: {x.shape}, {merge_weights.shape}, {self.lin1.shape}, 'B S c d, B S e c, d e f -> B S e f'"
         )
-        x = torch.relu_(x)
-        x = misc.einsum(
-            "B S e f, d e f, B S e c -> B S c d",
-            x,
-            self.lin2,
-            emit_weights,
-            use_opt_einsum=self.use_opt_einsum,
-        )
+        with measure_time(self, "merge_process"):
+            x = misc.einsum(
+                "B S c d, B S e c, d e f -> B S e f",
+                x,
+                merge_weights,
+                self.lin1,
+                use_opt_einsum=self.use_opt_einsum,
+            )
+        with measure_time(self, "relu"):
+            x = torch.relu_(x)
+        with measure_time(self, "emit_process"):
+            x = misc.einsum(
+                "B S e f, d e f, B S e c -> B S c d",
+                x,
+                self.lin2,
+                emit_weights,
+                use_opt_einsum=self.use_opt_einsum,
+            )
+        return x
+
+    def separate_map_emit(self, x, merge_weights, emit_weights):
+        with measure_time(self, "merge"):
+            x = misc.einsum("B S c d, B S e c -> B S e d", x, merge_weights)
+        with measure_time(self, "map1"):
+            x = misc.einsum("B S e d, d e f -> B S e f", x, self.lin1)
+        with measure_time(self, "relu"):
+            x = torch.relu_(x)
+        with measure_time(self, "map2"):
+            x = misc.einsum("B S e f, d e f -> B S e d", x, self.lin2)
+        with measure_time(self, "emit"):
+            x = misc.einsum("B S e d, B S e c -> B S c d", x, emit_weights)
         return x
 
     def reshape_into_original(self, x):
@@ -157,6 +179,12 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log["merge_weights/normalised_entropy"] = make_histogram(
             normalised_ent, title="merge logits entropy (normalised to [0,1])"
         )
+
+        # make bar plot of values cached in forward with measure_time
+        instr_names = list(self.logging_cache["time"].keys())
+        instr_times = list(self.logging_cache["time"].values())
+        times_fig = px.bar(x=instr_names, y=instr_times)
+        log["operation_times"] = times_fig
 
         return log
 
