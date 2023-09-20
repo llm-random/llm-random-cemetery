@@ -50,6 +50,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         self.init_parameters()
 
     def forward(self, x):
+        in_shape = x.shape
         with measure_time(self, "reshape_into_token_groups"):
             x = self.reshape_into_token_groups(x)
         with measure_time(self, "get_merge_and_emit_weights"):
@@ -58,6 +59,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
             x = self.merge_map_emit(x, merge_weights, emit_weights)
         with measure_time(self, "reshape_into_original"):
             x = self.reshape_into_original(x)
+        assert x.shape == in_shape, f"shape of input {in_shape} is not equal to shape of output {x.shape}"
         return x
 
     def reshape_into_token_groups(self, x):
