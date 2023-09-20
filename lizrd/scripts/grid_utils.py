@@ -34,7 +34,8 @@ def get_common_directory(machine_backend: MachineBackend) -> str:
     elif machine_backend == MachineBackend.IDEAS:
         return "/raid/NFS_SHARE/llm-random"
     elif machine_backend == MachineBackend.ENTROPY_GPU:
-        return "/common/llm-random"
+        user = os.environ.get("USER")
+        return f"/common/llm-random/{user}"
     else:
         return os.getenv("HOME")
 
