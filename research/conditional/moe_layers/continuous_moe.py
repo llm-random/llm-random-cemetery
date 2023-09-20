@@ -72,9 +72,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return x
 
     def get_merge_and_emit_weights(self, x):
-        print(
-            f"x shape, controller shape, signature of einsum: {x.shape}, {self.controller.shape}, 'B S g d, d e -> B S e g'"
-        )
         merge_logits = misc.einsum("B S g d, d e -> B S e g", x, self.controller)
         self.update_cache_for_logging("merge_logits", merge_logits)
         merge_weights = stable_softmax_temperature(merge_logits, self.temperature)
@@ -82,9 +79,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return merge_weights, merge_weights
 
     def merge_map_emit(self, x, merge_weights, emit_weights):
-        print(
-            f"x shape, merge weights shape, lin1 shape, signature of einsum: {x.shape}, {merge_weights.shape}, {self.lin1.shape}, 'B S c d, B S e c, d e f -> B S e f'"
-        )
         with measure_time(self, "merge_process"):
             x = misc.einsum(
                 "B S c d, B S e c, d e f -> B S e f",
@@ -111,12 +105,12 @@ class ContinuousMoeBaseClass(LoggingLayer):
             x = misc.einsum("B S c d, B S e c -> B S e d", x, merge_weights)
         S = x.shape[1]
         x = einops.rearrange(x, "a b c d -> c (a b) d")
-        # print(f"x shape, lin1 shape: {x.shape}, {self.lin1.shape}")
+        print(f"x shape, lin1 shape: {x.shape}, {self.lin1.shape}")
         with measure_time(self, "map1_bmm"):
             x = torch.bmm(x, self.lin1)
         with measure_time(self, "relu"):
             x = torch.relu_(x)
-
+        print(f"x shape, lin2 shape: {x.shape}, {self.lin2.shape}")
         with measure_time(self, "map2_bmm"):
             x = torch.bmm(x, self.lin2)
         x = einops.rearrange(x, "c (a b) d -> a b c d", b=S)
