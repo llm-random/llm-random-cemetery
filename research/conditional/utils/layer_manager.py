@@ -128,6 +128,7 @@ class LoggingLayer(nn.Module):
         return {}
 
 
+
 @contextmanager
 def measure_time(obj: LoggingLayer, instruction_name: str):
     """
@@ -136,14 +137,19 @@ def measure_time(obj: LoggingLayer, instruction_name: str):
         obj: The LoggingLayer object that will be used to cache the time.
         instruction_name: The name of the instruction that is being measured.
     """
-    if obj.logging_switch and torch.cuda.is_available():
-        torch.cuda.synchronize()
-    start_time = time.time()
-
+    if obj.logging_switch:
+        if torch.cuda.is_available():
+            start = torch.cuda.Event(enable_timing=True)
+            end = torch.cuda.Event(enable_timing=True)
+            start.record()
+        else:
+            start = time.time()
     yield
-
-    if obj.logging_switch and torch.cuda.is_available():
-        torch.cuda.synchronize()
-    end_time = time.time()
-    # print(f"{end_time-start_time}")
-    obj.update_cache_for_logging("time", {instruction_name: end_time - start_time})
+    if obj.logging_switch:
+        if torch.cuda.is_available():
+            end.record()
+            torch.cuda.synchronize()
+            obj.update_cache_for_logging("time", {instruction_name: start.elapsed_time(end)})
+        else:
+            end = time.time()
+            obj.update_cache_for_logging("time", {instruction_name: end - start})
