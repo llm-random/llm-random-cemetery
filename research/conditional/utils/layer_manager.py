@@ -136,14 +136,32 @@ def measure_time(obj: LoggingLayer, instruction_name: str):
         obj: The LoggingLayer object that will be used to cache the time.
         instruction_name: The name of the instruction that is being measured.
     """
-    if obj.logging_switch and torch.cuda.is_available():
-        torch.cuda.synchronize()
-    start_time = time.time()
 
-    yield
+    @contextmanager
+    def measure_time(obj: LoggingLayer, instruction_name: str):
+        """
+        This simple context manager is used to measure the time of a block of code.
+        Args:
+            obj: The LoggingLayer object that will be used to cache the time.
+            instruction_name: The name of the instruction that is being measured.
+        """
+        if not obj.logging_switch:
+            yield
+            return
 
-    if obj.logging_switch and torch.cuda.is_available():
+        if not torch.cuda.is_available():
+            start = time.time()
+            yield
+            end = time.time()
+            obj.update_cache_for_logging("time", {instruction_name: end - start})
+            return
+
+        start = torch.cuda.Event(enable_timing=True)
+        end = torch.cuda.Event(enable_timing=True)
+
+        start.record()
+        yield
+        end.record()
+
         torch.cuda.synchronize()
-    end_time = time.time()
-    # print(f"{end_time-start_time}")
-    obj.update_cache_for_logging("time", {instruction_name: end_time - start_time})
+        obj.update_cache_for_logging("time", {instruction_name: start.elapsed_time(end)})
