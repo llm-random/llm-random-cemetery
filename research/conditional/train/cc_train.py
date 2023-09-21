@@ -125,15 +125,17 @@ def main(
         model_fragmentation=args.model_parallelism_fragmentation,
         residual_fn=residual_fn,
     )
+    model_opt = torch.compile(model)
+    del model
 
     # make model data_distributed if necessary
     if rank is not None:
         print(f"Moving model to cuda:{rank}")
-        model = model.to(f"cuda:{rank}")
-        model = DDP(model, device_ids=[rank])
+        model_opt = model_opt.to(f"cuda:{rank}")
+        model_opt = DDP(model_opt, device_ids=[rank])
 
     optimizer = torch.optim.AdamW(
-        model.parameters(),
+        model_opt.parameters(),
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
         betas=(args.adam_beta1, args.adam_beta2),
@@ -154,7 +156,7 @@ def main(
         use_dummy_dataset=args.use_dummy_dataset,
     )
 
-    logger = get_logger(args, model, VOCAB_SIZE)
+    logger = get_logger(args, model_opt, VOCAB_SIZE)
 
     # in case of data parallelism, only gpu:0 should log
     is_process_logging = True if rank is None or rank == 0 else False
@@ -168,7 +170,7 @@ def main(
         )
 
     trainer = ConditionalTrainer(
-        model=model,
+        model=model_opt,
         optimizer=optimizer,
         train_dataloader=train_dataloader,
         vocab_size=VOCAB_SIZE,
