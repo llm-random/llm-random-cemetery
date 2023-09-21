@@ -280,6 +280,7 @@ class ConditionalTrainer:
 
             loss_to_optimize = cross_entropy_loss
             for key, value in aux_info["losses"].items():
+                print(f"aux losses: {key}: {value}")
                 if key == "contmoe_merge_weights_entropy":
                     if step > self.no_entropy_loss_until:
                         value *= self.entropy_loss_weight
@@ -295,6 +296,7 @@ class ConditionalTrainer:
             total_masked_tokens_value += aux_info["total_masked_tokens"]
 
             for key, value in aux_info["losses"].items():
+                print(f"aux losses: {key}: {value}, {losses.get(key, 0)+value}")
                 losses[key] = losses.get(key, 0) + value
 
         return total_cross_entropy_loss, {
