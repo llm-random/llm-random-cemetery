@@ -299,6 +299,10 @@ class TransformerTower(nn.Module):
                 (name, layer_fun()) for name, layer_fun in layer_dict.items()
             ]
 
+            # delete all attention TODO:revert
+
+            layers_info = [layer_info for layer_info in layers_info if layer_info[0] != "attention"]
+
             for name, layer in layers_info:
                 layer.layer_type = name
                 layer.block_number = i_block
