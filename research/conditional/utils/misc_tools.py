@@ -46,6 +46,8 @@ def generate_shuffler_unshuffler(batch_size, seqlen, mix_whole_batch=False):
 
     return shuffle_tensor, unshuffle_tensor
 
+def straight_through_tensor(forward_tensor, backward_tensor):
+    return (backward_tensor - backward_tensor.detach()) + forward_tensor.detach()
 
 def stable_softmax_temperature(
     x: torch.Tensor, temperature: Union[torch.Tensor, float], dim=-1
