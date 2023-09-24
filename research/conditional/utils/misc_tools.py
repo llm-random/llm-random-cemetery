@@ -53,12 +53,16 @@ def straight_through_tensor(forward_tensor, backward_tensor):
 def stable_softmax_temperature(
     x: torch.Tensor, temperature: Union[torch.Tensor, float], dim=-1
 ):
+    if type(temperature) == float and temperature == 0.0:
+        return torch.nn.functional.one_hot(torch.argmax(x, dim=dim))
+
     x = x / temperature
     x = x - x.max(dim=dim, keepdim=True)[0]
     x = torch.exp(x)
     x = x / x.sum(dim=dim, keepdim=True)
     return x
 
+print(stable_softmax_temperature(torch.tensor([[1.0, 2.0, 3.0],[1.0,0.0,0.0]]), 0.0))
 
 def entropy(x):
     ent = -torch.sum(x * torch.log(x + 1e-8), dim=-1)
