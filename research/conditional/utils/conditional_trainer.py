@@ -64,6 +64,7 @@ class ConditionalTrainer:
     n_steps: int = 0
     entropy_loss_weight: float = 0.0
     no_entropy_loss_until: int = 0
+    steps_until_start_temperature_learn: int = -1
 
     def __attrs_post_init__(self):
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
@@ -117,8 +118,13 @@ class ConditionalTrainer:
     def _before_train_operations(self):
         propagate_forward_pass_cache(self.model)
 
+
     def _after_step_operations(self, step):
+        kwargs = {
+            "steps_until_start_temperature_learn": self.steps_until_start_temperature_learn,
+        }
         self.model.forward_pass_cache.clear()
+        self.layer_manager.manage_misc(step, **kwargs)
         if self.temperature_scheduler is not None:
             self.temperature_scheduler.step(step)
 
