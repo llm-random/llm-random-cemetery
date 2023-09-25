@@ -79,6 +79,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return merge_weights, merge_weights
 
     def merge_map_emit(self, x, merge_weights, emit_weights):
+        print(f"x shape before merge_map_emit: {x.shape}")
         x = misc.einsum(
             "B S c d, B S e c, d e f -> B S e f",
             x,
@@ -94,6 +95,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
             emit_weights,
             use_opt_einsum=self.use_opt_einsum,
         )
+        print(f"x shape after merge_map_emit: {x.shape}")
         return x
 
     def reshape_into_original(self, x):
