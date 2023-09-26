@@ -50,9 +50,9 @@ from research.conditional.moe_layers.cont_moe_designs.separate_merge_emit_weight
 from research.conditional.moe_layers.cont_moe_designs.separate_weighted_parameter_matrices import (
     ContinuousMoESeparateWeightedParameters,
 )
-from research.conditional.moe_layers.cont_moe_designs.softmax_temperature_cheating import (
-    ContinuousMoEPassThroughTemp,
-)
+# from research.conditional.moe_layers.cont_moe_designs.softmax_temperature_cheating import (
+#     ContinuousMoEPassThroughTemp,
+# )
 from research.conditional.moe_layers.continuous_moe import (
     ContinuousMoE,
 )
