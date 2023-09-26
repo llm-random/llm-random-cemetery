@@ -28,6 +28,31 @@ from research.conditional.utils.model_utils import (
 )
 
 
+import torch.utils.benchmark as benchmark
+def rogue_speedtest():
+    x1 = torch.randn([1024, 256, 512]).cuda()
+    y1 = torch.randn([1024, 512, 512]).cuda()
+
+    x2 = torch.randn([512, 256, 512]).cuda()
+    y2 = torch.randn([512, 512, 1024]).cuda()
+
+    x3 = torch.randn([256, 256, 512]).cuda()
+    y3 = torch.randn([256, 512, 2048]).cuda()
+
+    for function_name in ['bmm_no_mixed_precision', 'bmm_mixed_precision']:
+        for n_experts, (x, y) in zip([1024, 512, 256], [(x1, y1), (x2, y2), (x3, y3)]):
+            t = torch.utils.benchmark.Timer(
+                stmt=f'{function_name}(x,y)',
+                setup=f'from __main__ import {function_name}',
+                label=f'{n_experts}_{function_name}',
+                globals={'x': x, 'y': y})
+            print(
+                f"\n ------------------------------------------- \nFor n_experts = {n_experts} and calculation mode = {function_name}: \n")
+            print(t.timeit(1000))
+        print("\n\n\n______________________________________________________________ \n NOW MIXED PRECISION \n\n\n")
+
+    breakpoint()
+
 def log_batch(
     wrapper: DataloaderWrapper,
     tokenizer_maker: Callable[[], tokenizers.AbstractTokenizer],
@@ -67,6 +92,8 @@ def main(
         args, extra = parser.parse_known_args(runner_params)
         if len(extra):
             print("Unknown args:", extra)
+
+    rogue_speedtest()
 
     if args.granularity_expert_config:
         print(
@@ -126,8 +153,6 @@ def main(
         residual_fn=residual_fn,
     )
 
-    print(model)
-
     # make model data_distributed if necessary
     if rank is not None:
         print(f"Moving model to cuda:{rank}")
@@ -143,17 +168,30 @@ def main(
 
     scheduler = get_scheduler(args)
 
-    train_dataloader = get_processed_dataset(
-        sequence_length=args.cutoff,
-        device=DEVICE,
-        num_workers=args.num_workers,
-        batch_size=args.batch_size // args.n_gpus
+    common_dataloaders_kwargs = {
+        "sequence_length": args.cutoff,
+        "device": DEVICE,
+        "num_workers": args.num_workers,
+        "batch_size": args.batch_size // args.n_gpus
         if data_distributed
         else args.batch_size,
-        seed=args.data_seed if data_seeds is None else data_seeds[rank],
-        model_type=args.model_type,
-        dataset_type=args.dataset_type,
-        use_dummy_dataset=args.use_dummy_dataset,
+        "seed": args.data_seed if data_seeds is None else data_seeds[rank],
+        "model_type": args.model_type,
+        "dataset_type": args.dataset_type,
+        "use_dummy_dataset": args.use_dummy_dataset,
+    }
+    train_dataloader = get_processed_dataset(
+        **common_dataloaders_kwargs, dataset_split="train"
+    )
+    eval_dataloader = get_processed_dataset(
+        **common_dataloaders_kwargs,
+        dataset_split="eval"
+        if args.dataset_type == "wikibook"
+        else (
+            "train"
+            if args.dataset_type == "c4" and args.use_dummy_dataset
+            else "validation"
+        ),
     )
 
     logger = get_logger(args, model, VOCAB_SIZE)
@@ -207,6 +245,13 @@ def main(
 
 
 if __name__ == "__main__":
+    def bmm_no_mixed_precision(x, y):
+        return torch.bmm(x, y)
+
+
+    def bmm_mixed_precision(x, y):
+        with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
+            return torch.bmm(x, y)
     misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
