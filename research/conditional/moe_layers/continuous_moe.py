@@ -52,7 +52,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
     def forward(self, x):
         x = self.reshape_into_token_groups(x)
         merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
-        x = self.separate_map_emit(x, merge_weights, emit_weights)
+        x = self.merge_map_emit(x, merge_weights, emit_weights)
+        # x = self.separate_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
         return x
 
@@ -82,10 +83,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
     def merge_map_emit(self, x, merge_weights, emit_weights):
         with measure_time(self, "merge_process"):
             x = misc.einsum(
-                "B S c d, B S e c, d e f -> B S e f",
+                "B S c d, d e f, B S e c -> B S e f",
                 x,
-                merge_weights,
                 self.lin1,
+                merge_weights,
                 use_opt_einsum=self.use_opt_einsum,
             )
         with measure_time(self, "relu"):
@@ -139,17 +140,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
                 (self.n_experts, self.expert_size, self.dm), fan_in=self.expert_size
             )
         )
-        self.lin3 = nn.Parameter(
-            misc.get_init_weight(
-                (self.n_experts, self.expert_size, self.dm), fan_in=self.expert_size
-            )
-        )
-        self.lin1 = nn.Parameter(
-            misc.get_init_weight(
-                (self.n_experts, self.dm, self.expert_size), fan_in=self.dm
-            )
-        )
-
         # controller: send a token of size dmodel to n_experts scalars
         self.controller = nn.Parameter(
             misc.get_init_weight((self.dm, self.n_experts), fan_in=self.dm)
