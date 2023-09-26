@@ -126,8 +126,6 @@ def main(
         residual_fn=residual_fn,
     )
 
-    print(model)
-
     # make model data_distributed if necessary
     if rank is not None:
         print(f"Moving model to cuda:{rank}")
@@ -143,17 +141,30 @@ def main(
 
     scheduler = get_scheduler(args)
 
-    train_dataloader = get_processed_dataset(
-        sequence_length=args.cutoff,
-        device=DEVICE,
-        num_workers=args.num_workers,
-        batch_size=args.batch_size // args.n_gpus
+    common_dataloaders_kwargs = {
+        "sequence_length": args.cutoff,
+        "device": DEVICE,
+        "num_workers": args.num_workers,
+        "batch_size": args.batch_size // args.n_gpus
         if data_distributed
         else args.batch_size,
-        seed=args.data_seed if data_seeds is None else data_seeds[rank],
-        model_type=args.model_type,
-        dataset_type=args.dataset_type,
-        use_dummy_dataset=args.use_dummy_dataset,
+        "seed": args.data_seed if data_seeds is None else data_seeds[rank],
+        "model_type": args.model_type,
+        "dataset_type": args.dataset_type,
+        "use_dummy_dataset": args.use_dummy_dataset,
+    }
+    train_dataloader = get_processed_dataset(
+        **common_dataloaders_kwargs, dataset_split="train"
+    )
+    eval_dataloader = get_processed_dataset(
+        **common_dataloaders_kwargs,
+        dataset_split="eval"
+        if args.dataset_type == "wikibook"
+        else (
+            "train"
+            if args.dataset_type == "c4" and args.use_dummy_dataset
+            else "validation"
+        ),
     )
 
     logger = get_logger(args, model, VOCAB_SIZE)
