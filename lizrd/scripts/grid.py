@@ -40,10 +40,10 @@ if __name__ == "__main__":
     else:
         raise ValueError("config path point to a .yaml")
 
-    for config in configs:
-        config["params"]["git_branch"] = args.git_branch
-        config["params"]["path_to_entry_config"] = args.config_path
-        config["params"]["all_config_paths"] = ",".join(all_config_paths)
+    # for config in configs:
+    #     config["params"]["git_branch"] = args.git_branch
+    #     config["params"]["path_to_entry_config"] = args.config_path
+    #     config["params"]["all_config_paths"] = ",".join(all_config_paths)
 
     interactive_options_per_config = [
         config.get("interactive_debug", False) for config in configs
