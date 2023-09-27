@@ -177,6 +177,7 @@ if __name__ == "__main__":
         elif CLUSTER_NAME == MachineBackend.ENTROPY_GPU:
             if setup_args["cuda_visible"] is not None:
                 env = os.environ.copy()
+                breakpoint()
                 env.update({"CUDA_VISIBLE_DEVICES": setup_args["cuda_visible"]})
             subprocess_args = [
                 "singularity",
