@@ -4,6 +4,7 @@ import random
 from typing import Callable, Optional
 import socket
 
+import einops
 import torch
 import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
@@ -16,6 +17,10 @@ from lizrd.train.train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
+from research.conditional.moe_layers.continuous_moe import (
+    ContinuousMoE,
+    SpeedtestContMoE,
+)
 from research.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.conditional.utils.conditional_trainer import ConditionalTrainer
@@ -26,6 +31,105 @@ from research.conditional.utils.model_utils import (
     get_attention_layer,
     get_residual_layer,
 )
+
+
+import torch.utils.benchmark as benchmark
+
+
+def rogue_speedtest():
+    "juts the calculation, no modules"
+    x1 = torch.randn([1024, 256, 512]).cuda()
+    y1 = torch.randn([1024, 512, 512]).cuda()
+    z1 = torch.randn([1024, 512, 512]).cuda()
+
+    x2 = torch.randn([512, 256, 512]).cuda()
+    y2 = torch.randn([512, 512, 1024]).cuda()
+    z2 = torch.randn([512, 1024, 512]).cuda()
+
+    x3 = torch.randn([256, 256, 512]).cuda()
+    y3 = torch.randn([256, 512, 2048]).cuda()
+    z3 = torch.randn([256, 2048, 512]).cuda()
+
+    for function_name in ["bmm_no_mixed_precision", "bmm_mixed_precision"]:
+        for n_experts, (x, y, z) in zip(
+            [1024, 512, 256], [(x1, y1, z1), (x2, y2, z2), (x3, y3, z3)]
+        ):
+            t = torch.utils.benchmark.Timer(
+                stmt=f"{function_name}(x,y,z)",
+                setup=f"from __main__ import {function_name}",
+                label=f"{n_experts}_{function_name}",
+                globals={"x": x, "y": y, "z": z},
+            )
+            print(
+                f"\n ------------------------------------------- \nFor n_experts = {n_experts} and calculation mode = {function_name}: \n"
+            )
+            print(t.timeit(1000))
+        print(
+            "\n\n\n______________________________________________________________ \n NOW MIXED PRECISION \n\n\n"
+        )
+
+
+def rogue_speedtest2(args):
+    common_args = {
+        "dm": args.dmodel,
+        "dff": args.dff,
+        "group_size": args.group_size,
+        "sparsity_dim": args.sparsity_dim,
+        "temperature": args.temperature,
+        "expert_size": args.expert_size,
+        "use_opt_einsum": args.use_opt_einsum,
+        "flop_matched": args.flop_matched,
+    }
+    contmoe_1024 = SpeedtestContMoE(n_experts=1024, **common_args).cuda()
+    contmoe_512 = SpeedtestContMoE(n_experts=512, **common_args).cuda()
+    contmoe_256 = SpeedtestContMoE(n_experts=256, **common_args).cuda()
+
+    x_common = torch.randn([1,256,256,512]).cuda()
+
+    weights_1024 = torch.randn([1, 256, 1024, 256]).cuda()
+    weights_512 = torch.randn([1, 256, 512, 256]).cuda()
+    weights_256 = torch.randn([1, 256, 256, 256]).cuda()
+
+
+
+
+    for function_name in ["normal_forward", "mixed_precision_forward"]:
+        print(
+            f"------------------------------------------------- now testing {function_name}"
+        )
+        for (
+            layer,
+            x,
+            weights
+            # merge,
+            # postmerge,
+        ) in zip(
+            [contmoe_1024, contmoe_512, contmoe_256],
+            [x_common.clone(), x_common.clone(), x_common.clone()],
+            [weights_1024, weights_512, weights_256],
+            # [merge1, merge2, merge3],
+            # [post_merge_1024, post_merge_512, post_merge_256],
+        ):
+            # print(
+            #     f"shapes: x: {x.shape}, layer lin1: {layer.lin1.shape}, layer lin2: {layer.lin2.shape}, merge: {merge.shape}, postmerge: {postmerge.shape}"
+            # )
+            t = torch.utils.benchmark.Timer(
+                stmt=f"{function_name}(layer,x,w)",
+                setup=f"from __main__ import {function_name}",
+                label=f"{layer.n_experts}_{function_name}",
+                globals={
+                    "function_name": function_name,
+                    "layer": layer,
+                    "x": x,
+                    "w": weights,
+                    # "m": merge,
+                    # "postmerge": postmerge,
+                },
+            )
+            print(
+                f"\n ------------------------------------------- \nFor n_experts = {layer.n_experts} and calculation mode = {function_name}:"
+            )
+            print(t.timeit(100))
 
 
 def log_batch(
@@ -68,6 +172,12 @@ def main(
         if len(extra):
             print("Unknown args:", extra)
 
+    print(
+        "11111111111111111111111111111111111111111111111111111111111111111111111111111"
+    )
+    rogue_speedtest2(args)
+    exit(0)
+
     if args.granularity_expert_config:
         print(
             "`--granularity_expert_config` is deprecated. Missing granularity arguments are now always computed automatically."
@@ -109,6 +219,8 @@ def main(
         args.save_weights_path = os.path.abspath(args.save_weights_path)
         os.makedirs(args.save_weights_path, exist_ok=True)
 
+    print("2222222222222222222222222222222222222222222222222222222")
+    # rogue_speedtest2(args)
     model = get_model(
         max_length=args.cutoff,
         vocab_size=VOCAB_SIZE,
@@ -125,8 +237,8 @@ def main(
         model_fragmentation=args.model_parallelism_fragmentation,
         residual_fn=residual_fn,
     )
-
-    print(model)
+    print("33333333333333333333333333333333333333333333333333333333333333333")
+    # rogue_speedtest2(args)
 
     # make model data_distributed if necessary
     if rank is not None:
@@ -143,24 +255,40 @@ def main(
 
     scheduler = get_scheduler(args)
 
-    train_dataloader = get_processed_dataset(
-        sequence_length=args.cutoff,
-        device=DEVICE,
-        num_workers=args.num_workers,
-        batch_size=args.batch_size // args.n_gpus
+    common_dataloaders_kwargs = {
+        "sequence_length": args.cutoff,
+        "device": DEVICE,
+        "num_workers": args.num_workers,
+        "batch_size": args.batch_size // args.n_gpus
         if data_distributed
         else args.batch_size,
-        seed=args.data_seed if data_seeds is None else data_seeds[rank],
-        model_type=args.model_type,
-        dataset_type=args.dataset_type,
-        use_dummy_dataset=args.use_dummy_dataset,
+        "seed": args.data_seed if data_seeds is None else data_seeds[rank],
+        "model_type": args.model_type,
+        "dataset_type": args.dataset_type,
+        "use_dummy_dataset": args.use_dummy_dataset,
+    }
+    train_dataloader = get_processed_dataset(
+        **common_dataloaders_kwargs, dataset_split="train"
     )
-
+    eval_dataloader = get_processed_dataset(
+        **common_dataloaders_kwargs,
+        dataset_split="eval"
+        if args.dataset_type == "wikibook"
+        else (
+            "train"
+            if args.dataset_type == "c4" and args.use_dummy_dataset
+            else "validation"
+        ),
+    )
+    print("4444444444444444444444444444444444444444444444444444444444444444444")
+    # rogue_speedtest2(args)
     logger = get_logger(args, model, VOCAB_SIZE)
 
     # in case of data parallelism, only gpu:0 should log
     is_process_logging = True if rank is None or rank == 0 else False
 
+    print("55555555555555555555555555555555555555555555555555555555555555555555")
+    # rogue_speedtest2(args)
     if args.model_type == "gpt" and (rank is None or rank == 0):
         log_batch(
             train_dataloader,
@@ -168,7 +296,8 @@ def main(
             if args.model_type == "gpt"
             else tokenizers.BertTokenizer,
         )
-
+    print("6666666666666666666666666666666666666666666666666666666666666666666666")
+    # rogue_speedtest2(args)
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
@@ -200,13 +329,44 @@ def main(
         n_steps=args.n_steps,
         entropy_loss_weight=args.entropy_loss_weight,
     )
-    trainer.train(args.n_steps)
+    print("777777777777777777777777777777777777777777777777")
+    # rogue_speedtest2(args)
+
+    trainer.train(1)
 
     if rank is not None:
         destroy_process_group()
 
 
 if __name__ == "__main__":
+
+    def normal_forward(
+        layer,
+        x,
+        w,
+        # w,
+        # p,
+    ):
+        return layer.forward7(
+            x,
+            w,
+            # w,
+            # p,
+        )
+
+    def mixed_precision_forward(
+        layer,
+        x,
+        w,
+        # p,
+    ):
+        with torch.autocast(device_type="cuda", enabled=True, dtype=torch.float16):
+            return layer.forward7(
+                x,
+                w,
+                # p,
+            )
+
     misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
