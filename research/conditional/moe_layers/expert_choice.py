@@ -63,7 +63,7 @@ class ExpertChoiceFF(LoggingLayer):
         # )
         self.lin1_weight = nn.Parameter(
             get_switch_init_weight(
-                shape=(n_experts, dmodel, expert_size), fan_in=dmodel
+                shape=(n_experts, dmodel, expert_size), fan_in=dmodel, scale=0.05
             )
         )
 
@@ -77,6 +77,7 @@ class ExpertChoiceFF(LoggingLayer):
             get_switch_init_weight(
                 shape=(n_experts, expert_size, dmodel),
                 fan_in=int(n_experts * expert_size * topk_fraction),
+                scale=0.05
             )
         )
         self.gate = nn.Parameter(
