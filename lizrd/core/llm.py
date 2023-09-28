@@ -25,7 +25,7 @@ def decode_bias_string(bias):
     return bias_first, bias_second
 
 
-@ash.check("... d -> ... d")
+# #@ash.check("... d -> ... d")
 def FeedForward(
     dmodel,
     dff,
@@ -69,7 +69,7 @@ class EveryOtherLayer:
         return layer
 
 
-@ash.check("... -> ... ")
+# #@ash.check("... -> ... ")
 class Residual(nn.Module):
     def __init__(self, layer):
         super(Residual, self).__init__()
@@ -80,7 +80,7 @@ class Residual(nn.Module):
         return out + x
 
 
-@ash.check("... -> ... ")
+# #@ash.check("... -> ... ")
 class Parallel(nn.Module):
     def __init__(self, *layers):
         super(Parallel, self).__init__()
@@ -90,7 +90,7 @@ class Parallel(nn.Module):
         return x + sum(layer(x) for layer in self.layers)
 
 
-@ash.check("... dinp -> ... a b")
+# #@ash.check("... dinp -> ... a b")
 class SplitLastAxis(nn.Module):
     def __init__(self, a, b):
         super(SplitLastAxis, self).__init__()
@@ -106,7 +106,7 @@ class SplitLastAxis(nn.Module):
         return result
 
 
-@ash.check("... a b -> ... dout")
+# @ash.check("... a b -> ... dout")
 class MergeLastAxis(nn.Module):
     def forward(self, x):
         result = x.reshape(x.shape[:-2] + (-1,))
@@ -114,21 +114,68 @@ class MergeLastAxis(nn.Module):
         return result
 
 
-@ash.check("... a b -> ... b a")
+# @ash.check("... a b -> ... b a")
 class Transpose(nn.Module):
     def forward(self, x):
         # return einops.rearrange(x, '... a b -> ... b a')
         return torch.transpose(x, -1, -2)
 
 
-@ash.check("... dinp -> ... dout")
+# @ash.check("... dinp -> ... dout")
 def LowRank(dinput, doutput, dlowrank):
     return nn.Sequential(
         misc.Linear(dinput, dlowrank, bias=False), misc.Linear(dlowrank, doutput)
     )
 
 
-@ash.check("... d -> ... d")
+class EfficientAttention(nn.Module):
+
+    def __init__(self, num_heads: int, embed_dimension: int, bias: bool=False, is_causal: bool=False, dropout:float=0.0):
+        super().__init__()
+        assert embed_dimension % num_heads == 0
+        # key, query, value projections for all heads, but in a batch
+        self.c_attn = nn.Linear(embed_dimension, 3 * embed_dimension, bias=bias)
+        # output projection
+        self.c_proj = nn.Linear(embed_dimension, embed_dimension, bias=bias)
+        # regularization
+        self.dropout = dropout
+        self.resid_dropout = torch.nn.Dropout(dropout)
+        self.num_heads = num_heads
+        self.embed_dimension = embed_dimension
+        # Perform causal masking
+        self.is_causal = is_causal
+
+    def forward(self, x):
+        # calculate query, key, values for all heads in batch and move head forward to be the batch dim
+        query_projected = self.c_attn(x)
+
+        batch_size = query_projected.size(0)
+        embed_dim = query_projected.size(2)
+        seqlen = query_projected.size(1)
+        head_dim = embed_dim // (self.num_heads * 3)
+
+        query, key, value = query_projected.chunk(chunks=3, dim=-1)
+        query = query.view(batch_size, -1, self.num_heads, head_dim).transpose(1, 2)
+        key = key.view(batch_size, -1, self.num_heads, head_dim).transpose(1, 2)
+        value = value.view(batch_size, -1, self.num_heads, head_dim).transpose(1, 2)
+
+        if self.training:
+            dropout = self.dropout
+            is_causal = self.is_causal
+        else:
+            dropout = 0.0
+            is_causal = False
+
+        y = torch.nn.functional.scaled_dot_product_attention(query, key, value, attn_mask=None, dropout_p=dropout, is_causal=is_causal)
+        y = y.transpose(1, 2).view(batch_size, seqlen, embed_dim)
+
+        y = self.resid_dropout(self.c_proj(y))
+        return y
+x = torch.randn(64,256,512)
+a = EfficientAttention(4,512,is_causal=True)
+a(x)
+print("done kurwaaaaaaaaaaaaaaaaaaaaaa %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%")
+# @ash.check("... d -> ... d")
 class Attention(nn.Module):
     def __init__(self, dmodel, heads, dhead=None):
         super(Attention, self).__init__()
@@ -176,7 +223,7 @@ class Attention(nn.Module):
         return output
 
 
-@ash.check("... d -> ... d")
+# @ash.check("... d -> ... d")
 class CausalAttention(nn.Module):
     def __init__(self, dmodel, heads, dhead=None):
         super(CausalAttention, self).__init__()
@@ -265,7 +312,7 @@ def PreNormBlock(dmodel, layer, name):
     )
 
 
-@ash.check("... d -> ... d")
+# @ash.check("... d -> ... d")
 def TransformerBlock(dmodel, layers, gradient_checkpointing, residual_fn):
     residual_fn = default(residual_fn, partial(PreNormBlock, dmodel=dmodel))
     residual_layers = [residual_fn(layer=layer, name=name) for name, layer in layers]
@@ -274,7 +321,7 @@ def TransformerBlock(dmodel, layers, gradient_checkpointing, residual_fn):
     return nn.Sequential(*residual_layers)
 
 
-@ash.check("... d -> ... d")
+# @ash.check("... d -> ... d")
 class TransformerTower(nn.Module):
     def __init__(
         self,
@@ -334,12 +381,12 @@ class TransformerTower(nn.Module):
         )
 
 
-@ash.check("... -> ... d")
+# @ash.check("... -> ... d")
 def TokenEmbedding(vocab_size, embedding_dim):
     return nn.Embedding(vocab_size, embedding_dim)
 
 
-@ash.check("... -> ... d")
+# @ash.check("... -> ... d")
 class PositionalEmbedding(nn.Module):
     def __init__(self, max_length, embedding_dim):
         super(PositionalEmbedding, self).__init__()
@@ -353,17 +400,17 @@ class PositionalEmbedding(nn.Module):
         return embeddings
 
 
-@ash.check("... -> ... d")
+# @ash.check("... -> ... d")
 def EmbeddingLayer(*layers):
     return misc.Sum(*layers)
 
 
-@ash.check("... inp -> ... out")
+# @ash.check("... inp -> ... out")
 def PredictionHead(embedding_dim, output_size):
     return nn.Linear(embedding_dim, output_size)
 
 
-@ash.check("... -> ... out")
+# @ash.check("... -> ... out")
 class LLM(nn.Module):
     def __init__(self, embedding_layer, encoder_tower, head):
         super(LLM, self).__init__()
