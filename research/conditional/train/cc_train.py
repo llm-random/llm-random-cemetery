@@ -68,6 +68,7 @@ def main(
         if len(extra):
             print("Unknown args:", extra)
 
+
     if args.granularity_expert_config:
         print(
             "`--granularity_expert_config` is deprecated. Missing granularity arguments are now always computed automatically."
@@ -222,6 +223,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
     args = parser.parse_args()
+
+    if args.allow_matmul_tf32:
+        torch.backends.cuda.matmul.allow_tf32 = True
 
     if args.data_distributed == False:
         main(None, args=args)
