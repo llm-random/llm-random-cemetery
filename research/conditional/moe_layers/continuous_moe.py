@@ -2,14 +2,11 @@ import dataclasses
 from typing import Union
 
 import einops
-import numpy as np
 import torch
 from plotly import express as px
-
 from lizrd.core import misc, nn
-from lizrd.support.logging import make_histogram
-from research.conditional.utils.misc_tools import stable_softmax_temperature, entropy
-from research.conditional.utils.layer_manager import LoggingLayer
+from research.conditional.utils.misc_tools import stable_softmax_temperature
+from research.conditional.utils.layer_manager import LoggingLayer, measure_time
 
 
 @dataclasses.dataclass(eq=False, repr=False)
@@ -130,36 +127,154 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log = {}
         if self.group_size == 1:
             return log
-        merge_weights = torch.flatten(
-            self.logging_cache["merge_weights"], start_dim=0, end_dim=-2
-        )
-        merge_logits = torch.flatten(
-            self.logging_cache["merge_logits"], start_dim=0, end_dim=-2
-        )
-        sample_weight_distros = merge_weights[:5]
-        sample_logits_distros = merge_logits[:5]
+        # merge_weights = torch.flatten(
+        #     self.logging_cache["merge_weights"], start_dim=0, end_dim=-2
+        # )
+        # merge_logits = torch.flatten(
+        #     self.logging_cache["merge_logits"], start_dim=0, end_dim=-2
+        # )
+        # sample_weight_distros = merge_weights[:5]
+        # sample_logits_distros = merge_logits[:5]
+        #
+        # for i, sample in enumerate(sample_weight_distros):
+        #     sample = sample.sort(descending=True).values
+        #     sample = sample.tolist()
+        #     fig = px.bar(x=range(len(sample)), y=sample, title=f"sample {i}")
+        #     log[f"merge_weights/sample_{i}"] = fig
+        #
+        # for i, sample in enumerate(sample_logits_distros):
+        #     sample = sample.sort(descending=True).values
+        #     sample = sample.tolist()
+        #     fig = px.bar(x=range(len(sample)), y=sample, title=f"sample {i}")
+        #     log[f"merge_logits/sample_{i}"] = fig
+        #
+        # ent = entropy(merge_weights)
+        # max_entropy = np.log(self.group_size)
+        # normalised_ent = ent / max_entropy
+        # log["merge_weights/normalised_entropy"] = make_histogram(
+        #     normalised_ent, title="merge logits entropy (normalised to [0,1])"
+        # )
 
-        for i, sample in enumerate(sample_weight_distros):
-            sample = sample.sort(descending=True).values
-            sample = sample.tolist()
-            fig = px.bar(x=range(len(sample)), y=sample, title=f"sample {i}")
-            log[f"merge_weights/sample_{i}"] = fig
-
-        for i, sample in enumerate(sample_logits_distros):
-            sample = sample.sort(descending=True).values
-            sample = sample.tolist()
-            fig = px.bar(x=range(len(sample)), y=sample, title=f"sample {i}")
-            log[f"merge_logits/sample_{i}"] = fig
-
-        ent = entropy(merge_weights)
-        max_entropy = np.log(self.group_size)
-        normalised_ent = ent / max_entropy
-        log["merge_weights/normalised_entropy"] = make_histogram(
-            normalised_ent, title="merge logits entropy (normalised to [0,1])"
-        )
+        if "time" not in self.logging_cache:
+            return log
+        instr_names = list(self.logging_cache["time"].keys())
+        instr_times = list(self.logging_cache["time"].values())
+        times_fig = px.bar(x=instr_names, y=instr_times)
+        log["time"] = times_fig
 
         return log
 
 
 class ContinuousMoE(ContinuousMoeBaseClass):
     pass
+
+
+class EfficientContMoE(ContinuousMoeBaseClass):
+    def forward(self, x):
+        x = self.reshape_into_token_groups(x)
+        if self.max_group_size:
+            merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
+        else:
+            merge_weights, emit_weights = self.manygroups_get_merge_and_emit_weights(
+                x
+            )
+        x = self.merge_map_emit(x, merge_weights, None)
+        x = self.reshape_into_original(x)
+        return x
+
+    def reshape_into_token_groups(self, x):
+        """
+        :param x: normal input tensor of shape (B, S, dmodel)
+        :return: x reshaped so that one of dimensions is split into groups of size self.group_size, (the dimension is determined by self.sparsity_dim)
+        """
+
+        if self.group_size == x.shape[self.sparsity_dim]:
+            self.max_group_size = True
+            if self.sparsity_dim == 0:
+                # sequence dimension is the new "batch size" when you think about it
+                x = torch.permute(x, [1, 0, 2])
+                # shape is seqlen, group size, dmodel
+                assert x.shape == (
+                    x.shape[0],
+                    self.group_size,
+                    self.dm,
+                ), f"shape is {x.shape} instead of {(x.shape[0], self.group_size, self.dm)}"
+                return x
+            elif self.sparsity_dim == 1:
+                return x
+            else:
+                raise NotImplementedError
+        else:
+            self.max_group_size = False
+            return x  # TODO: implement this properly
+
+    def get_merge_and_emit_weights(self, x):
+        # shape of x is seqlen, batch size, dmodel
+        merge_logits = torch.matmul(x, self.controller)
+        # shape of merge_logits is seqlen, batch size, n_experts
+        merge_weights = stable_softmax_temperature(
+            merge_logits, self.temperature, dim=1
+        )
+        assert merge_weights.shape == (
+            x.shape[0],
+            self.group_size,
+            self.n_experts,
+        ), f"merge_weights shape is {merge_weights.shape}, instead of 'x.shape[0],self.group_size,self.n_experts ':{(x.shape[0], self.group_size, self.n_experts)}"
+        # for ease in merge_map_emit, we permute the dimensions so that the group_size dimension is last
+        merge_weights = torch.permute(merge_weights, [0, 2, 1])
+        return merge_weights, merge_weights
+
+    def manygroups_get_merge_and_emit_weights(self, x):
+        merge_logits = torch.matmul(
+            x.view(self.group_size, -1, x.shape[1], self.dm), self.controller
+        )
+        merge_weights = stable_softmax_temperature(
+            merge_logits, self.temperature, dim=0
+        ).view(-1, x.shape[2], self.n_experts)
+        return merge_weights, merge_weights
+
+    def merge_map_emit(self, x, merge_weights, emit_weights):
+        # x shape is free_dimension, group size, dmodel
+        # merge_weights shape is free_dimension, n_experts, group size
+        x = torch.bmm(merge_weights, x)
+        # x shape is free_dimension, n_experts, dmodel ||| lin1 shape, lin2 shape is n_experts, dmodel, expert_size
+        x = torch.bmm(x.permute(1, 0, 2), self.lin1)
+        x = torch.relu_(x)
+        # x shape is n_experts, free_dimension, expert_size ||| lin2 shape is n_experts, expert_size, dmodel
+        x = torch.bmm(x, self.lin2)
+        # x shape is n_experts, free_dimension, dmodel ||| merge_weights shape is free_dimension, group size, n_experts
+        # after permute, x shape is free_dimension, dmodel, n_experts, and merge_weights shape is free_dimension, n_experts, group size
+        x = torch.bmm(x.permute(1, 2, 0), merge_weights)
+        return x
+
+    def reshape_into_original(self, x):
+        if self.max_group_size:
+            if self.sparsity_dim == 0:
+                # sequence dimension is the new "batch size" when you think about it
+                x = torch.permute(x, [1, 0, 2])
+                # shape is seqlen, group size, dmodel
+                return x
+            elif self.sparsity_dim == 1:
+                return x
+            else:
+                raise NotImplementedError
+        else:
+            return x  # TODO: implement this properly
+
+
+    def log_light(self):
+        return {}
+
+    def log_heavy(self):
+        log = {}
+        if self.group_size == 1:
+            return log
+
+        if "time" not in self.logging_cache:
+            return log
+        instr_names = list(self.logging_cache["time"].keys())
+        instr_times = list(self.logging_cache["time"].values())
+        times_fig = px.bar(x=instr_names, y=instr_times)
+        log["time"] = times_fig
+
+        return log
