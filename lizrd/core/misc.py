@@ -27,10 +27,11 @@ class ParameterLayer(nn.Module):
 
 
 def get_init_weight(shape, fan_in, fan_out=None, gain=1.0, dtype=torch.float32):
-    if fan_out is not None:
-        raise ValueError("fan_out unsupported")
-    range_ = gain * (3 / fan_in) ** 0.5
-    return torch.zeros(shape, dtype=dtype).uniform_(-range_, range_)
+    return get_switch_init_weight(shape, fan_in)
+    # if fan_out is not None:
+    #     raise ValueError("fan_out unsupported")
+    # range_ = gain * (3 / fan_in) ** 0.5
+    # return torch.zeros(shape, dtype=dtype).uniform_(-range_, range_)
 
 
 def get_switch_init_weight(shape, fan_in, mean=0, scale=0.1, dtype=torch.float32):
