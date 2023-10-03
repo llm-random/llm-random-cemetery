@@ -8,7 +8,7 @@ from research.conditional.utils.misc_tools import stable_softmax_temperature
 
 class EfficientContMoE(ContinuousMoeBaseClass):
     def forward(self, x):
-        x = self.reshape_into_token_groups(x)
+        x = self.rearrange_for_grouping(x)
         if self.max_group_size:
             merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         else:
@@ -17,7 +17,7 @@ class EfficientContMoE(ContinuousMoeBaseClass):
         x = self.reshape_into_original(x)
         return x
 
-    def reshape_into_token_groups(self, x):
+    def rearrange_for_grouping(self, x):
         """
         :param x: normal input tensor of shape (B, S, dmodel)
         :return: x reshaped so that one of dimensions is split into groups of size self.group_size, (the dimension is determined by self.sparsity_dim)
