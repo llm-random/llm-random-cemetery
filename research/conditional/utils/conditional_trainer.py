@@ -101,6 +101,7 @@ class ConditionalTrainer:
         if (
             self.save_weights_path is not None
             and step % self.save_weights_interval == 0
+            and self.save_weights_interval > 0
         ):
             checkpoint = {
                 "model": self.model.state_dict(),
