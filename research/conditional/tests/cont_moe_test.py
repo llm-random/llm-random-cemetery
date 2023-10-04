@@ -19,7 +19,7 @@ from lizrd.support.test_utils import GeneralTestCase
     dff,
 ) = (
     16,
-    16,
+    64,
     32,
     64,
 )
@@ -383,3 +383,69 @@ class ContinuousMoERandomGroups(GeneralTestCase):
             mix_whole_batch=True,
         )
         shape_and_parameters(layer)
+
+
+class ContinuousMoEOptImplementation(GeneralTestCase):
+    def test_basic_smallgroup(self):
+        group_size = 2
+        for sparsity_dim in [0,1]:
+            x = torch.normal(0.0, 1.0, (batch, seq_len, dm))
+            layer = research.conditional.moe_layers.continuous_moe.ContinuousMoE(
+                dm,
+                dff,
+                n_experts=4,
+                group_size=group_size,
+                sparsity_dim=sparsity_dim,
+                temperature=1.0,
+                expert_size=8,
+                use_opt_einsum=False,
+            )
+            layer2 = research.conditional.moe_layers.continuous_moe.LegacyContinuousMoE(
+                dm,
+                dff,
+                n_experts=4,
+                group_size=group_size,
+                sparsity_dim=sparsity_dim,
+                temperature=1.0,
+                expert_size=8,
+                use_opt_einsum=False,
+            )
+            layer2.lin1.data = layer.lin1.data.clone().transpose(0, 1)
+            layer2.lin2.data = layer.lin2.data.clone().permute(2, 0, 1)
+            layer2.controller.data = layer.controller.data.clone()
+
+            y = layer(x)
+            y2 = layer2(x)
+            self.assertTensorAlmostEqual(y, y2)
+
+    def test_basic_fullgroup(self):
+        for sparsity_dim in [0, 1]:
+            x = torch.normal(0.0, 1.0, (batch, seq_len, dm))
+            layer = research.conditional.moe_layers.continuous_moe.ContinuousMoE(
+                dm,
+                dff,
+                n_experts=4,
+                group_size=x.size(sparsity_dim),
+                sparsity_dim=sparsity_dim,
+                temperature=1.0,
+                expert_size=8,
+                use_opt_einsum=False,
+            )
+            layer2 = research.conditional.moe_layers.continuous_moe.LegacyContinuousMoE(
+                dm,
+                dff,
+                n_experts=4,
+                group_size=x.size(sparsity_dim),
+                sparsity_dim=sparsity_dim,
+                temperature=1.0,
+                expert_size=8,
+                use_opt_einsum=False,
+            )
+            layer2.lin1.data = layer.lin1.data.clone().transpose(0, 1)
+            layer2.lin2.data = layer.lin2.data.clone().permute(2, 0, 1)
+            layer2.controller.data = layer.controller.data.clone()
+
+            x = torch.normal(0.0, 1.0, (batch, seq_len, dm))
+            y = layer(x)
+            y2 = layer2(x)
+            self.assertTensorAlmostEqual(y, y2)

@@ -50,11 +50,11 @@ class ContinuousMoeBaseClass(LoggingLayer):
 
     def forward(self, x):
         x = self.rearrange_for_grouping(x)
+        merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         if self.max_group_size:
-            merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
+            x = self.merge_map_emit(x, merge_weights, emit_weights)
         else:
-            merge_weights, emit_weights = self.manygroups_get_merge_and_emit_weights(x)
-        x = self.merge_map_emit(x, merge_weights, None)
+            x = self.grouped_merge_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
         return x
 
@@ -64,13 +64,13 @@ class ContinuousMoeBaseClass(LoggingLayer):
         :return: x transposed so that the dimension to group over is second last
         """
 
-        if self.group_size == x.shape[self.sparsity_dim]:
+        if self.group_size == x.size(self.sparsity_dim):
             self.max_group_size = True
         else:
             self.max_group_size = False
 
         if self.sparsity_dim == 0:
-            x = torch.permute(x, [1, 0, 2])
+            x = x.transpose(0, 1)
             return x
         elif self.sparsity_dim == 1:
             return x
@@ -78,26 +78,39 @@ class ContinuousMoeBaseClass(LoggingLayer):
             raise NotImplementedError
 
     def get_merge_and_emit_weights(self, x):
-        # shape of x is free_dimension, aggr_dimension, dmodel
         merge_logits = torch.matmul(x, self.controller).transpose(1, 2)
-        # shape of merge_logits is free_dimension, aggr_dimension, n_experts
-        merge_weights = stable_softmax_temperature(
-            merge_logits, self.temperature, dim=-1
-        )
+        # shape of merge_logits is free_dimension, n_experts, aggr_dimension
+        if self.max_group_size:
+            merge_weights = stable_softmax_temperature(
+                merge_logits, self.temperature, dim=-1
+            )
+        else:
+            merge_weights = stable_softmax_temperature(
+                merge_logits.view(
+                    merge_logits.size(0), merge_logits.size(1), -1, self.group_size
+                ),
+                self.temperature,
+                dim=-1,
+            ).transpose(1, 2)
         return merge_weights, merge_weights
 
-    def manygroups_get_merge_and_emit_weights(self, x):
-        # shape of x is free_dimension, aggr_dimension, dmodel
-        merge_logits = torch.matmul(
-            x.view(x.shape[0], -1, self.group_size, self.dm), self.controller
+    def grouped_merge_map_emit(self, x, merge_weights, emit_weights):
+        # x shape is free_dimension, aggr_dimension, dmodel
+        # x reshaped is free_dimension, aggr_dimension // group_size, group_size, dmodel
+        # merge_weights shape is free_dimension, aggr_dimension // group_size, n_experts,  group_size
+        x = torch.matmul(
+            merge_weights, x.view(x.size(0), -1, self.group_size, x.size(2))
         )
-        # shape of merge_logits is free_dimension, agrr_dimension // group_size, group_size, n_experts
-        merge_weights = (
-            stable_softmax_temperature(merge_logits, self.temperature, dim=-2)
-            .view(x.shape[0], -1, self.n_experts)
-            .transpose(1, 2)
-        )
-        return merge_weights, merge_weights
+        # ACTUALLU, x shape is free_dimension, aggr_dimension // group_size, n_experts, dmodel
+        # x shape is free_dimension, n_experts, dmodel ||| lin1 shape is n_experts, dmodel, expert_size
+        x = torch.bmm(x.transpose(0, 1), self.lin1)
+        x = torch.relu_(x)
+        # x shape is n_experts, free_dimension, expert_size ||| lin2 shape is n_experts, expert_size, dmodel
+        x = torch.bmm(x, self.lin2)
+        # x shape is n_experts, free_dimension, dmodel ||| merge_weights shape is free_dimension, aggr_dimension, n_experts
+        # after permute, x shape is free_dimension, dmodel, n_experts, and merge_weights shape is free_dimension, n_experts, aggr_dimension
+        x = torch.bmm(x.permute(1, 2, 0), merge_weights)
+        return x
 
     def merge_map_emit(self, x, merge_weights, emit_weights):
         # x shape is free_dimension, aggr_dimension, dmodel
@@ -114,10 +127,9 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return x
 
     def reshape_into_original(self, x):
+        x = x.transpose(1, 2)
         if self.sparsity_dim == 0:
-            # sequence dimension is the new "batch size" when you think about it
-            x = x.permute(2, 0, 1)
-            # shape is free_dimension, aggr_dimension, dmodel
+            x = x.transpose(0, 1)
             return x
         elif self.sparsity_dim == 1:
             return x
