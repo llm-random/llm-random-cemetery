@@ -168,14 +168,14 @@ def calculate_llm_loss(
 def get_attention_layer(args):
     causal = args.model_type == "gpt"
 
-    attention_layer_fun = lambda: llm.Attention(
+    attention_layer_fun = lambda: llm.LegacyAttention(
         dmodel=args.dmodel,
         heads=args.n_att_heads,
         causal=causal,
         dhead=args.dhead,
         flash=args.flash_attention,
-        init_type=args.init_type,
-        init_scale=args.init_scale,
+        # init_type=args.init_type,
+        # init_scale=args.init_scale,
     )
 
     return attention_layer_fun
