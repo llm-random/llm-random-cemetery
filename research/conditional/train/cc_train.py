@@ -238,6 +238,6 @@ if __name__ == "__main__":
 
         mp.spawn(
             main,
-            args=[data_seeds, port],
+            args=[data_seeds, port, args],
             nprocs=args.n_gpus,
         )
