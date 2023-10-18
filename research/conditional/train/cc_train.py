@@ -8,6 +8,8 @@ import torch
 import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 from torch.nn.parallel import DistributedDataParallel as DDP
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.fsdp import CPUOffload as CPUOffload
 
 from lizrd.core import misc
 from lizrd.support.logging import get_current_logger, get_logger
@@ -140,6 +142,7 @@ def main(
         weight_decay=args.weight_decay,
         betas=(args.adam_beta1, args.adam_beta2),
     )
+    torch.bfloa
 
     scheduler = get_scheduler(args)
 
