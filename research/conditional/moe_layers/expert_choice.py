@@ -191,8 +191,10 @@ class ExpertChoiceFF(LoggingLayer):
     def extract_with_linear(
         self, x: torch.Tensor, topk_indices: torch.Tensor, batch_size, weight
     ):
-        with measure_time(self, "gate_preprocess_with_linear"):
+        with measure_time(self, "onehot_creation"):
             one_hot = F.one_hot(topk_indices, num_classes=batch_size).type(x.dtype)
+
+        with measure_time(self, "gate_preprocess_with_linear"):
             x = einsum(
                 "batch_size seq_len dmodel, n_exp topk seq_len batch_size, "
                 "n_exp dmodel exp_size "
