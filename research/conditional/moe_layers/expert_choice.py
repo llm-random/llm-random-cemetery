@@ -191,16 +191,17 @@ class ExpertChoiceFF(LoggingLayer):
     def extract_with_linear(
         self, x: torch.Tensor, topk_indices: torch.Tensor, batch_size, weight
     ):
-        with measure_time(self, "gate_preprocess_with_linear"):
+        with measure_time(self, "onehot_creation"):
             one_hot = F.one_hot(topk_indices, num_classes=batch_size).type(x.dtype)
-            x = einsum(
-                "batch_size seq_len dmodel, n_exp topk seq_len batch_size, "
-                "n_exp dmodel exp_size "
-                "-> n_exp topk seq_len exp_size",
-                x,
-                one_hot,
-                weight,
-            )
+
+        with measure_time(self, "gate_preprocess_with_linear"):
+            x = x.permute(2, 0, 1).unsqueeze(0)  # shape: (1, dmodel, batch_size, seq_len)
+            one_hot = one_hot.permute(3, 0, 1, 2)  # shape: (batch_size, n_exp, topk, seq_len)
+            intermediate_result = torch.matmul(one_hot, x)  # shape: (batch_size, n_exp, topk, dmodel)
+            # Then, we reshape `weight` and perform bmm operation with `intermediate_result`:
+            weight = weight.view(-1, weight.size(-2), weight.size(-1))  # shape: (n_exp, dmodel, exp_size)
+            final_result = torch.matmul(intermediate_result, weight)
+            final_result = final_result.permute(1, 2, 0, 3)  # shape: (n_exp, topk, seq_len, exp_size)
             return x, one_hot
 
     def gating_postprocess_onehot_with_linear(self, x, topk_values, one_hot, weight):
