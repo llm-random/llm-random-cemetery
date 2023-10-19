@@ -9,6 +9,8 @@ import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+from torch.nn.parallel import DistributedDataParallel as DDP
+
 from lizrd.core import misc
 from lizrd.support.logging import get_current_logger, get_logger
 from lizrd.support.misc import generate_random_string
