@@ -178,12 +178,20 @@ class ExpertChoiceFF(LoggingLayer):
         with measure_time(self, "one_hot"):
             one_hot = F.one_hot(topk_indices, num_classes=batch_size).type(x.dtype)
             # one_hot is (n_experts, topk, seq_len, batch_size)
-            x = einsum(
-                "batch_size seq_len dmodel, n_exp topk seq_len batch_size "
-                "-> n_exp topk seq_len dmodel",
-                x,
-                one_hot,
-            )
+            # x is (batch_size, seq_len, dmodel)
+            seq_len = x.shape[1]
+            x = x.flatten(start_dim=0, end_dim=1)
+            # x is (seq_len * batch_size, dmodel)
+            one_hot = one_hot.flatten(start_dim=0, end_dim=2)
+            # one hot is (n_experts * topk * seq_len, batch_size)
+            x = torch.bmm(one_hot, x)
+            x = x.reshape((self.n_experts, topk, seq_len, self.dmodel))
+            # x = einsum(
+            #     "batch_size seq_len dmodel, n_exp topk seq_len batch_size "
+            #     "-> n_exp topk seq_len dmodel",
+            #     x,
+            #     one_hot,
+            # )
         with measure_time(self, "reshape"):
             x = x.reshape((self.n_experts, topk, self.dmodel))
         return x, one_hot
@@ -191,8 +199,10 @@ class ExpertChoiceFF(LoggingLayer):
     def extract_with_linear(
         self, x: torch.Tensor, topk_indices: torch.Tensor, batch_size, weight
     ):
-        with measure_time(self, "gate_preprocess_with_linear"):
+        with measure_time(self, "onehot_creation"):
             one_hot = F.one_hot(topk_indices, num_classes=batch_size).type(x.dtype)
+
+        with measure_time(self, "gate_preprocess_with_linear"):
             x = einsum(
                 "batch_size seq_len dmodel, n_exp topk seq_len batch_size, "
                 "n_exp dmodel exp_size "
