@@ -35,6 +35,7 @@ params:
   total_experts_width: 98304
   effective_dff: 3072
   ^n_experts: [512]
+  logging_interval_heavy: 200_000
 
   # tags
   tags: ["gpt_base_grid"]
