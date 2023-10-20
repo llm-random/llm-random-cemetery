@@ -1,7 +1,10 @@
 parent: research/conditional/train/configs/baselines/gpt/common.yaml
 md5_parent_hash: f10b3c37dd5f7aa8e7282a671a5b37e3
+interactive_debug: true
+time: "0-02:10:00"
 
 params:
+  learning_rate: 1e-4
   dmodel: 256
   dff: 1024
   n_blocks: 4
