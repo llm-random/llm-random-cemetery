@@ -1,12 +1,12 @@
 parent: research/conditional/train/configs/baselines/gpt/common.yaml
 md5_parent_hash: f10b3c37dd5f7aa8e7282a671a5b37e3
-n_gpus: 4
-cuda_visible: "0,1,2,3"
+n_gpus: 1
+cuda_visible: "4"
 
 params:
   # init
   init_type: truncated_normal
-  init_scale: 0.1
+  init_scale: 1.0
 
   # data
   batch_size: 512
@@ -18,23 +18,25 @@ params:
   dff: 3072
   n_blocks: 12
   n_att_heads: 12
-  learning_rate: 1e-4
+  learning_rate: 2e-4
 
   # technical/common params
-  ff_mode: expert_choice
-  softmax_over: experts
-  group_granular_moe_by_batch: true
-  use_full_einsum: true
-  granular_moe_one_hot_impl: true
+  # ff_mode: expert_choice
+  # softmax_over: experts
+  # group_granular_moe_by_batch: true
+  # use_full_einsum: true
+  # granular_moe_one_hot_impl: true
   decoding_interval: 0
   ^flash_attention: [true]
-  data_distributed: true
+  # data_distributed: true
   weight_decay: 0.1
+  loss_checkpoint_chungs: 128
 
   # params of expert choice
-  total_experts_width: 98304
-  effective_dff: 3072
-  ^n_experts: [512]
+  # total_experts_width: 98304
+  # effective_dff: 3072
+  # ^n_experts: [512]
+  logging_interval_heavy: 200_000
 
   # tags
-  tags: ["gpt_base_grid"]
+  tags: ["base_dense"]
