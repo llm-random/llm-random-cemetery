@@ -1,8 +1,32 @@
 parent: research/conditional/train/configs/baselines/gpt/common.yaml
 md5_parent_hash: f10b3c37dd5f7aa8e7282a671a5b37e3
 
+n_gpus: 1
+# cuda_visible: "4,5,6,7"
+# interactive_debug: true
+time: "0-14:00:00"
+
 params:
   dmodel: 256
   dff: 1024
   n_blocks: 4
   n_att_heads: 4
+
+  # init
+  init_type: truncated_normal
+  init_scale: 1.0
+
+  # data
+  batch_size: 256
+  cutoff: 256
+
+  n_steps: 175_000
+  final_lr_step: 150_000
+  learning_rate: 4e-3
+  decoding_interval: 0
+  ^flash_attention: [true]
+  # data_distributed: true
+  weight_decay: 0.1
+
+  # tags
+  tags: ["dense_wd"]
