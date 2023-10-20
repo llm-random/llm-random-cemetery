@@ -6,10 +6,10 @@ cuda_visible: "0,1,2,3"
 params:
   # init
   init_type: truncated_normal
-  init_scale: 0.1
+  init_scale: 1.0
 
   # data
-  batch_size: 512
+  batch_size: 256
   cutoff: 256
 
   n_steps: 175_000
@@ -21,20 +21,22 @@ params:
   learning_rate: 1e-4
 
   # technical/common params
-  ff_mode: expert_choice
-  softmax_over: experts
-  group_granular_moe_by_batch: true
-  use_full_einsum: true
-  granular_moe_one_hot_impl: true
+  # ff_mode: expert_choice
+  # softmax_over: experts
+  # group_granular_moe_by_batch: true
+  # use_full_einsum: true
+  # granular_moe_one_hot_impl: true
   decoding_interval: 0
   ^flash_attention: [true]
   data_distributed: true
   weight_decay: 0.1
+  # loss_checkpoint_chungs: 128
 
   # params of expert choice
-  total_experts_width: 98304
-  effective_dff: 3072
-  ^n_experts: [512]
+  # total_experts_width: 98304
+  # effective_dff: 3072
+  # ^n_experts: [512]
+  logging_interval_heavy: 200_000
 
   # tags
-  tags: ["gpt_base_grid"]
+  tags: ["base_dense"]
