@@ -67,7 +67,7 @@ def chungized_llm_loss(
 
     def make_custom_forward():
         def custom_forward(*inputs):
-            output = model.head(inputs[0])
+            output = model.module.head(inputs[0])
             with torch.autocast(device_type="cuda", enabled=False, dtype=torch.float16):
                 gt = inputs[1]
                 mask = inputs[2]
@@ -91,7 +91,7 @@ def chungized_llm_loss(
     with torch.autocast(
         device_type="cuda", enabled=mixed_precision, dtype=torch.float16
     ):
-        encoder_output = model.encoder(input_tokens)
+        encoder_output = model.module.encoder(input_tokens)
         chunged_inputs = torch.chunk(encoder_output, n_chungs, dim=0)
         chunged_non_masked_inputs = torch.chunk(gt_tokens, n_chungs, dim=0)
         chunged_non_masked_masks = torch.chunk(mask, n_chungs, dim=0)
