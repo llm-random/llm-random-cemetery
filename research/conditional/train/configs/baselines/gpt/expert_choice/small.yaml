@@ -9,6 +9,13 @@ params:
   use_full_einsum: true
   granular_moe_one_hot_impl: true
   decoding_interval: 0
+  learning_rate: 0.0001
+  dataset_type: wikibook
+  simulate_group_size: 4
+  batch_size: 8
 
   # params of expert choice
-  effective_dff: 2048
+  effective_dff: 1024
+  total_experts_width: 2048
+  n_experts: 32
+
