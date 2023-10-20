@@ -30,11 +30,13 @@ params:
   ^flash_attention: [true]
   data_distributed: true
   weight_decay: 0.1
+  loss_checkpoint_chungs: 64
 
   # params of expert choice
   total_experts_width: 98304
   effective_dff: 3072
   ^n_experts: [512]
+  logging_interval_heavy: 200_000
 
   # tags
   tags: ["gpt_base_grid"]
