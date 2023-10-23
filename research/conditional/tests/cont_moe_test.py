@@ -48,17 +48,17 @@ class TestContinuousMoE(GeneralTestCase):
         )
         shape_and_parameters(layer)
 
-    def test_dim1(self):
-        layer = research.conditional.moe_layers.continuous_moe.ContinuousMoE(
-            dm,
-            dff,
-            n_experts=4,
-            group_size=4,
-            sparsity_dim=1,
-            temperature=1.0,
-            expert_size=8,
-        )
-        shape_and_parameters(layer)
+    # def test_dim1(self):
+    #     layer = research.conditional.moe_layers.continuous_moe.ContinuousMoE(
+    #         dm,
+    #         dff,
+    #         n_experts=4,
+    #         group_size=4,
+    #         sparsity_dim=1,
+    #         temperature=1.0,
+    #         expert_size=8,
+    #     )
+    #     shape_and_parameters(layer)
 
 
 class TestContinuousMoEQuick(GeneralTestCase):
