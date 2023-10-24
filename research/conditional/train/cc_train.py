@@ -16,6 +16,7 @@ from lizrd.train.train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
+from research.conditional.utils.check_model_fits import mark_model_fits
 from research.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.conditional.utils.conditional_trainer import ConditionalTrainer
@@ -215,8 +216,19 @@ def main(
         should_evaluate_dynamic_groupsize=args.should_evaluate_dynamic_groupsize,
         decoding_interval=args.decoding_interval,
     )
+
+    if args.model_fits_filename is not None:
+        params = args.model_fits_params.split(",")
+        values = [str(getattr(args, param)) for param in params]
+        zipped_params_values = list(zip(params, values))
+
+        mark_model_fits(args.model_fits_filename, zipped_params_values, False)
+
     trainer.train(args.n_steps)
 
+    if args.model_fits_filename is not None:
+        mark_model_fits(args.model_fits_filename, zipped_params_values, True)
+  
     if rank is not None:
         destroy_process_group()
 
