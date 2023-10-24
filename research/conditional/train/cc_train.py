@@ -16,6 +16,7 @@ from lizrd.train.train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
+from research.conditional.utils.check_model_fits import mark_model_fits
 from research.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.conditional.utils.conditional_trainer import ConditionalTrainer
@@ -215,7 +216,11 @@ def main(
         should_evaluate_dynamic_groupsize=args.should_evaluate_dynamic_groupsize,
         decoding_interval=args.decoding_interval,
     )
+    # gs = f"group_size_{args.group_size}"
+    gs = f"learning_rate_{args.learning_rate}"
+    mark_model_fits("/home/crewtool/llm-random/test_params.yaml", ["decoding_interval_0", gs], False)
     trainer.train(args.n_steps)
+    mark_model_fits("/home/crewtool/llm-random/test_params.yaml", ["decoding_interval_0", gs], True)
 
     if rank is not None:
         destroy_process_group()
