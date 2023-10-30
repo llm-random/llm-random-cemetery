@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from lizrd.core import misc
-from lizrd.core.misc import default, Sum
+from lizrd.core.misc import default, Aggregate
 from lizrd.core.initialization import get_init_weight
 from lizrd.core.misc import Checkpoint, Linear
 from lizrd.support import ash
@@ -306,13 +306,15 @@ def PreNormBlock(dmodel, layer, name):
     )
 
 
-@ash.check("... d -> ... d")
-def TransformerBlock(dmodel, layers, gradient_checkpointing, residual_fn):
-    residual_fn = default(residual_fn, partial(PreNormBlock, dmodel=dmodel))
-    residual_layers = [residual_fn(layer=layer, name=name) for name, layer in layers]
-    if gradient_checkpointing:
-        residual_layers = [Checkpoint(layer) for layer in residual_layers]
-    return nn.Sequential(*residual_layers)
+class TransformerBlock:
+    def __init__(self, dmodel, layers, gradient_checkpointing, residual_fn):
+        residual_fn = default(residual_fn, partial(PreNormBlock, dmodel=dmodel))
+        residual_layers = [
+            residual_fn(layer=layer, name=name) for name, layer in layers
+        ]
+        if gradient_checkpointing:
+            residual_layers = [Checkpoint(layer) for layer in residual_layers]
+        super(TransformerBlock, self).__init__(*residual_layers)
 
 
 @ash.check("... d -> ... d")
@@ -419,16 +421,16 @@ class PositionalEmbedding(nn.Module):
         return embeddings
 
 
-@ash.check("... -> ... d")
-def EmbeddingLayer(*layers):
-    return Sum(*layers)
+class EmbeddingLayer(Aggregate):
+    def __init__(self, *layers):
+        super(EmbeddingLayer, self).__init__((lambda x, y: x + y), *layers)
 
 
-@ash.check("... inp -> ... out")
-def PredictionHead(embedding_dim, output_size, init_type, init_scale):
-    return Linear(
-        embedding_dim, output_size, init_type=init_type, init_scale=init_scale
-    )
+class PredictionHead(Linear):
+    def __init__(self, embedding_dim, output_size, init_type, init_scale):
+        super(PredictionHead, self).__init__(
+            embedding_dim, output_size, init_type=init_type, init_scale=init_scale
+        )
 
 
 @ash.check("... -> ... out")
