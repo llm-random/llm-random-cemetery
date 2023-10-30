@@ -16,6 +16,7 @@ from lizrd.train.train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
+from research.conditional.utils.check_model_fits import mark_model_fits
 from research.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.conditional.utils.conditional_trainer import ConditionalTrainer
@@ -183,6 +184,11 @@ def main(
             else tokenizers.BertTokenizer,
         )
 
+    if args.model_fits_params is not None:
+        params = args.model_fits_params.split(",")
+        values = [str(getattr(args, param)) for param in params]
+        args.zipped_model_fits_params = list(zip(params, values))
+
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
@@ -214,6 +220,8 @@ def main(
         is_process_logging=is_process_logging,
         should_evaluate_dynamic_groupsize=args.should_evaluate_dynamic_groupsize,
         decoding_interval=args.decoding_interval,
+        zipped_model_fits_params=args.zipped_model_fits_params,
+        model_fits_filename=args.model_fits_filename
     )
     trainer.train(args.n_steps)
 
