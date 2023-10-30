@@ -13,6 +13,7 @@ from lizrd.support.logging import AbstractLogger
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
 from research.conditional.moe_layers.continuous_moe import ContinuousMoE
+from research.conditional.utils.check_model_fits import mark_model_fits
 from research.conditional.utils.layer_manager import LayerManager
 from research.conditional.utils.misc_tools import get_ith_chunk
 from research.conditional.utils.model_utils import make_loss_function
@@ -61,7 +62,8 @@ class ConditionalTrainer:
     total_time_afterstep: float = 0.0
     is_process_logging: bool = True
     should_evaluate_dynamic_groupsize: bool = True
-
+    zipped_model_fits_params: [str] = None
+    model_fits_filename: str = None
     def __attrs_post_init__(self):
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
         self.loss_accumulators = {
@@ -111,6 +113,10 @@ class ConditionalTrainer:
 
     def _before_train_operations(self):
         propagate_forward_pass_cache(self.model)
+        mark_model_fits(self.model_fits_filename, self.zipped_model_fits_params, False)
+
+    def _after_train_operations(self):
+        mark_model_fits(self.model_fits_filename, self.zipped_model_fits_params, True)
 
     def _after_step_operations(self):
         self.model.forward_pass_cache.clear()
@@ -177,6 +183,7 @@ class ConditionalTrainer:
                     value=self.total_time_afterstep / total_time,
                     iteration=step,
                 )
+        self._after_train_operations()
 
     def _decode_samples(self, step):
         examples = [
