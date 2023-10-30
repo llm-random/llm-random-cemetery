@@ -9,8 +9,10 @@ import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp import MixedPrecision
+from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
 from lizrd.core import misc
+from lizrd.core.llm import EmbeddingLayer, TransformerBlock, PredictionHead
 from lizrd.support.logging import get_current_logger, get_logger
 from lizrd.support.misc import generate_random_string
 from lizrd.train.train_utils import (
@@ -141,15 +143,30 @@ def main(
     if rank is not None:
         print(f"Moving model to cuda:{rank}")
         model = model.to(f"cuda:{rank}")
+        for module in layer_manager.high_precision_layers:
+            module = FSDP(
+                module,
+                device_id=rank,
+                mixed_precision=MixedPrecision(
+                    param_dtype=torch.float32, reduce_dtype=torch.float32
+                ),
+            )
+        fsdp_wrap_modules = (EmbeddingLayer, TransformerBlock, PredictionHead)
+        for _, module in model.named_parameters():
+            if isinstance(module, fsdp_wrap_modules):
+                module = FSDP(
+                    module,
+                    device_id=rank,
+                    mixed_precision=MixedPrecision(
+                        param_dtype=torch.bfloat16, reduce_dtype=torch.float32
+                    ),
+                )
         model = FSDP(
             model,
             device_id=rank,
             mixed_precision=MixedPrecision(
-                param_dtype=torch.float16,
-                reduce_dtype=torch.float32,
-                _module_classes_to_ignore=layer_manager.high_precision_layers,
-            ),
-            auto_wrap_policy=lambda module, recurse, nonwrapped_numel: True,
+                param_dtype=torch.bfloat16, reduce_dtype=torch.float32
+            )
         )
 
     optimizer = torch.optim.AdamW(
