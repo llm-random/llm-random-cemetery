@@ -16,6 +16,7 @@ from lizrd.train.train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
+from research.conditional.utils.check_model_fits import mark_model_fits
 from research.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.conditional.utils.conditional_trainer import ConditionalTrainer
@@ -214,6 +215,8 @@ def main(
         is_process_logging=is_process_logging,
         should_evaluate_dynamic_groupsize=args.should_evaluate_dynamic_groupsize,
         decoding_interval=args.decoding_interval,
+        model_fits_params=args.model_fits_params,
+        model_fits_filename=args.model_fits_filename
     )
     trainer.train(args.n_steps)
 
