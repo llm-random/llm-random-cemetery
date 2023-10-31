@@ -169,7 +169,7 @@ def calculate_llm_loss(
     return loss, aux_info
 
 
-def get_attention_layer(args):
+def get_attention_layer(args, rank):
     causal = args.model_type == "gpt"
 
     attention_layer_fun = lambda: llm.Attention(
@@ -180,6 +180,7 @@ def get_attention_layer(args):
         flash=args.flash_attention,
         init_type=args.init_type,
         init_scale=args.init_scale,
+        rank=rank
     )
 
     return attention_layer_fun
