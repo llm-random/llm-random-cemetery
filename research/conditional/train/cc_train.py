@@ -173,6 +173,7 @@ def main(
                 reduce_dtype=torch.float32,
                 cast_forward_inputs=True,
             ),
+            auto_wrap_policy=ModuleWrapPolicy((EmbeddingLayer, TransformerBlock, PredictionHead))
             # auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=100)
         )
         print("------- MODEL AFTER WRAPPING IN FSDP -------")
