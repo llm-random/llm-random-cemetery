@@ -1,5 +1,8 @@
 parent: research/conditional/train/configs/baselines/gpt/base.yaml
 md5_parent_hash: 1cc2f52ca625d4d24f327c4874413d0c
+name: saturation_test_medium
+time: 1-00:00:00
+n_gpus: 1
 
 params:
   # technical/common params
