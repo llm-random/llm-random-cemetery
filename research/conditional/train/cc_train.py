@@ -13,7 +13,12 @@ from torch.distributed.fsdp import MixedPrecision
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy, size_based_auto_wrap_policy
 
 from lizrd.core import misc
-from lizrd.core.llm import EmbeddingLayer, TransformerBlock, PredictionHead
+from lizrd.core.llm import (
+    EmbeddingLayer,
+    TransformerBlock,
+    PredictionHead,
+    AttentionMechanism,
+)
 from lizrd.support.logging import get_current_logger, get_logger
 from lizrd.support.misc import generate_random_string
 from lizrd.train.train_utils import (
@@ -165,6 +170,10 @@ def main(
         #             param_dtype=torch.bfloat16, reduce_dtype=torch.float32, cast_forward_inputs=True
         #         ),
         #     )
+        print(
+            f"Attention mechanism is instance of torch nn module: {isinstance(AttentionMechanism, torch.nn.Module)}"
+        )
+        print("misc linear is instance of torch nn module: ", isinstance(misc.Linear, torch.nn.Module))
         model = FSDP(
             model,
             device_id=rank,
@@ -173,10 +182,16 @@ def main(
                 reduce_dtype=torch.float32,
                 cast_forward_inputs=True,
             ),
+            auto_wrap_policy=ModuleWrapPolicy(
+                (EmbeddingLayer, TransformerBlock, PredictionHead)
+            ),
+            ignored_modules=(AttentionMechanism, misc.Linear)
+            # TODO: dodać tu ignored_modules
             # auto_wrap_policy=partial(size_based_auto_wrap_policy, min_num_params=100)
         )
         print("------- MODEL AFTER WRAPPING IN FSDP -------")
         print(model)
+        print("--------------------------------------------")
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
