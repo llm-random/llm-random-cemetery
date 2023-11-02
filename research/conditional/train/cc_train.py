@@ -150,28 +150,6 @@ def main(
     # make model data_distributed if necessary
     if rank is not None:
         print(f"Moving model to cuda:{rank}")
-        # model = model.to(f"cuda:{rank}")
-        # for module in layer_manager.high_precision_layers:
-        #     module = FSDP(
-        #         module,
-        #         device_id=rank,
-        # mixed_precision=MixedPrecision(
-        #     param_dtype=torch.float32,
-        #     reduce_dtype=torch.float32,
-        #     cast_forward_inputs=True,
-        #     cast_root_forward_inputs=True
-        # ),
-        #     )
-        # fsdp_wrap_modules = (EmbeddingLayer, TransformerBlock, PredictionHead)
-        # for _, module in model.named_modules():
-        # if isinstance(module, fsdp_wrap_modules):
-        #     FSDP(
-        #         module,
-        #         device_id=rank,
-        #         mixed_precision=MixedPrecision(
-        #             param_dtype=torch.bfloat16, reduce_dtype=torch.float32, cast_forward_inputs=True
-        #         ),
-        #     )
         ignored = []
         for _, module in model.named_modules():
             if isinstance(module, (AttentionMechanism, IgnoredFSDPLinear)):
