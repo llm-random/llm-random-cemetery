@@ -194,6 +194,11 @@ def attention_mechanism(
     return output
 
 
+class IgnoredFSDPLinear(Linear):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+
 class AttentionMechanism(nn.Module):
     def __init__(self, flash: bool, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -249,7 +254,7 @@ class Attention(LoggingLayer):
             init_scale=init_scale,
         )
         self.output_projection = FSDP(
-            Linear(
+            IgnoredFSDPLinear(
                 heads * dhead,
                 dmodel,
                 bias=False,
