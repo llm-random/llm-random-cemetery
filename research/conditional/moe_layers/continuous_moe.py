@@ -66,7 +66,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         :return: x transposed so that the dimension to group over is second last
         """
         if self.sparsity_dim == 0:
-            x = torch.permute(x, [1, 0, 2])
+            x = torch.permute(x, [1, 0, 2]) #x = x.transpose(0,1)
             return x
         elif self.sparsity_dim == 1:
             raise NotImplementedError
@@ -91,7 +91,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         return self.temperature, self.temperature
 
     def merge_map_emit(self, x, merge_weights, emit_weights):
-        # x shape is free_dimension, aggr_dimension // group_size * group_size, dmodel
+        # x shape is free_dimension, aggr_dimension, dmodel
         # merge_weights shape is free_dimension, aggr_dimension // group_size, group_size, n_experts
         x = torch.matmul(
             merge_weights.transpose(-1, -2),
