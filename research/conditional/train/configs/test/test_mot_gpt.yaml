@@ -1,8 +1,8 @@
 # grid args
 runner: "research.conditional.train.cc_train"
 time: "5-05:00:00"
-n_gpus: 0
-cuda_visible: ""
+n_gpus: 1
+cuda_visible: "5"
 
 # train params
 params:
@@ -35,7 +35,7 @@ params:
   lr_warmup_steps: 4
   n_att_heads: 4
   learning_rate: 0.0001
-  dataset_type: wikibook
-  use_dummy_dataset: true
+  dataset_type: c4
+  use_dummy_dataset: false
   init_type: kaiming_uniform
   init_scale: 1.0
