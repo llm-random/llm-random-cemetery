@@ -195,6 +195,7 @@ if __name__ == "__main__":
                 setup_args["runner"],
                 *runner_params,
             ]
+            print(f"subprocess_args: {subprocess_args}")
         elif CLUSTER_NAME == MachineBackend.LOCAL:
             # We run the experiment directly, not through a grid entrypoint script
             # because we want to be able to debug it
