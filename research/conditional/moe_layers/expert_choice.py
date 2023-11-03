@@ -17,7 +17,6 @@ class GateSoftmax(LoggingLayer):
     def __init__(self, softmax_over: Literal["tokens", "experts"]):
         super().__init__()
         self.softmax_over = softmax_over
-        self.high_precision = True
 
     def forward(self, gate_out: torch.Tensor):
         if self.softmax_over == "tokens":
