@@ -173,7 +173,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log = {}
         if self.group_size == 1:
             return log
-
+        breakpoint()
         merge_logits = self.logging_cache["merge_logits"]
         merge_weights = self.logging_cache["merge_weights"]
         emit_weights = self.logging_cache["emit_weights"]
