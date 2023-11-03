@@ -4,6 +4,8 @@ interactive_debug: false
 time: 00:10:00
 n_gpus: 1
 
+cuda_visible: "5"
+
 params:
     ^group_size: [2,4,8,16,32,64,128,256]
     ^gradient_checkpointing: [true,false]
@@ -31,3 +33,5 @@ params:
 
     model_fits_filename: "results_medium.json"
     model_fits_params: "dmodel,dff,n_blocks,n_att_heads,group_size,gradient_checkpointing,batch_size"
+    
+    project_name: crewtool/mojtestproject
