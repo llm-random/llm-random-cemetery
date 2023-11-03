@@ -186,7 +186,8 @@ if __name__ == "__main__":
             subprocess_args = [
                 "singularity",
                 "run",
-                *singularity_env_arguments,
+                f"--env",
+                f"HF_DATASETS_CACHE={setup_args['hf_datasets_cache']}",
                 f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
                 "--nv",
                 setup_args["singularity_image"],
@@ -195,6 +196,7 @@ if __name__ == "__main__":
                 setup_args["runner"],
                 *runner_params,
             ]
+            print(f"subprocess_args: {subprocess_args}")
         elif CLUSTER_NAME == MachineBackend.LOCAL:
             # We run the experiment directly, not through a grid entrypoint script
             # because we want to be able to debug it
