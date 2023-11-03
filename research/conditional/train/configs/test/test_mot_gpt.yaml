@@ -1,8 +1,8 @@
 # grid args
 runner: "research.conditional.train.cc_train"
 time: "5-05:00:00"
-n_gpus: 0
-cuda_visible: ""
+n_gpus: 1
+cuda_visible: "5"
 
 # train params
 params:
