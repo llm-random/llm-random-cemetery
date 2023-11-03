@@ -32,3 +32,5 @@ params:
 
     model_fits_filename: "results_base.json"
     model_fits_params: "dmodel,dff,n_blocks,n_att_heads,group_size,gradient_checkpointing,batch_size"
+
+    project_name: crewtool/mojtestproject
