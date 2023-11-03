@@ -186,6 +186,11 @@ def main(
             else tokenizers.BertTokenizer,
         )
 
+    if args.model_fits_params is not None:
+        params = args.model_fits_params.split(",")
+        values = [str(getattr(args, param)) for param in params]
+        args.zipped_model_fits_params = list(zip(params, values))
+
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
@@ -220,6 +225,8 @@ def main(
         min_eval_group_size=args.min_eval_group_size,
         max_eval_group_size=args.max_eval_group_size,
         steps_until_start_temperature_learn=args.steps_until_start_temperature_learn,
+        zipped_model_fits_params=args.zipped_model_fits_params,
+        model_fits_filename=args.model_fits_filename,
     )
     trainer.train(args.n_steps)
 
