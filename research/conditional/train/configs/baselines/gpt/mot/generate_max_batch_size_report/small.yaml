@@ -4,10 +4,16 @@ interactive_debug: false
 time: 00:10:00
 n_gpus: 1
 
+cuda_visible: "5"
+
 params:
-    ^group_size: [2,4,8,16,32,64,128,256]
-    ^gradient_checkpointing: [true,false]
-    ^batch_size: [2,4,8,16,32,64,128,256]
+    # ^group_size: [2,4,8,16,32,64,128,256]
+    # ^gradient_checkpointing: [true,false]
+    # ^batch_size: [2,4,8,16,32,64,128,256]
+
+    ^group_size: [32,64,128,256]
+    ^gradient_checkpointing: [true]
+    ^batch_size: [32,64,128,256]
 
     flash_attention: true
     n_steps: 3
@@ -29,5 +35,7 @@ params:
     init_type: "kaiming_uniform"
     init_scale: 1.0
 
-    model_fits_filename: "results_small.json"
-    model_fits_params: "dmodel,dff,n_blocks,n_att_heads,group_size,gradient_checkpointing,batch_size"
+    gpu_usage_report_path: "results_small.json"
+    gpu_usage_report_params: "dmodel,dff,n_blocks,n_att_heads,group_size,gradient_checkpointing,batch_size"
+
+    project_name: "crewtool/mojtestproject"
