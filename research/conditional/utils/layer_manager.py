@@ -105,13 +105,15 @@ class LoggingLayer(nn.Module):
 
     def update_cache_for_logging(self, key, value):
         if self.logging_switch:
-            if type(value) == dict:
+            if isinstance(value, dict):
                 if key in self.logging_cache:
                     self.logging_cache[key].update(value)
                 else:
                     self.logging_cache[key] = value
-            else:
+            elif isinstance(value, torch.Tensor):
                 self.logging_cache[key] = value.clone().detach().cpu()
+            else:
+                raise NotImplementedError
 
     def _combine_to_dict_key(self, key, layer_type, block_number):
         return f"block_{block_number}_{layer_type}_{key}"
