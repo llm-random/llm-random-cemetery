@@ -173,7 +173,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log = {}
         if self.group_size == 1:
             return log
-
         merge_logits = self.logging_cache["merge_logits"]
         merge_weights = self.logging_cache["merge_weights"]
         emit_weights = self.logging_cache["emit_weights"]
@@ -210,6 +209,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log[f"logits/mean"] = merge_logits.mean()
         log[f"logits/std"] = merge_logits.std()
 
+        # check if any tensor has any nan values
+        for key, value in log.items():
+            if torch.isnan(value):
+                breakpoint()
         return log
 
 
