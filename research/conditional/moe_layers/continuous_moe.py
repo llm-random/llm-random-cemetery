@@ -173,7 +173,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
         log = {}
         if self.group_size == 1:
             return log
-
         merge_logits = self.logging_cache["merge_logits"]
         merge_weights = self.logging_cache["merge_weights"]
         emit_weights = self.logging_cache["emit_weights"]
@@ -207,9 +206,13 @@ class ContinuousMoeBaseClass(LoggingLayer):
             log[f"{name}/normalised_entropy/mean"] = normalized_entropy.mean()
             log[f"{name}/normalised_entropy/mean"] = normalized_entropy.std()
 
-        log[f"logits/mean"] = merge_logits.mean()
+        log[f"logits/mean"] = 1e4 * (merge_logits * 1e-4).mean()
         log[f"logits/std"] = merge_logits.std()
 
+        # check if any tensor has any nan values
+        for key, value in log.items():
+            if torch.isnan(value):
+                breakpoint()
         return log
 
 
@@ -246,7 +249,11 @@ class LegacyContinuousMoE(ContinuousMoeBaseClass):
         self.update_cache_for_logging("merge_logits", merge_logits)
         merge_weights = stable_softmax_temperature(merge_logits, self.temperature)
         self.update_cache_for_logging("merge_weights", merge_weights)
+        self.update_cache_for_logging("emit_weights", merge_weights)
         return merge_weights, merge_weights
+
+    def log_heavy(self):
+        return {}
 
     def merge_map_emit(self, x, merge_weights, emit_weights):
         x = misc.einsum(
