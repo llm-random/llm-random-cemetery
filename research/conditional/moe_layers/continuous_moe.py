@@ -77,7 +77,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         merge_logits = torch.matmul(
             x.view(x.shape[0], -1, self.group_size, self.dm), self.controller
         )
-        self.update_cache_for_logging("merge_logits", merge_logits)
+        # self.update_cache_for_logging("merge_logits", merge_logits)
         # shape of merge_logits is free_dimension, agrr_dimension // group_size, group_size, n_experts
         temp_merge, temp_emit = self.get_temperature()
         merge_weights = stable_softmax_temperature(merge_logits, temp_merge, dim=-2)
@@ -89,8 +89,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
             )
         else:
             emit_weights = merge_weights
-        self.update_cache_for_logging("merge_weights", merge_weights)
-        self.update_cache_for_logging("emit_weights", emit_weights)
+        # self.update_cache_for_logging("merge_weights", merge_weights)
+        # self.update_cache_for_logging("emit_weights", emit_weights)
         return merge_weights, emit_weights
 
     def get_temperature(self):
@@ -171,45 +171,48 @@ class ContinuousMoeBaseClass(LoggingLayer):
 
     def log_heavy(self):
         log = {}
-        if self.group_size == 1:
-            return log
-
-        merge_logits = self.logging_cache["merge_logits"]
-        merge_weights = self.logging_cache["merge_weights"]
-        emit_weights = self.logging_cache["emit_weights"]
-
-        max_entropy = np.log(self.group_size)
-
-        merge_entropy_dim = -2
-        if self.emit_softmax_over_experts:
-            emit_entropy_dim = -1
-        else:
-            emit_entropy_dim = -2
-
-        merge_weights_sum = merge_weights.sum(dim=merge_entropy_dim)
-        emit_weights_sum = emit_weights.sum(dim=emit_entropy_dim)
-
-        # assure that the entropy dimensions above are correct for both merge and emit weights
-        assert torch.allclose(
-            merge_weights_sum, torch.ones_like(merge_weights_sum)
-        ), f"merge_weights_sum = {merge_weights_sum} does not sum to 1 along dim {merge_entropy_dim}"
-        assert torch.allclose(
-            emit_weights_sum, torch.ones_like(emit_weights_sum)
-        ), f"emit_weights_sum = {emit_weights_sum} does not sum to 1 along dim {emit_entropy_dim}"
-
-        for name, weights, entropy_dim in [
-            ("merge_weights", merge_weights, merge_entropy_dim),
-            ("emit_weights", emit_weights, emit_entropy_dim),
-        ]:
-            log[f"{name}/mean"] = weights.mean()
-            log[f"{name}/std"] = weights.std()
-            normalized_entropy = entropy(weights, dim=entropy_dim) / max_entropy
-            log[f"{name}/normalised_entropy/mean"] = normalized_entropy.mean()
-            log[f"{name}/normalised_entropy/mean"] = normalized_entropy.std()
-
-        log[f"logits/mean"] = merge_logits.mean()
-        log[f"logits/std"] = merge_logits.std()
-
+        # if self.group_size == 1:
+        #     return log
+        # merge_logits = self.logging_cache["merge_logits"]
+        # merge_weights = self.logging_cache["merge_weights"]
+        # emit_weights = self.logging_cache["emit_weights"]
+        #
+        # max_entropy = np.log(self.group_size)
+        #
+        # merge_entropy_dim = -2
+        # if self.emit_softmax_over_experts:
+        #     emit_entropy_dim = -1
+        # else:
+        #     emit_entropy_dim = -2
+        #
+        # merge_weights_sum = merge_weights.sum(dim=merge_entropy_dim)
+        # emit_weights_sum = emit_weights.sum(dim=emit_entropy_dim)
+        #
+        # # assure that the entropy dimensions above are correct for both merge and emit weights
+        # assert torch.allclose(
+        #     merge_weights_sum, torch.ones_like(merge_weights_sum)
+        # ), f"merge_weights_sum = {merge_weights_sum} does not sum to 1 along dim {merge_entropy_dim}"
+        # assert torch.allclose(
+        #     emit_weights_sum, torch.ones_like(emit_weights_sum)
+        # ), f"emit_weights_sum = {emit_weights_sum} does not sum to 1 along dim {emit_entropy_dim}"
+        #
+        # for name, weights, entropy_dim in [
+        #     ("merge_weights", merge_weights, merge_entropy_dim),
+        #     ("emit_weights", emit_weights, emit_entropy_dim),
+        # ]:
+        #     log[f"{name}/mean"] = weights.mean()
+        #     log[f"{name}/std"] = weights.std()
+        #     normalized_entropy = entropy(weights, dim=entropy_dim) / max_entropy
+        #     log[f"{name}/normalised_entropy/mean"] = normalized_entropy.mean()
+        #     log[f"{name}/normalised_entropy/mean"] = normalized_entropy.std()
+        #
+        # log[f"logits/mean"] = 1e4 * (merge_logits * 1e-4).mean()
+        # log[f"logits/std"] = merge_logits.std()
+        #
+        # # check if any tensor has any nan values
+        # for key, value in log.items():
+        #     if torch.isnan(value):
+        #         breakpoint()
         return log
 
 
