@@ -21,7 +21,7 @@ from lizrd.scripts.grid_utils import (
     get_grid_entrypoint,
     get_setup_args_with_defaults,
     translate_to_argparse,
-    make_singularity_env_arguments,
+    make_singularity_env_arguments, check_for_argparse_correctness,
 )
 from lizrd.support.code_copying import copy_code
 from lizrd.support.misc import load_with_inheritance
@@ -105,6 +105,8 @@ if __name__ == "__main__":
         print("Running locally, skip copying code to a new directory.")
 
     slurm_command = "srun" if interactive_debug_session else "sbatch"
+
+    check_for_argparse_correctness(grid)
 
     for i, (training_args, setup_args) in enumerate(grid):
         full_config_path = f"full_config{i}.yaml"
