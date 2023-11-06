@@ -25,7 +25,7 @@ params:
   # ------ FILL IN BELOW ------
   # n_steps:
   # scheduler: cosine
-  # learning_rate: 1e-4
+  learning_rate: 1e-4
   # lr_warmup_steps:
   # final_lr_step:
   # batch_size: 256
