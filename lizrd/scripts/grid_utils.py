@@ -1,6 +1,7 @@
 import copy
 import os
 import platform
+import subprocess
 from enum import Enum
 from itertools import product
 from typing import List, Optional, Tuple
@@ -317,3 +318,15 @@ def make_singularity_env_arguments(
         if len(variables_and_values) > 0
         else []
     )
+
+def check_for_argparse_correctness(grid: list[dict[str,str]]):
+    for i, (training_args, setup_args) in enumerate(grid):
+        training_args["n_gpus"] = setup_args["n_gpus"]
+        runner_params = translate_to_argparse(training_args)
+
+        try:
+            result = subprocess.run(['python3', '-m', setup_args["runner"], *runner_params], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                    universal_newlines=True)
+            return result
+        except subprocess.CalledProcessError as e:
+            raise Exception(f"Argparse error in grid entry {i}: {e.stderr}")
