@@ -8,6 +8,7 @@ import torch.nn.functional as F
 
 from lizrd.core import misc
 from lizrd.core.misc import default, Aggregate
+from lizrd.core.misc import Noop
 from lizrd.core.initialization import get_init_weight
 from lizrd.core.misc import Checkpoint, Linear
 from lizrd.core.distributed import wrap_in_fsdp
@@ -261,14 +262,23 @@ class Attention(LoggingLayer):
             init_type=init_type,
             init_scale=init_scale,
         )
-        self.output_projection = wrap_in_fsdp(
+        attention_mechanism = wrap_in_fsdp(
             enabled=fsdp_enabled,
-            module=self.output_projection,
+            module=AttentionMechanism(flash=flash),
+            rank=rank,
+            param_precision=torch.float32,
+            offload_params=offload_params,
+            cast_inputs=True
+        )
+        cast = wrap_in_fsdp(
+            enabled=fsdp_enabled,
+            module=Noop(),
             rank=rank,
             param_precision=param_precision,
-            offload_params=offload_params,
+            cast_inputs=True,
         )
-        self.attention_mechanism = AttentionMechanism(flash=flash)
+        self.attention_mechanism = nn.Sequential(attention_mechanism, cast)
+
 
     def forward(self, x):
         projected = self.input_projection(x)
