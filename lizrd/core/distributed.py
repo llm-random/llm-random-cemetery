@@ -50,7 +50,7 @@ def wrap_in_fsdp(
     elif cast_outputs_to is not None:
         cast_module = wrap_module_in_fsdp(
             enabled=enabled,
-            modue=Noop(),
+            module=Noop(),
             rank=rank,
             param_precision=param_precision,
             cast_inputs=True,
