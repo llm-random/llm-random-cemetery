@@ -1,5 +1,7 @@
 parent: research/conditional/train/configs/baselines/gpt/mini.yaml
 md5_parent_hash: 019212718f2ace8645ddca8f28f6eaee
+n_gpus: 1
+cuda_visible: "0"
 
 params:
   # technical/common params
@@ -23,10 +25,11 @@ params:
   ^n_experts: [32]
 
   # ------ FILL IN BELOW ------
-  # n_steps:
-  # scheduler: cosine
-  # learning_rate: 1e-4
-  # lr_warmup_steps:
-  # final_lr_step:
-  # batch_size: 256
-  # cutoff: 256
+  n_steps: 150_000
+  scheduler: cosine
+  learning_rate: 1e-4
+  lr_warmup_steps: 175_000
+  final_lr_step: 150_000
+  batch_size: 128
+  cutoff: 256
+  weight_decay: 0.01
