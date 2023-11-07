@@ -1,15 +1,16 @@
 # grid args
 runner: "research.conditional.train.cc_train"
-time: "5-05:00:00"
-n_gpus: 0
-cuda_visible: ""
+time: "0-00:10:00"
+n_gpus: 1
+interactive_debug: true
+# cuda_visible: ""
 
 # train params
 params:
   # model
   batch_size: 4
   cutoff: 16
-  project_name: "pmtest/llm-random-tests"
+  project_name: "kkrol/llm-random-tests"
   name: "baseline_test"
   mixed_precision: true
   tags:
