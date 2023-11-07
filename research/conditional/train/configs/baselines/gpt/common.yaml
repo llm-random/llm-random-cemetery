@@ -1,5 +1,7 @@
 parent: research/conditional/train/configs/baselines/common.yaml
 md5_parent_hash: 07160dfb7bc619d49d83caa40cb658af
+interactive_debug: true
+time: "0-0:10:00"
 
 params:
   model_type: gpt
