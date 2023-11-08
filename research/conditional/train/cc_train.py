@@ -159,8 +159,7 @@ def main(
         **common_dataloaders_kwargs, dataset_split="train"
     )
     eval_dataloader = get_processed_dataset(
-        **common_dataloaders_kwargs,
-        dataset_split=("eval" if args.dataset_type == "wikibook" else "validation"),
+        **common_dataloaders_kwargs, dataset_split=("train")
     )
 
     # in case of data parallelism, only gpu:0 should log
