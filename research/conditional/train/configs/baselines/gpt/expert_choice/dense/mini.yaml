@@ -7,3 +7,5 @@ params:
   # init
   init_type: truncated_normal
   init_scale: 0.1
+
+  save_weights_interval: 25
