@@ -344,10 +344,10 @@ class TransformerBlock(nn.Sequential):
             )
 
         residual_fn = default(
-            attn_ff_wrap_fn(residual_fn), partial(PreNormBlock, dmodel=dmodel)
+            residual_fn, partial(PreNormBlock, dmodel=dmodel)
         )
         residual_layers = [
-            residual_fn(layer=layer, name=name) for name, layer in layers
+            attn_ff_wrap_fn(residual_fn(layer=layer, name=name)) for name, layer in layers
         ]
         if gradient_checkpointing:
             residual_layers = [Checkpoint(layer) for layer in residual_layers]
