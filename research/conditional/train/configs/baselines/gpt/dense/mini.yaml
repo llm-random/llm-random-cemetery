@@ -6,3 +6,5 @@ params:
   dff: 1024
   n_blocks: 4
   n_att_heads: 4
+
+  save_weights_interval: 25
