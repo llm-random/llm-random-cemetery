@@ -1,7 +1,8 @@
 parent: research/conditional/train/configs/baselines/gpt/small.yaml
 md5_parent_hash: cbdf4e5992f41713488c25c819086e51
-time: "0-4:10:00"
+time: "0-1:00:00"
 runner: "research.blanks.train"
+interactive_debug: true
 
 params:
   name: blanx-eval-testing
@@ -10,7 +11,7 @@ params:
 
   tokenizer: gpt
   # blanx args
-  ^n_blanks: [0, 1]
+  ^n_blanks: [1]
   ^blanks_residual: [true]
   ^blanks_add_embedding: [false]
   blanks_learnable_weights: true
@@ -22,6 +23,11 @@ params:
   # blank_initial_weight: 10.0
   # blanks_use_straight_through: true
   # LOCAL:
-  # batch_size: 2
-  # use_dummy_dataset: true
-  # num_workers: 0
+  dmodel: 8
+  dff: 8
+  n_blocks: 1
+  n_att_heads: 8
+
+  batch_size: 32
+  use_dummy_dataset: true
+  num_workers: 2
