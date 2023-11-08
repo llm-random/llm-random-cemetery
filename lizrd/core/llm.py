@@ -322,7 +322,7 @@ def PreNormBlock(dmodel, layer, name):
     )
 
 
-class TransformerBlock(nn.Sequential):
+class TransformerBlock(nn.Module):
     def __init__(
         self,
         dmodel,
@@ -343,25 +343,28 @@ class TransformerBlock(nn.Sequential):
                 param_precision=param_precision,
                 offload_params=offload_params,
             )
-
-        residual_fn = default(residual_fn, partial(PreNormBlock, dmodel=dmodel))
-        residual_layers = [
-            attn_ff_wrap_fn(residual_fn(layer=layer, name=name))
-            for name, layer in layers
-        ]
-        # residual_layers = []
-        # for name, layer in layers:
-        #     print("type of layer:")
-        #     print(type(layer))
-        #     to_add=attn_ff_wrap_fn(residual_fn(layer=layer, name=name))
-        #     residual_layers.append(to_add)
-        #     print(f"Adding layer: {layer}")
+        self.layers = nn.Sequential()
+        # residual_fn = default(residual_fn, partial(PreNormBlock, dmodel=dmodel))
+        # residual_layers = [
+        #     attn_ff_wrap_fn(residual_fn(layer=layer, name=name))
+        #     for name, layer in layers
+        # ]
+        residual_layers = []
+        for name, layer in layers:
+            print("type of layer:")
+            print(type(layer))
+            to_add=attn_ff_wrap_fn(residual_fn(layer=layer, name=name))
+            residual_layers.append(to_add)
+            print(f"Adding layer: {layer}")
         # print(residual_layers[0])
         # print(residual_layers[1])
         if gradient_checkpointing:
             residual_layers = [Checkpoint(layer) for layer in residual_layers]
         self.layers = nn.Sequential(*residual_layers)
-        super(TransformerBlock, self).__init__(*residual_layers)
+        # super(TransformerBlock, self).__init__(*residual_layers)
+
+    def forward(self, x):
+        return self.layers(x)
 
 
 @ash.check("... d -> ... d")
