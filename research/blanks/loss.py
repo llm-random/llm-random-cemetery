@@ -143,7 +143,12 @@ def calculate_llm_loss(
                         assert not input_tokens[nth_blank_mask == 1].eq(blank_id).any()
                     else:
                         assert input_tokens[nth_blank_mask == 1].eq(blank_id).all()
-                    nth_blank_loss = (nth_blank_mask.reshape(-1) * mask_loss).sum()
+                    try:
+                        nth_blank_loss = (nth_blank_mask.reshape(-1) * mask_loss).sum()
+                    except:
+                        import pdb
+
+                        pdb.set_trace()
                     blanks_losses[f"blank_{n}_loss"] = (
                         nth_blank_loss / nth_blanks_count if nth_blanks_count > 0 else 0
                     )
