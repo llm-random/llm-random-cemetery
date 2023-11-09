@@ -115,22 +115,51 @@ class ContinuousMoeBaseClass(LoggingLayer):
             x,
         )
         # x shape is (free_dimension, split_dimension // group_size, n_experts, dmodel) ||| (lin1 shape is n_experts, dmodel, expert_size)
-        x = torch.matmul(x.transpose(1, 2), self.lin1)
+        # x = torch.matmul(x.transpose(1, 2), self.lin1)
+
+        # x = torch.bmm(x.view(-1, self.n_experts, self.dm).transpose(0, 1), self.lin1)
+
+        x = torch.matmul(x.view(-1, self.n_experts, self.dm).transpose(0, 1), self.lin1)
+
+        # old = torch.bmm(x.view(-1, self.n_experts, self.dm).transpose(0, 1), self.lin1)
+        # x = torch.matmul(x.transpose(1, 2), self.lin1)
+
+        # x = x.transpose(1,2).view(self.n_experts, -1, self.expert_size)
+
         x = torch.relu_(x)
-        # x shape is (free_dimension, split_dimension // group_size, n_experts, expert_size) ||| (lin2 shape is n_experts, expert_size, dmodel)
-        x = torch.matmul(x, self.lin2)
-        # emit_weights shape is (free_dimension, split_dimension // group_size, group_size, n_experts)
-        # x shape is free_dimension, group_size, split_dimension // group_size, dmodel
-        x = torch.matmul(
-            emit_weights,
-            x.transpose(1, 2),
+        # # x shape is (free_dimension, split_dimension // group_size, n_experts, expert_size) ||| (lin2 shape is n_experts, expert_size, dmodel)
+        # x = torch.matmul(x, self.lin2)
+        # # emit_weights shape is (free_dimension, split_dimension // group_size, group_size, n_experts)
+        # # x shape is free_dimension, group_size, split_dimension // group_size, dmodel
+        # x = torch.matmul(
+        #     emit_weights,
+        #     x.transpose(1, 2),
+        # )
+
+        # x shape is n_experts, free_dimension * aggr_dimension // group_size, expert_size ||| lin2 shape is n_experts, expert_size, dmodel
+        x = torch.bmm(x, self.lin2)
+        # x shape is n_experts, free_dimension * aggr_dimension // group_size, dmodel ||| merge_weights shape is free_dimension, aggr_dimension // group_size, group_size, n_experts
+        # view x to be n_experts, free_dimension, aggr_dimension // group_size, dmodel
+        # permute it to be free_dimension, aggr_dimension // group_size, n_experts, dmodel
+        x = (
+            torch.matmul(
+                emit_weights,
+                x.view(x.size(0), emit_weights.size(0), -1, x.size(-1)).permute(
+                    1, 2, 0, 3
+                ),
+            )
+            .view(emit_weights.size(0), -1, x.size(-1))
+            .transpose(1, 2)
         )
+
         return x
 
     def reshape_into_original(self, x):
         if self.sparsity_dim == 0:
-            x = x.view(x.size(0), -1, self.dm)
-            return x.transpose(0, 1)
+            # x = x.view(x.size(0), -1, self.dm)
+            # return x.transpose(0, 1)
+            x = x.permute(2, 0, 1)
+            return x
         elif self.sparsity_dim == 1:
             return x.view(x.size(0), -1, self.dm)
         else:
