@@ -7,3 +7,10 @@ params:
   # init
   init_type: truncated_normal
   init_scale: 0.1
+
+  save_weights_interval: 25
+  learning_rate: 1e-4
+  dmodel: 256
+  dff: 1024
+  n_blocks: 4
+  n_att_heads: 4
