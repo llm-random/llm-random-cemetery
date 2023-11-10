@@ -1,5 +1,7 @@
 parent: research/conditional/train/configs/baselines/gpt/dense/mini.yaml
 md5_parent_hash: 549895edc027ef23656e1f8b7e2ffaab
+time: "0-00:10:00"
+interactive_debug: True
 
 params:
   learning_rate: 1e-4
@@ -7,3 +9,11 @@ params:
   # init
   init_type: truncated_normal
   init_scale: 0.1
+
+  # save_weights_interval: 25
+
+  learning_rate: 1e-4
+  dmodel: 256
+  dff: 1024
+  n_blocks: 4
+  n_att_heads: 4
