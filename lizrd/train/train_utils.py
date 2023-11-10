@@ -111,7 +111,7 @@ def get_model(
     model = llm.LLM(embedding_layer, encoder_tower, head)
     if ddp_enabled:
         model = wrap_in_ddp(module=model, rank=rank)
-    elif fsdp_enabled:
+    elif True:
         model = wrap_in_fsdp(
             module=model,
             rank=rank,
