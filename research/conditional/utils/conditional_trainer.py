@@ -156,7 +156,7 @@ class ConditionalTrainer:
                 except:
                     print("Decoding failed, skipping...")
 
-            if step % self.eval_interval == 0:
+            if step > 0 and self.eval_interval > 0 and step % self.eval_interval == 0:
                 self._eval_step(step)
 
             t2 = time.time()
@@ -260,7 +260,7 @@ class ConditionalTrainer:
         self._batches_eval_step(
             batches=batches,
             step=step,
-            eval_variant_name=None,
+            eval_variant_name="normal",
         )
         layers = [
             l
@@ -275,8 +275,8 @@ class ConditionalTrainer:
             for log_group_size_factor in range(
                 self.eval_min_group_size_logfactor, self.eval_max_group_size_logfactor
             ):
-                current_group_size = (
-                    np.power(2, log_group_size_factor) * original_group_size
+                current_group_size = int(
+                    2**log_group_size_factor * original_group_size
                 )
                 assert isinstance(current_group_size, int)
                 with temp_modify_attr(layers, "group_size", current_group_size):
