@@ -1,12 +1,24 @@
 from typing import Optional
+from functools import partial
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp import MixedPrecision, CPUOffload
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 import torch
+from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
 
 from lizrd.core.misc import Noop
+
+
+def custom_auto_wrap_policy(
+    module: nn.Module,
+    recurse: bool,
+    nonwrapped_numel: int,
+    # Additional custom arguments
+    min_num_params: int = int(1e8),
+) -> bool:
+    return nonwrapped_numel >= min_num_params
 
 
 def wrap_in_fsdp(
@@ -28,7 +40,12 @@ def wrap_in_fsdp(
                 cast_forward_inputs=cast_inputs,
             ),
             cpu_offload=CPUOffload(offload_params=offload_params),
+            # auto_wrap_policy=partial(custom_auto_wrap_policy, min_num_params=int(1e5))
         )
+
+    for _, child in module.named_modules():
+        if not isinstance(child, FSDP):
+            print(f"found conflicting class: {child}")
 
     if output_cast_dtype is not None:
         main_module = _create_single_fsdp_module(module, param_precision)
