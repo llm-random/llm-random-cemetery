@@ -45,7 +45,6 @@ def entropy(x, dim):
     return ent
 
 
-# context manager
 @contextmanager
 def temp_modify_attr(
     layers: list[torch.nn.Module], attribute_name, new_attribute_value
