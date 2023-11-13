@@ -8,3 +8,6 @@ params:
   dataset_type: wikibook
   torch_compile: true
   logging_interval_heavy: 0
+  should_evaluate_dynamic_groupsize: true
+  min_eval_group_size: 32
+  max_eval_group_size: 256
