@@ -33,12 +33,14 @@ class LayerManager:
     def _register_layers(self, model):
         for name, layer in model.named_modules():
             suffix = name.split(".")[-1]
-            if "pre_norm" in suffix:
+            if "residual" in suffix:
                 block_name = self.extract_block_name(name)
-                self._layers.append((f"{block_name}_{suffix}", layer))
-            elif suffix.endswith("feedforward"):
+                subblock_type = "feedforward" if hasattr(layer.layer, "feedforward") else "attention"
+                self._layers.append((f"{block_name}_{subblock_type}_residual", layer))
+            elif suffix == "feedforward":
                 block_name = self.extract_block_name(name)
                 self._layers.append((block_name, layer))
+        pass
 
     def extract_block_name(self, name):
         pattern = r"block_(\d+)"
