@@ -5,8 +5,14 @@ from torch.distributed.fsdp import MixedPrecision, CPUOffload
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 import torch
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    checkpoint_wrapper,
+    CheckpointImpl,
+    apply_activation_checkpointing,
+)
 
 from research.conditional.moe_layers.expert_choice import ExpertGating
+import lizrd.core.llm as llm
 from lizrd.core.llm import AttentionMechanism
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
@@ -48,6 +54,18 @@ def wrap_in_fsdp(
         )
 
     wrapped = _create_single_fsdp_module(module, param_precision)
+
+    check_fn = (
+        lambda module: isinstance(module, llm.EmbeddingLayer)
+        or isinstance(module, llm.TransformerBlock)
+        or isinstance(module, llm.PredictionHead)
+    )
+    non_reentrant_wrapper = partial(
+        checkpoint_wrapper,
+        offload_to_cpu=False,
+        checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+    )
+    apply_activation_checkpointing(wrapped, check_fn=check_fn)
 
     if print_model:
         print("------- MODEL AFTER WRAPPING IN FSDP -------")
