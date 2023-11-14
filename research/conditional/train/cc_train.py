@@ -95,10 +95,10 @@ def main(
     ff_layer_fun = get_ff_layer(args, rank)
     attention_layer_fun = get_attention_layer(args, rank=rank)
     residual_fn = get_residual_layer(args)
-    if args.model_parallelism_fragmentation is not None:
-        args.model_parallelism_fragmentation = [
-            int(s) for s in args.model_parallelism_fragmentation.split(",")
-        ]
+    # if args.model_parallelism_fragmentation is not None:
+    #     args.model_parallelism_fragmentation = [
+    #         int(s) for s in args.model_parallelism_fragmentation.split(",")
+    #     ]
     if args.save_weights_path is not None:
         filename = args.save_weights_path.split("/")[-1]
         assert (
