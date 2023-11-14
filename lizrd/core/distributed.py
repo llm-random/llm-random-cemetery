@@ -7,6 +7,9 @@ import torch.nn as nn
 import torch
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import apply_activation_checkpointing
+
+from lizrd.core import llm
 
 
 def custom_auto_wrap_policy(
@@ -43,6 +46,12 @@ def wrap_in_fsdp(
             custom_auto_wrap_policy, min_num_params=min_num_params
         ),
     )
+    # check_fn = (
+    #     lambda module: isinstance(module, llm.EmbeddingLayer)
+    #     or isinstance(module, llm.TransformerBlock)
+    #     or isinstance(module, llm.PredictionHead)
+    # )
+    # apply_activation_checkpointing(wrapped, check_fn=check_fn)
 
     if print_model:
         print("------- MODEL AFTER WRAPPING IN FSDP -------")
