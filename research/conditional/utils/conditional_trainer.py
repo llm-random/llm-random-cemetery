@@ -222,7 +222,8 @@ class ConditionalTrainer:
         if self.gradient_accumulation_steps == 1:
             self.optimizer.zero_grad()
         # clear computation graph, store gradients
-        self.scaler.scale(loss).backward()
+        # self.scaler.scale(loss).backward()
+        loss.backward()
         if should_apply_gradient:
             if self.gradient_clipping is not None:
                 self.scaler.unscale_(self.optimizer)
