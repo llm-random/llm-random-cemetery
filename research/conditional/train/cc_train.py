@@ -167,6 +167,7 @@ def main(
         **common_dataloaders_kwargs,
         dataset_split=("eval" if args.dataset_type == "wikibook" else "validation"),
     )
+    print("here!!!")
 
     # in case of data parallelism, only gpu:0 should log
     is_process_logging = True if rank is None or rank == 0 else False
