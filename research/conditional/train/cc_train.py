@@ -146,27 +146,28 @@ def main(
         betas=(args.adam_beta1, args.adam_beta2),
     )
 
-    scheduler = get_scheduler(args)
+    # scheduler = get_scheduler(args)
 
-    common_dataloaders_kwargs = {
-        "sequence_length": args.cutoff,
-        "device": DEVICE,
-        "num_workers": args.num_workers,
-        "batch_size": args.batch_size // args.n_gpus
-        if data_distributed
-        else args.batch_size,
-        "seed": args.data_seed if data_seeds is None else data_seeds[rank],
-        "model_type": args.model_type,
-        "dataset_type": args.dataset_type,
-        "use_dummy_dataset": args.use_dummy_dataset,
-    }
-    train_dataloader = get_processed_dataset(
-        **common_dataloaders_kwargs, dataset_split="train"
-    )
-    eval_dataloader = get_processed_dataset(
-        **common_dataloaders_kwargs,
-        dataset_split=("eval" if args.dataset_type == "wikibook" else "validation"),
-    )
+    # common_dataloaders_kwargs = {
+    #     "sequence_length": args.cutoff,
+    #     "device": DEVICE,
+    #     "num_workers": args.num_workers,
+    #     "batch_size": args.batch_size // args.n_gpus
+    #     if data_distributed
+    #     else args.batch_size,
+    #     "seed": args.data_seed if data_seeds is None else data_seeds[rank],
+    #     "model_type": args.model_type,
+    #     "dataset_type": args.dataset_type,
+    #     "use_dummy_dataset": args.use_dummy_dataset,
+    # }
+    # train_dataloader = get_processed_dataset(
+    #     **common_dataloaders_kwargs, dataset_split="train"
+    # )
+    # eval_dataloader = get_processed_dataset(
+    #     **common_dataloaders_kwargs,
+    #     dataset_split=("eval" if args.dataset_type == "wikibook" else "validation"),
+    # )
+    print("here!!!")
 
     # in case of data parallelism, only gpu:0 should log
     is_process_logging = True if rank is None or rank == 0 else False
