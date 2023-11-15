@@ -62,6 +62,10 @@ def get_processed_dataset(
         )
     else:
         raise ValueError(f"Unknown model type: {model_type}")
+    import os
+
+    print(os.getenv("TOKENIZERS_PARALLELISM"))
+    print("DataLoader Constructor...")
 
     dataloader = DataLoader(
         packer,
@@ -72,5 +76,6 @@ def get_processed_dataset(
         shuffle=False,
         pin_memory=True,
     )
+    print("constructor done")
 
     return DataloaderWrapper(dataloader, device)
