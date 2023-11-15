@@ -63,6 +63,8 @@ def get_processed_dataset(
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
+    print("DataLoader Constructor...")
+
     dataloader = DataLoader(
         packer,
         num_workers=num_workers,

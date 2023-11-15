@@ -145,7 +145,7 @@ def main(
         weight_decay=args.weight_decay,
         betas=(args.adam_beta1, args.adam_beta2),
     )
-
+    print("getting dataloader...")
     scheduler = get_scheduler(args)
 
     common_dataloaders_kwargs = {
@@ -167,6 +167,7 @@ def main(
         **common_dataloaders_kwargs,
         dataset_split=("eval" if args.dataset_type == "wikibook" else "validation"),
     )
+    print("here!!!")
 
     # in case of data parallelism, only gpu:0 should log
     is_process_logging = True if rank is None or rank == 0 else False
