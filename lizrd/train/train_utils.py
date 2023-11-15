@@ -64,7 +64,7 @@ def get_model(
     )
 
     layer_dict = {
-        "attention": attention_layer_fun,
+        # "attention": attention_layer_fun,
         "feedforward": ff_layer_fun,
     }
     # Python officially preserves dict order since 3.7, so we pass the layer dict
@@ -154,7 +154,7 @@ class Trainer:
         run_after_backprop: bool,
     ):
         optimizer.zero_grad()
-
+        scaler = None
         if scaler is not None:
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)

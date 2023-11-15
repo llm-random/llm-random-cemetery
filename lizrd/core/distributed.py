@@ -38,14 +38,15 @@ def wrap_in_fsdp(
         auto_wrap_policy=auto_wrap_policy,
     )
 
-    if print_model:
+    is_process_logging = True if rank is None or rank == 0 else False
+    if print_model and is_process_logging:
         print("------- MODEL AFTER WRAPPING IN FSDP -------")
         print(wrapped)
         print("--------------------------------------------")
 
     return wrapped
 
-
+[]
 def wrap_in_ddp(
     module: nn.Module,
     rank: int,
