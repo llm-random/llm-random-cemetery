@@ -9,7 +9,9 @@ from lizrd.text import datasets, packers, data, tokenizers
 
 class DataloaderWrapper:
     def __init__(self, dataloader: DataLoader, device: torch.device):
+        print("DataloaderWrapper Constructor...")
         self.generator = iter(dataloader)
+        print("DataloaderWrapper Constructor done")
         self.device = device
 
     def get_batch(self) -> data.LLMBatch:
@@ -62,6 +64,10 @@ def get_processed_dataset(
         )
     else:
         raise ValueError(f"Unknown model type: {model_type}")
+    import os
+
+    print(os.getenv("TOKENIZERS_PARALLELISM"))
+    print("DataLoader Constructor...")
 
     dataloader = DataLoader(
         packer,
@@ -72,5 +78,6 @@ def get_processed_dataset(
         shuffle=False,
         pin_memory=True,
     )
+    print("constructor done")
 
     return DataloaderWrapper(dataloader, device)
