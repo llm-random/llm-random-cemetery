@@ -64,7 +64,7 @@ def get_model(
     )
 
     layer_dict = {
-        "attention": attention_layer_fun,
+        # "attention": attention_layer_fun,
         "feedforward": ff_layer_fun,
     }
     # Python officially preserves dict order since 3.7, so we pass the layer dict
