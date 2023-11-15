@@ -109,7 +109,7 @@ def main(
         args.save_weights_path = os.path.abspath(args.save_weights_path)
         os.makedirs(args.save_weights_path, exist_ok=True)
 
-    param_precision = torch.bfloat16 if args.mixed_precision else torch.float32
+    param_precision = torch.float32
     fsdp_mixed_precision_ignore_classes = get_mixed_precision_ignore_classes(args)
 
     model = get_model(
