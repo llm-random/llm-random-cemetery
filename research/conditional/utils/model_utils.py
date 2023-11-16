@@ -172,19 +172,24 @@ def calculate_llm_loss(
 
 
 def get_attention_layer(args):
-    causal = args.model_type == "gpt"
+    if args.attention_mechanism == "multihead":
+        causal = args.model_type == "gpt"
+        attention_layer_fun = lambda: llm.Attention(
+            dmodel=args.dmodel,
+            heads=args.n_att_heads,
+            causal=causal,
+            dhead=args.dhead,
+            flash=args.flash_attention,
+            init_type=args.init_type,
+            init_scale=args.init_scale,
+        )
+        return attention_layer_fun
+    elif args.attention_mechanism == "moe":
+        raise NotImplementedError("Mixture of Experts Attention not yet implemented")
 
-    attention_layer_fun = lambda: llm.Attention(
-        dmodel=args.dmodel,
-        heads=args.n_att_heads,
-        causal=causal,
-        dhead=args.dhead,
-        flash=args.flash_attention,
-        init_type=args.init_type,
-        init_scale=args.init_scale,
+    raise NotImplementedError(
+        f"Attention Mechanism {args.attention_mechanism} not implemented"
     )
-
-    return attention_layer_fun
 
 
 def get_residual_layer(args):
