@@ -46,6 +46,7 @@ from research.conditional.moe_layers.continuous_moe import (
     ContinuousMoE,
     LegacyContinuousMoE,
 )
+from research.conditional.moe_layers.expert_attention import ExpertChoiceAttention
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.moe_layers.token_choice import TokenChoiceFF
 from research.conditional.moe_layers.ff_timed import FeedForwardTimed
@@ -185,7 +186,9 @@ def get_attention_layer(args):
         )
         return attention_layer_fun
     elif args.attention_mechanism == "moe":
-        raise NotImplementedError("Mixture of Experts Attention not yet implemented")
+        ff_args = get_expert_choice_args(args)
+        attention_layer_fun = partial(ExpertChoiceAttention, **ff_args)
+        return attention_layer_fun
 
     raise NotImplementedError(
         f"Attention Mechanism {args.attention_mechanism} not implemented"
