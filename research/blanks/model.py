@@ -143,7 +143,7 @@ def get_normal_attention_layer(args):
         dmodel=args.dmodel,
         heads=args.n_att_heads,
         dhead=args.dhead,
-        flash=True,
+        flash=False,
         causal=True,
         init_type=args.init_type,
         init_scale=args.init_scale,
