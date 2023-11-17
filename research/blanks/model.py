@@ -6,7 +6,6 @@ from research.blanks.utils import (
     shift_left,
     shift_right,
     make_blanks_fixed_positions,
-    make_blanks_attention_mask,
 )
 from lizrd.core.initialization import get_init_weight
 
@@ -269,13 +268,13 @@ class BlankLLM(torch.nn.Module):
 
         self.attention_manager = BlankAttentionManager(self)
 
-    def forward(self, *args, **kwargs):
-        with self.attention_manager.set_mask(make_blanks_attention_mask(args[0])):
+    def forward(self, input_tokens, attention_mask):
+        with self.attention_manager.set_mask(attention_mask):
             if isinstance(self.head, BlankDiffPredictionHead):
-                encoder_output = self.encoder.forward(*args, **kwargs)
-                return self.head(encoder_output, *args, **kwargs)
+                encoder_output = self.encoder.forward(input_tokens)
+                return self.head(encoder_output, input_tokens)
             else:
-                return self.full_model.forward(*args, **kwargs)
+                return self.full_model.forward(input_tokens)
 
 
 class BlankEmbedding(torch.nn.Module):
