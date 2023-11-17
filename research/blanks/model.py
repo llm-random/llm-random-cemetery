@@ -130,7 +130,7 @@ def get_attention_layer(args):
         heads=args.n_att_heads,
         causal=True,
         dhead=args.dhead,
-        flash=True,
+        flash=False,
         init_type=args.init_type,
         init_scale=args.init_scale,
     )
