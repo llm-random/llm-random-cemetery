@@ -37,8 +37,8 @@ class ExpertChoiceAttention(LoggingLayer):
         super().__init__()
 
         self.dmodel = dmodel
-        self.n_experts = n_experts
-        self.exp_dhead = expert_size
+        self.n_experts = n_experts // 2  # FIXME(KKrol): mem-fixing
+        self.exp_dhead = expert_size // 2  # FIXME(KKrol): mem-fixing
         self.topk_fraction = topk_fraction
         self.n_gating_heatmaps = n_gating_heatmaps
         self.causal = False  # FIXME(KKrol): hardcode
@@ -92,39 +92,29 @@ class ExpertChoiceAttention(LoggingLayer):
             flash=self.flash,
         ).transpose(0, 1)
 
-        # TODO(KKrol): multiply by topk_values
+        # Multiply by topk_values
         topk_values = torch.unsqueeze(topk_values, -1)
         attention_output = torch.mul(attention_output, topk_values)
-        # TODO(KKrol): unsqueeze topk to seq_len
-        unsqueezed = einsum(
+
+        # Unsqueeze topk (dense form used for attention) to seq_len
+        attention_output = einsum(
             "n_exp batch_size topk exp_size, n_exp batch_size topk seq_len "
             "-> batch_size seq_len n_exp exp_size",
             attention_output,
             one_hot,
         )
-        # TODO(KKrol): output projection
 
-        output = self.output_projection(unsqueezed.flatten(-2))
+        # Output projection
+        attention_output = self.output_projection(attention_output.flatten(-2))
 
-        # with measure_time(self, "layer_norm"):
-        #     x = self.ln(x)
-
-        return output
+        return attention_output
 
     def expert_gating(self, x: torch.Tensor, batch_size: int, seq_len: int):
         # expert embedding
         with measure_time(self, "expert_embedding"):
-            if self.use_torch_bmm:
-                gate = self.gate.unsqueeze(0).expand(batch_size, -1, -1)
-                gate_out = torch.bmm(x, gate).permute(2, 0, 1)
-                assert gate_out.shape == (self.n_experts, batch_size, seq_len)
-            else:
-                gate_out = einsum(
-                    "batch_size seq_len dmodel, dmodel n_experts "
-                    "-> n_experts batch_size seq_len ",
-                    x,
-                    self.gate,
-                )
+            gate = self.gate.unsqueeze(0).expand(batch_size, -1, -1)
+            gate_out = torch.bmm(x, gate).permute(2, 0, 1)
+            assert gate_out.shape == (self.n_experts, batch_size, seq_len)
         self.update_cache_for_logging("unflatten_gate_out", gate_out)
 
         # perform softmax either over tokens for each expert or over experts for each token
@@ -134,8 +124,7 @@ class ExpertChoiceAttention(LoggingLayer):
             elif self.softmax_over == "experts":
                 gate_out = torch.softmax(gate_out, dim=0)
 
-        topk = round(self.topk_fraction * gate_out.shape[-1])
-        topk = 4  # FIXME(KKrol): hard-code
+        topk = seq_len // 4  # FIXME(KKrol): hard-code
         assert topk > 0, "topk is 0, increase topk_fraction or batch_size"
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
