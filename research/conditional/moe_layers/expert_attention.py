@@ -106,9 +106,6 @@ class ExpertChoiceAttention(LoggingLayer):
 
         output = self.output_projection(unsqueezed.flatten(-2))
 
-        # with measure_time(self, "layer_norm"):
-        #     x = self.ln(x)
-
         return output
 
     def expert_gating(self, x: torch.Tensor, batch_size: int, seq_len: int):
@@ -134,8 +131,7 @@ class ExpertChoiceAttention(LoggingLayer):
             elif self.softmax_over == "experts":
                 gate_out = torch.softmax(gate_out, dim=0)
 
-        topk = round(self.topk_fraction * gate_out.shape[-1])
-        topk = 4  # FIXME(KKrol): hard-code
+        topk = seq_len // 4  # FIXME(KKrol): hard-code
         assert topk > 0, "topk is 0, increase topk_fraction or batch_size"
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
