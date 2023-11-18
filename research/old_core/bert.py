@@ -8,7 +8,7 @@ from lizrd.support import ash
 from lizrd.support.profile import TimerLayer
 
 
-@ash.check("... d -> ... d")
+
 class Attention(nn.Module):
     def __init__(self, dmodel, heads, dhead=None, layer_fun=None):
         super(Attention, self).__init__()
