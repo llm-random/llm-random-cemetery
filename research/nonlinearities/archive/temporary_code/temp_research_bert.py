@@ -3,7 +3,7 @@ from lizrd.core.misc import EinMix
 from lizrd.support import ash
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardMultineckFORCED(
     dmodel, dhead, n_heads, dff, parameter_sharing_mode: str = "none"
 ):
