@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Sequence, Type
+from typing import Sequence, Type, Union
 import torch
 from torch.nn import LayerNorm
 import torch.nn.functional as F
@@ -460,3 +460,23 @@ def get_mixed_precision_ignore_classes(args) -> Sequence[Type[torch.nn.Module]]:
         ignored_classes += [AttentionMechanism]
 
     return ignored_classes
+
+def get_fsdp_modules_to_wrap(packed_names) -> Union[tuple[torch.nn.Module], None]:
+    names = []
+    if packed_names is None:
+        return None
+    for name in packed_names.split(","):
+        if name == "Attention":
+            names.append(llm.Attention)
+        elif name == "FeedForward":
+            names.append(llm.FeedForward)
+        elif name == "TransformerBlock":
+            names.append(llm.TransformerBlock)
+        elif name == "EmbeddingLayer":
+            names.append(llm.EmbeddingLayer)
+        elif name == "PredictionHead":
+            names.append(llm.PredictionHead)
+        else:
+            raise ValueError(f"Unknown name {name}")
+    return tuple(names)
+
