@@ -10,7 +10,7 @@ from research.nonlinearities.temporary_code.helper_layers import (
 )
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardMultineckFORCED(
     dmodel, dhead, n_heads, dff, parameter_sharing_mode: str = "none"
 ):
@@ -98,7 +98,7 @@ def FeedForwardMultineckFORCED(
     )
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardMultibias(dmodel, dff, n_bias_copies):
     """
     the simplest way to increase nonlinearities: initialise a few sets of biases and try all of them simultaneously, then average the results
@@ -172,7 +172,7 @@ def MultineckShuffle(dmodel, dhead, n_heads, dff):
     )
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardBottleneckFORCED(dmodel, dbottle, dff):
     """
     Modification of a standard feed-forward transformer layer done by replacing each dense layer with two consecutive dense layers with no activation between them
@@ -193,7 +193,7 @@ def FeedForwardBottleneckFORCED(dmodel, dbottle, dff):
     return block
 
 
-@ash.check("... d -> ... d")
+
 def OverparametrisedFeedForward(dmodel, dff):
     """
     Modification of a standard feed-forward transformer layer done by replacing each dense layer with two consecutive dense layers with no activation between them
@@ -318,7 +318,7 @@ def RescaledMultineckFeedForward(dmodel, dhead, n_heads, dff, aggregate_per_head
     return nn.Sequential(multineck_1, expand, nn.ReLU(inplace=True), rescale, aggregate)
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardChoppedNeckFORCED(dmodel, n_chunks):
     """
     init params: dmodel, n_chunks
@@ -362,7 +362,7 @@ def FeedForwardChoppedNeckFORCED(dmodel, n_chunks):
     )
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardMultilinear(dmodel, dff, nheads):
     """
     Sanity check for the EinMix layer, used to compare normal nn.Linear with EinMix
@@ -397,7 +397,7 @@ def FeedForwardMultilinear(dmodel, dff, nheads):
     return block
 
 
-@ash.check("... d -> ... d")
+
 def LinearEinmix(dmodel, dff):
     """
     Sanity check for the EinMix layer, used to compare normal nn.Linear with EinMix
