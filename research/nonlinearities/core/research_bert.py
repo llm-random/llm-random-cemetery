@@ -9,7 +9,7 @@ from lizrd.core.misc import EinMix, Linear
 from lizrd.support import ash
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardBottleneck(dmodel, exp_rate, bottleneck_chop_ratio=None):
     """
     :param dmodel: dimension of the model
@@ -49,7 +49,7 @@ def FeedForwardBottleneck(dmodel, exp_rate, bottleneck_chop_ratio=None):
     return block
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardBottleneckFORCED(dmodel, dff, bottleneck_size):
     """
     Similar to FeedForwardBottleneck, but the bottleneck size is forced to be bottleneck_size
@@ -71,7 +71,7 @@ def FeedForwardBottleneckFORCED(dmodel, dff, bottleneck_size):
     return block
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardMultineck(
     dmodel, exp_rate, n_heads, parameter_sharing_mode: str = "none"
 ):
@@ -184,7 +184,7 @@ def FeedForwardMultineck(
     return block
 
 
-@ash.check("... d -> ... d")
+
 class FeedForwardInceptionNeck(nn.Module):
     """
     iteration on FeedForwardMultiNeck, where the heads are not the same size, but are defined by the head_sizes list
@@ -210,7 +210,7 @@ class FeedForwardInceptionNeck(nn.Module):
         return x
 
 
-@ash.check("... d -> ... d")
+
 def FeedForwardChoppedNeck(dmodel, n_chunks):
     """
     init params: dmodel, n_chunks

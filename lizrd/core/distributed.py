@@ -9,6 +9,8 @@ import torch
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+from lizrd.core import llm
+
 
 def wrap_in_fsdp(
     module: nn.Module,
@@ -16,6 +18,7 @@ def wrap_in_fsdp(
     param_precision: torch.dtype,
     cast_inputs: bool,
     mixed_precision_ignore_classes: list,
+    # explicitly_wrap_modules: tuple[nn.Module],
     offload_params: bool,
     print_model: bool,
     min_num_params: int,
@@ -25,6 +28,23 @@ def wrap_in_fsdp(
         if min_num_params is not None
         else size_based_auto_wrap_policy
     )
+    modules_to_wrap = (
+        llm.TransformerBlock,
+        llm.EmbeddingLayer,
+        llm.PredictionHead,
+    )
+
+    def explicit_wrap_policy(
+        module: nn.Module,
+        recurse: bool,
+        nonwrapped_numel: int,
+        _modules_to_wrap: tuple[nn.Module],
+    ) -> bool:
+        return isinstance(module, _modules_to_wrap)
+
+    wrap_policy = partial(explicit_wrap_policy, _modules_to_wrap=modules_to_wrap)
+
+
     wrapped = FSDP(
         module,
         device_id=rank,
@@ -35,7 +55,7 @@ def wrap_in_fsdp(
             _module_classes_to_ignore=mixed_precision_ignore_classes,
         ),
         cpu_offload=CPUOffload(offload_params=offload_params),
-        auto_wrap_policy=auto_wrap_policy,
+        auto_wrap_policy=wrap_policy,
     )
 
     if print_model:

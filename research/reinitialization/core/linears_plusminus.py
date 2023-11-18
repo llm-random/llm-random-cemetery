@@ -5,7 +5,7 @@ from lizrd.core import misc
 from lizrd.support import ash
 
 
-@ash.check("... d -> ... d")
+
 class PlusMinusFF(nn.Module):
     def __init__(self, dmodel: int, dff: int):
         super().__init__()

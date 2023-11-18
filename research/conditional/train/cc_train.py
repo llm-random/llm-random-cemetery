@@ -9,6 +9,7 @@ import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 
 from lizrd.core import misc
+from lizrd.core.llm import Attention
 from lizrd.support.logging import get_current_logger, get_logger
 from lizrd.support.misc import generate_random_string, set_seed
 from lizrd.train.train_utils import (
