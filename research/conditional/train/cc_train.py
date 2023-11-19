@@ -122,6 +122,10 @@ def main(
             )
 
     if args.fsdp_enabled:
+        # assert args.gradient_checkpointing is False, (
+        #     "Gradient checkpointing is not supported with FSDP in our implementation yet."
+        #     "Please set `--gradient_checkpointing False`."
+        # )
         fsdp_param_precision = args.mixed_precision_dtype
         if fsdp_param_precision == "float16":
             raise Exception(
@@ -133,6 +137,14 @@ def main(
         fsdp_param_precision = None
         fsdp_mixed_precision_ignore_classes = None
         fsdp_modules_to_wrap = None
+
+    if args.flash_attention:
+        assert args.mixed_precision, (
+            "Flash attention requires mixed precision to be enabled. Please set `--mixed_precision True`."
+        )
+        assert args.mixed_precision_dtype in [torch.bfloat16, torch.float16], (
+            "Flash attention requires bfloat16 or float16 precision. Please set `--mixed_precision_dtype bfloat16` or `--mixed_precision_dtype float16`."
+        )
 
     ff_layer_fun = get_ff_layer(args)
     attention_layer_fun = get_attention_layer(args)
