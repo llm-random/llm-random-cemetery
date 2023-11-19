@@ -11,7 +11,7 @@ from lizrd.support.profile import Timer, TimerLayer
 from lizrd.core.initialization import get_init_weight, get_init_bias
 
 
-@ash.check("... d -> ... d")
+
 class RewrittenSplitFF(nn.Module):
     def __init__(
         self,
@@ -162,7 +162,7 @@ class RewrittenSplitFF(nn.Module):
             return result_final
 
 
-@ash.check("... d -> ... d")
+
 class SimpleSplitFF(nn.Module):
     def __init__(
         self,
@@ -300,7 +300,7 @@ class SimpleSplitFF(nn.Module):
             return result_final
 
 
-@ash.check("... d -> ... d")
+
 class BatchSplitFF(nn.Module):
     def __init__(
         self,
@@ -547,7 +547,7 @@ class BatchSplitFF(nn.Module):
             return result_final
 
 
-@ash.check("... dinp -> ... dout")
+
 class FactoredDense(nn.Module):
     def __init__(self, dinput, doutput, modules):
         super(FactoredDense, self).__init__()
@@ -573,7 +573,7 @@ class FactoredDense(nn.Module):
         return y
 
 
-@ash.check("... dinp -> ... dinp")
+
 def PermutationDense(dinput):
     sqdi = int(round(dinput**0.5))
     assert sqdi * sqdi == dinput
@@ -652,12 +652,12 @@ def PermutationDense(dinput):
     )
 
 
-@ash.check("... -> ...")
+
 def NoopDense():
     return nn.Sequential()
 
 
-@ash.check("... dinp -> ... dout")
+
 def FactoredDense(dinput, doutput, modules):
     assert doutput % modules == 0
     dmodule = doutput // modules
