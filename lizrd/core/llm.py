@@ -5,6 +5,7 @@ from functools import partial
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import checkpoint_wrapper
 
 from lizrd.core import misc
 from lizrd.core.misc import default, Aggregate
@@ -345,7 +346,7 @@ class TransformerBlock(nn.Module):
 
         if gradient_checkpointing:
             residual_layers = [
-                (name, Checkpoint(layer)) for name, layer in residual_layers
+                (name, checkpoint_wrapper(layer)) for name, layer in residual_layers
             ]
 
         self.block = nn.Sequential(OrderedDict(residual_layers))
