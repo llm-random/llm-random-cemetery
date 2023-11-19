@@ -67,7 +67,7 @@ class EinMix(nn.Module):
         return newoutput
 
 
-@ash.check("... inp -> ... out")
+
 def DenseEinMix(dinp, dout):
     return EinMix(
         "... dinp -> ... dout",
@@ -78,7 +78,7 @@ def DenseEinMix(dinp, dout):
     )
 
 
-@ash.check("... inp -> ... out")
+
 class Linear(nn.Linear):
     def __init__(self, *args, init_type, init_scale, **kwargs):
         if "bias" not in kwargs:
@@ -103,7 +103,7 @@ def check_layer_funs(*layer_funs):
             )
 
 
-@ash.check("... -> ...")
+
 class StopGradient(nn.Module):
     def __init__(self):
         super(StopGradient, self).__init__()
@@ -116,7 +116,7 @@ def stop_gradient(x):
     return x.detach()
 
 
-@ash.check("... -> ...")
+
 class StopValuePassGradient(nn.Module):
     def __init__(self):
         super(StopValuePassGradient, self).__init__()
