@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Type, Sequence
 from functools import partial
 
 from torch.distributed.fsdp.wrap import size_based_auto_wrap_policy
@@ -9,17 +9,26 @@ import torch
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+from lizrd.core.llm import TransformerBlock, EmbeddingLayer, PredictionHead
+
+
+def wrap_in_ddp(
+    module: nn.Module,
+    rank: int,
+):
+    return DDP(module=module.to(f"cuda:{rank}"), device_ids=[rank])
+
 
 def wrap_in_fsdp(
     module: nn.Module,
     rank: Optional[int],
     param_precision: torch.dtype,
     cast_inputs: bool,
-    mixed_precision_ignore_classes: list,
+    mixed_precision_ignored_classes: Sequence[Type[nn.Module]],
     offload_params: bool,
     print_model: bool,
     min_num_params: int,
-    modules_to_wrap: tuple[nn.Module],
+    modules_to_wrap: tuple[Type[nn.Module]],
 ):
     if modules_to_wrap is not None and min_num_params is not None:
         raise Exception(
@@ -29,16 +38,21 @@ def wrap_in_fsdp(
         raise Exception(
             "FSDP wrapping policy unspecified. Either `modules_to_wrap` or `min_num_params` must be supplied."
         )
-
+    modules_to_wrap = (TransformerBlock,EmbeddingLayer,PredictionHead)
     if modules_to_wrap is not None:
-
+        print("modules_to_wrap: ", modules_to_wrap)
+        # print all types
+        for module in modules_to_wrap:
+            print(module, type(module))
         def explicit_wrap_policy(
             module: nn.Module,
             recurse: bool,
             nonwrapped_numel: int,
-            _modules_to_wrap: tuple[nn.Module],
+            _modules_to_wrap: tuple[Type[nn.Module]],
         ) -> bool:
             return isinstance(module, _modules_to_wrap)
+
+        assert isinstance(modules_to_wrap, tuple)
 
         wrap_policy = partial(explicit_wrap_policy, _modules_to_wrap=modules_to_wrap)
 
@@ -56,7 +70,7 @@ def wrap_in_fsdp(
             param_dtype=param_precision,
             reduce_dtype=torch.float32,
             cast_forward_inputs=cast_inputs,
-            _module_classes_to_ignore=mixed_precision_ignore_classes,
+            _module_classes_to_ignore=mixed_precision_ignored_classes,
         ),
         cpu_offload=CPUOffload(offload_params=offload_params),
         auto_wrap_policy=wrap_policy,
@@ -68,10 +82,3 @@ def wrap_in_fsdp(
         print("--------------------------------------------")
 
     return wrapped
-
-
-def wrap_in_ddp(
-    module: nn.Module,
-    rank: int,
-):
-    return DDP(module=module.to(f"cuda:{rank}"), device_ids=[rank])
