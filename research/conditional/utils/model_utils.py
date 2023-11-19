@@ -473,6 +473,10 @@ def unpack_module_names(packed_names) -> Union[tuple[Type[torch.nn.Module]], Non
             names.append(llm.FeedForward)
         elif name == "TransformerBlock":
             names.append(llm.TransformerBlock)
+        elif name == "TransformerTower":
+            names.append(llm.TransformerTower)
+        elif name == "LLM":
+            names.append(llm.LLM)
         elif name == "EmbeddingLayer":
             names.append(llm.EmbeddingLayer)
         elif name == "PredictionHead":
