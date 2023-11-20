@@ -66,6 +66,7 @@ def wrap_in_fsdp(
             reduce_dtype=torch.float32,
             cast_forward_inputs=cast_inputs,
             _module_classes_to_ignore=mixed_precision_ignored_classes,
+            use_orig_params=True,
         ),
         cpu_offload=CPUOffload(offload_params=offload_params),
         auto_wrap_policy=wrap_policy,
