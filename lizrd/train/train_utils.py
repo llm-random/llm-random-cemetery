@@ -79,7 +79,7 @@ def get_model(
             cast_inputs=True,
             mixed_precision_ignored_classes=fsdp_mixed_precision_ignore_classes,
             offload_params=fsdp_offload_params,
-            print_model=True,
+            print_model=True if rank == 0 else False,
             min_num_params=fsdp_min_num_params,
             modules_to_wrap=fsdp_modules_to_wrap,
         )
