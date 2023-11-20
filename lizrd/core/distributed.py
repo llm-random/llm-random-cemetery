@@ -35,7 +35,7 @@ def wrap_in_fsdp(
     ), "The FSDP arguments `modules_to_wrap` and `min_num_params` are mutually exclusive. Either supply one, or the other."
 
     if modules_to_wrap is not None:
-        wrap_policy = ModuleWrapPolicy(modules_to_wrap)
+        wrap_policy = ModuleWrapPolicy(set(modules_to_wrap))
     else:
         wrap_policy = (
             partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
