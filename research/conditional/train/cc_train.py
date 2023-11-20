@@ -121,6 +121,10 @@ def main(
         args.mixed_precision_dtype = torch.float16
     elif args.mixed_precision_dtype == "bfloat16":
         args.mixed_precision_dtype = torch.bfloat16
+    else:
+        raise ValueError(
+            f"mixed_precision_dtype must be either 'float16' or 'bfloat16', but was {args.mixed_precision_dtype}."
+        )
 
     # in case of data parallelism (DDP/FSDP), only gpu:0 should log
     is_logging_process = True if rank is None or rank == 0 else False
