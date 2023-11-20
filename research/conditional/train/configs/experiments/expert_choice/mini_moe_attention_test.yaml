@@ -4,10 +4,10 @@ time: 0-05:00:00
 
 params:
   name: "expert_choice_attention_test_mini"
-  n_att_experts: 128
+  n_att_experts: 4
   n_att_heads: 0
   dhead: 64
-  att_topk: 32
+  att_topk: 256
   flash_attention: false
   model_type: bert
   dataset_type: wikibook
