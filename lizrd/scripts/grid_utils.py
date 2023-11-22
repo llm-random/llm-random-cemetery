@@ -59,9 +59,10 @@ def get_cache_path(machine_backend: MachineBackend) -> str:
 
 
 def get_singularity_image(machine_backend: MachineBackend) -> str:
-    image_name = "sparsity_2023.11.10_15.23.19.sif"
-    common_dir = get_common_directory(machine_backend)
-    return f"{common_dir}/images/{image_name}"
+    # image_name = "sparsity_2023.11.10_15.23.19.sif"
+    # common_dir = get_common_directory(machine_backend)
+    # return f"{common_dir}/images/{image_name}"
+    return "/home/crewtool/sparsity_2023.11.22_17.55.36.sif"
 
 
 def get_grid_entrypoint(machine_backend: MachineBackend) -> str:
