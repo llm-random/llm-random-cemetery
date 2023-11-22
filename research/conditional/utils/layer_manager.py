@@ -81,6 +81,7 @@ class LayerManager:
         should_clean_up = len(verbosity_levels) > 0
 
         for verbosity_level in verbosity_levels:
+            breakpoint()
             for block_name, layer in self._layers:
                 if isinstance(layer, LoggingLayer):
                     info = layer.log(verbosity_level)
