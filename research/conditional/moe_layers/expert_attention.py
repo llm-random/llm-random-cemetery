@@ -25,6 +25,7 @@ class ExpertChoiceAttention(LoggingLayer):
         softmax_over: Literal["tokens", "experts"] = "experts",
         n_gating_heatmaps: int = 4,
         flash: bool = False,
+        use_einsum: bool = False,
     ):
         """
         Args:
@@ -41,6 +42,7 @@ class ExpertChoiceAttention(LoggingLayer):
         self.topk = topk
         self.n_gating_heatmaps = n_gating_heatmaps
         self.flash = flash
+        self.use_einsum = use_einsum
 
         assert softmax_over in ["tokens", "experts"]
 
@@ -74,9 +76,15 @@ class ExpertChoiceAttention(LoggingLayer):
         batch_size, seq_len = x.shape[0], x.shape[1]
 
         topk_indices, topk_values = self.expert_gating(x, batch_size, seq_len)
-        x, one_hot = self.extract_with_linear(
-            x, topk_indices, seq_len, self.input_projection
-        )  # FIXME(KKrol): its einsum
+
+        if self.use_einsum:
+            x, one_hot = self.extract_with_linear_einsum(
+                x, topk_indices, seq_len, self.input_projection
+            )
+        else:
+            x, one_hot = self.extract_with_linear_bmm(
+                x, topk_indices, seq_len, self.input_projection
+            )
 
         q, k, v = torch.chunk(x, chunks=3, dim=-1)
 
@@ -94,12 +102,25 @@ class ExpertChoiceAttention(LoggingLayer):
         attention_output = torch.mul(attention_output, topk_values)
 
         # Unsqueeze topk (dense form used for attention) to seq_len
-        attention_output = einsum(
-            "n_exp batch_size topk exp_size, n_exp batch_size topk seq_len "
-            "-> batch_size seq_len n_exp exp_size",
-            attention_output,
-            one_hot,
-        )
+
+        if self.use_einsum:
+            attention_output = einsum(
+                "n_exp batch_size topk exp_size, n_exp batch_size topk seq_len "
+                "-> batch_size seq_len n_exp exp_size",
+                attention_output,
+                one_hot,
+            )
+        else:
+            torch.transpose(one_hot, -1, -2)
+            # MATMUL:
+            # n_exp x batch_size x seq_len x topk           <- one_hot (after transpose)
+            # n_exp x batch_size x topk    x exp_size       <- attention_output
+            # ---------------------------------------
+            # n_exp x batch_size x seq_len x exp_size
+
+            attention_output = torch.matmul(one_hot, attention_output).permute(
+                1, 2, 0, 3
+            )
 
         # Output projection
         attention_output = self.output_projection(attention_output.flatten(-2))
@@ -133,10 +154,10 @@ class ExpertChoiceAttention(LoggingLayer):
 
         return topk_indices, topk_values
 
-    def extract_with_linear(
+    def extract_with_linear_einsum(
         self, x: torch.Tensor, topk_indices: torch.Tensor, seq_len, weight
     ):
-        with measure_time(self, "gate_preprocess_with_linear"):
+        with measure_time(self, "attention_gate_preprocess_with_linear"):
             one_hot = F.one_hot(topk_indices, num_classes=seq_len).type(
                 x.dtype
             )  # n_exp x batch_size x topk x seq_len
@@ -148,6 +169,27 @@ class ExpertChoiceAttention(LoggingLayer):
                 one_hot,
                 weight,
             )
+            return x, one_hot
+
+    def extract_with_linear_bmm(
+        self, x: torch.Tensor, topk_indices: torch.Tensor, seq_len, weight
+    ):
+        with measure_time(self, "attention_gate_preprocess_with_linear"):
+            one_hot = F.one_hot(topk_indices, num_classes=seq_len).type(
+                x.dtype
+            )  # n_exp x batch_size x topk x seq_len
+            # MATMUL:
+            # n_exp x batch_size x topk    x seq_len     <- one_hot
+            #         batch_size x seq_len x dmodel      <- x
+            # --------------------------------------
+            # n_exp x batch_size x topk x dmodel
+            x = torch.matmul(one_hot, x).transpose(0, 1)
+            # MATMUL:
+            # batch_size x n_exp x topk   x dmodel         <- x (last output)
+            #              n_exp x dmodel x exp_size       <- weight
+            # --------------------------------------
+            # batch_size x n_exp x topk x exp_size
+            x = torch.matmul(x, weight)
             return x, one_hot
 
     def log_light(self):
