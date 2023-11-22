@@ -97,6 +97,8 @@ class Residual(LoggingLayer):
         self.layer = layer
 
     def forward(self, x):
+        if self.logging_switch:
+            breakpoint()
         out = self.layer(x)
         self.update_cache_for_logging("update", out)
         self.update_cache_for_logging("residual_stream", x)
@@ -126,6 +128,7 @@ class Residual(LoggingLayer):
             "update_to_residual_ratio/mean": update_to_residual_ratio_mean,
             "update_to_residual_ratio/std": update_to_residual_ratio_std,
         }
+        return {}
 
 
 @ash.check("... -> ... ")
