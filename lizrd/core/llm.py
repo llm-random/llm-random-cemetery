@@ -97,6 +97,8 @@ class Residual(LoggingLayer):
         self.layer = layer
 
     def forward(self, x):
+        if self.logging_switch:
+            breakpoint()
         out = self.layer(x)
         self.update_cache_for_logging("update", out)
         self.update_cache_for_logging("residual_stream", x)
