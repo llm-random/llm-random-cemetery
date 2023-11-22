@@ -97,35 +97,38 @@ class Residual(LoggingLayer):
         self.layer = layer
 
     def forward(self, x):
+        if self.logging_switch:
+            breakpoint()
         out = self.layer(x)
         self.update_cache_for_logging("update", out)
         self.update_cache_for_logging("residual_stream", x)
         return out + x
 
     def log_heavy(self):
-        updates = self.logging_cache["update"]
-        residual_stream = self.logging_cache["residual_stream"]
-
-        update_norms = torch.norm(updates, dim=-1)
-        residual_norms = torch.norm(residual_stream, dim=-1)
-
-        update_norms_mean = torch.mean(update_norms)
-        update_norms_std = torch.std(update_norms)
-        residual_norms_mean = torch.mean(residual_norms)
-        residual_norms_std = torch.std(residual_norms)
-
-        update_to_residual_ratio = update_norms / residual_norms
-        update_to_residual_ratio_mean = torch.mean(update_to_residual_ratio)
-        update_to_residual_ratio_std = torch.std(update_to_residual_ratio)
-
-        return {
-            "update_norms/mean": update_norms_mean,
-            "update_norms/std": update_norms_std,
-            "residual_norms/mean": residual_norms_mean,
-            "residual_norms/std": residual_norms_std,
-            "update_to_residual_ratio/mean": update_to_residual_ratio_mean,
-            "update_to_residual_ratio/std": update_to_residual_ratio_std,
-        }
+        # updates = self.logging_cache["update"]
+        # residual_stream = self.logging_cache["residual_stream"]
+        #
+        # update_norms = torch.norm(updates, dim=-1)
+        # residual_norms = torch.norm(residual_stream, dim=-1)
+        #
+        # update_norms_mean = torch.mean(update_norms)
+        # update_norms_std = torch.std(update_norms)
+        # residual_norms_mean = torch.mean(residual_norms)
+        # residual_norms_std = torch.std(residual_norms)
+        #
+        # update_to_residual_ratio = update_norms / residual_norms
+        # update_to_residual_ratio_mean = torch.mean(update_to_residual_ratio)
+        # update_to_residual_ratio_std = torch.std(update_to_residual_ratio)
+        #
+        # return {
+        #     "update_norms/mean": update_norms_mean,
+        #     "update_norms/std": update_norms_std,
+        #     "residual_norms/mean": residual_norms_mean,
+        #     "residual_norms/std": residual_norms_std,
+        #     "update_to_residual_ratio/mean": update_to_residual_ratio_mean,
+        #     "update_to_residual_ratio/std": update_to_residual_ratio_std,
+        # }
+        return {}
 
 
 @ash.check("... -> ... ")
