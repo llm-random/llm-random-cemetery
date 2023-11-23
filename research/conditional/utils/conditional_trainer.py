@@ -140,6 +140,7 @@ class ConditionalTrainer:
                 except:
                     print("Decoding failed, skipping...")
             self._after_step_operations(step)
+        self._after_train_operations()
 
     def _train_step(
         self,
