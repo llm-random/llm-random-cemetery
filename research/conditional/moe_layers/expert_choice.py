@@ -38,6 +38,8 @@ class ExpertGating(LoggingLayer):
         self.use_torch_bmm = use_torch_bmm
         self.gate = gate
         self._checkpointed_topk_indices: Union[None, torch.Tensor] = None
+        self.total_indices = 0
+        self.changed_indices = 0
 
     def forward(self, x: torch.Tensor, batch_size: int, seq_len: int):
         # expert embedding
@@ -100,7 +102,16 @@ class ExpertGating(LoggingLayer):
 
                 if checkpointing.is_in_second_forward():
                     with torch.no_grad():
+                        _, topk_indices_test = torch.topk(gate_out, k=topk, dim=1)
+
                         topk_indices = self._checkpointed_topk_indices
+                        diff = topk_indices_test.ne(topk_indices).sum()
+                        self.total_indices += topk_indices_test.numel()
+                        if diff > 0:
+                            self.changed_indices += diff
+                            print(
+                                f"Wrong indices: {diff}/{self.total_indices} (ratio {self.changed_indices/self.total_indices})"
+                            )
 
                 topk_values = gate_out.gather(dim=1, index=topk_indices)
             else:
