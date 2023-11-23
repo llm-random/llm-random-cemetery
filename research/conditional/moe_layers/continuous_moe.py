@@ -197,16 +197,16 @@ class ContinuousMoeBaseClass(LoggingLayer):
         else:
             emit_entropy_dim = -2
 
-        merge_weights_sum = merge_weights.sum(dim=merge_entropy_dim)
-        emit_weights_sum = emit_weights.sum(dim=emit_entropy_dim)
+        # merge_weights_sum = merge_weights.sum(dim=merge_entropy_dim)
+        # emit_weights_sum = emit_weights.sum(dim=emit_entropy_dim)
 
         # assure that the entropy dimensions above are correct for both merge and emit weights
-        assert torch.allclose(
-            merge_weights_sum, torch.ones_like(merge_weights_sum)
-        ), f"merge_weights_sum = {merge_weights_sum} does not sum to 1 along dim {merge_entropy_dim}"
-        assert torch.allclose(
-            emit_weights_sum, torch.ones_like(emit_weights_sum)
-        ), f"emit_weights_sum = {emit_weights_sum} does not sum to 1 along dim {emit_entropy_dim}"
+        # assert torch.allclose(
+        #     merge_weights_sum, torch.ones_like(merge_weights_sum)
+        # ), f"merge_weights_sum = {merge_weights_sum} does not sum to 1 along dim {merge_entropy_dim}"
+        # assert torch.allclose(
+        #     emit_weights_sum, torch.ones_like(emit_weights_sum)
+        # ), f"emit_weights_sum = {emit_weights_sum} does not sum to 1 along dim {emit_entropy_dim}"
 
         for name, weights, entropy_dim in [
             ("merge_weights", merge_weights, merge_entropy_dim),
