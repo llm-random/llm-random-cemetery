@@ -87,15 +87,17 @@ class ExpertGating(LoggingLayer):
                 or not checkpointing.is_in_second_forward()
             ):
                 topk_values, topk_indices = torch.topk(gate_out, k=topk, dim=1)
+
                 if checkpointing.is_in_first_forward():
                     self._checkpointed_topk_indices = topk_indices
 
             if checkpointing.is_in_second_forward():
                 assert self._checkpointed_topk_indices is not None
+                topk_indices = self._checkpointed_topk_indices
                 topk_values = torch.gather(
                     input=gate_out,
                     dim=1,
-                    index=self._checkpointed_topk_indices,
+                    index=topk_indices,
                 )
 
         with measure_time(self, "indexing_change"):
