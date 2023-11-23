@@ -2,12 +2,12 @@ parent: research/conditional/train/configs/baselines/gpt/dense/base.yaml
 md5_parent_hash: 17e23fa8efdf44ed2a84b8e15941039c
 interactive_debug: false
 time: 00:10:00
-n_gpus: 1
+n_gpus: 4
 
-cuda_visible: "1"
+cuda_visible: "4,5,6,7"
 params:
-    ^group_size: [32, 64, 128, 256, 512]
-    ^batch_size: [32, 64, 128]
+    ^group_size: [256, 512, 1024, 2048, 4096]
+    ^batch_size: [32, 64, 128, 256]
 
 
     flash_attention: true
@@ -31,7 +31,12 @@ params:
     init_type: "truncated_normal"
     init_scale: 0.1
 
-    model_fit_gpu_info_database_path: "model_fits_info"
+    model_fit_gpu_info_database_path: "/home/crewtool/mot_memory_fit_grid_base"
     model_fit_gpu_info_params: "dmodel,dff,n_blocks,n_att_heads,group_size,batch_size"
 
     mixed_precision_dtype: "bfloat16"
+
+    fsdp_enabled: true
+    mixed_precision: true
+    fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+    activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
