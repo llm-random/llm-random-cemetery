@@ -93,18 +93,19 @@ class BlankTrainer:
                 )
 
     def _save_weights(self, step):
-        print("Saving weights... ")
-        if (
-            self.save_weights_path is not None
-            and step % self.save_weights_interval == 0
-        ):
-            checkpoint = {
-                "model": self.model.state_dict(),
-                "optimizer": self.optimizer.state_dict(),
-                "scaler": self.scaler.state_dict(),
-            }
-            torch.save(checkpoint, os.path.join(self.save_weights_path, f"{step}.pth"))
-            print(f"Weights saved to {self.save_weights_path} (step {step})")
+        pass
+        # if (
+        #     self.save_weights_path is not None
+        #     and step % self.save_weights_interval == 0
+        # ):
+        #     print("Saving weights... ")
+        #     checkpoint = {
+        #         "model": self.model.state_dict(),
+        #         "optimizer": self.optimizer.state_dict(),
+        #         "scaler": self.scaler.state_dict(),
+        #     }
+        #     torch.save(checkpoint, os.path.join(self.save_weights_path, f"{step}.pth"))
+        #     print(f"Weights saved to {self.save_weights_path} (step {step})")
 
     def _before_train_operations(self):
         pass
