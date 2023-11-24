@@ -25,7 +25,6 @@ params:
   # shallower bass
   cutoff: 256
   batch_size: 256
-  n_steps: 100_000
   final_lr_step: 100_000
   scheduler: cosine
   lr_warmup_steps: 2500
