@@ -202,7 +202,7 @@ class ExpertChoiceFF(LoggingLayer):
             use_torch_bmm=use_torch_bmm,
             gate=gate,
         )
-        self.expert_gating = expert_gating
+        self.add_module("expert_gating", expert_gating)
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
@@ -217,7 +217,8 @@ class ExpertChoiceFF(LoggingLayer):
             )
             x = x.reshape(batch_size, seq_len, self.dmodel)
 
-        topk, topk_indices, topk_values = self.expert_gating(x, batch_size, seq_len)
+        with measure_time(self, "expert_gating"):
+            topk, topk_indices, topk_values = self.expert_gating(x, batch_size, seq_len)
         if self.use_torch_bmm:
             x = self.full_bmm(x, topk_indices, topk_values, batch_size)
         elif self.use_full_einsum:
