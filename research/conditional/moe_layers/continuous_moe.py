@@ -232,7 +232,7 @@ class ContinuousMoE(ContinuousMoeBaseClass):
 def argmax_one_hot(x: torch.Tensor, dim: int):
     max_values, _ = x.max(dim=dim, keepdim=True)
     return torch.where(
-        x == max_values, 1.0, 0.0
+        x == max_values, 1.0, 0.0, dtype=x.dtype
     )  # potentially make it the value itself? torch.where(x == max_values, x, 0.0)
 
 
