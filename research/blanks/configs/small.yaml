@@ -1,5 +1,5 @@
 parent: research/blanks/configs/common.yaml
-md5_parent_hash: f6a05e19d4df393ce16cf7a9e380ec4d
+md5_parent_hash: 2bd19eca53bd43fac64ad234c6efd8b2
 
 params:
   dmodel: 512

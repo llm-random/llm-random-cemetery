@@ -18,7 +18,7 @@ params:
   dataset_type: c4
 
   # LOCAL:
-  # dataset_type: wikibook
-  # batch_size: 2
-  # use_dummy_dataset: true
-  # num_workers: 0
+  dataset_type: wikibook
+  batch_size: 2
+  use_dummy_dataset: true
+  num_workers: 0
