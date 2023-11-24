@@ -1,6 +1,9 @@
 parent: research/conditional/train/configs/baselines/gpt/expert_choice/small.yaml
-md5_parent_hash: 18a58313058badf621cc4c332c87eb37
+md5_parent_hash: afc795eec27a6181f626b10045190669
 
 params:
-  name: "granular_4_small"
+  mixed_precision_dtype: "bfloat16"
+  name: "granular_4_small_compile"
+  torch_compile: true
+  logging_interval_heavy: 0
   granularity: 4
