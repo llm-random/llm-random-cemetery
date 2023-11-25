@@ -243,7 +243,7 @@ class ConditionalTrainer:
                 current_group_size = int(
                     2**log_group_size_factor * original_group_size
                 )
-                if current_group_size <= self.batch_size and current_group_size > 0:
+                if current_group_size <= self.batch_size // self.gradient_accumulation_steps and current_group_size > 0:
                     with temp_modify_attr(layers, "group_size", current_group_size):
                         self._eval_single_variant(
                             batches=batches,
