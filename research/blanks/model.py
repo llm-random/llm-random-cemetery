@@ -109,12 +109,12 @@ def get_model(
             dm, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
 
-    if n_blanks > 0:
-        model = BlankLLM(embedding_layer, encoder_tower, head)
-    else:
-        model = llm.LLM(embedding_layer, encoder_tower, head)
+    # if n_blanks > 0:
+    #     model = BlankLLM(embedding_layer, encoder_tower, head)
+    # else:
+    #     model = llm.LLM(embedding_layer, encoder_tower, head)
 
-    return model
+    return BlankLLM(embedding_layer, encoder_tower, head)
 
 
 def get_ff_layer(args):
