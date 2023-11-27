@@ -100,8 +100,8 @@ class ExpertChoiceAttention(LoggingLayer):
         ).transpose(0, 1)
 
         # Multiply by topk_values
-        topk_values = torch.unsqueeze(topk_values, -1)
-        attention_output = torch.mul(attention_output, topk_values)
+        # topk_values = torch.unsqueeze(topk_values, -1)
+        # attention_output = torch.mul(attention_output, topk_values)
 
         # Unsqueeze topk (dense form used for attention) to seq_len
 
