@@ -362,12 +362,14 @@ class TransformerTower(nn.Module):
         residual_fn: Optional[Callable] = None,
     ):
         super().__init__()
-        misc.check_layer_funs(*layer_dict.values())
         self.blocks = []
         self.model_fragmentation = (
             [] if model_fragmentation is None else model_fragmentation
         )
         self.device = device
+
+        if not isinstance(layer_dict["feedforward"],list):
+            layer_dict["feedforward"] = [layer_dict["feedforward"]]*n_blocks
 
         for i_block in range(n_blocks):
             layers_info = [
