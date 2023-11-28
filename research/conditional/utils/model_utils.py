@@ -347,10 +347,11 @@ def get_common_mot_kwargs(args):
         "init_type": args.init_type,
         "init_scale": args.init_scale,
         "emit_softmax_over_experts": args.emit_softmax_over_experts,
+        "use_layer_norm_for_update": args.use_layer_norm_for_update,
     }
 
 
-def get_ff_layer(args):
+def get_ff_layers(args):
     if args.ff_mode == "vanilla":
         return_fn = lambda: llm.FeedForward(
             args.dmodel, args.dff, init_type=args.init_type, init_scale=args.init_scale
