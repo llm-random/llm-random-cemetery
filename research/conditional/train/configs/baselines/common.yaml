@@ -9,6 +9,7 @@ params:
 
   # base bass
   mixed_precision: true
+  mixed_precision_dtype: "float16"
   flash_attention: true
 
   # logging etc.
