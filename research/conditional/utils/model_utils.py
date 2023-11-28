@@ -344,6 +344,7 @@ def get_common_mot_kwargs(args):
         "init_type": args.init_type,
         "init_scale": args.init_scale,
         "emit_softmax_over_experts": args.emit_softmax_over_experts,
+        "use_layer_norm_for_update": args.use_layer_norm_for_update,
     }
 
 
