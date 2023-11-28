@@ -19,3 +19,13 @@ class ContinuousMoEAdaTempPositive(ContinuousMoEAdaTemp):
         return torch.exp(self.temperature_merge - 1.0), torch.exp(
             self.temperature_emit - 1.0
         )
+
+    def log_heavy(self):
+        log = super().log_heavy()
+        log[
+            "log_merge_temperature"
+        ] = self.temperature_merge.data.clone().detach().flatten().tolist()
+        log[
+            "log_emit_temperature"
+        ] = self.temperature_emit.data.clone().detach().flatten().tolist()
+        return log
