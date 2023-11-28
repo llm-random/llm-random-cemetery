@@ -17,6 +17,9 @@ class ContinuousMoEAdaTemp(ContinuousMoeBaseClass):
     share_by_experts: bool = True
     share_by_emit_merge: bool = True
 
+    def get_temperature(self):
+        return self.temperature_merge, self.temperature_emit
+
     def init_additional_parameters(self):
         if self.share_by_experts:
             if self.share_by_emit_merge:
