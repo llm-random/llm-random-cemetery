@@ -33,6 +33,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
     flop_matched: bool = False
     emit_softmax_over_experts: bool = False
     use_discrete_routing: bool = False
+    use_layer_norm_for_update: bool = False
 
     def __post_init__(self):
         super().__init__()
@@ -50,6 +51,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
             )
             self.expert_size = self.dff // self.n_experts
         self.init_core_parameters()
+        if self.use_layer_norm_for_update:
+            self.layer_norm = nn.LayerNorm(self.dm)
         self.init_additional_parameters()
 
     def forward(self, x):
@@ -57,6 +60,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
         merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         x = self.merge_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
+        if self.use_layer_norm_for_update:
+            x = self.layer_norm(x)
         return x
 
     def reshape_into_groups(self, x):
