@@ -16,6 +16,8 @@ class ContinuousMoEAdaTempPositive(ContinuousMoEAdaTemp):
     """
 
     def get_temperature(self):
+        self.update_cache_for_logging("temperature_merge", self.temperature_merge.data.clone().detach())
+        self.update_cache_for_logging("temperature_emit", self.temperature_emit.data.clone().detach())
         return torch.exp(self.temperature_merge - 1.0), torch.exp(
             self.temperature_emit - 1.0
         )
