@@ -291,7 +291,7 @@ class BlankSeparateHead(torch.nn.Module):
         ) + self.blank_head(encoder_output * is_blank.unsqueeze(-1))
 
     def residual_forward(self, encoder_output: torch.Tensor, model_input: torch.Tensor):
-        print("residual")
+        # print("residual")
         is_blank = get_is_blank(model_input, self.blank_tokens_ids)
         blank_start = get_first_blanks_in_series(is_blank)
         is_not_blank = ~is_blank
