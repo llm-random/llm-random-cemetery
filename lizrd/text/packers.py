@@ -52,9 +52,11 @@ class AbstractPacker(ABC, IterableDataset):
 
     @property
     def dataset(self) -> AbstractDataset:
+        print("Getting dataset...")
         if self._dataset is None:
             self._dataset = self.dataset_maker()
             self._dataset.set_rng(self.seed)
+        print("Done.")
         return self._dataset
 
     @property
