@@ -12,7 +12,7 @@ from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.conditional.moe_layers.continuous_moe import ContinuousMoE
+from research.conditional.moe_layers.continuous_moe import ContinuousMoE, ContinuousMoeBaseClass
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.utils.layer_manager import LayerManager
 from research.conditional.utils.misc_tools import temp_modify_attr
@@ -127,7 +127,7 @@ class ConditionalTrainer:
 
         for step in range(n_steps + 1):
             self._train_step(step)
-            if step > 0 and self.eval_interval > 0 and step % self.eval_interval == 0:
+            if self.eval_interval > 0 and step % self.eval_interval == 0:
                 self._eval_step(step)
             if (
                 self.model_type == "gpt"
@@ -251,7 +251,7 @@ class ConditionalTrainer:
         layers = [
             l
             for _, l in self.layer_manager._layers
-            if isinstance(l, (ContinuousMoE, ExpertChoiceFF))
+            if isinstance(l, (ContinuousMoeBaseClass, ExpertChoiceFF))
         ]
         if self.eval_dynamic_groupsize:
             original_group_size = layers[0].group_size
