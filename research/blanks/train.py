@@ -133,6 +133,7 @@ def main(
         blanks_straight_through=args.blanks_use_straight_through,
         blanks_use_custom_positional_embedding=args.blanks_use_custom_positional_embedding,
         blanks_use_separate_head=args.blanks_use_separate_head,
+        switch_step=args.switch_step,
     )
 
     # make model data_distributed if necessary
