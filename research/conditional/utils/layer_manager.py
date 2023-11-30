@@ -132,7 +132,7 @@ class LoggingLayer(nn.Module):
                 else:
                     self.logging_cache[key] = value
             elif isinstance(value, torch.Tensor):
-                self.logging_cache[key] = value.clone().detach().cpu()
+                self.logging_cache[key] = value.clone().detach()
             else:
                 raise NotImplementedError
 
