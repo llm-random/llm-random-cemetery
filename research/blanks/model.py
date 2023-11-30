@@ -254,13 +254,13 @@ class BlankSeparateHead(torch.nn.Module):
             output_size,
             init_type=init_type,
             init_scale=init_scale,
-            bias=False,
+            bias=True,
         )
         self.blank_head = misc.Linear(
             embedding_dim,
             output_size,
             init_type=init_type,
-            init_scale=init_scale,
+            init_scale=init_scale*0.0,
             bias=False,
         )
 
@@ -281,6 +281,7 @@ class BlankSeparateHead(torch.nn.Module):
     def non_residual_forward(
         self, encoder_output: torch.Tensor, model_input: torch.Tensor
     ):
+        raise NotImplementedError()
         # print("non residual")
         is_blank = get_is_blank(model_input, self.blank_tokens_ids)
         is_not_blanks = ~is_blank
@@ -299,7 +300,8 @@ class BlankSeparateHead(torch.nn.Module):
 
         is_first_blank = get_first_blanks_in_series(is_blank)
         is_preblank = shift_left(is_first_blank)
-
+        
+        
         if self.learnable_weights:
             if self.use_straight_through:
                 # full_output = self.regular_head(
@@ -318,8 +320,8 @@ class BlankSeparateHead(torch.nn.Module):
                 raise NotImplementedError()
             else:
                 full_output = self.regular_head(
-                    encoder_output * is_not_blank.unsqueeze(-1)
-                )
+                    encoder_output
+                ) * is_not_blank.unsqueeze(-1)
 
             prev_mask = is_preblank.bool()
             for nth_blank_mask in iterate_through_nth_blanks_masks(
@@ -327,10 +329,11 @@ class BlankSeparateHead(torch.nn.Module):
             ):
                 full_output[nth_blank_mask] = self.preblank_weight * full_output[
                     prev_mask
-                ] + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask])
+                ].detach() + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask].detach())
                 prev_mask = nth_blank_mask
 
         else:
+            raise NotImplementedError()
             full_output = self.regular_head(encoder_output * is_not_blank.unsqueeze(-1))
             prev_mask = is_preblank.bool()
             for nth_blank_mask in iterate_through_nth_blanks_masks(
