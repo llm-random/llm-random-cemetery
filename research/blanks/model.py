@@ -302,33 +302,44 @@ class BlankSeparateHead(torch.nn.Module):
 
         if self.learnable_weights:
             if self.use_straight_through:
-                # full_output = self.regular_head(
-                #     encoder_output * is_not_blank.unsqueeze(-1)
-                # ) + self.blank_head(
-                #     (
-                #         encoder_output.detach()
-                #         * is_blank.unsqueeze(-1)
-                #         * abs(self.blank_weight)
-                #     )
-                #     + (
-                #         encoder_output * is_blank.unsqueeze(-1)
-                #         - encoder_output.detach() * is_blank.unsqueeze(-1)
-                #     )
-                # )
-                raise NotImplementedError()
+                full_output = self.regular_head(
+                    (encoder_output * is_not_blank.unsqueeze(-1))
+                ) + self.blank_head(
+                    (
+                        encoder_output.detach()
+                        * is_blank.unsqueeze(-1)
+                        * abs(self.blank_weight)
+                    )
+                    + (
+                        encoder_output * is_blank.unsqueeze(-1)
+                        - encoder_output.detach() * is_blank.unsqueeze(-1)
+                    )
+                )
+
+                prev_mask = is_preblank.bool()
+                for nth_blank_mask in iterate_through_nth_blanks_masks(
+                    blank_start.bool(), self.n_blanks, include_preblank=False
+                ):
+                    full_output[nth_blank_mask] = (
+                        self.preblank_weight * full_output[prev_mask]
+                        + full_output[nth_blank_mask]
+                    )
+                    prev_mask = nth_blank_mask
             else:
                 full_output = self.regular_head(
                     encoder_output * is_not_blank.unsqueeze(-1)
                 )
 
-            prev_mask = is_preblank.bool()
-            for nth_blank_mask in iterate_through_nth_blanks_masks(
-                blank_start.bool(), self.n_blanks, include_preblank=False
-            ):
-                full_output[nth_blank_mask] = self.preblank_weight * full_output[
-                    prev_mask
-                ] + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask])
-                prev_mask = nth_blank_mask
+                prev_mask = is_preblank.bool()
+                for nth_blank_mask in iterate_through_nth_blanks_masks(
+                    blank_start.bool(), self.n_blanks, include_preblank=False
+                ):
+                    full_output[nth_blank_mask] = self.preblank_weight * full_output[
+                        prev_mask
+                    ] + self.blank_head(
+                        self.blank_weight * encoder_output[nth_blank_mask]
+                    )
+                    prev_mask = nth_blank_mask
 
         else:
             full_output = self.regular_head(encoder_output * is_not_blank.unsqueeze(-1))
