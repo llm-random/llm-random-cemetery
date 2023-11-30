@@ -36,21 +36,21 @@ def log_batch(
     # In case of GPT, log an example sequence for a possible inspection
 
     print("Logging example batch...")
-    batch = wrapper.get_batch()
-    hf_tokenizer = tokenizer_maker().tokenizer
+    # batch = wrapper.get_batch()
+    # hf_tokenizer = tokenizer_maker().tokenizer
 
-    num_to_log = 5
-    for i in range(min(num_to_log, len(batch.input_ids))):
-        get_current_logger().report_text(
-            title=f"example_sequence/seq{i}/input_text",
-            value=hf_tokenizer.decode(batch.input_ids[i]),
-            iteration=0,
-        )
-        get_current_logger().report_text(
-            title=f"example_sequence/seq{i}/target_text",
-            value=hf_tokenizer.decode(batch.target_ids[i]),
-            iteration=0,
-        )
+    # num_to_log = 5
+    # for i in range(min(num_to_log, len(batch.input_ids))):
+    #     get_current_logger().report_text(
+    #         title=f"example_sequence/seq{i}/input_text",
+    #         value=hf_tokenizer.decode(batch.input_ids[i]),
+    #         iteration=0,
+    #     )
+    #     get_current_logger().report_text(
+    #         title=f"example_sequence/seq{i}/target_text",
+    #         value=hf_tokenizer.decode(batch.target_ids[i]),
+    #         iteration=0,
+    #     )
 
     print("Logged example batch.")
 

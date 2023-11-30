@@ -109,6 +109,7 @@ class ConditionalTrainer:
             self._load_model_weights()
 
         for step in range(n_steps + 1):
+            print(f"Step {step}")
             self._train_step(step)
             if step > 0 and self.eval_interval > 0 and step % self.eval_interval == 0:
                 self._eval_step(step)
