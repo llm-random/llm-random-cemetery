@@ -41,7 +41,7 @@ def get_processed_dataset(
             split=dataset_split,
         )
     elif dataset_type == "c4":
-        dataset = datasets.C4Dataset(
+        dataset = partial(datasets.C4Dataset,
             use_dummy_dataset=use_dummy_dataset,
             split=dataset_split,
         )

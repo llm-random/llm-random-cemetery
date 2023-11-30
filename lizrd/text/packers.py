@@ -27,7 +27,7 @@ class AbstractPacker(ABC, IterableDataset):
     ):
         super().__init__()
         self._tokenizer = None
-        self.dataset = dataset
+        self.dataset_maker = dataset
         self.tokenizer_maker = tokenizer_maker
         self.sequence_length = sequence_length
         self.set_rng(seed)
@@ -39,7 +39,7 @@ class AbstractPacker(ABC, IterableDataset):
         self.np_rng = np_rng
         self.py_rng = py_rng
 
-        self.dataset.set_rng(seed)
+        # self.dataset.set_rng(seed)
 
     def __iter__(self) -> Iterator[LLMExample]:
         while True:
@@ -177,11 +177,14 @@ class GPTPacker(
             tokenizer_maker,
             seed=seed,
         )
+        self.dataset = None
 
     def get_sample(self) -> LLMExample:
         """
         Sample examples from the dataset until we reach the desired sequence length.
         """
+        if self.dataset == None:
+            self.dataset = self.dataset_maker()
         eot_id = self.tokenizer.eot_id
         assert eot_id is not None
 
