@@ -362,17 +362,24 @@ class TransformerTower(nn.Module):
         residual_fn: Optional[Callable] = None,
     ):
         super().__init__()
-        misc.check_layer_funs(*layer_dict.values())
         self.blocks = []
         self.model_fragmentation = (
             [] if model_fragmentation is None else model_fragmentation
         )
         self.device = device
 
-        for i_block in range(n_blocks):
+        feedforward = layer_dict.pop("feedforward")
+
+        if not isinstance(feedforward, list):
+            feedforward = [feedforward] * n_blocks
+
+
+
+        for i_block, ff_fun in enumerate(feedforward):
             layers_info = [
                 (name, layer_fun()) for name, layer_fun in layer_dict.items()
             ]
+            layers_info.append(("feedforward", ff_fun())) #TODO: this assumes that feedforward is always the last layer. Should be fixed.
 
             for name, layer in layers_info:
                 layer.layer_type = name
