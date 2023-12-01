@@ -189,6 +189,7 @@ def attention_mechanism(
         with torch.backends.cuda.sdp_kernel(
             enable_flash=True, enable_math=False, enable_mem_efficient=False
         ):
+            print(f"In flash attention. Query dtype: {query.dtype}")
             output = F.scaled_dot_product_attention(
                 query=query,
                 key=key,
