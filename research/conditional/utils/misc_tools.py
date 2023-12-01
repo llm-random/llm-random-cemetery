@@ -2,6 +2,8 @@ from contextlib import contextmanager
 
 import torch
 
+from research.conditional.utils.layer_manager import LoggingLayer
+
 
 def generate_shuffler_unshuffler(batch_size, seqlen, mix_whole_batch=False):
     if mix_whole_batch:
@@ -48,15 +50,18 @@ def entropy(x, dim):
 # context manager
 @contextmanager
 def temp_modify_attr(
-    layers: list[torch.nn.Module], attribute_name, new_attribute_value
+    layers: list[LoggingLayer], attribute_name, new_attribute_value
 ):
     """
     modify the attribute of a list of layers to a new value, and then restore the original value
     """
     original_attribute_values = []
     for layer in layers:
-        original_attribute_values.append(getattr(layer, attribute_name))
+        if layer.block_number > 1:
+            original_attribute_values.append(getattr(layer, attribute_name))
+
         setattr(layer, attribute_name, new_attribute_value)
     yield
     for layer, original_attribute_value in zip(layers, original_attribute_values):
-        setattr(layer, attribute_name, original_attribute_value)
+        if layer.block_number > 1:
+            setattr(layer, attribute_name, original_attribute_value)
