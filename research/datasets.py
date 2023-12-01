@@ -9,6 +9,7 @@ from lizrd.text import datasets, packers, data, tokenizers
 
 class DataloaderWrapper:
     def __init__(self, dataloader: DataLoader, device: torch.device):
+        self.dataloader = dataloader
         self.generator = iter(dataloader)
         self.device = device
 
