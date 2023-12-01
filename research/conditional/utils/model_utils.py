@@ -160,32 +160,38 @@ def calculate_llm_loss_and_backward_pass(
     gt_tokens = batch.target_ids
     mask = batch.should_calculate_loss
 
-    with torch.autocast(
-        device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
-    ):
-        model_output = model(input_tokens)
+    # this is sort of a hack to make python release memory before backprop
+    def calculate_loss_and_stats():
+        with torch.autocast(
+            device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
+        ):
+            model_output = model(input_tokens)
 
-    # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
-    gt_tokens = gt_tokens.to(model_output.device)
-    mask = mask.to(model_output.device)
+        # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
+        gt_tokens = gt_tokens.to(model_output.device)
+        mask = mask.to(model_output.device)
 
-    mask_loss = F.cross_entropy(
-        model_output.reshape(-1, vocab_size),
-        gt_tokens.reshape(-1).long(),
-        reduction="none",
+        mask_loss = F.cross_entropy(
+            model_output.reshape(-1, vocab_size),
+            gt_tokens.reshape(-1).long(),
+            reduction="none",
+        )
+        correct_tokens = gt_tokens.long() == model_output.argmax(dim=-1)
+        correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
+        correct_tokens = correct_tokens.sum()
+        total_masked_tokens = mask.sum()
+        mask_loss = mask_loss[mask.reshape(-1) == 1]
+        loss = mask_loss.mean() / gradient_accumulation_steps
+        return loss, correct_tokens, total_masked_tokens
+
+    loss, correct_tokens, total_masked_tokens = calculate_loss_and_stats(
+        model, input_tokens, gt_tokens, mask
     )
-    mask_loss = mask_loss[mask.reshape(-1) == 1]
-    loss = mask_loss.mean() / gradient_accumulation_steps
     if do_backward_pass:
         if scaler is not None:
             scaler.scale(loss).backward()
         else:
             loss.backward()
-
-    correct_tokens = gt_tokens.long() == model_output.argmax(dim=-1)
-    correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
-    correct_tokens = correct_tokens.sum()
-    total_masked_tokens = mask.sum()
 
     aux_info = {
         "correct_tokens": correct_tokens,
