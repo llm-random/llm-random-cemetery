@@ -41,6 +41,7 @@ def get_model(
     blanks_straight_through: bool = False,
     blanks_use_custom_positional_embedding: bool = False,
     blanks_use_separate_head: bool = False,
+    switch_step: int = 0,
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -103,6 +104,7 @@ def get_model(
         "learnable_weights": blanks_learnable_weights,
         "initial_blank_weight": blank_initial_weight,
         "use_straight_through": blanks_straight_through,
+        "switch_step": switch_step,
     }
 
     if n_blanks > 0 and blanks_use_separate_head:
@@ -247,6 +249,7 @@ class BlankSeparateHead(torch.nn.Module):
         initial_blank_weight: float,
         use_straight_through: bool,
         use_residual_blank: bool,
+        switch_step: int,
     ):
         super().__init__()
         self.regular_head = misc.Linear(
@@ -254,13 +257,13 @@ class BlankSeparateHead(torch.nn.Module):
             output_size,
             init_type=init_type,
             init_scale=init_scale,
-            bias=False,
+            bias=True,
         )
         self.blank_head = misc.Linear(
             embedding_dim,
             output_size,
             init_type=init_type,
-            init_scale=init_scale,
+            init_scale=init_scale*0.0,
             bias=False,
         )
 
@@ -277,10 +280,14 @@ class BlankSeparateHead(torch.nn.Module):
         self.blank_weight = torch.nn.Parameter(torch.tensor(initial_blank_weight))
         self.use_straight_through = use_straight_through
         self.use_residual_blank = use_residual_blank
+        self.switch_step = switch_step
+
+        self.step_counter = 0
 
     def non_residual_forward(
         self, encoder_output: torch.Tensor, model_input: torch.Tensor
     ):
+        raise NotImplementedError()
         # print("non residual")
         is_blank = get_is_blank(model_input, self.blank_tokens_ids)
         is_not_blanks = ~is_blank
@@ -292,6 +299,10 @@ class BlankSeparateHead(torch.nn.Module):
 
     def residual_forward(self, encoder_output: torch.Tensor, model_input: torch.Tensor):
         # print("residual")
+        self.step_counter += 1
+        print("!!!!!!", self.step_counter)
+
+        SWITCH = self.step_counter > self.switch_step
         is_blank = get_is_blank(model_input, self.blank_tokens_ids)
         blank_start = get_first_blanks_in_series(is_blank)
         is_not_blank = ~is_blank
@@ -299,7 +310,8 @@ class BlankSeparateHead(torch.nn.Module):
 
         is_first_blank = get_first_blanks_in_series(is_blank)
         is_preblank = shift_left(is_first_blank)
-
+        
+        
         if self.learnable_weights:
             if self.use_straight_through:
                 # full_output = self.regular_head(
@@ -318,19 +330,36 @@ class BlankSeparateHead(torch.nn.Module):
                 raise NotImplementedError()
             else:
                 full_output = self.regular_head(
-                    encoder_output * is_not_blank.unsqueeze(-1)
-                )
+                    encoder_output
+                ) * is_not_blank.unsqueeze(-1)
 
             prev_mask = is_preblank.bool()
             for nth_blank_mask in iterate_through_nth_blanks_masks(
                 blank_start.bool(), self.n_blanks, include_preblank=False
             ):
-                full_output[nth_blank_mask] = self.preblank_weight * full_output[
-                    prev_mask
-                ] + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask])
-                prev_mask = nth_blank_mask
+                if self.switch_step == -1:
+                    full_output[nth_blank_mask] = self.preblank_weight * full_output[
+                        prev_mask
+                    ].detach() + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask])
+                    prev_mask = nth_blank_mask
+                elif not SWITCH:
+                    full_output[nth_blank_mask] = self.preblank_weight * full_output[
+                        prev_mask
+                    ].detach() + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask].detach())
+                    prev_mask = nth_blank_mask
+                else:
+                    full_output[nth_blank_mask] = self.preblank_weight * full_output[
+                        prev_mask
+                    ] + self.blank_head(self.blank_weight * encoder_output[nth_blank_mask])
+                    prev_mask = nth_blank_mask
+            if SWITCH and self.switch_step > 0:
+                # stop gradient for everything except for blanks
+                full_output = (full_output.detach() * is_not_blank.unsqueeze(-1)
+                               + full_output * is_blank.unsqueeze(-1))
+
 
         else:
+            raise NotImplementedError()
             full_output = self.regular_head(encoder_output * is_not_blank.unsqueeze(-1))
             prev_mask = is_preblank.bool()
             for nth_blank_mask in iterate_through_nth_blanks_masks(
