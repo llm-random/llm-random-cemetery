@@ -1,5 +1,7 @@
 from typing import Callable, Optional, List
 
+from research.blanks import globs
+
 from .data import BlanxExample
 from lizrd.text.datasets import AbstractDataset
 from lizrd.text.packers import GPTPacker
@@ -36,9 +38,17 @@ class BlankPacker(GPTPacker):
         self.n_blanks = n_blanks
         self.blanks_ids = blanks_ids
 
-        assert len(self.blanks_ids) == self.n_blanks
+        # assert len(self.blanks_ids) == self.n_blanks
         self.use_only_last_blank_loss = use_only_last_blank_loss
         self.extend_sequence_by_n_blanks = extend_sequence_by_n_blanks
+
+    @property
+    def n_blanks(self):
+        return globs.n_blanks
+
+    @n_blanks.setter
+    def n_blanks(self, value):
+        ...
 
     def get_sample(self) -> BlanxExample:
         sample = super().get_sample()
@@ -58,7 +68,10 @@ class BlankPacker(GPTPacker):
             1, get_last_point_to_fit_blanks(seq_len, self.n_blanks)
         )
         input_tokens = insert_blanks_input(
-            input_tokens, self.blanks_ids, blank_insertion_point, self.n_blanks
+            input_tokens,
+            self.blanks_ids[: self.n_blanks],
+            blank_insertion_point,
+            self.n_blanks,
         )
         target_tokens = insert_blanks_target(
             target_tokens, blank_insertion_point, self.n_blanks
@@ -103,7 +116,15 @@ class BlankEvalPacker(GPTPacker):
         self.blanks_ids = blanks_ids
         self.extend_sequence_by_n_blanks = extend_sequence_by_n_blanks
 
-        assert len(self.blanks_ids) == self.n_blanks
+        # assert len(self.blanks_ids) == self.n_blanks
+
+    @property
+    def n_blanks(self):
+        return globs.n_blanks
+
+    @n_blanks.setter
+    def n_blanks(self, value):
+        ...
 
     def get_sample(self) -> BlanxExample:
         sample = super().get_sample()
@@ -123,7 +144,10 @@ class BlankEvalPacker(GPTPacker):
 
         if can_fit_blanks(seq_len, blank_insertion_point, self.n_blanks):
             input_tokens = insert_blanks_input(
-                input_tokens, self.blanks_ids, blank_insertion_point, self.n_blanks
+                input_tokens,
+                self.blanks_ids[: self.n_blanks],
+                blank_insertion_point,
+                self.n_blanks,
             )
             target_tokens = insert_blanks_target(
                 target_tokens, blank_insertion_point, self.n_blanks

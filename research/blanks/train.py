@@ -216,6 +216,7 @@ def main(
         is_process_logging=is_process_logging,
         decoding_logging_steps=args.decoding_logging_steps,
         n_blanks=args.n_blanks,
+        max_n_blanks=args.n_blanks,
         blanks_ids=BLANKS_IDS,
         use_only_last_blank_loss=args.blanks_use_only_last_blank_loss,
     )
