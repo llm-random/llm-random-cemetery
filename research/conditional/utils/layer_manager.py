@@ -95,11 +95,19 @@ class LayerManager:
                     layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
+        print(f"layer manager step: {step}")
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
+        print(f"is_learning_temperature: {is_learning_temperature}")
         for block_name, layer in self._layers:
-            for name, param in layer.named_parameters():
-                if name in ["temperature_merge", "temperature_emit"]:
-                    param.requires_grad = is_learning_temperature
+            with layer.unflatten_parameters():
+                modified = False
+                for name, param in layer.named_parameters():
+                    print(f"module: {block_name}, param: {name}")
+                    if name in ["temperature_merge", "temperature_emit"]:
+                        param.requires_grad = is_learning_temperature
+                        modified = True
+                        print(f"param.requires_grad: {param.requires_grad}")
+                        print(f"param: {param.item()}")
 
 
 class LoggingLayer(nn.Module):
@@ -132,7 +140,7 @@ class LoggingLayer(nn.Module):
                 else:
                     self.logging_cache[key] = value
             elif isinstance(value, torch.Tensor):
-                self.logging_cache[key] = value.clone().detach().cpu()
+                self.logging_cache[key] = value.clone().detach()
             else:
                 raise NotImplementedError
 
