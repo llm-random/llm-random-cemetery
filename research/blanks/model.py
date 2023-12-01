@@ -1,6 +1,7 @@
 from collections import OrderedDict
 from typing import Callable, Literal, Optional, List
 from lizrd.core import llm
+from research.blanks import globs
 from research.blanks.utils import (
     get_first_blanks_in_series,
     get_is_blank,
@@ -171,12 +172,20 @@ class BlankDiffPredictionHead(torch.nn.Module):
             bias=False,
         )
         self.blank_tokens_ids = blank_tokens_ids
-        self.n_blanks = n_blanks
+        self._n_blanks = n_blanks
 
         self.learnable_weights = learnable_weights
         self.preblank_weight = torch.nn.Parameter(torch.tensor(1.0))
         self.blank_weight = torch.nn.Parameter(torch.tensor(initial_blank_weight))
         self.use_straight_through = use_straight_through
+
+    @property
+    def n_blanks(self):
+        return globs.n_blanks
+
+    @n_blanks.setter
+    def n_blanks(self, value):
+        ...
 
     def forward(self, encoder_output: torch.Tensor, model_input: torch.Tensor):
         is_blank = get_is_blank(model_input, self.blank_tokens_ids)
@@ -305,6 +314,14 @@ class BlankEmbedding(torch.nn.Module):
         )
         self.blank_tokens_ids = blank_tokens_ids
         self.n_blanks = n_blanks
+
+    @property
+    def n_blanks(self):
+        return globs.n_blanks
+
+    @n_blanks.setter
+    def n_blanks(self, value):
+        ...
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         embedding_output = self.embedding(x)
@@ -473,6 +490,14 @@ class BlankPositionalEmbedding(torch.nn.Module):
         )
         self.blank_tokens_ids = blank_tokens_ids
         self.n_blanks = n_blanks
+
+    @property
+    def n_blanks(self):
+        return globs.n_blanks
+
+    @n_blanks.setter
+    def n_blanks(self, value):
+        ...
 
     def forward(self, x):
         positions = make_blanks_fixed_positions(
