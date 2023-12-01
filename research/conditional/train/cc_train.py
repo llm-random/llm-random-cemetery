@@ -26,7 +26,7 @@ from research.conditional.utils.conditional_trainer import ConditionalTrainer
 from research.conditional.utils.argparse import introduce_parser_arguments
 from research.conditional.utils.model_utils import (
     get_classes_from_module_names,
-    get_ff_layer,
+    get_ff_layers,
     get_attention_layer,
     get_mixed_precision_ignored_classes,
     get_residual_layer,
@@ -135,7 +135,15 @@ def main(
         args.activation_checkpointing_modules
     )
 
-    ff_layer_fun = get_ff_layer(args)
+    if args.general_ff_layer_config is not None:
+        ff_layers = args.general_ff_layer_config.split(",")
+        ff_layer_funs = []
+        for layer in ff_layers:
+            args.ff_mode = layer
+            ff_layer_funs.append(get_ff_layers(args))
+    else:
+        ff_layer_funs = get_ff_layers(args)
+
     attention_layer_fun = get_attention_layer(args)
     residual_fn = get_residual_layer(args)
 
@@ -148,7 +156,7 @@ def main(
     model = get_model(
         max_length=args.cutoff,
         vocab_size=VOCAB_SIZE,
-        ff_layer_fun=ff_layer_fun,
+        ff_layer_fun=ff_layer_funs,
         attention_layer_fun=attention_layer_fun,
         dm=args.dmodel,
         n_blocks=args.n_blocks,
