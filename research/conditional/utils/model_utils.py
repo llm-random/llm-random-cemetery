@@ -254,6 +254,25 @@ def get_expert_choice_args(args):
         args.effective_dff = experts_per_token * args.expert_size
         args.total_experts_width = args.expert_size * args.n_experts
 
+    res = {
+        "dmodel": args.dmodel,
+        "n_experts": args.n_experts,
+        "expert_size": args.expert_size,
+        "topk_fraction": args.topk_fraction,
+        "random_perm": args.expert_random_perm,
+        "group_by_batch": args.group_granular_moe_by_batch,
+        "softmax_ungrouped": args.softmax_ungrouped,
+        "one_hot_impl": args.granular_moe_one_hot_impl,
+        "softmax_over": args.softmax_over,
+        "use_full_einsum": args.use_full_einsum,
+        "group_size": args.simulate_group_size,
+        "init_type": args.init_type,
+        "init_scale": args.init_scale,
+        "use_torch_bmm": args.use_torch_bmm,
+        "use_layer_norm": args.layer_norm_in_expert_choice,
+    }
+    print(f"Expert choice args: {res}")
+
     return {
         "dmodel": args.dmodel,
         "n_experts": args.n_experts,
