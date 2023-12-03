@@ -136,8 +136,8 @@ class ExpertChoiceAttention(LoggingLayer):
 
             attention_output = torch.matmul(attention_output, self.output_projection)
 
-        with measure_time(self, "moatt_layer_norm"):
-            attention_output = self.ln(attention_output)
+        # with measure_time(self, "moatt_layer_norm"):
+        #     attention_output = self.ln(attention_output)
 
         return attention_output
 
