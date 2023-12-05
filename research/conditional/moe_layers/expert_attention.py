@@ -57,7 +57,9 @@ class ExpertChoiceAttention(LoggingLayer):
         self.output_projection = nn.Parameter(
             get_init_weight(
                 (self.n_experts * self.expert_dhead, self.dmodel),
-                fan_in=self.n_experts * self.expert_dhead // self.topk_denominator,
+                fan_in=self.n_experts
+                * self.expert_dhead
+                // (2 * self.topk_denominator),
                 init_type=init_type,
                 scale=init_scale,
             ),
