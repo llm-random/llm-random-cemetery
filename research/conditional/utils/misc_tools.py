@@ -1,6 +1,9 @@
 from contextlib import contextmanager
+from typing import Any
 
 import torch
+
+from research.conditional.utils.layer_manager import LoggingLayer
 
 
 def generate_shuffler_unshuffler(batch_size, seqlen, mix_whole_batch=False):
@@ -47,16 +50,22 @@ def entropy(x, dim):
 
 # context manager
 @contextmanager
-def temp_modify_attr(
-    layers: list[torch.nn.Module], attribute_name, new_attribute_value
-):
+def temp_modify_attr(layers: list[LoggingLayer], attributes_to_replace: dict[str, Any]):
     """
     modify the attribute of a list of layers to a new value, and then restore the original value
     """
-    original_attribute_values = []
-    for layer in layers:
-        original_attribute_values.append(getattr(layer, attribute_name))
-        setattr(layer, attribute_name, new_attribute_value)
+    original_attribute_values = {}
+    for name, new_attribute_value in attributes_to_replace.items():
+        single_original_attribute_values = []
+        for layer in layers:
+            if not hasattr(layer, name):
+                continue
+            single_original_attribute_values.append(getattr(layer, name))
+            setattr(layer, name, new_attribute_value)
+        original_attribute_values[name] = single_original_attribute_values
     yield
-    for layer, original_attribute_value in zip(layers, original_attribute_values):
-        setattr(layer, attribute_name, original_attribute_value)
+    for name, _ in attributes_to_replace.items():
+        for layer, original_value in zip(layers, original_attribute_values[name]):
+            if not hasattr(layer, name):
+                continue
+            setattr(layer, name, original_value)
