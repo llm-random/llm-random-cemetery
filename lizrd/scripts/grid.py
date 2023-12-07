@@ -162,6 +162,7 @@ if __name__ == "__main__":
                 *runner_params,
             ]
         elif CLUSTER_NAME == MachineBackend.IDEAS:
+            print("XDDD")
             subprocess_args = [
                 slurm_command,
                 f"--gres=gpu:{setup_args['n_gpus']}",
