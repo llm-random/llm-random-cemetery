@@ -148,6 +148,7 @@ if __name__ == "__main__":
                 "--account=plgplggllmeffi-gpu-a100",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
+                "--mem-per-cpu=8G",
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
                 "run",
@@ -164,7 +165,7 @@ if __name__ == "__main__":
         elif CLUSTER_NAME == MachineBackend.IDEAS:
             subprocess_args = [
                 slurm_command,
-                f"--gres=gpu:{setup_args['n_gpus']}",
+                f"--gres=gpu:ampere:{setup_args['n_gpus']}",
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
