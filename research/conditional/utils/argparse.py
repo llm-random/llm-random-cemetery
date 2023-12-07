@@ -148,6 +148,7 @@ def introduce_parser_arguments(
     # paremeters for specific experiments
 
     ## used by MoE (common)
+    parser.add_argument("--general_ff_layer_config", type=str, default=None)
     parser.add_argument(
         "--eval_dynamic_groupsize",
         action="store_true",
@@ -167,9 +168,10 @@ def introduce_parser_arguments(
     )
 
     ## used often by Continuous MoE
-
+    parser.add_argument("--eval_discrete_mot_topk_list", type=str, default=1)
     parser.add_argument("--eval_discrete_mot", action="store_true")
     parser.add_argument("--emit_softmax_over_experts", action="store_true")
+    parser.add_argument("--use_layer_norm_for_update", action="store_true")
     parser.add_argument("--steps_until_start_temperature_learn", type=int, default=0)
     parser.add_argument("--n_experts", type=int)
     parser.add_argument("--group_size", type=int)

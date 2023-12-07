@@ -15,7 +15,7 @@ from lizrd.core.distributed import wrap_in_fsdp, wrap_in_ddp
 def get_model(
     max_length: int,
     vocab_size: int,
-    ff_layer_fun: Callable[[], torch.nn.Module],
+    ff_layer_fun: Union[Callable[[], torch.nn.Module], list[Callable[[], torch.nn.Module]]],
     attention_layer_fun: Callable[[], torch.nn.Module],
     dm: int,
     n_blocks: int,
