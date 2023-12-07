@@ -36,14 +36,14 @@ class ContinuousMoERandomGroups(ContinuousMoeBaseClass):
             raise NotImplementedError("sparsity_dim must be 0 or 1")
         return out
 
-    def forward(self, x):
-        assert self.batch_size == x.shape[0]
-        assert self.seqlen == x.shape[1]
+    def forward(self, y):
+        assert self.batch_size == y.shape[0]
+        assert self.seqlen == y.shape[1]
         shuffler, unshuffler = generate_shuffler_unshuffler(
             self.batch_size, self.seqlen, self.mix_whole_batch
         )
-        x = self.reshape_into_token_groups_random(x, shuffler)
-        merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
-        x = self.merge_map_emit(x, merge_weights, emit_weights)
-        x = self.reshape_into_original_random(x, unshuffler)
-        return x
+        y = self.reshape_into_token_groups_random(y, shuffler)
+        merge_weights, emit_weights = self.get_merge_and_emit_weights(y)
+        y = self.merge_map_emit(y, merge_weights, emit_weights)
+        y = self.reshape_into_original_random(y, unshuffler)
+        return y
