@@ -97,9 +97,8 @@ class LayerManager:
     def manage_learnable_temperature(self, step):
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
         for block_name, layer in self._layers:
-            for name, param in layer.named_parameters():
-                if name in ["temperature_merge", "temperature_emit"]:
-                    param.requires_grad = is_learning_temperature
+            if hasattr(layer, "is_temperature_learning"):
+                layer.is_temperature_learning = is_learning_temperature
 
 
 class LoggingLayer(nn.Module):
@@ -132,7 +131,7 @@ class LoggingLayer(nn.Module):
                 else:
                     self.logging_cache[key] = value
             elif isinstance(value, torch.Tensor):
-                self.logging_cache[key] = value.clone().detach().cpu()
+                self.logging_cache[key] = value.clone().detach()
             else:
                 raise NotImplementedError
 
