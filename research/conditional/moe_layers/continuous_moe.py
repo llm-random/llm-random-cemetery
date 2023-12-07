@@ -11,6 +11,19 @@ from research.conditional.utils.misc_tools import stable_softmax_temperature, en
 from research.conditional.utils.layer_manager import LoggingLayer
 
 
+def topk(logits, top_k, dim, filter_value=0.0):
+    if dim != -1:
+        logits = logits.transpose(dim, -1)
+    assert top_k <= logits.size(
+        -1
+    ), f"top_k = {top_k} is larger than logits.size(-1) = {logits.size(-1)}"
+    indices_to_remove = logits < torch.topk(logits, top_k)[0][..., -1, None]
+    logits[indices_to_remove] = filter_value
+    if dim != -1:
+        logits = logits.transpose(dim, -1)
+    return logits
+
+
 @dataclasses.dataclass(eq=False, repr=False)
 class ContinuousMoeBaseClass(LoggingLayer):
     """
@@ -33,6 +46,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
     flop_matched: bool = False
     emit_softmax_over_experts: bool = False
     use_discrete_routing: bool = False
+    discrete_mot_topk: int = 1
+    use_layer_norm_for_update: bool = False
 
     def __post_init__(self):
         super().__init__()
@@ -50,6 +65,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
             )
             self.expert_size = self.dff // self.n_experts
         self.init_core_parameters()
+        if self.use_layer_norm_for_update:
+            self.layer_norm = nn.LayerNorm(self.dm)
         self.init_additional_parameters()
 
     def forward(self, x):
@@ -57,6 +74,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
         merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         x = self.merge_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
+        if self.use_layer_norm_for_update:
+            x = self.layer_norm(x)
         return x
 
     def reshape_into_groups(self, x):
@@ -103,8 +122,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
         self.update_cache_for_logging("merge_weights", merge_weights)
         self.update_cache_for_logging("emit_weights", emit_weights)
         if self.use_discrete_routing:
-            merge_weights = argmax_one_hot(merge_weights, dim=merge_softmax_dim)
-            emit_weights = argmax_one_hot(emit_weights, dim=emit_softmax_dim)
+            merge_weights = topk(
+                merge_weights, dim=merge_softmax_dim, top_k=self.discrete_mot_topk
+            ).detach()
+            emit_weights = merge_weights
         return merge_weights, emit_weights
 
     def get_temperature(self):
@@ -227,16 +248,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
 
 class ContinuousMoE(ContinuousMoeBaseClass):
     pass
-
-
-def argmax_one_hot(x: torch.Tensor, dim: int):
-    max_values, _ = x.max(dim=dim, keepdim=True)
-    return torch.where(
-        condition=x == max_values,
-        input=torch.Tensor([1.0]).to(dtype=x.dtype, device=x.device),
-        other=torch.Tensor([0.0]).to(dtype=x.dtype, device=x.device),
-        out=x,
-    )  # potentially make it the value itself? torch.where(x == max_values, x, 0.0)
 
 
 class LegacyContinuousMoE(ContinuousMoeBaseClass):

@@ -1,18 +1,21 @@
-from collections import defaultdict
-import os.path
 import copy
+import os.path
+from collections import defaultdict
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 
 import torch
 from attr import define
+from transformers import GPT2Tokenizer
+
 from lizrd.core.misc import propagate_forward_pass_cache
 from lizrd.support.decoding import decode_single_example
 from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
+from lizrd.text.datasets import C4Dataset
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.conditional.moe_layers.continuous_moe import ContinuousMoE
+from research.conditional.moe_layers.continuous_moe import ContinuousMoeBaseClass
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.utils.layer_manager import LayerManager
 from research.conditional.utils.misc_tools import temp_modify_attr
@@ -21,8 +24,6 @@ from research.conditional.utils.model_utils import (
     update_model_fit_gpu_info,
 )
 from research.datasets import DataloaderWrapper
-from lizrd.text.datasets import C4Dataset
-from transformers import GPT2Tokenizer
 
 
 @define(slots=False)
@@ -66,6 +67,7 @@ class ConditionalTrainer:
     eval_min_group_size_logfactor: int = 0
     eval_max_group_size_logfactor: int = 0
     eval_discrete_mot: bool = False
+    eval_discrete_mot_topk_list: list[int] = []
     is_logging_process: bool = True
     eval_dynamic_groupsize: bool = False
     steps_until_start_temperature_learn: int = -1
@@ -251,7 +253,7 @@ class ConditionalTrainer:
         layers = [
             l
             for _, l in self.layer_manager._layers
-            if isinstance(l, (ContinuousMoE, ExpertChoiceFF))
+            if isinstance(l, (ContinuousMoeBaseClass, ExpertChoiceFF))
         ]
         if self.eval_dynamic_groupsize:
             original_group_size = layers[0].group_size
@@ -267,7 +269,7 @@ class ConditionalTrainer:
                     <= self.batch_size // self.gradient_accumulation_steps
                     and current_group_size > 0
                 ):
-                    with temp_modify_attr(layers, "group_size", current_group_size):
+                    with temp_modify_attr(layers, {"group_size": current_group_size}):
                         self._eval_single_variant(
                             batches=batches,
                             step=step,
@@ -275,12 +277,19 @@ class ConditionalTrainer:
                         )
 
         if self.eval_discrete_mot:
-            with temp_modify_attr(layers, "use_discrete_routing", True):
-                self._eval_single_variant(
-                    batches=batches,
-                    step=step,
-                    variant_name="discrete MoT routing",
-                )
+            for discrete_mot_topk in self.eval_discrete_mot_topk_list:
+                with temp_modify_attr(
+                    layers,
+                    {
+                        "use_discrete_routing": True,
+                        "discrete_mot_topk": discrete_mot_topk,
+                    },
+                ):
+                    self._eval_single_variant(
+                        batches=batches,
+                        step=step,
+                        variant_name=f"discrete MoT routing/{discrete_mot_topk}",
+                    )
 
     def _eval_single_variant(
         self, batches: Iterable[LLMBatch], step: int, variant_name: str
