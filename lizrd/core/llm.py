@@ -310,7 +310,7 @@ class RMSNorm(nn.Module):
         return x * self.g + self.b
 
 
-class LearnableRMSNormCoarse(nn.Module):
+class LearnableRMSNormCoarse(LoggingLayer):
     def __init__(self, dmodel, eps=1e-8):
         super().__init__()
         self.eps = eps
@@ -323,6 +323,11 @@ class LearnableRMSNormCoarse(nn.Module):
         norm = torch.mean(x**2, dim=-1, keepdim=True)
         x = x * torch.pow(norm + self.eps, -self.p)
         return x * self.g + self.b
+
+    def log_heavy(self):
+        return {
+            "normalization/p": self.p,
+        }
 
 
 class LearnableRMSNormFine(nn.Module):
