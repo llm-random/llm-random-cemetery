@@ -1,29 +1,30 @@
-from collections import defaultdict
-import os.path
 import copy
+import os.path
+from collections import defaultdict
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 
 import torch
 from torch.profiler import profile, ProfilerActivity
 from attr import define
+from transformers import GPT2Tokenizer
+
 from lizrd.core.misc import propagate_forward_pass_cache
 from lizrd.support.decoding import decode_single_example
 from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
+from lizrd.text.datasets import C4Dataset
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.conditional.moe_layers.continuous_moe import ContinuousMoE
+from research.conditional.moe_layers.continuous_moe import ContinuousMoeBaseClass
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.utils.layer_manager import LayerManager
-from research.conditional.utils.model_utils import make_loss_and_backprop_function
 from research.conditional.utils.misc_tools import temp_modify_attr
 from research.conditional.utils.model_utils import (
+    make_loss_function,
     update_model_fit_gpu_info,
 )
 from research.datasets import DataloaderWrapper
-from lizrd.text.datasets import C4Dataset
-from transformers import GPT2Tokenizer
 
 
 @define(slots=False)
@@ -46,7 +47,7 @@ class ConditionalTrainer:
     max_sequence_length: int
     batch_size: int
     lr_scheduler: AbstractLRScheduler
-    _calculate_loss_and_backward_pass: Optional[Callable] = None
+    _calculate_loss: Optional[Callable] = None
     mask_percent: Optional[float] = None
     scaler: Optional[torch.cuda.amp.GradScaler] = None
     layer_manager: Optional[LayerManager] = None
@@ -67,6 +68,7 @@ class ConditionalTrainer:
     eval_min_group_size_logfactor: int = 0
     eval_max_group_size_logfactor: int = 0
     eval_discrete_mot: bool = False
+    eval_discrete_mot_topk_list: list[int] = []
     is_logging_process: bool = True
     eval_dynamic_groupsize: bool = False
     steps_until_start_temperature_learn: int = -1
@@ -89,7 +91,7 @@ class ConditionalTrainer:
         self.correct_tokens_accumulator = 0.0
         self.total_tokens_accumulator = 0.0
         self.auxiliary_losses_accumulator = dict()
-        self._calculate_loss_and_backward_pass = make_loss_and_backprop_function(
+        self._calculate_loss = make_loss_function(
             loss_checkpoint_chungs=self.loss_checkpoint_chungs,
         )
         self.layer_manager = LayerManager(
@@ -201,34 +203,27 @@ class ConditionalTrainer:
                     tensor.data, self.gradient_accumulation_steps, i
                 )
 
-            cross_entropy_loss, aux_info = self._calculate_loss_and_backward_pass(
+            cross_entropy_loss, aux_info = self._calculate_loss(
                 batch=batch_copy,
                 model=self.model,
                 mixed_precision=self.mixed_precision,
                 mixed_precision_dtype=self.mixed_precision_dtype,
-                gradient_accumulation_steps=self.gradient_accumulation_steps,
-                scaler=self.scaler,
                 vocab_size=self.vocab_size,
             )
 
             # clear computation graph, store gradients, only apply gradients at the end
             should_apply_gradient = i == self.gradient_accumulation_steps - 1
 
-            if len(aux_info["losses"]) > 0:
-                additional_loss_to_optimize = torch.zeros_like(
-                    cross_entropy_loss,
-                    device=cross_entropy_loss.device,
-                    requires_grad=True,
-                )
-                for key, value in aux_info["losses"].items():
-                    additional_loss_to_optimize = additional_loss_to_optimize + value
-            else:
-                additional_loss_to_optimize = None
+            loss_to_optimize = cross_entropy_loss
+            for key, value in aux_info["losses"].items():
+                loss_to_optimize += value
+
+            # since we sum gradients averaged over multiple smaller batches, we need to normalize here
+            loss_to_optimize /= self.gradient_accumulation_steps
 
             if should_optimize:
                 self._optimize(
-                    additional_loss_to_optimize,
-                    should_apply_gradient=should_apply_gradient,
+                    loss_to_optimize, should_apply_gradient=should_apply_gradient
                 )
             total_cross_entropy_loss += cross_entropy_loss.item()
             correct_tokens_value += aux_info["correct_tokens"]
@@ -243,15 +238,14 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _optimize(self, additional_loss, should_apply_gradient=False):
-        # since we sum gradients averaged over multiple smaller batches, we need to normalize here
-        if additional_loss is not None:
-            additional_loss /= self.gradient_accumulation_steps
-            # clear computation graph, store gradients
-            if self.scaler is None:
-                additional_loss.backward()
-            else:
-                self.scaler.scale(additional_loss).backward()
+    def _optimize(self, loss, should_apply_gradient=False):
+        if self.gradient_accumulation_steps == 1:
+            self.optimizer.zero_grad()
+        # clear computation graph, store gradients
+        if self.scaler is None:
+            loss.backward()
+        else:
+            self.scaler.scale(loss).backward()
         if should_apply_gradient:
             if self.scaler is None:
                 if self.gradient_clipping is not None:
@@ -268,7 +262,8 @@ class ConditionalTrainer:
                 self.scaler.step(self.optimizer)
                 if self.scaler is not None:
                     self.scaler.update()
-            self.optimizer.zero_grad()
+            if self.gradient_accumulation_steps > 1:
+                self.optimizer.zero_grad()
 
     def _eval_step(self, step: int):
         batches = [self.eval_dataloader.get_batch() for _ in range(self.n_eval_batches)]
@@ -280,7 +275,7 @@ class ConditionalTrainer:
         layers = [
             l
             for _, l in self.layer_manager._layers
-            if isinstance(l, (ContinuousMoE, ExpertChoiceFF))
+            if isinstance(l, (ContinuousMoeBaseClass, ExpertChoiceFF))
         ]
         if self.eval_dynamic_groupsize:
             original_group_size = layers[0].group_size
@@ -296,7 +291,7 @@ class ConditionalTrainer:
                     <= self.batch_size // self.gradient_accumulation_steps
                     and current_group_size > 0
                 ):
-                    with temp_modify_attr(layers, "group_size", current_group_size):
+                    with temp_modify_attr(layers, {"group_size": current_group_size}):
                         self._eval_single_variant(
                             batches=batches,
                             step=step,
@@ -304,15 +299,27 @@ class ConditionalTrainer:
                         )
 
         if self.eval_discrete_mot:
-            with temp_modify_attr(layers, "use_discrete_routing", True):
-                self._eval_single_variant(
-                    batches=batches,
-                    step=step,
-                    variant_name="discrete MoT routing",
-                )
+            for discrete_mot_topk in self.eval_discrete_mot_topk_list:
+                with temp_modify_attr(
+                    layers,
+                    {
+                        "use_discrete_routing": True,
+                        "discrete_mot_topk": discrete_mot_topk,
+                    },
+                ):
+                    self._eval_single_variant(
+                        batches=batches,
+                        step=step,
+                        variant_name=f"discrete MoT routing",
+                        series=f"{discrete_mot_topk}",
+                    )
 
     def _eval_single_variant(
-        self, batches: Iterable[LLMBatch], step: int, variant_name: str
+        self,
+        batches: Iterable[LLMBatch],
+        step: int,
+        variant_name: str,
+        series: str = None,
     ):
         self.model.eval()
         total_loss = 0.0
@@ -330,11 +337,19 @@ class ConditionalTrainer:
             for name, loss_value in aux_info["losses"].items():
                 extra_losses[name] += loss_value
         if self.is_logging_process:
-            self.logger.report_scalar(
-                title=f"eval/total_loss/{variant_name}",
-                value=total_loss / self.n_eval_batches,
-                iteration=step,
-            )
+            if series is None:
+                self.logger.report_scalar(
+                    title=f"eval/total_loss/{variant_name}",
+                    value=total_loss / self.n_eval_batches,
+                    iteration=step,
+                )
+            else:
+                self.logger.report_scalar(
+                    title=f"eval/total_loss/{variant_name}",
+                    value=total_loss / self.n_eval_batches,
+                    iteration=step,
+                    series=series,
+                )
             self.logger.report_scalar(
                 title=f"eval/accuracy/{variant_name}",
                 value=total_correct_tokens / total_masked_tokens,
