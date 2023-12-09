@@ -16,6 +16,14 @@ class ContinuousMoEAdaTemp(ContinuousMoeBaseClass):
 
     share_by_experts: bool = True
     share_by_emit_merge: bool = True
+    is_temperature_learning = False
+
+
+    def get_temperature(self):
+        if self.is_temperature_learning:
+            return self.temperature_merge.detach(), self.temperature_emit.detach()
+        else:
+            return self.temperature_merge, self.temperature_emit
 
     def init_additional_parameters(self):
         if self.share_by_experts:
@@ -33,12 +41,3 @@ class ContinuousMoEAdaTemp(ContinuousMoeBaseClass):
                 self.temperature_emit = nn.Parameter(torch.ones(self.n_experts, 1))
                 self.temperature_merge = nn.Parameter(torch.ones(self.n_experts, 1))
 
-    def log_heavy(self):
-        log = super().log_heavy()
-        log[
-            "merge_weights/merge_temperature"
-        ] = self.temperature_merge.data.flatten().tolist()
-        log[
-            "merge_weights/emit_temperature"
-        ] = self.temperature_emit.data.flatten().tolist()
-        return log
