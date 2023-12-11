@@ -36,6 +36,8 @@ class TokenChoiceFF(LoggingLayer):
         self.capacity_factor = capacity_factor
         self.load_balancing_loss_weight = load_balancing_loss_weight
 
+        # print("shape of init weight input: ", (n_experts, dmodel, expert_size))
+
         self.lin1_weight = nn.Parameter(
             get_init_weight(
                 shape=(n_experts, dmodel, expert_size),
