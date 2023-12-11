@@ -36,6 +36,8 @@ class TokenChoiceFF(LoggingLayer):
         self.capacity_factor = capacity_factor
         self.load_balancing_loss_weight = load_balancing_loss_weight
 
+        # print("shape of init weight input: ", (n_experts, dmodel, expert_size))
+
         self.lin1_weight = nn.Parameter(
             get_init_weight(
                 shape=(n_experts, dmodel, expert_size),
@@ -167,17 +169,17 @@ class TokenChoiceFF(LoggingLayer):
 
         return output
 
-    def log_heavy(self):
-        return {
-            "gradient_of_gate_distribution": make_histogram(self.gate.grad.flatten()),
-            "gate_softmax_all_values": make_histogram(
-                self.logging_cache["gate_softmax_all_values"].flatten()
-            ),
-            "tokens_per_expert_counts": make_histogram(
-                self.logging_cache["tokens_per_expert"]
-            ),
-            "load_balancing_loss": self.logging_cache["load_balancing_loss"],
-        }
+    # def log_heavy(self):
+    #     return {
+    #         "gradient_of_gate_distribution": make_histogram(self.gate.grad.flatten()),
+    #         "gate_softmax_all_values": make_histogram(
+    #             self.logging_cache["gate_softmax_all_values"].flatten()
+    #         ),
+    #         "tokens_per_expert_counts": make_histogram(
+    #             self.logging_cache["tokens_per_expert"]
+    #         ),
+    #         "load_balancing_loss": self.logging_cache["load_balancing_loss"],
+    #     }
 
 
 def calculate_load_balancing_loss(
