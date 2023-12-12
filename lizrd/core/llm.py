@@ -297,7 +297,7 @@ class Attention(LoggingLayer):
 
 
 class RMSNorm(nn.Module):
-    def __init__(self, dmodel, eps=1e-8):
+    def __init__(self, dmodel, eps=1e-5):
         super().__init__()
         self.eps = eps
 
@@ -311,7 +311,7 @@ class RMSNorm(nn.Module):
 
 
 class LearnableRMSNormCoarse(LoggingLayer):
-    def __init__(self, dmodel, eps=1e-8, init_p=0):
+    def __init__(self, dmodel, eps=1e-5, init_p=0):
         super().__init__()
         self.eps = eps
 
@@ -331,7 +331,7 @@ class LearnableRMSNormCoarse(LoggingLayer):
 
 
 class LearnableRMSNormFine(LoggingLayer):
-    def __init__(self, dmodel, eps=1e-8, init_p=0):
+    def __init__(self, dmodel, eps=1e-5, init_p=0):
         super().__init__()
         self.eps = eps
 
