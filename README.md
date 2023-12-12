@@ -2,7 +2,7 @@
 
 
 ## Getting started
-In root directory run `./start-dev.sh`. This will create a virtual environment, install requirements and setup git hooks.
+In root directory run `$SHELL start-dev.sh`. This will create a conda / virtual environment, install requirements and setup git hooks.
 
 
 ## Experiments config

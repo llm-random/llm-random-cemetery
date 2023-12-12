@@ -184,24 +184,26 @@ class TokenChoiceFF(LoggingLayer):
         return output
 
     def choose_expert(self, gate_out) -> tuple[torch.Tensor, torch.Tensor]:
-        checkpointing_enabled = (
-            checkpointing.is_in_first_forward() or checkpointing.is_in_second_forward()
-        )
-        if checkpointing_enabled:
-            if checkpointing.is_in_first_forward():
-                with torch.no_grad():
-                    expert_index = torch.argmax(gate_out, dim=1, keepdim=True)
-                    self._checkpointed_expert_index = expert_index
+        # checkpointing_enabled = (
+        #     checkpointing.is_in_first_forward() or checkpointing.is_in_second_forward()
+        # )
+        # if checkpointing_enabled:
+        #     if checkpointing.is_in_first_forward():
+        #         with torch.no_grad():
+        #             expert_index = torch.argmax(gate_out, dim=1, keepdim=True)
+        #             self._checkpointed_expert_index = expert_index
 
-            if checkpointing.is_in_second_forward():
-                with torch.no_grad():
-                    expert_index = self._checkpointed_expert_index
-                    assert isinstance(expert_index, torch.Tensor)
+        #     if checkpointing.is_in_second_forward():
+        #         with torch.no_grad():
+        #             expert_index = self._checkpointed_expert_index
+        #             assert isinstance(expert_index, torch.Tensor)
 
-            expert_gate = torch.gather(gate_out, dim=1, index=expert_index).squeeze()
-            expert_index = expert_index.squeeze()
-        else:
-            expert_gate, expert_index = torch.max(gate_out, dim=1)
+        #     expert_gate = torch.gather(gate_out, dim=1, index=expert_index).squeeze()
+        #     expert_index = expert_index.squeeze()
+        # else:
+        #     expert_gate, expert_index = torch.max(gate_out, dim=1)
+        expert_gate, expert_index = torch.max(gate_out, dim=1)
+
         return expert_gate, expert_index
 
     def log_heavy(self):
