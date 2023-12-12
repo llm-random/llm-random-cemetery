@@ -227,7 +227,8 @@ class ConditionalTrainer:
 
             if should_optimize:
                 self._optimize(
-                    additional_loss_to_optimize,
+                    # additional_loss_to_optimize,
+                    None,
                     should_apply_gradient=should_apply_gradient,
                 )
             total_cross_entropy_loss += cross_entropy_loss.item()
