@@ -19,7 +19,7 @@ class TokenChoiceFF(LoggingLayer):
         load_balancing_loss_weight: float,
         init_type: str,
         init_scale: float,
-        use_einsum: bool = False,
+        use_einsum: bool = True,
     ):
         """
         Args:
