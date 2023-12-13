@@ -67,29 +67,28 @@ class TokenChoiceFF(LoggingLayer):
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
         batch_size, seq_len, _ = x.shape
-        n_tokens = batch_size * seq_len
-        self.update_cache_for_logging("n_tokens", torch.Tensor([n_tokens]))
+        total_tokens_in_batch = batch_size * seq_len
 
-        x = x.flatten(start_dim=0, end_dim=1)
+        x = x.flatten(start_dim=0, end_dim=1) #TODO: x.view(-1, self.dmodel)
 
         with measure_time(self, "expert_embedding"):
             if self.use_einsum:
                 gate_out = einsum(
-                    "n_tokens dmodel, dmodel n_experts -> n_tokens n_experts",
+                    "total_tokens_in_batch dmodel, dmodel n_experts -> total_tokens_in_batch n_experts",
                     x,
                     self.gate,
                 )
             else:
                 gate_out = torch.matmul(x, self.gate)
 
-        assert gate_out.shape == (n_tokens, self.n_experts)
-        capacity = int(self.capacity_factor * n_tokens / self.n_experts)
+        assert gate_out.shape == (total_tokens_in_batch, self.n_experts)
+        capacity = int(self.capacity_factor * total_tokens_in_batch / self.n_experts)
 
         # perform softmax over experts for each token
         with measure_time(self, "softmax"):
             gate_out = self.softmax(gate_out)
 
-        self.update_cache_for_logging("gate_softmax_all_values", gate_out)
+        # self.update_cache_for_logging("gate_softmax_all_values", gate_out)
 
         # choose expert for each token
         with measure_time(self, "max_indices"):
@@ -106,28 +105,28 @@ class TokenChoiceFF(LoggingLayer):
         with measure_time(self, "calculate aux loss"):
             position_in_expert_mask = position_in_expert.bool()
             tokens_per_expert = position_in_expert_mask.sum(dim=0, dtype=gate_out.dtype)
-            load_balancing_loss = calculate_load_balancing_loss(
-                self.load_balancing_loss_weight,
-                gate_out,
-                tokens_per_expert,
-                use_einsum=self.use_einsum,
-            )
+            # load_balancing_loss = calculate_load_balancing_loss(
+            #     self.load_balancing_loss_weight,
+            #     gate_out,
+            #     tokens_per_expert,
+            #     use_einsum=self.use_einsum,
+            # )
 
-            if "load_balancing_losses" not in self.forward_pass_cache:
-                self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
-            else:
-                self.forward_pass_cache["load_balancing_losses"].append(
-                    load_balancing_loss
-                )
+            # if "load_balancing_losses" not in self.forward_pass_cache:
+            #     self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
+            # else:
+            #     self.forward_pass_cache["load_balancing_losses"].append(
+            #         load_balancing_loss
+            #     )
 
         # mask out tokens that are not in capacity
         expert_mask_flat = expert_mask.sum(dim=1)
         expert_gate *= expert_mask_flat
 
-        self.update_cache_for_logging("gate_softmax_values", expert_gate)
-        self.update_cache_for_logging("max_indices", expert_index)
-        self.update_cache_for_logging("tokens_per_expert", tokens_per_expert)
-        self.update_cache_for_logging("load_balancing_loss", load_balancing_loss)
+        # self.update_cache_for_logging("gate_softmax_values", expert_gate)
+        # self.update_cache_for_logging("max_indices", expert_index)
+        # self.update_cache_for_logging("tokens_per_expert", tokens_per_expert)
+        # self.update_cache_for_logging("load_balancing_loss", load_balancing_loss)
         # group tokens indices by expert it should be processed by
         with measure_time(self, "experts_lists"):
             indices_of_tokens_for_expert = [
@@ -175,7 +174,7 @@ class TokenChoiceFF(LoggingLayer):
         with measure_time(self, "multiply_output_by_softmax"):
             if self.use_einsum:
                 output = einsum(
-                    "n_tokens dmodel, n_tokens -> n_tokens dmodel", output, expert_gate
+                    "total_tokens_in_batch dmodel, total_tokens_in_batch -> total_tokens_in_batch dmodel", output, expert_gate
                 )
             else:
                 output = output * expert_gate.unsqueeze(dim=1)
