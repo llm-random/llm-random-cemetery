@@ -83,6 +83,7 @@ def main(
     check_args(args)
     if args.set_granular_auto_args:
         args = set_granular_auto_args(args)
+        print(f"grad_accum_steps: {args.gradient_accumulation_steps}, batch_size: {args.batch_size}")
     if args.save_weights_path is not None:
         filename = args.save_weights_path.split("/")[-1]
         assert (
