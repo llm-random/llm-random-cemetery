@@ -16,9 +16,9 @@ from lizrd.train.scheduler import AbstractLRScheduler
 from research.conditional.moe_layers.continuous_moe import ContinuousMoE
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.utils.layer_manager import LayerManager
+from research.conditional.utils.model_utils import make_loss_and_backprop_function
 from research.conditional.utils.misc_tools import temp_modify_attr
 from research.conditional.utils.model_utils import (
-    make_loss_function,
     update_model_fit_gpu_info,
 )
 from research.datasets import DataloaderWrapper
@@ -46,7 +46,7 @@ class ConditionalTrainer:
     max_sequence_length: int
     batch_size: int
     lr_scheduler: AbstractLRScheduler
-    _calculate_loss: Optional[Callable] = None
+    _calculate_loss_and_backward_pass: Optional[Callable] = None
     mask_percent: Optional[float] = None
     scaler: Optional[torch.cuda.amp.GradScaler] = None
     layer_manager: Optional[LayerManager] = None
@@ -89,7 +89,7 @@ class ConditionalTrainer:
         self.correct_tokens_accumulator = 0.0
         self.total_tokens_accumulator = 0.0
         self.auxiliary_losses_accumulator = dict()
-        self._calculate_loss = make_loss_function(
+        self._calculate_loss_and_backward_pass = make_loss_and_backprop_function(
             loss_checkpoint_chungs=self.loss_checkpoint_chungs,
         )
         self.layer_manager = LayerManager(
@@ -201,21 +201,16 @@ class ConditionalTrainer:
                     tensor.data, self.gradient_accumulation_steps, i
                 )
 
-            cross_entropy_loss, aux_info = self._calculate_loss(
+            cross_entropy_loss, aux_info = self._calculate_loss_and_backward_pass(
                 batch=batch_copy,
                 model=self.model,
                 mixed_precision=self.mixed_precision,
                 mixed_precision_dtype=self.mixed_precision_dtype,
+                gradient_accumulation_steps=self.gradient_accumulation_steps,
+                scaler=self.scaler,
                 vocab_size=self.vocab_size,
             )
 
-            # since we sum gradients averaged over multiple smaller batches, we need to normalize here
-            cross_entropy_loss /= self.gradient_accumulation_steps
-
-            for key, value in aux_info["losses"].items():
-                losses[key] = (
-                    losses.get(key, 0) + value / self.gradient_accumulation_steps
-                )
 
             total_cross_entropy_loss += cross_entropy_loss.item()
             correct_tokens_value += aux_info["correct_tokens"]
@@ -224,14 +219,8 @@ class ConditionalTrainer:
             # clear computation graph, store gradients, only apply gradients at the end
             should_apply_gradient = i == self.gradient_accumulation_steps - 1
 
-            loss_to_optimize = cross_entropy_loss
-            for key, value in aux_info["losses"].items():
-                loss_to_optimize += value
-
             if should_optimize:
-                self._optimize(
-                    loss_to_optimize, should_apply_gradient=should_apply_gradient
-                )
+                self._optimize(should_apply_gradient=should_apply_gradient)
 
         return total_cross_entropy_loss, {
             "correct_tokens": correct_tokens_value,
@@ -239,14 +228,7 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _optimize(self, loss, should_apply_gradient=False):
-        if self.gradient_accumulation_steps == 1:
-            self.optimizer.zero_grad()
-        # clear computation graph, store gradients
-        if self.scaler is None:
-            loss.backward()
-        else:
-            self.scaler.scale(loss).backward()
+    def _optimize(self, should_apply_gradient=False):
         if should_apply_gradient:
             if self.scaler is None:
                 if self.gradient_clipping is not None:
