@@ -110,6 +110,18 @@ def chungized_llm_loss_and_backward_pass(
         encoder_output: torch.Tensor = model.encoder(
             model.embedding_layer(input_tokens)
         )
+
+        additional_losses = retrieve_additional_losses(model)
+        if additional_losses != {}:
+            additional_loss_to_optimize = sum(additional_losses.values())
+            additional_loss_to_optimize.backward(retain_graph=True)
+            print("successfully backproped additional losses")
+
+        aux_info = {
+
+            "additional_losses": additional_losses,
+        }
+
         encoder_output_detach = encoder_output.detach()
         encoder_output_detach.requires_grad = True
         gt_tokens = gt_tokens.to(encoder_output.device)
@@ -147,14 +159,8 @@ def chungized_llm_loss_and_backward_pass(
             total_loss += partial_loss.sum()
             total_correct_tokens += partial_correct_tokens
 
-    if do_backward_pass:
-        encoder_output.backward(encoder_output_detach.grad)
-
-    aux_info = {
-        "correct_tokens": total_correct_tokens,
-        "total_masked_tokens": num_masked_tokens,
-        "losses": retrieve_additional_losses(model),
-    }
+        aux_info["correct_tokens"] = total_correct_tokens
+        aux_info["total_masked_tokens"] = num_masked_tokens
 
     return total_loss / num_masked_tokens / gradient_accumulation_steps, aux_info
 
@@ -208,7 +214,6 @@ def calculate_llm_loss_and_backward_pass(
     aux_info = {
         "correct_tokens": correct_tokens,
         "total_masked_tokens": total_masked_tokens,
-        "losses": retrieve_additional_losses(model),
     }
 
     return loss, aux_info
