@@ -153,7 +153,6 @@ def chungized_llm_loss_and_backward_pass(
     aux_info = {
         "correct_tokens": total_correct_tokens,
         "total_masked_tokens": num_masked_tokens,
-        "losses": retrieve_additional_losses(model),
     }
 
     return total_loss / num_masked_tokens / gradient_accumulation_steps, aux_info
@@ -208,7 +207,6 @@ def calculate_llm_loss_and_backward_pass(
     aux_info = {
         "correct_tokens": correct_tokens,
         "total_masked_tokens": total_masked_tokens,
-        "losses": retrieve_additional_losses(model),
     }
 
     return loss, aux_info
