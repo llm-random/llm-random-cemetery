@@ -50,29 +50,31 @@ def cd_to_root_dir():
 
 
 def rsync_to_remote(host, local_dir):
-    try:
-        with ConnectWithPassphrase(host) as connection:
-            base_dir = get_base_directory(connection)
-            proxy_command = get_proxy_command(connection)
-            rsync_command = [
-                "rsync",
-                "--compress",
-                "--recursive",
-                "--links",
-                "--perms",
-                "--human-readable",
-                "--stats",
-                f"--rsh={proxy_command}",
-                "--exclude=*.pyc",
-                local_dir,
-                f"{host}:{base_dir}",
-            ]
-            print(f"Syncing {local_dir} to {host}:{base_dir}...")
-            connection.local(" ".join(rsync_command), echo=True, warn=True)
-            print("Sync complete.")
-            return base_dir
-    except Exception as e:
-        raise Exception(f"[RSYNC ERROR]: An error occurred during rsync: {str(e)}")
+    # try:
+    with ConnectWithPassphrase(host) as connection:
+        base_dir = get_base_directory(connection)
+        proxy_command = get_proxy_command(connection)
+        rsync_command = [
+            "rsync",
+            "--compress",
+            "--recursive",
+            "--links",
+            "--perms",
+            "--human-readable",
+            "--stats",
+            f"--rsh={proxy_command}",
+            "--exclude=*.pyc",
+            local_dir,
+            f"{host}:{base_dir}",
+        ]
+        print(f"Syncing {local_dir} to {host}:{base_dir}...")
+        connection.local(" ".join(rsync_command), echo=True, warn=True)
+        print("Sync complete.")
+        return base_dir
+
+
+# except Exception as e:
+#     raise Exception(f"[RSYNC ERROR]: An error occurred during rsync: {str(e)}")
 
 
 def athena_user_to_workdir(connection):
