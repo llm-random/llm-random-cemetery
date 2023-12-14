@@ -110,20 +110,19 @@ def chungized_llm_loss_and_backward_pass(
         encoder_output: torch.Tensor = model.encoder(
             model.embedding_layer(input_tokens)
         )
-        encoder_output_detach = encoder_output.detach()
-        encoder_output_detach.requires_grad = True
         gt_tokens = gt_tokens.to(encoder_output.device)
         mask = mask.to(encoder_output.device)
         num_masked_tokens = mask.sum()
         if do_backward_pass:
             encoder_output.retain_grad()
-        chunged_inputs = torch.chunk(encoder_output_detach, n_chungs, dim=0)
+        chunged_inputs = torch.chunk(encoder_output, n_chungs, dim=0)
         chunged_non_masked_inputs = torch.chunk(gt_tokens, n_chungs, dim=0)
         chunged_non_masked_masks = torch.chunk(mask, n_chungs, dim=0)
 
         total_loss = 0
         total_correct_tokens = 0
         # we need to tell torch what parameters we want to optimize, because we don't want to optimize the encoder for every chunk
+        parameters_in_chung = tuple(model.head.parameters()) + (encoder_output,)
         for chunged_input, chunged_gt, chunged_mask in zip(
             chunged_inputs, chunged_non_masked_inputs, chunged_non_masked_masks
         ):
@@ -141,14 +140,18 @@ def chungized_llm_loss_and_backward_pass(
                     device_type="cuda", enabled=False, dtype=mixed_precision_dtype
                 ):
                     if scaler is not None:
-                        scaler.scale(loss).backward()
+                        scaler.scale(loss).backward(
+                            inputs=parameters_in_chung,
+                        )
                     else:
-                        loss.backward()
+                        loss.backward(
+                            inputs=parameters_in_chung,
+                        )
             total_loss += partial_loss.sum()
             total_correct_tokens += partial_correct_tokens
 
     if do_backward_pass:
-        encoder_output.backward(encoder_output_detach.grad)
+        encoder_output.backward(encoder_output.grad)
 
     aux_info = {
         "correct_tokens": total_correct_tokens,
@@ -362,6 +365,7 @@ def retrieve_additional_losses(model: torch.nn.Module):
         load_balancing_losses = torch.stack(load_balancing_losses)
         load_balancing_loss = torch.mean(load_balancing_losses)
         losses["load_balancing_loss"] = load_balancing_loss
+        model.forward_pass_cache["load_balancing_losses"] = []
 
     return losses
 
@@ -507,41 +511,39 @@ def get_classes_from_module_names(
     """
     Unpacks a comma-separated list of module names into a tuple of modules.
     """
-    classes = []
+    names = []
     if packed_names is None:
         return None
     for name in packed_names.split(","):
         if name == "Attention":
-            classes.append(llm.Attention)
+            names.append(llm.Attention)
         if name == "AttentionMechanism":
-            classes.append(llm.AttentionMechanism)
+            names.append(llm.AttentionMechanism)
         elif name == "FeedForward":
-            classes.append(llm.FeedForward)
+            names.append(llm.FeedForward)
         elif name == "Residual":
-            classes.append(llm.Residual)
+            names.append(llm.Residual)
         elif name == "TransformerBlock":
-            classes.append(llm.TransformerBlock)
+            names.append(llm.TransformerBlock)
         elif name == "TransformerTower":
-            classes.append(llm.TransformerTower)
+            names.append(llm.TransformerTower)
         elif name == "LLM":
-            classes.append(llm.LLM)
+            names.append(llm.LLM)
         elif name == "EmbeddingLayer":
-            classes.append(llm.EmbeddingLayer)
+            names.append(llm.EmbeddingLayer)
         elif name == "PredictionHead":
-            classes.append(llm.PredictionHead)
+            names.append(llm.PredictionHead)
         elif name == "ExpertChoiceFF":
-            classes.append(ExpertChoiceFF)
+            names.append(ExpertChoiceFF)
         elif name == "ExpertGating":
-            classes.append(ExpertGating)
-        elif name == "Softmax":
-            classes.append(torch.nn.Softmax)
+            names.append(ExpertGating)
         else:
             raise ValueError(f"Unknown name {name}")
-    return tuple(classes)
+    return tuple(names)
 
 
 def get_mixed_precision_ignored_classes(args) -> list[Type[torch.nn.Module]]:
-    ignored_classes = [ExpertGating, LayerNorm, _BatchNorm, torch.nn.Softmax]
+    ignored_classes = [ExpertGating, LayerNorm, _BatchNorm]
 
     selective_precision_modules = get_classes_from_module_names(
         args.fsdp_selective_precision_modules
