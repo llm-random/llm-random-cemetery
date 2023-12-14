@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module CUDA/11.7.0
+module CUDA/12.3.0
 echo "Will run the following command:"
 echo "$@"
 echo "==============================="

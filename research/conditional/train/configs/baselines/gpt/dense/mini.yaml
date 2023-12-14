@@ -1,8 +1,25 @@
 parent: research/conditional/train/configs/baselines/gpt/dense/common.yaml
 md5_parent_hash: 862d1b7a188a7eddb8b8fa0293682da8
+singularity_image: "/common/llm-random/images/sparsity_2023.11.10_15.23.19.sif"
+
+cuda_visible: "5"
+n_gpus: 1
 
 params:
+  tags: ["mamba_tests"]
   dmodel: 256
   dff: 1024
   n_blocks: 4
   n_att_heads: 4
+  torch_compile: true
+  learning_rate: 1e-4
+  init_type: truncated_normal
+  init_scale: 0.3
+  mixed_precision_dtype: float16
+  block_modules: ["feedforward", "attention"]
+  save_weights_interval: 0
+
+  # LOCAL
+  dataset_type: wikibook
+  use_dummy_dataset: true
+  # batch_size: 2
