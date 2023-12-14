@@ -16,7 +16,10 @@ from lizrd.train.scheduler import AbstractLRScheduler
 from research.conditional.moe_layers.continuous_moe import ContinuousMoE
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.utils.layer_manager import LayerManager
-from research.conditional.utils.model_utils import make_loss_and_backprop_function
+from research.conditional.utils.model_utils import (
+    make_loss_and_backprop_function,
+    retrieve_additional_losses,
+)
 from research.conditional.utils.misc_tools import temp_modify_attr
 from research.conditional.utils.model_utils import (
     update_model_fit_gpu_info,
@@ -200,6 +203,7 @@ class ConditionalTrainer:
                 tensor.data = get_ith_chunk(
                     tensor.data, self.gradient_accumulation_steps, i
                 )
+            breakpoint()
 
             cross_entropy_loss, aux_info = self._calculate_loss_and_backward_pass(
                 batch=batch_copy,
@@ -211,31 +215,36 @@ class ConditionalTrainer:
                 vocab_size=self.vocab_size,
             )
 
-            # clear computation graph, store gradients, only apply gradients at the end
-            should_apply_gradient = i == self.gradient_accumulation_steps - 1
-
-            if len(aux_info["losses"]) > 0:
-                additional_loss_to_optimize = torch.zeros_like(
-                    cross_entropy_loss,
-                    device=cross_entropy_loss.device,
-                    requires_grad=True,
-                )
-                for key, value in aux_info["losses"].items():
-                    additional_loss_to_optimize = additional_loss_to_optimize + value
-            else:
-                additional_loss_to_optimize = None
-
-            if should_optimize:
-                self._optimize(
-                    additional_loss_to_optimize,
-                    should_apply_gradient=should_apply_gradient,
-                )
             total_cross_entropy_loss += cross_entropy_loss.item()
             correct_tokens_value += aux_info["correct_tokens"]
             total_masked_tokens_value += aux_info["total_masked_tokens"]
 
-            for key, value in aux_info["losses"].items():
-                losses[key] = losses.get(key, 0) + value
+            # for key, value in aux_info["losses"].items():
+            #     losses[key] = losses.get(key, 0) + value
+
+            # clear computation graph, store gradients, only apply gradients at the end
+            should_apply_gradient = i == self.gradient_accumulation_steps - 1
+
+            additional_losses = retrieve_additional_losses(self.model)
+
+            if len(additional_losses) > 0:
+                breakpoint()
+                additional_loss_to_optimize = sum(additional_losses.values())
+                # additional_loss_to_optimize = torch.zeros_like(
+                #     cross_entropy_loss,
+                #     device=cross_entropy_loss.device,
+                #     requires_grad=True,
+                # )
+                # for key, value in aux_info["losses"].items():
+                #     additional_loss_to_optimize = additional_loss_to_optimize + value
+            else:
+                additional_loss_to_optimize = None
+
+            if should_optimize and additional_loss_to_optimize is not None:
+                self._optimize(
+                    additional_loss_to_optimize,
+                    should_apply_gradient=should_apply_gradient,
+                )
 
         return total_cross_entropy_loss, {
             "correct_tokens": correct_tokens_value,
