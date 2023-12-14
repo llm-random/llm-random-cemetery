@@ -1,6 +1,7 @@
 #!/bin/bash
 
-module CUDA/11.7.0
+# module CUDA/12.3.0
+ldconfig /usr/lib64-nvidia
 echo "Will run the following command:"
 echo "$@"
 echo "==============================="
