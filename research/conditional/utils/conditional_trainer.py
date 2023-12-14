@@ -224,7 +224,7 @@ class ConditionalTrainer:
                 loss_to_optimize += value
 
             # since we sum gradients averaged over multiple smaller batches, we need to normalize here
-            loss_to_optimize /= self.gradient_accumulation_steps
+            # loss_to_optimize /= self.gradient_accumulation_steps
 
             if should_optimize:
                 self._optimize(
