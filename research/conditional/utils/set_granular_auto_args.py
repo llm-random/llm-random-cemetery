@@ -6,3 +6,5 @@ def set_granular_auto_args(args):
     args.final_lr_fraction = 0.1
     args.final_lr_step = args.n_steps
     args.lr_warmup_steps = round(args.n_steps * 0.01)
+    
+    return args
