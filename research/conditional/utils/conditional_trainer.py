@@ -224,13 +224,13 @@ class ConditionalTrainer:
             # clear computation graph, store gradients, only apply gradients at the end
             should_apply_gradient = i == self.gradient_accumulation_steps - 1
 
-            loss_to_optimize = cross_entropy_loss
+            losses_to_optimize = [cross_entropy_loss]
             for key, value in aux_info["losses"].items():
-                loss_to_optimize += value
+                losses_to_optimize += [value]
 
             if should_optimize:
                 self._optimize(
-                    loss_to_optimize, should_apply_gradient=should_apply_gradient
+                    losses_to_optimize, should_apply_gradient=should_apply_gradient
                 )
 
         return total_cross_entropy_loss, {
@@ -239,14 +239,18 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _optimize(self, loss, should_apply_gradient=False):
+    def _optimize(self, losses, should_apply_gradient=False):
         if self.gradient_accumulation_steps == 1:
             self.optimizer.zero_grad()
         # clear computation graph, store gradients
         if self.scaler is None:
-            loss.backward()
+            for i,loss in enumerate(losses):
+                temp = torch.zeros_like(losses[0], requires_grad=True, device=loss.device)
+                temp = temp + loss
+                temp.backward()#(retain_graph= i<len(losses)-1)
         else:
-            self.scaler.scale(loss).backward()
+            for loss in losses:
+                self.scaler.scale(loss).backward()
         if should_apply_gradient:
             if self.scaler is None:
                 if self.gradient_clipping is not None:
