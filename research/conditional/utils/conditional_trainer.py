@@ -224,13 +224,16 @@ class ConditionalTrainer:
             # clear computation graph, store gradients, only apply gradients at the end
             should_apply_gradient = i == self.gradient_accumulation_steps - 1
 
-            loss_to_optimize = cross_entropy_loss
+            losses_to_optimize = [cross_entropy_loss]
             for key, value in aux_info["losses"].items():
-                loss_to_optimize += value
+                losses_to_optimize += [value]
+
+            for loss in losses_to_optimize:
+                print(f"the shape, device, type of loss is {loss.shape}, {loss.device}, {loss.dtype}")
 
             if should_optimize:
                 self._optimize(
-                    loss_to_optimize, should_apply_gradient=should_apply_gradient
+                    losses_to_optimize[::-1], should_apply_gradient=should_apply_gradient
                 )
 
         return total_cross_entropy_loss, {
@@ -244,7 +247,9 @@ class ConditionalTrainer:
             self.optimizer.zero_grad()
         # clear computation graph, store gradients
         if self.scaler is None:
-            loss.backward()
+            for l in loss:
+                l.backward()
+            # loss.backward()
         else:
             self.scaler.scale(loss).backward()
         if should_apply_gradient:

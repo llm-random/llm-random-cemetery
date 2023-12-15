@@ -184,16 +184,16 @@ class TokenChoiceFF(LoggingLayer):
 
         return output
 
-    def log_heavy(self):
-        return {
-            "gate_softmax_all_values": make_histogram(
-                self.logging_cache["gate_softmax_all_values"].flatten()
-            ),
-            "tokens_per_expert_counts": make_histogram(
-                self.logging_cache["tokens_per_expert"]
-            ),
-            "load_balancing_loss": self.logging_cache["load_balancing_loss"],
-        }
+    # def log_heavy(self):
+    #     return {
+    #         "gate_softmax_all_values": make_histogram(
+    #             self.logging_cache["gate_softmax_all_values"].flatten()
+    #         ),
+    #         "tokens_per_expert_counts": make_histogram(
+    #             self.logging_cache["tokens_per_expert"]
+    #         ),
+    #         "load_balancing_loss": self.logging_cache["load_balancing_loss"],
+    #     }
 
 
 def calculate_load_balancing_loss(
