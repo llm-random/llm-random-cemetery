@@ -192,7 +192,7 @@ class TokenChoiceFF(LoggingLayer):
             "tokens_per_expert_counts": make_histogram(
                 self.logging_cache["tokens_per_expert"]
             ),
-            "load_balancing_loss": self.logging_cache["load_balancing_loss"],
+            "load_balancing_loss": self.logging_cache["load_balancing_loss"].item(),
         }
 
 
