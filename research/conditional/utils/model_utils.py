@@ -108,6 +108,11 @@ def chungized_llm_loss(
     ):
         embeddings = model.embedding_layer(input_tokens)
         encoder_output = model.encoder(embeddings)
+        additional_loss = retrieve_additional_losses(model)
+        # additional_loss["load_balancing_loss"].backward()
+        # print("CALCULATED ADDITIONAL LOSS")
+        # exit(0)
+
         chunged_inputs = torch.chunk(encoder_output, n_chungs, dim=0)
         chunged_non_masked_inputs = torch.chunk(gt_tokens, n_chungs, dim=0)
         chunged_non_masked_masks = torch.chunk(mask, n_chungs, dim=0)
@@ -134,7 +139,7 @@ def chungized_llm_loss(
         aux_info = {
             "correct_tokens": total_correct_tokens,
             "total_masked_tokens": total_masked_tokens,
-            "losses": retrieve_additional_losses(model),
+            "losses": additional_loss,
         }
 
         return total_loss / num_tokens, aux_info
