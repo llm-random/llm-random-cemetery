@@ -77,37 +77,42 @@ def chungized_llm_loss(
     gt_tokens = batch.target_ids
     mask = batch.should_calculate_loss
 
-    def make_custom_forward():
-        def custom_forward(*inputs):
-            x, gt, mask = inputs
-            output = model.head(x)
-            with torch.autocast(
-                device_type="cuda", enabled=False, dtype=mixed_precision_dtype
-            ):
-                gt = inputs[1]
-                mask = inputs[2]
-                gt = gt.to(output.device)
-                loss = F.cross_entropy(
-                    output.reshape(-1, vocab_size),
-                    gt.reshape(-1).long(),
-                    reduction="none",
-                )
-
-                correct_tokens = gt.long() == output.argmax(dim=-1)
-                correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
-                correct_tokens = correct_tokens.sum()
-
-                total_tokens = mask.sum()
-
-            return loss[mask.reshape(-1) == 1], correct_tokens, total_tokens
-
-        return custom_forward
+    # def make_custom_forward():
+    #     def custom_forward(*inputs):
+    #         x, gt, mask = inputs
+    #         output = model.head(x)
+    #         with torch.autocast(
+    #             device_type="cuda", enabled=False, dtype=mixed_precision_dtype
+    #         ):
+    #             gt = inputs[1]
+    #             mask = inputs[2]
+    #             gt = gt.to(output.device)
+    #             loss = F.cross_entropy(
+    #                 output.reshape(-1, vocab_size),
+    #                 gt.reshape(-1).long(),
+    #                 reduction="none",
+    #             )
+    #
+    #             correct_tokens = gt.long() == output.argmax(dim=-1)
+    #             correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
+    #             correct_tokens = correct_tokens.sum()
+    #
+    #             total_tokens = mask.sum()
+    #
+    #         return loss[mask.reshape(-1) == 1], correct_tokens, total_tokens
+    #
+    #     return custom_forward
 
     with torch.autocast(
         device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
     ):
         embeddings = model.embedding_layer(input_tokens)
         encoder_output = model.encoder(embeddings)
+        additional_loss = retrieve_additional_losses(model)
+        additional_loss["load_balancing_loss"].backward()
+        print("CALCULATED ADDITIONAL LOSS")
+        exit(0)
+
         chunged_inputs = torch.chunk(encoder_output, n_chungs, dim=0)
         chunged_non_masked_inputs = torch.chunk(gt_tokens, n_chungs, dim=0)
         chunged_non_masked_masks = torch.chunk(mask, n_chungs, dim=0)
@@ -134,7 +139,7 @@ def chungized_llm_loss(
         aux_info = {
             "correct_tokens": total_correct_tokens,
             "total_masked_tokens": total_masked_tokens,
-            "losses": retrieve_additional_losses(model),
+            "losses": additional_loss,
         }
 
         return total_loss / num_tokens, aux_info
