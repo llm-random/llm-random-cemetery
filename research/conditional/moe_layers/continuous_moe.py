@@ -57,6 +57,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
         merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         x = self.merge_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
+        norms = torch.linalg.norm(x, dim=-1, keepdim=True)
+        x = x / torch.tanh(norms)
         return x
 
     def reshape_into_groups(self, x):
