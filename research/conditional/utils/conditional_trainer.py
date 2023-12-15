@@ -209,13 +209,6 @@ class ConditionalTrainer:
                 vocab_size=self.vocab_size,
             )
 
-            # since we sum gradients averaged over multiple smaller batches, we need to normalize here
-            cross_entropy_loss /= self.gradient_accumulation_steps
-
-            for key, value in aux_info["losses"].items():
-                losses[key] = (
-                    losses.get(key, 0) + value / self.gradient_accumulation_steps
-                )
 
             total_cross_entropy_loss += cross_entropy_loss.item()
             correct_tokens_value += aux_info["correct_tokens"]
@@ -224,14 +217,8 @@ class ConditionalTrainer:
             # clear computation graph, store gradients, only apply gradients at the end
             should_apply_gradient = i == self.gradient_accumulation_steps - 1
 
-            loss_to_optimize = cross_entropy_loss
-            for key, value in aux_info["losses"].items():
-                loss_to_optimize += value
-
             if should_optimize:
-                self._optimize(
-                    loss_to_optimize, should_apply_gradient=should_apply_gradient
-                )
+                self._optimize(should_apply_gradient=should_apply_gradient)
 
         return total_cross_entropy_loss, {
             "correct_tokens": correct_tokens_value,
@@ -239,14 +226,7 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _optimize(self, loss, should_apply_gradient=False):
-        if self.gradient_accumulation_steps == 1:
-            self.optimizer.zero_grad()
-        # clear computation graph, store gradients
-        if self.scaler is None:
-            loss.backward()
-        else:
-            self.scaler.scale(loss).backward()
+    def _optimize(self, should_apply_gradient=False):
         if should_apply_gradient:
             if self.scaler is None:
                 if self.gradient_clipping is not None:
