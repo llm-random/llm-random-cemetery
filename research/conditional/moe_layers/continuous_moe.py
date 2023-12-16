@@ -11,6 +11,11 @@ from research.conditional.utils.misc_tools import stable_softmax_temperature, en
 from research.conditional.utils.layer_manager import LoggingLayer
 
 
+def funny_norm(x):
+    "smooth version of max(1, |x|)"
+    return 1+torch.relu(x-1)
+
+
 @dataclasses.dataclass(eq=False, repr=False)
 class ContinuousMoeBaseClass(LoggingLayer):
     """
@@ -50,6 +55,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
             )
             self.expert_size = self.dff // self.n_experts
         self.init_core_parameters()
+        self.layer_norm = nn.LayerNorm(self.dm)
         self.init_additional_parameters()
 
     def forward(self, x):
@@ -57,6 +63,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
         merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         x = self.merge_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
+        norms = torch.linalg.norm(x, dim=-1, keepdim=True)
+        x = x / funny_norm(norms)
         return x
 
     def reshape_into_groups(self, x):

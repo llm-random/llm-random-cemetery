@@ -233,7 +233,7 @@ class ConditionalTrainer:
                 for value in losses.values():
                     additional_loss_to_optimize = additional_loss_to_optimize + value
             else:
-                additional_loss_to_optimize = None
+                additional_loss_to_optimize = 0.
 
             loss_to_optimize = cross_entropy_loss + additional_loss_to_optimize
 
