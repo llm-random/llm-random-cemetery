@@ -50,6 +50,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
             )
             self.expert_size = self.dff // self.n_experts
         self.init_core_parameters()
+        self.layer_norm = nn.LayerNorm(self.dm)
         self.init_additional_parameters()
 
     def forward(self, x):
