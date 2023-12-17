@@ -24,7 +24,13 @@ class MoEChimera(LoggingLayer):
         assert (
             self.expert_size % self.n_experts == 0
         ), f"expert_size {self.expert_size} must be divisible by n_experts {self.n_experts}. We might support other granularities in the future."
-        self.current_mode = None
+        self.current_mode = "mot"
+        # instantiate submodules
+        self.mot = self.mot()
+        self.ec = self.ec()
+        self.switch = self.switch()
+
+        # initialize shared weights
         self.lin1 = torch.nn.Parameter(
             get_init_weight(
                 shape=(self.n_experts, self.dmodel, self.expert_size),
@@ -51,7 +57,6 @@ class MoEChimera(LoggingLayer):
         )
 
         # replace weights in submodules
-
         ## mot
         self.mot.lin1 = self.lin1
         self.mot.lin2 = self.lin2
