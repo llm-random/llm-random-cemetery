@@ -10,6 +10,7 @@ from torch.profiler import ProfilerAction
 from lizrd.core import llm
 from lizrd.text.data import LLMBatch
 from lizrd.core.llm import Parallel
+from research.conditional.moe_layers.chimera import MoEChimera
 from research.conditional.moe_layers.cont_moe_designs.common_weighted_parameter_matrices import (
     ContinuousMoECommonWeightedParameters,
 )
@@ -344,7 +345,6 @@ def get_common_mot_kwargs(args):
         "group_size": args.group_size,
         "sparsity_dim": args.sparsity_dim,
         "temperature": args.temperature,
-        "expert_size": args.expert_size,
         "use_opt_einsum": args.use_opt_einsum,
         "flop_matched": args.flop_matched,
         "init_type": args.init_type,
@@ -448,6 +448,29 @@ def get_ff_layer(args):
             no_average_attn=args.no_average_attn,
             nystrom=args.nystrom,
             xfavor=args.xfavor,
+        )
+    elif args.ff_mode == "moe_chimera":
+        mot = ContinuousMoE(**get_common_mot_kwargs(args))
+        ec = ExpertChoiceFF(**get_expert_choice_args(args))
+        switch = TokenChoiceFF(
+            dmodel=args.dmodel,
+            n_experts=args.n_experts,
+            expert_size=args.expert_size,
+            capacity_factor=args.capacity_factor,
+            load_balancing_loss_weight=args.load_balancing_loss_weight,
+            init_scale=args.init_scale,
+            init_type=args.init_type,
+        )
+
+        return_fn = lambda: MoEChimera(
+            mot=mot,
+            ec=ec,
+            switch=switch,
+            dmodel=args.dmodel,
+            n_experts=args.n_experts,
+            expert_size=args.expert_size,
+            init_type=args.init_type,
+            init_scale=args.init_scale,
         )
     else:
         raise NotImplementedError(f"FF mode {args.ff_mode} not implemented")
