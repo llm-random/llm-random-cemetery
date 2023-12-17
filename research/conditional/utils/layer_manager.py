@@ -179,6 +179,18 @@ class LoggingLayer(nn.Module):
             log["time"] = times_fig
         return log
 
+    def flip_chimera_mode(self):
+        for l in self.layers:
+            if hasattr(l,"current_mode"):
+                if l.current_mode == "mot":
+                    l.current_mode = "switch"
+                    print("switching to switch")
+                elif l.current_mode == "switch":
+                    l.current_mode = "mot"
+                    print("switching to mot")
+                else:
+                    raise ValueError("current_mode not set")
+
 
 @contextmanager
 def measure_time(layer: LoggingLayer, instruction_name: str):
