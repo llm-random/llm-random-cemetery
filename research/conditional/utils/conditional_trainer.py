@@ -120,6 +120,7 @@ class ConditionalTrainer:
     def _after_step_operations(self, step):
         self.model.forward_pass_cache.clear()
         self.layer_manager.manage_learnable_temperature(step)
+        self.layer_manager.flip_chimera_mode(step)
 
     def train(self, n_steps: int):
         """
@@ -233,7 +234,7 @@ class ConditionalTrainer:
                 for value in losses.values():
                     additional_loss_to_optimize = additional_loss_to_optimize + value
             else:
-                additional_loss_to_optimize = None
+                additional_loss_to_optimize = 0.
 
             loss_to_optimize = cross_entropy_loss + additional_loss_to_optimize
 

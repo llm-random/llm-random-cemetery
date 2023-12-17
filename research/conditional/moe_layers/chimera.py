@@ -10,9 +10,9 @@ from research.conditional.utils.layer_manager import LoggingLayer
 class MoEChimera(LoggingLayer):
     """Mixture-of-Experts Chimera layer. Expert and controller weights are shared between a Mot, EC and Switch submodules."""
 
-    mot: LoggingLayer
-    ec: LoggingLayer
-    switch: LoggingLayer
+    mot: lambda: LoggingLayer
+    ec: lambda: LoggingLayer
+    switch: lambda: LoggingLayer
     dmodel: int
     n_experts: int
     expert_size: int
@@ -24,7 +24,13 @@ class MoEChimera(LoggingLayer):
         assert (
             self.expert_size % self.n_experts == 0
         ), f"expert_size {self.expert_size} must be divisible by n_experts {self.n_experts}. We might support other granularities in the future."
-        self.current_mode = None
+        self.current_mode = "mot"
+        # instantiate submodules
+        self.mot = self.mot()
+        self.ec = self.ec()
+        self.switch = self.switch()
+
+        # initialize shared weights
         self.lin1 = torch.nn.Parameter(
             get_init_weight(
                 shape=(self.n_experts, self.dmodel, self.expert_size),
@@ -51,7 +57,6 @@ class MoEChimera(LoggingLayer):
         )
 
         # replace weights in submodules
-
         ## mot
         self.mot.lin1 = self.lin1
         self.mot.lin2 = self.lin2
@@ -87,7 +92,8 @@ class MoEChimera(LoggingLayer):
             raise ValueError("current_mode not set")
 
     def forward(self, x):
+        self.get_current_module().logging_switch = self.logging_switch
         return self.get_current_module().forward(x)
 
     def log_heavy(self):
-        self.get_current_module().log_heavy()
+        return self.get_current_module().log_heavy()
