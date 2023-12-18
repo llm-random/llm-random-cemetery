@@ -510,13 +510,13 @@ def get_mamba_layer(args):
     if args.mamba_mode == "out_proj_moe":
 
         def modified_mamba():
-            mamba = mamba_ssm.Mamba(d_model=args.dmodel)
+            mamba = mamba_ssm.Mamba(d_model=args.dmodel, use_fast_path=False)
             mamba.out_proj = ExpertChoiceFF(
                 dmodel=mamba.d_inner,
                 doutput=mamba.d_model,
-                n_experts=4,
-                expert_size=mamba.d_inner,
-                topk_fraction=0.5,
+                n_experts=32,
+                expert_size=2048,
+                topk_fraction=0.03125,
                 softmax_over="experts",
                 init_type="kaiming_uniform",
                 init_scale=0.1,
