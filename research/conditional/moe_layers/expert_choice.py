@@ -205,8 +205,7 @@ class ExpertChoiceFF(LoggingLayer):
         super().__init__()
 
         self.dmodel = dmodel
-        if doutput is None:
-            self.doutput = dmodel
+        self.doutput = dmodel if doutput is None else doutput
         self.n_experts = n_experts
         self.expert_size = expert_size
         self.topk_fraction = topk_fraction
@@ -471,7 +470,7 @@ class ExpertChoiceFF(LoggingLayer):
                 x,
                 self.lin2_weight,
             )
-            ash.assert_shape("e k m", x, e=self.n_experts, k=topk, m=self.dmodel)
+            ash.assert_shape("e k m", x, e=self.n_experts, k=topk, m=self.doutput)
         return x
 
     def gating_postprocess_onehot(
