@@ -510,7 +510,7 @@ def get_mamba_layer(args):
     if args.mamba_mode == "out_proj_moe":
 
         def modified_mamba():
-            mamba = mamba_ssm.Mamba(d_model=args.dmodel)
+            mamba = mamba_ssm.Mamba(d_model=args.dmodel, use_fast_path=False)
             mamba.out_proj = ExpertChoiceFF(
                 dmodel=mamba.d_inner,
                 doutput=mamba.d_model,
