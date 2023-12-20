@@ -43,6 +43,11 @@ def set_model_config(args):
         args.dff = 2048
         args.n_blocks = 8
         args.n_att_heads = 8
+    elif args.granular_model_config == "base_4":
+        args.dmodel = 768
+        args.dff = 3072
+        args.n_blocks = 4
+        args.n_att_heads = 12
     elif args.granular_model_config == "base":
         args.dmodel = 768
         args.dff = 3072
