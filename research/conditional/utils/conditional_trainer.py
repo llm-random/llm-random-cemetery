@@ -235,7 +235,8 @@ class ConditionalTrainer:
             else:
                 additional_loss_to_optimize = None
 
-            loss_to_optimize = cross_entropy_loss + additional_loss_to_optimize
+            if additional_loss_to_optimize is not None:
+                loss_to_optimize = cross_entropy_loss + additional_loss_to_optimize
 
             if should_optimize:
                 self._optimize(
