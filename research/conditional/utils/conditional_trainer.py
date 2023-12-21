@@ -76,6 +76,7 @@ class ConditionalTrainer:
     profiler_enabled: bool = False
     profiler_trace_path: str = None
     profiler_schedule: None = None
+    chimera_schedule: int = None
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
@@ -121,7 +122,9 @@ class ConditionalTrainer:
     def _after_step_operations(self, step):
         self.model.forward_pass_cache.clear()
         self.layer_manager.manage_learnable_temperature(step)
-        self.layer_manager.flip_chimera_mode()
+        if self.chimera_schedule is not None:
+            mode = self.layer_manager.get_chimera_mode(step, self.chimera_schedule)
+            self.layer_manager.set_chimera_mode(mode)
 
     def train(self, n_steps: int):
         """
