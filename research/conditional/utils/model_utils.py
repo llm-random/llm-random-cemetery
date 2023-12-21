@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.profiler import ProfilerAction
 
-from lizrd.core import llm
+from lizrd.core import llm, nn
 from lizrd.text.data import LLMBatch
 from lizrd.core.llm import Parallel
 from research.conditional.moe_layers.cont_moe_designs.common_weighted_parameter_matrices import (
@@ -53,6 +53,7 @@ from research.conditional.moe_layers.continuous_moe import (
     LegacyContinuousMoE,
 )
 from research.conditional.moe_layers.expert_choice import ExpertChoiceFF, ExpertGating
+from research.conditional.moe_layers.mamba import MambaInProj, MambaConvMoE
 from research.conditional.moe_layers.token_choice import TokenChoiceFF
 from research.conditional.moe_layers.ff_timed import FeedForwardTimed
 
@@ -505,18 +506,18 @@ def get_mamba_layer(args):
     import mamba_ssm
 
     if args.mamba_mode == "vanilla":
-        return_fn = lambda: mamba_ssm.Mamba(d_model=args.dmodel)
+        return_fn = lambda: mamba_ssm.Mamba(d_model=args.dmodel, use_fast_path=False)
 
     if args.mamba_mode == "out_proj_moe":
 
-        def modified_mamba():
-            mamba = mamba_ssm.Mamba(d_model=args.dmodel)
+        def modified_out_mamba():
+            mamba = mamba_ssm.Mamba(d_model=args.dmodel, use_fast_path=False)
             mamba.out_proj = ExpertChoiceFF(
-                dmodel=mamba.d_inner,
+                dmodel=mamba.d_inner,  # 2 * dmodel
                 doutput=mamba.d_model,
                 n_experts=4,
-                expert_size=mamba.d_inner,
-                topk_fraction=0.5,
+                expert_size=mamba.d_model,
+                topk_fraction=0.25,
                 softmax_over="experts",
                 init_type="kaiming_uniform",
                 init_scale=0.1,
@@ -524,8 +525,34 @@ def get_mamba_layer(args):
             )
             return mamba
 
-        return modified_mamba
+        return modified_out_mamba
 
+    if args.mamba_mode == "in_proj_moe":
+
+        def modified_out_mamba():
+            mamba = mamba_ssm.Mamba(d_model=args.dmodel, use_fast_path=False)
+            mamba.in_proj = MambaInProj(
+                batch_size=args.batch_size,
+                conv_proj=ExpertChoiceFF(
+                    dmodel=mamba.d_model,
+                    doutput=mamba.d_inner,
+                    n_experts=4,
+                    expert_size=mamba.d_model,
+                    topk_fraction=0.25,
+                    softmax_over="experts",
+                    init_type="kaiming_uniform",
+                    init_scale=0.1,
+                    #  FIXME(KKrol): Hardcoded values
+                ),
+                gate_proj=nn.Linear(
+                    mamba.d_model,
+                    mamba.d_inner,
+                    bias=False,
+                ),
+            )
+            return mamba
+
+        return modified_out_mamba
     return return_fn
 
 
