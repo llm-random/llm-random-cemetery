@@ -277,7 +277,7 @@ def main(
         model_fit_gpu_info_params=model_fit_gpu_info_params,
         profiler_enabled=args.profiler_enabled,
         profiler_trace_path=args.profiler_trace_path,
-        profiler_schedule=profiler_schedule,
+        chimera_schedule=args.chimera_schedule,
     )
     trainer.train(args.n_steps)
 
