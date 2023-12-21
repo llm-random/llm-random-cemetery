@@ -468,7 +468,6 @@ def get_ff_layer(args):
             mot=mot,
             ec=ec,
             switch=switch,
-            possible_modes_packed=args.possible_modes_packed,
             dmodel=args.dmodel,
             n_experts=args.n_experts,
             expert_size=args.expert_size,
