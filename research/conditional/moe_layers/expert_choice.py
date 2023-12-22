@@ -321,6 +321,7 @@ class ExpertChoiceFF(LoggingLayer):
                 x,
                 one_hot,
             )
+            print(f"one hot requires grad: {one_hot.requires_grad}")
         with measure_time(self, "reshape"):
             x = x.reshape((self.n_experts, topk, self.dmodel))
         return x, one_hot
