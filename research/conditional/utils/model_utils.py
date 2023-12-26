@@ -536,9 +536,9 @@ def get_mamba_layer(args):
                 conv_proj=ExpertChoiceFF(
                     dmodel=mamba.d_model,
                     doutput=mamba.d_inner,
-                    n_experts=1,
+                    n_experts=4,
                     expert_size=mamba.d_model,
-                    topk_fraction=1,
+                    topk_fraction=0.25,
                     softmax_over="experts",
                     init_type="kaiming_uniform",
                     init_scale=0.1,
