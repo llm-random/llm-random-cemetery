@@ -4,11 +4,11 @@ singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.
 time: 0-00:10:00
 
 params:
-  name: "mamba_medium_test"
+  name: "mamba_small_test"
   tags: ["mamba_moe_inproj", "no_fast_path"]
   n_steps: 100_000
   dmodel: 512
-  n_blocks: 8
+  n_blocks: 4
   n_att_heads: 8
   mixed_precision_dtype: bfloat16
   block_modules: ["mamba"]
