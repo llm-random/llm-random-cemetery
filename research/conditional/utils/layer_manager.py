@@ -50,6 +50,7 @@ class LayerManager:
                 block_name = self.extract_block_name(name)
                 registered_name = f"{block_name}/{suffix}"
             if registered_name is not None:
+                print(f"Registering {registered_name}")
                 self._layers.append((registered_name, layer))
 
     def extract_block_name(self, name):
