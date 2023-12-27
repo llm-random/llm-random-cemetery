@@ -54,12 +54,10 @@ class ContinuousMoeBaseClass(LoggingLayer):
         self.init_additional_parameters()
 
     def forward(self, x):
-        # residual = x
         x = self.reshape_into_groups(x)
         merge_weights, emit_weights = self.get_merge_and_emit_weights(x)
         x = self.merge_map_emit(x, merge_weights, emit_weights)
         x = self.reshape_into_original(x)
-        # x = self.layer_norm(x + residual)
         return x
 
     def reshape_into_groups(self, x):
@@ -84,31 +82,31 @@ class ContinuousMoeBaseClass(LoggingLayer):
             raise NotImplementedError
         return x
 
-    def get_merge_and_emit_weights(self, x):
-        # shape of x is (free_dimension, split_dimension // group_size, group_size, dmodel)
-        merge_logits = torch.matmul(x, self.controller)
-        self.update_cache_for_logging("merge_logits", merge_logits)
-        # shape of merge_logits is (free_dimension, agrr_dimension // group_size, group_size, n_experts)
-        temp_merge, temp_emit = self.get_temperature()
-        merge_softmax_dim = -2
-        emit_softmax_dim = -1 if self.emit_softmax_over_experts else -2
-
-        merge_weights = stable_softmax_temperature(
-            merge_logits, temp_merge, dim=merge_softmax_dim
-        )
-        # on default we use the same weights for emitting and merging, but if the temperature is learnable or we want to take softmax over experts for emitting, we will use different weights
-        if isinstance(temp_merge, torch.nn.Parameter) or self.emit_softmax_over_experts:
-            emit_weights = stable_softmax_temperature(
-                merge_logits, temp_emit, dim=emit_softmax_dim
-            )
-        else:
-            emit_weights = merge_weights
-        self.update_cache_for_logging("merge_weights", merge_weights)
-        self.update_cache_for_logging("emit_weights", emit_weights)
-        if self.use_discrete_routing:
-            merge_weights = argmax_one_hot(merge_weights, dim=merge_softmax_dim)
-            emit_weights = argmax_one_hot(emit_weights, dim=emit_softmax_dim)
-        return merge_weights, emit_weights
+    # def get_merge_and_emit_weights(self, x):
+    #     # shape of x is (free_dimension, split_dimension // group_size, group_size, dmodel)
+    #     merge_logits = torch.matmul(x, self.controller)
+    #     self.update_cache_for_logging("merge_logits", merge_logits)
+    #     # shape of merge_logits is (free_dimension, agrr_dimension // group_size, group_size, n_experts)
+    #     temp_merge, temp_emit = self.get_temperature()
+    #     merge_softmax_dim = -2
+    #     emit_softmax_dim = -1 if self.emit_softmax_over_experts else -2
+    #
+    #     merge_weights = stable_softmax_temperature(
+    #         merge_logits, temp_merge, dim=merge_softmax_dim
+    #     )
+    #     # on default we use the same weights for emitting and merging, but if the temperature is learnable or we want to take softmax over experts for emitting, we will use different weights
+    #     if isinstance(temp_merge, torch.nn.Parameter) or self.emit_softmax_over_experts:
+    #         emit_weights = stable_softmax_temperature(
+    #             merge_logits, temp_emit, dim=emit_softmax_dim
+    #         )
+    #     else:
+    #         emit_weights = merge_weights
+    #     self.update_cache_for_logging("merge_weights", merge_weights)
+    #     self.update_cache_for_logging("emit_weights", emit_weights)
+    #     if self.use_discrete_routing:
+    #         merge_weights = argmax_one_hot(merge_weights, dim=merge_softmax_dim)
+    #         emit_weights = argmax_one_hot(emit_weights, dim=emit_softmax_dim)
+    #     return merge_weights, emit_weights
 
     def get_temperature(self):
         return self.temperature, self.temperature
@@ -185,47 +183,6 @@ class ContinuousMoeBaseClass(LoggingLayer):
     def log_light(self):
         return {}
 
-    def log_heavy(self):
-        log = {}
-        if self.group_size == 1:
-            return log
-
-        merge_logits = self.logging_cache["merge_logits"]
-        merge_weights = self.logging_cache["merge_weights"]
-        emit_weights = self.logging_cache["emit_weights"]
-
-        merge_entropy_dim = -2
-        if self.emit_softmax_over_experts:
-            emit_entropy_dim = -1
-        else:
-            emit_entropy_dim = -2
-
-        merge_weights_sum = merge_weights.sum(dim=merge_entropy_dim)
-        emit_weights_sum = emit_weights.sum(dim=emit_entropy_dim)
-
-        # assure that the entropy dimensions above are correct for both merge and emit weights
-        assert torch.allclose(
-            merge_weights_sum, torch.ones_like(merge_weights_sum), atol=1e-2
-        ), f"merge_weights_sum = {merge_weights_sum} does not sum to 1 along dim {merge_entropy_dim}"
-        assert torch.allclose(
-            emit_weights_sum, torch.ones_like(emit_weights_sum), atol=1e-2
-        ), f"emit_weights_sum = {emit_weights_sum} does not sum to 1 along dim {emit_entropy_dim}"
-
-        for name, weights, entropy_dim in [
-            ("merge_weights", merge_weights, merge_entropy_dim),
-            ("emit_weights", emit_weights, emit_entropy_dim),
-        ]:
-            log[f"{name}/mean"] = weights.mean()
-            log[f"{name}/std"] = weights.std()
-            max_entropy = np.log(weights.size(entropy_dim))
-            normalized_entropy = entropy(weights, dim=entropy_dim) / max_entropy
-            log[f"{name}/normalised_entropy/mean"] = normalized_entropy.mean()
-            log[f"{name}/normalised_entropy/std"] = normalized_entropy.std()
-
-        log[f"logits/mean"] = 1e4 * (merge_logits * 1e-4).mean()
-        log[f"logits/std"] = merge_logits.std()
-
-        return log
 
 
 class ContinuousMoE(ContinuousMoeBaseClass):
@@ -235,7 +192,7 @@ class ContinuousMoE(ContinuousMoeBaseClass):
 def argmax_one_hot(x: torch.Tensor, dim: int):
     max_values, _ = x.max(dim=dim, keepdim=True)
     return torch.where(
-        condition=x == max_values,
+        condition=max_values == x,
         input=torch.Tensor([1.0]).to(dtype=x.dtype, device=x.device),
         other=torch.Tensor([0.0]).to(dtype=x.dtype, device=x.device),
         out=x,
