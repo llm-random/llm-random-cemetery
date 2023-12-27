@@ -160,7 +160,8 @@ def main(
             raise ValueError(f"Unknown module name: {module_name}")
 
     if args.parallel_blocks:
-        block_modules = {"parallel": lambda: Parallel(block_modules)}
+        modules = [module_fun() for module_fun in block_modules.values()]
+        block_modules = {"parallel": lambda: Parallel(*modules)}
 
     model = get_model(
         max_length=args.cutoff,
