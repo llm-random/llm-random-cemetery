@@ -252,6 +252,8 @@ class ConditionalTrainer:
                 additional_loss.backward()
             else:
                 self.scaler.scale(additional_loss).backward()
+        # lm = self.layer_manager
+        # breakpoint()
         if should_apply_gradient:
             if self.scaler is None:
                 if self.gradient_clipping is not None:

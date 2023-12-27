@@ -85,12 +85,12 @@ class TokenChoiceRouter(LoggingLayer):
                 use_einsum=self.use_einsum,
             )
 
-            if "load_balancing_losses" not in self.forward_pass_cache:
-                self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
-            else:
-                self.forward_pass_cache["load_balancing_losses"].append(
-                    load_balancing_loss
-                )
+            # if "load_balancing_losses" not in self.forward_pass_cache:
+            #     self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
+            # else:
+            #     self.forward_pass_cache["load_balancing_losses"].append(
+            #         load_balancing_loss
+            #     )
 
         # mask out tokens that are not in capacity
         expert_mask_flat = expert_mask.sum(dim=1)
