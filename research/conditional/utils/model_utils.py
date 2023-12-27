@@ -469,6 +469,20 @@ def get_ff_layer(args):
             init_scale=args.init_scale,
             init_type=args.init_type,
         )
+    elif args.ff_mode == "token_choice_deprecated":
+        from research.conditional.moe_layers._token_choice_deprecated import (
+            TokenChoiceFF as TokenChoiceFFDeprecated,
+        )
+
+        return_fn = lambda: TokenChoiceFFDeprecated(
+            dmodel=args.dmodel,
+            n_experts=args.n_experts,
+            expert_size=args.expert_size,
+            capacity_factor=args.capacity_factor,
+            load_balancing_loss_weight=args.load_balancing_loss_weight,
+            init_scale=args.init_scale,
+            init_type=args.init_type,
+        )
     elif args.ff_mode == "kernelized_fc":
         from research.conditional.moe_layers.kernelized import FCKernelized
 
