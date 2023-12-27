@@ -155,6 +155,12 @@ class TokenChoiceRouter(LoggingLayer):
             )
         return expert_gate, expert_index
 
+    def log_light(self):
+        return {
+            "dropped_tokens_ratio": self.logging_cache["dropped_tokens_ratio"],
+            "load_balancing_loss": self.logging_cache["load_balancing_loss"],
+        }
+
     def log_heavy(self):
         return {
             "gate_softmax_all_values": make_histogram(
@@ -163,8 +169,6 @@ class TokenChoiceRouter(LoggingLayer):
             "tokens_per_expert_counts": make_histogram(
                 self.logging_cache["tokens_per_expert"]
             ),
-            "load_balancing_loss": self.logging_cache["load_balancing_loss"],
-            "dropped_tokens_ratio": self.logging_cache["dropped_tokens_ratio"],
         }
 
 
@@ -250,7 +254,9 @@ class TokenChoiceFF(LoggingLayer):
                     self.lin2_weight,
                 ).to(x.dtype)
             else:
-                experts_output = torch.matmul(experts_output, self.lin2_weight)
+                experts_output = torch.matmul(experts_output, self.lin2_weight).to(
+                    x.dtype
+                )
 
         output = torch.zeros_like(x)
 
