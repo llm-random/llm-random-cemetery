@@ -7,3 +7,4 @@ params:
   dmodel: 256
   n_blocks: 4
   n_att_heads: 4
+  tags: ["token_choice"]
