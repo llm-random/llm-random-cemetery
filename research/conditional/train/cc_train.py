@@ -9,7 +9,7 @@ import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 
 from lizrd.core import misc
-from lizrd.core.llm import EmbeddingLayer
+from lizrd.core.llm import EmbeddingLayer, Parallel
 from lizrd.support.logging import get_current_logger, get_logger
 from lizrd.support.misc import (
     get_argument_attributes,
@@ -158,6 +158,10 @@ def main(
             block_modules[module_name] = get_mamba_layer(args)
         else:
             raise ValueError(f"Unknown module name: {module_name}")
+
+    if args.parallel_blocks:
+        modules = [module_fun() for module_fun in block_modules.values()]
+        block_modules = {"parallel": lambda: Parallel(*modules)}
 
     model = get_model(
         max_length=args.cutoff,
