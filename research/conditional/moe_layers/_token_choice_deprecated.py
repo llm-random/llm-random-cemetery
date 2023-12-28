@@ -219,7 +219,9 @@ class TokenChoiceFF(LoggingLayer):
                     self.lin2_weight,
                 ).to(x.dtype)
             else:
-                experts_output = torch.matmul(experts_output, self.lin2_weight)
+                experts_output = torch.matmul(experts_output, self.lin2_weight).to(
+                    x.dtype
+                )
 
         output = torch.zeros_like(x)
 
