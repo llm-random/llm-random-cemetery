@@ -70,7 +70,9 @@ class TokenChoiceRouter(LoggingLayer):
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
 
-        expert_gate, expert_index = self.choose_expert(gate_out)
+        with measure_time(self, "choose_expert"):
+            expert_gate, expert_index = self.choose_expert(gate_out)
+
         with measure_time(self, "create_expert_mask"):
             expanded_expert_mask = F.one_hot(expert_index, num_classes=self.n_experts)
             assert expanded_expert_mask.shape == (
@@ -82,8 +84,10 @@ class TokenChoiceRouter(LoggingLayer):
             assert expert_mask.shape == (n_tokens, self.n_experts)
 
         with measure_time(self, "calculate expert indexes"):
-            position_in_expert = torch.cumsum(expert_mask, dim=0) * expert_mask
-            in_capacity_tokens_mask = torch.lt(position_in_expert, capacity)
+            with measure_time(self, "cumsum"):
+                position_in_expert = torch.cumsum(expert_mask, dim=0) * expert_mask
+            with measure_time(self, "lt"):
+                in_capacity_tokens_mask = torch.lt(position_in_expert, capacity)
             expert_mask *= in_capacity_tokens_mask
             n_selected_tokens = expert_mask.sum().item()
 
@@ -103,12 +107,12 @@ class TokenChoiceRouter(LoggingLayer):
                 use_einsum=self.use_einsum,
             )
 
-            if "load_balancing_losses" not in self.forward_pass_cache:
-                self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
-            else:
-                self.forward_pass_cache["load_balancing_losses"].append(
-                    load_balancing_loss
-                )
+        # if "load_balancing_losses" not in self.forward_pass_cache:
+        #     self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
+        # else:
+        #     self.forward_pass_cache["load_balancing_losses"].append(
+        #         load_balancing_loss
+        #     )
 
         self.update_cache_for_logging("gate_softmax_values", expert_gate)
         self.update_cache_for_logging("max_indices", expert_index)
