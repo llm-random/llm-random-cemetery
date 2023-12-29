@@ -197,20 +197,24 @@ def attention_mechanism(
                 is_causal=causal,
             )
     else:
-        # implementation without flash assumes other dim order
-        query = query.transpose(1, 2)
-        key = key.transpose(1, 2)
-        value = value.transpose(1, 2)
+        with torch.autocast(device_type="cuda", enabled=False):
+            query = query.to(torch.float32)
+            key = key.to(torch.float32)
+            value = value.to(torch.float32)
+            # implementation without flash assumes other dim order
+            query = query.transpose(1, 2)
+            key = key.transpose(1, 2)
+            value = value.transpose(1, 2)
 
-        a = torch.einsum("... l h d, ... L h d -> ... h l L", query, key)
-        a = a * (1 / dhead**0.5)
-        if causal:
-            a.masked_fill_(
-                torch.tril(torch.ones_like(a)) == 0, float("-inf")
-            )  # mask out future tokens
-        a = torch.softmax(a, dim=-1)
-        output = torch.einsum("... h l L, ... L h d -> ... l h d", a, value)
-        output = output.transpose(1, 2)
+            a = torch.einsum("... l h d, ... L h d -> ... h l L", query, key)
+            a = a * (1 / dhead**0.5)
+            if causal:
+                a.masked_fill_(
+                    torch.tril(torch.ones_like(a)) == 0, float("-inf")
+                )  # mask out future tokens
+            a = torch.softmax(a, dim=-1)
+            output = torch.einsum("... h l L, ... L h d -> ... l h d", a, value)
+            output = output.transpose(1, 2)
 
     return output
 
