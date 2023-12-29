@@ -50,6 +50,7 @@ class LayerManager:
                 block_name = self.extract_block_name(name)
                 registered_name = f"{block_name}/{suffix}"
             if registered_name is not None:
+                print(f"Registering {registered_name}")
                 self._layers.append((registered_name, layer))
 
     def extract_block_name(self, name):
@@ -89,6 +90,7 @@ class LayerManager:
             for block_name, layer in self._layers:
                 if isinstance(layer, LoggingLayer):
                     info = layer.log(verbosity_level)
+                    breakpoint()
                     for name, data in info.items():
                         logging_name = block_name + "/" + name
                         self.logger.report_generic_info(
