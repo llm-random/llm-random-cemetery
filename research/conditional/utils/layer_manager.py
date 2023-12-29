@@ -40,6 +40,8 @@ class LayerManager:
             registered_name = None
             suffix = name.split(".")[-1]
 
+            print(name)
+
             if suffix in [
                 "residual_feedforward",
                 "residual_attention",
