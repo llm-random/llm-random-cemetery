@@ -207,7 +207,8 @@ if __name__ == "__main__":
         else:
             raise ValueError(f"Unknown cluster name: {CLUSTER_NAME}")
         print(f"running experiment {i} from {job_name}...")
-        PROCESS_CALL_FUNCTION(subprocess_args, env)
+        print(f"command: {subprocess_args}")
+        # PROCESS_CALL_FUNCTION(subprocess_args, env)
         sleep(5)
         if interactive_debug_session or CLUSTER_NAME == MachineBackend.LOCAL:
             print(
