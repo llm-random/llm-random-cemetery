@@ -157,12 +157,14 @@ class TokenChoiceRouter(LoggingLayer):
         return expert_gate, expert_index
 
     def log_light(self):
+        print("log light")
         return {
             "dropped_tokens_ratio": self.logging_cache["dropped_tokens_ratio"],
             "load_balancing_loss": self.logging_cache["load_balancing_loss"],
         }
 
     def log_heavy(self):
+        print("log heavy")
         return {
             "gate_softmax_all_values": make_histogram(
                 self.logging_cache["gate_softmax_all_values"].flatten()  # move

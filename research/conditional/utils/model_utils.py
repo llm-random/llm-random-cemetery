@@ -534,8 +534,8 @@ def get_classes_from_module_names(
             classes.append(ExpertGating)
         elif name == "Softmax":
             classes.append(torch.nn.Softmax)
-        elif name == "TokenChoiceRouter":
-            classes.append(TokenChoiceRouter)
+        # elif name == "TokenChoiceRouter":
+        #     classes.append(TokenChoiceRouter)
         else:
             raise ValueError(f"Unknown name {name}")
     return tuple(classes)
