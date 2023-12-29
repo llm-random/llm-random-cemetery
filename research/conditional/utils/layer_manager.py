@@ -50,6 +50,7 @@ class LayerManager:
                 block_name = self.extract_block_name(name)
                 registered_name = f"{block_name}/{suffix}"
             if registered_name is not None:
+                print(f"Registering {registered_name}")
                 self._layers.append((registered_name, layer))
 
     def extract_block_name(self, name):
@@ -202,6 +203,10 @@ def measure_time(layer: LoggingLayer, instruction_name: str):
         if torch.cuda.is_available():
             end.record()
             torch.cuda.synchronize()
+            print(
+                f"Time for {instruction_name}: {start.elapsed_time(end)} ms",
+                flush=True,
+            )
             layer.update_cache_for_logging(
                 "time", {instruction_name: start.elapsed_time(end)}
             )
