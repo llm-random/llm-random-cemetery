@@ -294,4 +294,7 @@ def introduce_parser_arguments(
     )
     parser.add_argument("--no_positional_embedding", action="store_true")
 
+    # mix inputs
+    parser.add_argument("--should_fold", action="store_true")
+
     return parser

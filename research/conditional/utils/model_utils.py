@@ -166,7 +166,8 @@ def calculate_llm_loss(
     gt_tokens = gt_tokens.to(model_output.device)
     mask = mask.to(model_output.device)
 
-    if not model.training:
+    if model.training and model.should_fold:
+        print("folding batch (loss)")
         bs = gt_tokens.shape[0]
         seqlen = gt_tokens.shape[1]
         gt_tokens_first_half = gt_tokens[: bs // 2]
