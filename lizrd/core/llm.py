@@ -478,12 +478,14 @@ class LLM(nn.Module):
         self.embedding_layer = embedding_layer
         self.encoder = encoder_tower
         self.head = head
+        self.should_fold = False
 
     def forward(self, *args, **kwargs):
         x = self.embedding_layer(*args, **kwargs)
-        if self.training:
+        if self.training and self.should_fold:
+            print("folding batch (model)")
             bs = x.shape[0]
-            x = x[: bs // 2] + x[bs // 2 :]
+            x = (x[: bs // 2] + x[bs // 2 :]) / 2.0
         x = self.encoder(x)
         x = self.head(x)
         return x

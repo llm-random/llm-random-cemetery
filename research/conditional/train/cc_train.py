@@ -187,6 +187,8 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding),
     )
 
+    model.should_fold = args.should_fold
+
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
     print(f"Number of learnable parameters: {n_learnable_parameters:_}")
