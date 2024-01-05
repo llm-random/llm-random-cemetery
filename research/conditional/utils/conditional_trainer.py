@@ -120,6 +120,10 @@ class ConditionalTrainer:
     def _after_step_operations(self, step):
         self.model.forward_pass_cache.clear()
         self.layer_manager.manage_learnable_temperature(step)
+        if step > 250_000:
+            for _, layer in self.layer_manager._layers:
+                if isinstance(layer, ExpertChoiceFF):
+                    layer.token_choice = True
 
     def train(self, n_steps: int):
         """
