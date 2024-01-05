@@ -221,6 +221,7 @@ class ExpertChoiceFF(LoggingLayer):
         self.group_size = group_size
         self.use_torch_bmm = use_torch_bmm
         self.use_layer_norm = use_layer_norm
+        self.token_choice = False
 
         assert (
             not self.one_hot_impl or self.group_by_batch
@@ -283,7 +284,7 @@ class ExpertChoiceFF(LoggingLayer):
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
-        token_choice = not self.training
+        token_choice = (not self.training) or self.token_choice
         batch_size, seq_len = x.shape[0], x.shape[1]
         orig_bs, orig_seq_len = batch_size, seq_len
 
