@@ -187,8 +187,10 @@ class LayerManager:
     def change_chimera_mode(self, step):  # , schedule_type_id):
         if self.chimera_option == "step_independent":
             self.change_chimera_mode_step_independent(step)
-        else:
+        elif self.chimera_option == "layer_independent":
             self.change_chimera_mode_layer_independent(step)
+        else:
+            raise ValueError("Unknown chimera mode")
 
 
 class LoggingLayer(nn.Module):
