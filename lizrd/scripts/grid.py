@@ -169,6 +169,7 @@ if __name__ == "__main__":
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
                 "--mem-per-cpu=8G",
+                # "--mem=512G",
                 setup_args["nodelist"],
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
