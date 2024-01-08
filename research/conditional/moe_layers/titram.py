@@ -26,6 +26,14 @@ class TiTraMamba(LoggingLayer):
                 scale=init_scale,
             )
         )
+        self.weight = nn.Parameter(
+            get_init_weight(
+                self.dmodel,
+                fan_in=self.dmodel,
+                init_type=init_type,
+                scale=init_scale,
+            )
+        )
         self.non_neg = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -38,6 +46,7 @@ class TiTraMamba(LoggingLayer):
 
         mamba_output = self.mamba.forward(x)
         lookback_regression = torch.matmul(mamba_output, self.regression)
+        lookback_weight = torch.matmul(mamba_output, self.weight).view(-1, seq_len, 1)
         lookback_regression = torch.round(self.non_neg(lookback_regression)).type(
             torch.int64
         )
@@ -47,4 +56,4 @@ class TiTraMamba(LoggingLayer):
             -1, -1, self.dmodel
         )
         lookback = torch.gather(mamba_output, 1, lookback_regression)
-        return mamba_output + lookback
+        return mamba_output + lookback_weight * lookback
