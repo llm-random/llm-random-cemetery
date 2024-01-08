@@ -436,17 +436,6 @@ def get_ff_layer(args):
             expert_size=args.expert_size,
             capacity_factor=args.capacity_factor,
             load_balancing_loss_weight=args.load_balancing_loss_weight,
-            routing_top_k=args.routing_top_k,
-            init_scale=args.init_scale,
-            init_type=args.init_type,
-        )
-    elif args.ff_mode == "token_choice_deprecated":
-        return_fn = lambda: TokenChoiceFFDeprecated(
-            dmodel=args.dmodel,
-            n_experts=args.n_experts,
-            expert_size=args.expert_size,
-            capacity_factor=args.capacity_factor,
-            load_balancing_loss_weight=args.load_balancing_loss_weight,
             init_scale=args.init_scale,
             init_type=args.init_type,
         )
@@ -487,10 +476,17 @@ def get_ff_layer(args):
 
 
 def get_mamba_layer(args):
-    import mamba_ssm
+    # import mamba_ssm
 
     if args.mamba_mode == "vanilla":
-        return_fn = lambda: mamba_ssm.Mamba(d_model=args.dmodel)
+        return_fn = None
+        # return_fn = lambda: mamba_ssm.Mamba(d_model=args.dmodel)
+    elif args.mamba_mode == "titram":
+        from research.conditional.moe_layers.titram import TiTraMamba
+
+        return_fn = lambda: TiTraMamba(
+            dmodel=args.dmodel, init_type=args.init_type, init_scale=args.init_scale
+        )
     else:
         raise NotImplementedError(f"Mamba mode {args.mamba_mode} not implemented")
     return return_fn
