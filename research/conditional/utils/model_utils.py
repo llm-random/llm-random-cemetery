@@ -58,9 +58,6 @@ from research.conditional.moe_layers.token_choice import (
     TokenChoiceFF,
     TokenChoiceRouter,
 )
-from research.conditional.moe_layers._token_choice_deprecated import (
-    TokenChoiceFF as TokenChoiceFFDeprecated,
-)
 from research.conditional.moe_layers.ff_timed import FeedForwardTimed
 
 
