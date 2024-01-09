@@ -126,14 +126,24 @@ if __name__ == "__main__":
         env = None
         runner_params = translate_to_argparse(training_args)
         if CLUSTER_NAME == MachineBackend.ENTROPY:
+            os.system('mkdir -p /local_storage_1/jkrajewski')
+            os.system('chmod 777 /local_storage_1/jkrajewski')
             subprocess_args = [
                 slurm_command,
-                "--partition=common",
-                "--qos=16gpu7d",
-                f"--gres={setup_args['gres']}",
+                "--partition=a100",
+                "--qos=8gpu14d",
+                f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+                "--mem-per-cpu=8G",
+                f"--gres=gpu:{setup_args['n_gpus']}",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
                 get_grid_entrypoint(CLUSTER_NAME),
+                "singularity",
+                "run",
+                *singularity_env_arguments,
+                f"-B={os.getcwd()}:/llm-random",
+                "--nv",
+                setup_args["singularity_image"],
                 "python3",
                 "-m",
                 setup_args["runner"],
@@ -145,6 +155,7 @@ if __name__ == "__main__":
                 f"--gres=gpu:{setup_args['n_gpus']}",
                 "--partition=plgrid-gpu-a100",
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+                "--mem-per-cpu=8G",
                 "--account=plgplggllmeffi-gpu-a100",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
@@ -169,6 +180,7 @@ if __name__ == "__main__":
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
                 "--mem-per-cpu=8G",
+                # "--mem=512G",
                 setup_args["nodelist"],
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
