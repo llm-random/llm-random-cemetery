@@ -126,7 +126,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
         x = self.swish(x)
         # x shape is (n_experts, free_dimension * aggr_dimension // group_size, expert_size) ||| lin2 shape is (n_experts, expert_size, dmodel)
         x = torch.bmm(x, self.lin2)
-        # x shape is (n_experts, free_dimension * aggr_dimension // group_size, dmodel)
+        # x shape is (n_experts, free_dimension * aggr_dimension //  roup_size, dmodel)
 
         # merge_weights shape is (free_dimension, aggr_dimension // group_size, group_size, n_experts)
         # view x to be (n_experts, free_dimension, aggr_dimension // group_size, dmodel)
