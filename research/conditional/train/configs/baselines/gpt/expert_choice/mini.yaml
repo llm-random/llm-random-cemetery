@@ -7,3 +7,5 @@ params:
   dmodel: 256
   n_blocks: 4
   n_att_heads: 4
+  batch_size: 128
+  load_weights_path: "/net/pr2/projects/plgrid/plggllmeffi/kkrol/llm_random_cemetery/expert_choice_mini_2023-12-27-21-24-36/model_ckpt/tsbnuzavaj/50000.pth"
