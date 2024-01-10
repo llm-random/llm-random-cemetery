@@ -64,7 +64,9 @@ class TiTraMamba(LoggingLayer):
     def log_heavy(self):
         return {
             "lookback_regression": make_histogram(
-                self.logging_cache["regression"].flatten()
+                self.logging_cache["regression"].flatten().float()
             ),
-            "lookback_weight": make_histogram(self.logging_cache["weight"].flatten()),
+            "lookback_weight": make_histogram(
+                self.logging_cache["weight"].flatten().float()
+            ),
         }
