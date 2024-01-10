@@ -3,6 +3,7 @@ import os
 import random
 from typing import Callable, Optional
 import socket
+import copy
 
 import torch
 import torch.multiprocessing as mp
@@ -160,8 +161,10 @@ def main(
             raise ValueError(f"Unknown module name: {module_name}")
 
     if args.parallel_blocks:
-        modules = [module_fun() for module_fun in block_modules.values()]
-        block_modules = {"parallel": lambda: Parallel(*modules)}
+        modules = block_modules.values()
+        block_modules = {
+            "parallel": lambda: Parallel(*[module() for module in modules])
+        }
 
     model = get_model(
         max_length=args.cutoff,
