@@ -237,6 +237,7 @@ class ExpertChoiceFF(LoggingLayer):
                 init_type=init_type,
                 scale=init_scale,
             ),
+            requires_grad=False,
         )
         self.lin2_weight = nn.Parameter(
             get_init_weight(
@@ -244,7 +245,8 @@ class ExpertChoiceFF(LoggingLayer):
                 fan_in=int(n_experts * expert_size * topk_fraction),
                 init_type=init_type,
                 scale=init_scale,
-            )
+            ),
+            requires_grad=False,
         )
         gate = nn.Parameter(
             get_init_weight(
@@ -283,7 +285,9 @@ class ExpertChoiceFF(LoggingLayer):
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
-        token_choice = not self.training
+        # token_choice = not self.training
+        token_choice = True
+        assert not (self.lin1_weight.requires_grad or self.lin2_weight.requires_grad)
         batch_size, seq_len = x.shape[0], x.shape[1]
         orig_bs, orig_seq_len = batch_size, seq_len
 
