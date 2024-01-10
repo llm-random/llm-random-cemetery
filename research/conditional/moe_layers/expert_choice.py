@@ -283,7 +283,8 @@ class ExpertChoiceFF(LoggingLayer):
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
-        token_choice = not self.training
+        # token_choice = not self.training
+        token_choice = True
         batch_size, seq_len = x.shape[0], x.shape[1]
         orig_bs, orig_seq_len = batch_size, seq_len
 
