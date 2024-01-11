@@ -7,10 +7,9 @@ params:
   name: "mamba_parallel_test"
   n_steps: 100_000
   dmodel: 512
-  n_blocks: 8
+  n_blocks: 2
   n_att_heads: 8
-  effective_dff_x: 2
   mixed_precision_dtype: bfloat16
-  block_modules: ["mamba", "feedforward"]
-  ^parallel_blocks: [true]
+  block_modules: ["mamba", "mamba", "mamba", "mamba", "feedforward", "attention", "feedforward", "attention"]
+#  ^parallel_blocks: [true]
   mamba_mode: vanilla
