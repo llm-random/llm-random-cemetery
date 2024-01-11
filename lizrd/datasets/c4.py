@@ -12,7 +12,7 @@ NUM_C4_TOKENS = 173_648_052_806  # number of tokens in the C4 dataset
 
 class C4Dataset(Dataset):
     def __init__(self, seq_length: int, batch_size: int, split: str = "train"):
-        self.dataset = load_dataset("c4", "en", split=split)
+        self.dataset = load_dataset("c4", "en", split=split,download_mode="FORCE_REDOWNLOAD")
         self.seq_length = seq_length
         self.tokenizer = GPT2TokenizerFast.from_pretrained(
             "gpt2", additional_special_tokens=["<sequence_sep>"]
