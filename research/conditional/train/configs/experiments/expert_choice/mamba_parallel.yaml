@@ -5,12 +5,12 @@ time: 1-00:00:00
 
 params:
   name: "mamba_parallel_test"
+  tags: ["normal_into_mamba"]
   n_steps: 100_000
   dmodel: 512
-  n_blocks: 8
+  n_blocks: 2
   n_att_heads: 8
-  effective_dff_x: 2
   mixed_precision_dtype: bfloat16
-  block_modules: ["mamba", "feedforward"]
-  ^parallel_blocks: [true]
+  block_modules: ["feedforward", "attention", "feedforward", "attention", "mamba", "mamba", "mamba", "mamba"]
+#  ^parallel_blocks: [true]
   mamba_mode: vanilla
