@@ -35,28 +35,30 @@ class TiTraMamba(LoggingLayer):
                 scale=init_scale,
             )
         )
-        self.non_neg = nn.ReLU()
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
         x: (B, L, D)
         Returns: same shape as x
         """
-        seq_len = x.shape[1]
+        batch_size, seq_len = x.shape[0], x.shape[1]
         lookback_limit = torch.arange(seq_len, device=x.device)
 
         mamba_output = self.mamba.forward(x)
-        lookback_weight = torch.matmul(mamba_output, self.weight).view(-1, seq_len, 1)
-        lookback_regression = torch.add(torch.matmul(mamba_output, self.regression), 1)
-        lookback_regression = torch.round(self.non_neg(lookback_regression)).type(
-            torch.int64
+        lookback_weight = torch.matmul(mamba_output, self.weight).view(
+            batch_size, seq_len, 1
         )
+        lookback_regression = torch.add(torch.matmul(mamba_output, self.regression), 8)
+        lookback_regression = torch.round(lookback_regression).type(torch.int64)
         self.update_cache_for_logging("regression", lookback_regression)
         self.update_cache_for_logging("weight", lookback_weight)
-        lookback_regression = torch.cumsum(lookback_regression, dim=1)
-        lookback_regression = torch.clamp(lookback_regression, max=lookback_limit)
-        lookback_regression = lookback_regression.view(-1, seq_len, 1).expand(
-            -1, -1, self.dmodel
+        lookback_regression = torch.sub(lookback_limit, lookback_regression)
+        lookback_regression, _ = torch.cummax(lookback_regression, dim=1)
+        lookback_regression = torch.clamp(
+            lookback_regression, min=0, max=lookback_limit
+        )
+        lookback_regression = lookback_regression.view(batch_size, seq_len, 1).expand(
+            batch_size, seq_len, self.dmodel
         )
         lookback = torch.gather(mamba_output, 1, lookback_regression)
         return mamba_output + lookback_weight * lookback
