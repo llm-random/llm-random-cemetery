@@ -473,7 +473,7 @@ def get_ff_layer(args):
 
 
 def get_mamba_layer(args):
-    import mamba_ssm
+    # import mamba_ssm
 
     if args.mamba_mode == "vanilla":
         return_fn = lambda: mamba_ssm.Mamba(d_model=args.dmodel)
