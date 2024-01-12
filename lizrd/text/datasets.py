@@ -98,3 +98,23 @@ class C4Dataset(AbstractDataset):
 
     def get_document(self) -> str:
         return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]["text"]
+
+
+class NPZDataset(AbstractDataset):
+    total_gpt2_tokens = 173_648_052_806  # number of tokens in the C4 dataset when using GPT2TokenizerFast
+
+    def __init__(
+        self,
+        seed: Optional[int] = None,
+        split: str = "train",
+        path,
+    ):
+        super().__init__(seed=seed)
+        self.dataset = np.load(path)
+        if split == "train":
+            self.dataset = self.dataset["train"]
+        elif split == "validation":
+            self.dataset = self.dataset["test"]
+
+    def get_document(self) -> str:
+        return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]
