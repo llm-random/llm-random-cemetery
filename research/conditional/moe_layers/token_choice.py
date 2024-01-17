@@ -146,12 +146,13 @@ class TokenChoiceRouter(LoggingLayer):
         )
         if self.vectorize:
             with measure_time(self, "assign_tokens_to_input"):
-                experts_input = x[
-                    top_tokens_per_expert_indices.T.reshape(
+                experts_input = torch.index_select(
+                    x,
+                    dim=0,
+                    index=top_tokens_per_expert_indices.T.reshape(
                         (self.n_experts * capacity,)
                     ),
-                    :,
-                ] * top_tokens_per_expert_values.T.reshape(
+                ) * top_tokens_per_expert_values.T.reshape(
                     (self.n_experts * capacity, 1)
                 )
                 experts_input = experts_input.reshape(
