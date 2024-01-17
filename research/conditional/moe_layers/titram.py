@@ -69,8 +69,8 @@ class TiTraMamba(LoggingLayer):
         lookback_regression = lookback_regression.view(batch_size, seq_len, 1).expand(
             batch_size, seq_len, self.dmodel
         )
-        lookback = torch.gather(mamba_output, 1, lookback_regression)
-        return mamba_output + lookback
+        lookback = torch.gather(x, 1, lookback_regression)
+        return mamba_output + lookback_weight * lookback
 
     def log_heavy(self):
         return {
