@@ -94,7 +94,35 @@ class C4Dataset(AbstractDataset):
                 )
             self.dataset = load_dataset("stas/c4-en-10k", split=split)
         else:
-            self.dataset = load_dataset("c4", "en", split=split)
+            self.dataset = load_dataset("c4", "en", split=split, streaming=True)
 
     def get_document(self) -> str:
+        # return next(self.dataset)["text"]
         return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]["text"]
+
+
+class C4Dataset(AbstractDataset):
+    total_gpt2_tokens = 173_648_052_806  # number of tokens in the C4 dataset when using GPT2TokenizerFast
+
+    def __init__(
+        self,
+        seed: Optional[int] = None,
+        split: str = "train",
+        use_dummy_dataset: bool = False,
+    ):
+        super().__init__(seed=seed)
+        assert split in ["train", "validation"]
+        if use_dummy_dataset:
+            if split != "train":
+                raise NameError(
+                    "Dummy dataset only supports train split for C4 dataset"
+                )
+            self.dataset = load_dataset("stas/c4-en-10k", split=split)
+        else:
+            self.dataset = iter(
+                load_dataset("c4", "en", split=split, streaming=True).shuffle()
+            )
+
+    def get_document(self) -> str:
+        return next(self.dataset)["text"]
+        # return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]["text"]
