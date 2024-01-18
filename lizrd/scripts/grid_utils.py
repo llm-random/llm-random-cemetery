@@ -314,8 +314,8 @@ def make_singularity_env_arguments(
 ) -> List[str]:
     variables_and_values = {}
 
-    if hf_datasets_cache_path is not None:
-        variables_and_values["HF_DATASETS_CACHE"] = hf_datasets_cache_path
+    # if hf_datasets_cache_path is not None:
+    #     variables_and_values["HF_DATASETS_CACHE"] = hf_datasets_cache_path
 
     if neptune_key is not None:
         variables_and_values["NEPTUNE_API_TOKEN"] = neptune_key
