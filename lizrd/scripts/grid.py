@@ -164,7 +164,7 @@ if __name__ == "__main__":
         elif CLUSTER_NAME == MachineBackend.IDEAS:
             subprocess_args = [
                 slurm_command,
-                f"--gres=gpu:ampere:{setup_args['n_gpus']}",
+                f"--gres=gpu:{setup_args['n_gpus']}",
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
@@ -174,7 +174,7 @@ if __name__ == "__main__":
                 "singularity",
                 "run",
                 *singularity_env_arguments,
-                f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
+                f"-B={os.getcwd()}:/llm-random",
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
