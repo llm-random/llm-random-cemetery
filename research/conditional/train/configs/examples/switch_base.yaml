@@ -8,7 +8,7 @@ singularity_image: /home/jkrajewski_a100/images/sparsity_2023.11.10_15.23.19.sif
 
 params:
 
-    n_steps: 100
+    n_steps: 500
     n_blocks: 16
 
     #tuning
@@ -36,7 +36,7 @@ params:
     expert_size: 3072
 
     #data
-    ^batch_size: [4096]
+    ^batch_size: [32, 64, 128, 256, 512, 1024, 2048, 4096]
     dataset_type: c4
     cutoff: 1024
     
@@ -50,7 +50,7 @@ params:
     fsdp_enabled: true
     fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
     fsdp_selective_precision_modules: ["AttentionMechanism,TokenChoiceRouter"]
-    # activation_checkpointing_modules: ["EmbeddingLayer,TransformerBlock,PredictionHead"]
+    activation_checkpointing_modules: ["EmbeddingLayer,TransformerBlock,PredictionHead"]
 
 
 
