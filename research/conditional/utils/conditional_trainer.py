@@ -183,7 +183,7 @@ class ConditionalTrainer:
             self.layer_manager.log(step)
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
-        self._save_weights(step)
+        # self._save_weights(step)
 
     def calculate_loss_and_maybe_optimize(
         self, processed_batch: LLMBatch, should_optimize: bool
