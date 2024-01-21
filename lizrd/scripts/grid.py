@@ -129,7 +129,7 @@ if __name__ == "__main__":
             subprocess_args = [
                 slurm_command,
                 "--partition=a100",
-                "--qos=8gpu14d",
+                "--qos=8gpu4d",
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
                 "--mem-per-cpu=8G",
                 f"--gres=gpu:{setup_args['n_gpus']}",
