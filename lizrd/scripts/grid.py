@@ -147,6 +147,7 @@ if __name__ == "__main__":
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
                 "--account=plgplggllmeffi-gpu-a100",
                 f"--job-name={job_name}",
+                # "--mem=128G",
                 f"--time={setup_args['time']}",
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
