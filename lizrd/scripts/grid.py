@@ -128,8 +128,8 @@ if __name__ == "__main__":
         if CLUSTER_NAME == MachineBackend.ENTROPY:
             subprocess_args = [
                 slurm_command,
-                "--partition=common",
-                "--qos=16gpu7d",
+                "--partition=a100",
+                # "--qos=16gpu7d",
                 f"--gres={setup_args['gres']}",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
@@ -147,6 +147,7 @@ if __name__ == "__main__":
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
                 "--account=plgplggllmeffi-gpu-a100",
                 f"--job-name={job_name}",
+                # "--mem=128G",
                 f"--time={setup_args['time']}",
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
