@@ -5,7 +5,7 @@ time: 1-00:00:00
 
 params:
   name: "mamba_titram"
-  tags: ["lookback_weight", "mean_one"]
+  tags: ["linear_mamba_input"]
   n_steps: 200_000
   dmodel: 512
   ^batch_size: [128]
