@@ -5,7 +5,6 @@ import torch
 
 from lizrd.core import nn
 from lizrd.core.initialization import get_init_weight
-from lizrd.support.logging import make_histogram
 from research.conditional.utils.layer_manager import LoggingLayer
 
 
@@ -29,16 +28,18 @@ class TiTraMamba(LoggingLayer):
         self.dmodel = dmodel
         self.mamba = mamba_ssm.Mamba(d_model=self.dmodel)
         # self.mamba = DummyMamba(d_model=self.dmodel)
+
+        self.log_lookback = [0, 1, 2, 4, 8, 16, 32, 64, 128]
         self.weight = nn.Parameter(
             get_init_weight(
-                (self.dmodel, 8),
-                fan_in=self.dmodel * 8,
+                (self.dmodel, len(self.log_lookback)),
+                fan_in=self.dmodel * len(self.log_lookback),
                 init_type=init_type,
                 scale=init_scale,
             )
         )
         self.non_neg = nn.ReLU()
-        self.log_lookback = [1, 2, 4, 8, 16, 32, 64, 128]
+        # self.softmax = torch.nn.Softmax(dim=2)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """
@@ -52,20 +53,14 @@ class TiTraMamba(LoggingLayer):
             .expand(batch_size, seq_len, self.dmodel)
         )
 
-        mamba_output = self.mamba.forward(x)
-        lookback_weight = torch.matmul(mamba_output, self.weight)
-        self.update_cache_for_logging("weight", lookback_weight)
+        lookback_weight = torch.matmul(x, self.weight)
+        mamba_input = torch.zeros_like(x)
         for slice_idx, lookback_val in enumerate(self.log_lookback):
             lookback_idx = self.non_neg(torch.sub(lookback_limit, lookback_val))
             lookback = torch.gather(x, 1, lookback_idx)
-            mamba_output = mamba_output + lookback * torch.unsqueeze(
+            mamba_input = mamba_input + lookback * torch.unsqueeze(
                 torch.select(lookback_weight, dim=2, index=slice_idx), dim=-1
             )
-        return mamba_output
 
-    def log_heavy(self):
-        return {
-            "lookback_weight": make_histogram(
-                self.logging_cache["weight"].flatten().float()
-            ),
-        }
+        mamba_output = self.mamba.forward(mamba_input)
+        return mamba_output
