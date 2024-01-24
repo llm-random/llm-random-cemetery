@@ -1,7 +1,7 @@
 parent: research/conditional/train/configs/baselines/gpt/expert_choice/common.yaml
 md5_parent_hash: e77f2dc37d71eca59d57b3035424e6ea
 singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_18.26.37.sif
-time: 1-00:00:00
+time: 0-00:20:00
 
 params:
   name: "mamba_parallel_test"
@@ -12,5 +12,5 @@ params:
   effective_dff_x: 2
   mixed_precision_dtype: bfloat16
   block_modules: ["mamba", "feedforward"]
-  ^parallel_blocks: [true]
+  ^parallel_blocks: [true, false]
   mamba_mode: vanilla
