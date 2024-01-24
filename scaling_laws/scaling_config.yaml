@@ -41,7 +41,7 @@ scalings:
     poly_inter: true
     cmap: rainbow
     resolve_interactive: true
-    use_active_params: false
+    use_active_params: true
     weight_decay: 0.00005
     huber_delta: 0.1
     opt_log_loss: false
