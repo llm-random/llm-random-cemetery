@@ -1,5 +1,5 @@
-parent: research/conditional/train/configs/baselines/gpt/dense/small.yaml
-md5_parent_hash: 652f7951e4c6fb8398fdeadf451067cb
+md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
+parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
 # parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
 # md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
 # singularity_image: /common/llm-random/images/sparsity_2023.12.14_16.44.42.sif # entropy
@@ -11,7 +11,7 @@ time: "1-01:00:00"
 
 params:
     #tuning
-    learning_rate: 1e-3
+    learning_rate: 5e-4
     load_balancing_loss_weight: 0.01
     capacity_factor: 1.00 # literatoora
 
@@ -24,12 +24,12 @@ params:
 
     # N_experts: 32 every expert size of normal DFF in vanilla
 
-    ^n_experts: [32, 16, 8]
-    ^dff: [1024]
-    ^expert_size: [1024]
+    ^n_experts: [1, 2, 4, 8, 16, 32, 42, 64]
+    ^dff: [1536]
+    ^expert_size: [1536]
 
-    batch_size: 256
-    cutoff: 256
+    batch_size: 64
+    cutoff: 1024
     dataset_type: c4
     # dataset_type: wikibook
     # use_dummy_dataset: true
@@ -56,11 +56,11 @@ params:
     gradient_accumulation_steps: 1 #!!!!!!!!!!!! THIS IS NONTRIVIAL
     init_type: truncated_normal
     init_scale: 0.1
-    n_steps: 150_000
-    final_lr_step: 150_000
+    n_steps: 15_000
+    final_lr_step: 15_000
     weight_decay: 0.1
     scheduler: "cosine"
-    lr_warmup_steps: 1500
+    lr_warmup_steps: 150
 
     #mamba
 
