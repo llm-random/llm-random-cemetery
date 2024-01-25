@@ -24,7 +24,7 @@ params:
 
     # N_experts: 32 every expert size of normal DFF in vanilla
 
-    ^n_experts: [32, 16, 8]
+    ^n_experts: [32]
     ^dff: [1024]
     ^expert_size: [1024]
 
