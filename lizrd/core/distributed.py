@@ -47,10 +47,11 @@ def wrap_in_fsdp(
         module,
         device_id=rank,
         mixed_precision=MixedPrecision(
-            param_dtype=param_precision,
-            reduce_dtype=param_precision,
+            param_dtype=torch.bfloat16,
+            reduce_dtype=torch.bfloat16,
             cast_forward_inputs=cast_inputs,
             _module_classes_to_ignore=mixed_precision_ignored_classes,
+            keep_low_precision_grads=True,
         ),
         cpu_offload=CPUOffload(offload_params=offload_params),
         auto_wrap_policy=wrap_policy,
