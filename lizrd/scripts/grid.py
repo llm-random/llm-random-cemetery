@@ -148,6 +148,7 @@ if __name__ == "__main__":
                 "--account=plgplggllmeffi-gpu-a100",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
+                "--mem=96G",
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
                 "run",
