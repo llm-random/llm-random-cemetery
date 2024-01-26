@@ -142,9 +142,11 @@ if __name__ == "__main__":
         elif CLUSTER_NAME == MachineBackend.ATHENA:
             subprocess_args = [
                 slurm_command,
-                f"--gres=gpu:{setup_args['n_gpus']}",
+                # f"--gres=gpu:{setup_args['n_gpus']}",
+                "--gres=gpu:0",
                 "--partition=plgrid-gpu-a100",
-                f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+                # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+                "--cpus-per-task=4",
                 "--account=plgplggllmeffi-gpu-a100",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
