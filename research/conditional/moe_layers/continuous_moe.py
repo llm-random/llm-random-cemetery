@@ -83,7 +83,7 @@ class ContinuousMoeBaseClass(LoggingLayer):
 
     def get_merge_and_emit_weights(self, x):
         # shape of x is (free_dimension, split_dimension // group_size, group_size, dmodel)
-        merge_logits = torch.matmul(x, self.controller)
+        merge_logits = torch.matmul(x, self.controller)*0 + 1.0
         self.update_cache_for_logging("merge_logits", merge_logits)
         # shape of merge_logits is (free_dimension, agrr_dimension // group_size, group_size, n_experts)
         temp_merge, temp_emit = self.get_temperature()
