@@ -124,7 +124,7 @@ class ConditionalTrainer:
         self.layer_manager.manage_learnable_temperature(step)
         if self.chimera_schedule is not None:
             mode = self.layer_manager.get_chimera_mode(step, self.chimera_schedule)
-            self.layer_manager.set_chimera_mode(mode,step)
+            self.layer_manager.set_chimera_mode(mode)
 
     def train(self, n_steps: int):
         """
