@@ -1,3 +1,4 @@
+import random
 import re
 import time
 from contextlib import contextmanager
@@ -106,9 +107,21 @@ class LayerManager:
                 if name in ["temperature_merge", "temperature_emit"]:
                     param.requires_grad = is_learning_temperature
 
-    def set_chimera_mode(self, mode):
+    def set_chimera_mode(self, mode,step):
         for _, l in self._layers:
             if hasattr(l, "current_mode"):
+                if step < 150_000:
+                    l.set_mode(mode)
+                else:
+                    step_since = step - 150_000
+                    prob = step_since / 2500
+                    if random.random() < prob:
+                        actual_mode = mode
+                    else:
+                        actual_mode = "mot"
+                    l.set_mode(actual_mode)
+
+
                 l.set_mode(mode)
 
     def get_chimera_mode(self, step, schedule_type_id):
@@ -145,7 +158,7 @@ class LayerManager:
             if round_robin_schedule:
                 return modes_involved[step % 2]
             else:
-                cutoff_step = 30000 if schedule_type_id in [1, 4, 6] else 150000
+                cutoff_step = 30000 if schedule_type_id in [1, 4, 6] else 150_000
                 if step < cutoff_step:
                     return modes_involved[0]
                 else:

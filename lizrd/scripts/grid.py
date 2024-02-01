@@ -83,19 +83,19 @@ if __name__ == "__main__":
 
     check_for_argparse_correctness(grid)
 
-    # if not CLUSTER_NAME == MachineBackend.LOCAL:
-    #     if not interactive_debug_session:
-    #         user_input = input(
-    #             f"Will run {total_n_experiments} experiments, using up {total_minutes} minutes, i.e. around {round(total_minutes / 60)} hours\n"
-    #             f"Continue? [Y/n]"
-    #         )
-    #     else:
-    #         user_input = input(
-    #             "Will run an INTERACTIVE experiment, which will be the first one from the supplied configs. \nContinue? [Y/n]"
-    #         )
-    #     if user_input.lower() not in ("", "y", "Y"):
-    #         print("Aborting...")
-    #         exit(1)
+    if not CLUSTER_NAME == MachineBackend.LOCAL:
+        if not interactive_debug_session:
+            user_input = input(
+                f"Will run {total_n_experiments} experiments, using up {total_minutes} minutes, i.e. around {round(total_minutes / 60)} hours\n"
+                f"Continue? [Y/n]"
+            )
+        else:
+            user_input = input(
+                "Will run an INTERACTIVE experiment, which will be the first one from the supplied configs. \nContinue? [Y/n]"
+            )
+        if user_input.lower() not in ("", "y", "Y"):
+            print("Aborting...")
+            exit(1)
 
     if CLUSTER_NAME != MachineBackend.LOCAL:
         first_exp_training_args, _ = grid[0]
@@ -128,12 +128,20 @@ if __name__ == "__main__":
         if CLUSTER_NAME == MachineBackend.ENTROPY:
             subprocess_args = [
                 slurm_command,
-                "--partition=common",
-                "--qos=16gpu7d",
-                f"--gres={setup_args['gres']}",
+                "--partition=a100",
+                "--qos=8gpu14d",
+                f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+                "--mem-per-cpu=8G",
+                f"--gres=gpu:{setup_args['n_gpus']}",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
                 get_grid_entrypoint(CLUSTER_NAME),
+                "singularity",
+                "run",
+                *singularity_env_arguments,
+                f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
+                "--nv",
+                setup_args["singularity_image"],
                 "python3",
                 "-m",
                 setup_args["runner"],

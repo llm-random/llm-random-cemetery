@@ -70,7 +70,6 @@ def get_model(
     ).to(last_gpu)
 
     model = llm.LLM(embedding_layer, encoder_tower, head)
-    breakpoint()
     if ddp_enabled:
         model = wrap_in_ddp(module=model, rank=rank)
     elif fsdp_enabled:
