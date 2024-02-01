@@ -1,11 +1,12 @@
 parent: research/conditional/train/configs/baselines/gpt/dense/base.yaml
 md5_parent_hash: 17e23fa8efdf44ed2a84b8e15941039c
-singularity_image: /local_storage_1/sparsity_2023.12.14_16.44.42.sif # entropy
+#singularity_image: /local_storage_1/sparsity_2023.12.14_16.44.42.sif # entropy
 # singularity_image: /home/jkrajewski_a100/images/sparsity_2023.11.10_15.23.19.sif
 # singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif # athena
-hf_datasets_cache: /local_storage_1/dataset_cache # entropy
-n_gpus: 4
-time: "40:00:00"
+#hf_datasets_cache: /local_storage_1/dataset_cache # entropy
+singularity_image: /raid/NFS_SHARE/llm-random/images/sparsity_2023.12.14_16.44.42.sif # dgx
+n_gpus: 1
+time: "00:20:00"
 
 params:
   mixed_precision: true
@@ -14,7 +15,7 @@ params:
 
   tags: ["mamba", "base", "150k", "high_precision", "switch"]
 
-  dataset_type: c4
+#  dataset_type: c4
   # fsdp
   fsdp_enabled: true
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
@@ -30,12 +31,12 @@ params:
   loss_checkpoint_chungs: 0
   gradient_accumulation_steps: 1
 
-  lr_warmup_steps: 375
-  n_steps: 37500
-  final_lr_step: 37500
+#  lr_warmup_steps: 375
+#  n_steps: 37500
+#  final_lr_step: 37500
 
-  batch_size: 256
-  cutoff: 1024
+#  batch_size: 256
+#  cutoff: 1024
 
   init_scale: 0.1
   init_type: truncated_normal
@@ -83,10 +84,21 @@ params:
   # moemamba42exp
   name: "moe_mamba_base16l_42exp"
   ^learning_rate: [2.5e-4]
-  n_blocks: 16
+#  n_blocks: 16
   block_modules: ["mamba", "feedforward"]
   no_positional_embedding: true
   dff: 2304
   expert_size: 2304
   n_experts: 42
   ff_mode: token_choice
+
+
+  eval_interval: 1
+  lr_warmup_steps: 2
+  n_steps: 10
+  final_lr_step: 10
+  batch_size: 16
+  cutoff: 128
+  n_blocks: 2
+  dataset_type: wikibook
+  use_dummy_dataset: true
