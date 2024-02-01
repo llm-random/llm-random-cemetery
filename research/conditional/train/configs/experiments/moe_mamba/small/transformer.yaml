@@ -2,16 +2,21 @@ md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
 parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
 # singularity_image: /common/llm-random/images/sparsity_2023.12.14_16.44.42.sif
 # singularity_image:
-singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif
-# singularity_image: /raid/NFS_SHARE/llm-random/images/sparsity_2023.12.14_16.44.42.sif
-# cuda_visible: "1"
+singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif # athena
 n_gpus: 1
-# time: "00:10:00"
-time: "27:00:00"
-# hf_datasets_cache: /local_storage_1/dataset_cache
-# singularity_image: /home/jkrajewski_a100/images/sparsity_2023.11.10_15.23.19.sif
+time: "00:20:00"
 
 params:
+  eval_interval: 1
+  lr_warmup_steps: 2
+  n_steps: 10
+  final_lr_step: 10
+  batch_size: 16
+  cutoff: 128
+  n_blocks: 2
+  dataset_type: wikibook
+  use_dummy_dataset: true
+
   name: "mamba_tune"
   mixed_precision: true
   mixed_precision_dtype: bfloat16
@@ -19,7 +24,7 @@ params:
 
   tags: ["mamba", "150k", "att_moe"]
 
-  dataset_type: c4
+#  dataset_type: c4
   # fsdp
   fsdp_enabled: true
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
@@ -37,15 +42,15 @@ params:
   # lr_warmup_steps: 200
   # n_steps: 20_000
   # final_lr_step: 20_000
-  lr_warmup_steps: 1500
-  n_steps: 150_000
-  final_lr_step: 150_000
-
-  # batch_size: 64 # zmieniamy n_gradient_acc_steps * n_gpus powinno być const / praktyczny (bs / gs) = batch_size / (n_gpus * acc_steps)
-  # batch_size: 512
-  # batch_size: 512
-  batch_size: 64
-  cutoff: 1024
+#  lr_warmup_steps: 1500
+#  n_steps: 150_000
+#  final_lr_step: 150_000
+#
+#  # batch_size: 64 # zmieniamy n_gradient_acc_steps * n_gpus powinno być const / praktyczny (bs / gs) = batch_size / (n_gpus * acc_steps)
+#  # batch_size: 512
+#  # batch_size: 512
+#  batch_size: 64
+#  cutoff: 1024
 
   init_scale: 0.1
   init_type: truncated_normal
@@ -56,7 +61,7 @@ params:
   # ^learning_rate: [1e-3]
 
   # mamba / moe etc
-  n_blocks: 8
+#  n_blocks: 8
   block_modules: ["attention", "feedforward"]
   attention_mode: "rope"
   no_positional_embedding: false
