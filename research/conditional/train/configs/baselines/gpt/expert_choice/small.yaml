@@ -3,7 +3,19 @@ md5_parent_hash: e77f2dc37d71eca59d57b3035424e6ea
 time: 0-10:00:00
 
 params:
+  project_name: "llm-random-tests"
   name: "expert_choice_small"
-  dmodel: 512
-  n_blocks: 4
+  dmodel: 128
+  n_blocks: 1
   n_att_heads: 8
+
+  ff_mode: token_choice
+  n_experts: 4
+  expert_size: 8
+  batch_size: 4
+  use_dummy_dataset: true
+  dataset_type: wikibook
+  use_neptune: false
+  use_wandb: true
+  logging_interval_heavy: 2
+  logging_interval_light: 3
