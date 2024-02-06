@@ -78,6 +78,13 @@ class TokenChoiceRouter(LoggingLayer):
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
 
+        # randomly mask experts
+        mask = torch.tensor(
+            ([0, 1] * (self.n_experts // 2)),
+            dtype=gate_out.dtype,
+            device=gate_out.device,
+        )[torch.randperm(self.n_experts, device=gate_out.device)]
+
         with measure_time(self, "choose_expert"):
             expert_gate, expert_index = self.choose_expert(gate_out)
 
