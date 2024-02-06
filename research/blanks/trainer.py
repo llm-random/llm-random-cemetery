@@ -120,6 +120,7 @@ class BlankTrainer:
         self._before_train_operations()
         self._restore_weights()
         for step in range(n_steps + 1):
+            print(f"Step {step}")
             t0 = time.time()
 
             if self.hack_name is not None:
