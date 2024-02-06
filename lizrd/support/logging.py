@@ -11,7 +11,8 @@ import plotly
 import plotly.express as px
 import torch
 from clearml import Task
-import wandb
+
+# import wandb
 
 from lizrd.support.misc import (
     make_concise_datetime,
@@ -362,7 +363,7 @@ def get_logger(args, model, VOCAB_SIZE):
         logger = ClearMLLogger(task, args, model, VOCAB_SIZE)
         return logger
     elif args.use_wandb:
-        import wandb
+        # import wandb
 
         wandb.init(
             project=args.project_name,
