@@ -1,6 +1,7 @@
 import argparse
 import os
 import random
+from collections import OrderedDict
 from typing import Callable, Optional
 import socket
 
@@ -36,6 +37,7 @@ from research.conditional.utils.model_utils import (
     get_residual_layer,
     get_classes_from_module_names,
     update_model_fit_gpu_info,
+    get_norm_class,
 )
 
 
@@ -160,10 +162,27 @@ def main(
             raise ValueError(f"Unknown module name: {module_name}")
 
     if args.parallel_blocks:
-        modules = block_modules.values()
+        modules = block_modules.items()
+        norm_class = get_norm_class(args.norm_class)
         block_modules = {
-            "parallel": lambda: Parallel(*[module() for module in modules])
+            "parallel": lambda: Parallel(*[module() for _, module in modules])
         }
+        if args.residual_mode == "pre_norm":
+            block_modules = {
+                "parallel": lambda: Parallel(
+                    *[
+                        torch.nn.Sequential(
+                            OrderedDict(
+                                [
+                                    ("pre_norm", norm_class(args.dmodel)),
+                                    (f"{name}", module()),
+                                ]
+                            )
+                        )
+                        for name, module in modules
+                    ]
+                )
+            }
 
     model = get_model(
         max_length=args.cutoff,
