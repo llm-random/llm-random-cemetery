@@ -66,8 +66,10 @@ class TokenChoiceRouter(LoggingLayer):
                 gate_out = torch.matmul(x, self.gate)
 
         assert gate_out.shape == (n_tokens, self.n_experts)
+
+        effective_experts = self.n_experts // 2
         capacity = int(
-            self.capacity_factor * n_tokens * self.routing_top_k / self.n_experts
+            self.capacity_factor * n_tokens * self.routing_top_k / effective_experts
         )
         if self.vectorize:
             capacity = min(capacity, n_tokens)
@@ -78,18 +80,31 @@ class TokenChoiceRouter(LoggingLayer):
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
 
+        # randomly mask experts
+        # mask = torch.tensor(
+        #     ([0, 1] * (self.n_experts // 2)),
+        #     dtype=gate_out.dtype,
+        #     device=gate_out.device,
+        # )[torch.randperm(self.n_experts, device=gate_out.device)]
+        random_experts = torch.randperm(self.n_experts, device=gate_out.device)[
+            :effective_experts
+        ]
+        gate_out = gate_out[:, random_experts]
+
         with measure_time(self, "choose_expert"):
             expert_gate, expert_index = self.choose_expert(gate_out)
 
         with measure_time(self, "create_expert_mask"):
-            expanded_expert_mask = F.one_hot(expert_index, num_classes=self.n_experts)
+            expanded_expert_mask = F.one_hot(
+                expert_index, num_classes=effective_experts
+            )
             assert expanded_expert_mask.shape == (
                 n_tokens,
                 self.routing_top_k,
-                self.n_experts,
+                effective_experts,
             )
             expert_mask = expanded_expert_mask.sum(dim=1)
-            assert expert_mask.shape == (n_tokens, self.n_experts)
+            assert expert_mask.shape == (n_tokens, effective_experts)
 
         if self.vectorize:
             with measure_time(self, "experts_lists"):

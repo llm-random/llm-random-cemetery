@@ -2,12 +2,12 @@ md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
 parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
 # singularity_image: /common/llm-random/images/sparsity_2023.12.14_16.44.42.sif
 # singularity_image:
-singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif
+# singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2024.02.06_11.42.18.sif
 # singularity_image: /raid/NFS_SHARE/llm-random/images/sparsity_2023.12.14_16.44.42.sif
 # cuda_visible: "1"
 n_gpus: 1
 # time: "00:10:00"
-time: "10:00:00"
+time: "00:10:00"
 # hf_datasets_cache: /local_storage_1/dataset_cache
 # singularity_image: /home/jkrajewski_a100/images/sparsity_2023.11.10_15.23.19.sif
 
@@ -20,10 +20,10 @@ params:
 
   dataset_type: c4
   # fsdp
-  fsdp_enabled: true
-  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating,RoPE,TokenChoiceRouter"
+  fsdp_enabled: false
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating,RoPE,TokenChoiceRouter"
 
   grad_clip: 0.5
   weight_decay: 0.1
@@ -50,12 +50,16 @@ params:
 
   # mamba / moe etc
   n_blocks: 8
-  block_modules: ["mamba", "feedforward"]
+  ^block_modules: 
+    # - ["mamba", "feedforward"]
+    - ["attention", "feedforward"]
 
-  # block_modules: ["attention", "feedforward"]
+  ^torch_compile:
+    - true
+    # - false
   attention_mode: "rope"
   no_positional_embedding: false
-  ff_mode: token_choice
+  ff_mode: vanilla
 
   name: "mamba_tune_6_6"
   n_experts: 32
@@ -63,10 +67,14 @@ params:
   expert_size: 1536
   mamba_expansion: 2
 
-
   capacity_factor: 1.0
   load_balancing_loss_weight: 0.01
 
   # debug
-  # dataset_type: wikibook
-  # use_dummy_dataset: true
+  # project_name: mamba-xd
+  use_neptune: true
+  use_wandb: false
+  dataset_type: wikibook
+  use_dummy_dataset: true
+  batch_size: 16
+  fsdp_enabled: false
