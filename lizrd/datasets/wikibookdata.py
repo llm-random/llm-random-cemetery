@@ -50,7 +50,9 @@ class WikiBookDataset:
     def __init__(self, rng=None, use_dummy_dataset=False):
         self.examples_buffer = []
         self.dataset_wiki = load_dataset(
-            "wikipedia", f"20220301.{'simple' if use_dummy_dataset else 'en'}"
+            "wikipedia",
+            f"20220301.{'simple' if use_dummy_dataset else 'en'}",
+            data_files="/raid/NFS_SHARE/llm-random/.cache/wikipedia/20220301.simple",
         )["train"]
         self.dataset_book = (
             load_dataset("bookcorpus")["train"]
