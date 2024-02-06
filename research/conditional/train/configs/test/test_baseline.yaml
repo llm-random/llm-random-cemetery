@@ -11,8 +11,8 @@ params:
   cutoff: 16
   project_name: "llm-random-tests"
   name: "baseline_test"
-  mixed_precision: true
-  mixed_precision_dtype: "float16"
+  # mixed_precision: true
+  # mixed_precision_dtype: "float16"
   tags:
     - "test"
   use_wandb: true
@@ -21,9 +21,9 @@ params:
   dff: 256
   n_blocks: 2
   "^model_type":
-    - "bert"
+    - "gpt"
   "^ff_mode":
-    - "token_choice_deprecated"
+    - "token_choice"
   logging_interval_heavy: 2
   logging_interval_loss: 1
   grad_clip: 0.5
@@ -34,4 +34,4 @@ params:
   dataset_type: wikibook
   use_dummy_dataset: true
   init_type: kaiming_uniform
-  init_scale: 1.0
+  init_scale: 0.1
