@@ -11,7 +11,6 @@ import plotly
 import plotly.express as px
 import torch
 from clearml import Task
-import wandb
 
 from lizrd.support.misc import (
     make_concise_datetime,
