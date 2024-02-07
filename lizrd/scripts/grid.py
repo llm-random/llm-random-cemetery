@@ -3,6 +3,7 @@ Script to grid search in recycle layers. Run this script from the root of the pr
 $ python3 research/reinitialization/scripts/grid.py
 Remember to set RUNNER and PARAMS in the script or add an argument parser.
 """
+
 import argparse
 import datetime
 import os
