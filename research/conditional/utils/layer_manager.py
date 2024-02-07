@@ -10,12 +10,12 @@ from lizrd.core import nn
 from lizrd.support.logging import get_current_logger
 
 
-def get_registered_name(name, suffix):
+def get_registered_name(name):
     pattern = r"block_(\d+)"
     match = re.search(pattern, name)
     if match:
         block_name = match.group()
-        return f"{block_name}/{suffix}"
+        return f"{block_name}/{name}"
     return f"block_UNKNOWN/{name}"
 
 
@@ -48,7 +48,7 @@ class LayerManager:
         """
         for name, layer in model.named_modules():
             suffix = name.split(".")[-1]
-            registered_name = get_registered_name(name, suffix)
+            registered_name = get_registered_name(name)
             if suffix in [
                 "residual_feedforward",
                 "residual_attention",
