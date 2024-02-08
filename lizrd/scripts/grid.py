@@ -127,7 +127,7 @@ if __name__ == "__main__":
             neptune_key=args.neptune_key,
         )
 
-        singulatility_mount_paths = make_singularity_mount_paths(
+        singularity_mount_paths = make_singularity_mount_paths(
             setup_args, training_args
         )
 
@@ -146,7 +146,7 @@ if __name__ == "__main__":
                 "singularity",
                 "run",
                 *singularity_env_arguments,
-                f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
+                singularity_mount_paths,
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
@@ -168,7 +168,7 @@ if __name__ == "__main__":
                 "run",
                 "--bind=/net:/net",
                 *singularity_env_arguments,
-                singulatility_mount_paths,
+                singularity_mount_paths,
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
@@ -189,7 +189,7 @@ if __name__ == "__main__":
                 "singularity",
                 "run",
                 *singularity_env_arguments,
-                singulatility_mount_paths,
+                singularity_mount_paths,
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
