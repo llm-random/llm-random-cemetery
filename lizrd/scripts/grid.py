@@ -22,6 +22,7 @@ from lizrd.scripts.grid_utils import (
     get_setup_args_with_defaults,
     translate_to_argparse,
     make_singularity_env_arguments,
+    make_singularity_mount_paths,
     check_for_argparse_correctness,
 )
 from lizrd.support.code_copying import copy_code
@@ -123,6 +124,10 @@ if __name__ == "__main__":
             neptune_key=args.neptune_key,
         )
 
+        singulatility_mount_paths = make_singularity_mount_paths(
+            setup_args, training_args
+        )
+
         env = None
         runner_params = translate_to_argparse(training_args)
         if CLUSTER_NAME == MachineBackend.ENTROPY:
@@ -153,7 +158,7 @@ if __name__ == "__main__":
                 "run",
                 "--bind=/net:/net",
                 *singularity_env_arguments,
-                f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
+                singulatility_mount_paths,
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
@@ -165,16 +170,16 @@ if __name__ == "__main__":
             subprocess_args = [
                 slurm_command,
                 f"--gres=gpu:ampere:{setup_args['n_gpus']}",
-                f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+                # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
-                "--mem=32G",
+                "--mem=250G",
                 setup_args["nodelist"],
                 get_grid_entrypoint(CLUSTER_NAME),
                 "singularity",
                 "run",
                 *singularity_env_arguments,
-                f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
+                singulatility_mount_paths,
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
@@ -190,7 +195,7 @@ if __name__ == "__main__":
                 "singularity",
                 "run",
                 *singularity_env_arguments,
-                f"-B={os.getcwd()}:/llm-random,{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}",
+                singulatility_mount_paths,
                 "--nv",
                 setup_args["singularity_image"],
                 "python3",
