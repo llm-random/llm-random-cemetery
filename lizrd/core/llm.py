@@ -493,6 +493,8 @@ def PostNormBlock(dmodel, layer, name, norm_class=nn.LayerNorm):
 
 
 def PreNormBlock(dmodel, layer, name, norm_class=nn.LayerNorm):
+    if getattr(layer, "skip_ln", True):
+        norm_class = nn.Identity
     return Residual(
         nn.Sequential(
             OrderedDict(
