@@ -546,7 +546,9 @@ def get_mamba_layer(args):
 
     if args.mamba_mode == "vanilla":
         return_fn = lambda: mamba_ssm.Mamba(
-            d_model=args.dmodel, expand=args.mamba_expansion, use_fast_path=False
+            d_model=args.dmodel,
+            expand=args.mamba_expansion,
+            # use_fast_path=False,  # don't use fast path when comparing clock time to moe in mamba
         )
     elif args.mamba_mode in [
         "out_proj_moe",
