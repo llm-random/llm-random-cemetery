@@ -320,4 +320,7 @@ def introduce_parser_arguments(
         required=False,
     )
 
+    # dbb
+    parser.add_argument("--dbb_blocks", type=int, default=1)
+
     return parser
