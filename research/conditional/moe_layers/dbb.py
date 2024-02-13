@@ -8,6 +8,26 @@ from lizrd.core import nn
 from lizrd.core.misc import Linear
 
 
+def sequence_to_module(
+    seq: str, use_ln: bool, dmodel: int, init_type, init_scale
+) -> torch.nn.Module:
+    blocks_list: list[torch.nn.Module] = (
+        [] if not use_ln else [torch.nn.LayerNorm(dmodel)]
+    )
+    multipliers = list(map(float, seq.split(">")))
+    for in_x, out_x in zip(multipliers, multipliers[1:]):
+        blocks_list.append(
+            Linear(
+                in_features=int(in_x * dmodel),
+                out_features=int(out_x * dmodel),
+                init_type=init_type,
+                init_scale=init_scale,
+            ),
+        )
+    blocks = torch.nn.Sequential(*blocks_list)
+    return blocks
+
+
 class DBBFF(torch.nn.Module):
     def __init__(
         self,
@@ -94,6 +114,61 @@ class DBBFF(torch.nn.Module):
         # x = torch.einsum("blf,nfd->bld", x, self.lin2_weight)
         # ic(x.shape)
         return x
+
+    def eval_forward(self, x):
+        return self.train_forward(x)
+        # aggregated_lin1_weight = self.lin1_weight.sum(dim=0)
+        # aggregated_lin2_weight = self.lin2_weight.sum(dim=0)
+        # x = torch.einsum("bld,df->blf", x, aggregated_lin1_weight)
+        # x = x.relu()
+        # x = torch.einsum("blf,fd->bld", x, aggregated_lin2_weight)
+        # return x
+
+
+class LRDBBFF(torch.nn.Module):
+
+    def __init__(
+        self,
+        dmodel: int,
+        # dff: int,
+        # n_blocks: int,
+        use_ln: bool,
+        init_type: Literal["kaiming_uniform", "truncated_normal"],
+        init_scale: float,
+        topology="1>4|4>1",  # e.g. "1>4,1>0.5>4|4>1". "1>4|4>1" denotes regular FF.
+        # sanity_check: Optional[str] = None,
+    ):
+        super().__init__()
+        in_, out = topology.split("|")
+        in_blocks = []
+        out_blocks = []
+        for pairs in in_.split(","):
+            in_blocks.append(
+                sequence_to_module(pairs, use_ln, dmodel, init_type, init_scale)
+            )
+        for pairs in out.split(","):
+            out_blocks.append(
+                sequence_to_module(pairs, False, dmodel, init_type, init_scale)
+            )
+        self.in_blocks = torch.nn.ModuleList(in_blocks)
+        self.out_blocks = torch.nn.ModuleList(out_blocks)
+
+    def forward(self, x):
+        if self.training:
+            return self.train_forward(x)
+        else:
+            return self.eval_forward(x)
+
+    def train_forward(self, x):
+        in_outputs = []
+        for block in self.in_blocks:
+            in_outputs.append(block(x))
+        x = sum(in_outputs)
+        x = x.relu()
+        out_outputs = []
+        for block in self.out_blocks:
+            out_outputs.append(block(x))
+        return sum(out_outputs)
 
     def eval_forward(self, x):
         return self.train_forward(x)
