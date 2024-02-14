@@ -3,7 +3,7 @@ from typing import Literal
 import mamba_ssm
 import torch
 
-from lizrd.core import nn
+import torch.nn as nn
 from lizrd.core.misc import Linear
 from research.conditional.utils.layer_manager import LoggingLayer
 
@@ -29,10 +29,10 @@ class TiTraMamba(LoggingLayer):
         self.mamba = mamba_ssm.Mamba(d_model=self.dmodel)
         # self.mamba = DummyMamba(d_model=self.dmodel)
 
-        self.log_lookback = [0, 1, 2, 4, 8, 16, 32, 64, 128]
+        self.log_lookback = [0, 1, 2, 4, 8, 16]
         self.weight = Linear(
             dmodel,
-            9,
+            6,
             bias=True,
             init_type=init_type,
             init_scale=init_scale,
@@ -52,14 +52,13 @@ class TiTraMamba(LoggingLayer):
             .expand(batch_size, seq_len, self.dmodel)
         )
 
-        lookback_weight = self.softmax(self.weight(x))
-        mamba_input = torch.zeros_like(x)
+        mamba_output = self.mamba.forward(x)
+        lookback_weight = self.softmax(self.weight(mamba_output))
         for slice_idx, lookback_val in enumerate(self.log_lookback):
             lookback_idx = self.non_neg(torch.sub(lookback_limit, lookback_val))
             lookback = torch.gather(x, 1, lookback_idx)
-            mamba_input = mamba_input + lookback * torch.unsqueeze(
+            mamba_output = mamba_output + lookback * torch.unsqueeze(
                 torch.select(lookback_weight, dim=2, index=slice_idx), dim=-1
             )
 
-        mamba_output = self.mamba.forward(mamba_input)
         return mamba_output
