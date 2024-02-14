@@ -1,6 +1,7 @@
 parent: configs/baselines/gpt/expert_choice/common.yaml
 md5_parent_hash: 27e0212d49a74700ba49088f6410580d
 time: 0-00:30:00
+n_gpus: 1
 
 params:
   name: "mamba_titram"
