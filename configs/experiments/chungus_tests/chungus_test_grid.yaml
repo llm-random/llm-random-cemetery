@@ -1,7 +1,7 @@
 parent: configs/baselines/gpt/dense/small.yaml
 md5_parent_hash: 9bcdbfe14ff178e8ee90a04000ab9546
 
-time: "0:10:00"
+time: "1:00:00"
 n_gpus: 1
 
 params:
@@ -12,9 +12,9 @@ params:
   flash_attention: true
   tags: ["new"]
 
-  # dataset_type: c4
-  use_dummy_dataset: true
-  dataset_type: wikibook
+  dataset_type: c4
+  # use_dummy_dataset: true
+  # dataset_type: wikibook
   n_steps: 30_000
   learning_rate: 5e-4
   decoding_interval: 0
