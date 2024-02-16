@@ -378,6 +378,8 @@ class MambaTokenChoiceFunction(LoggingLayer):
         experts_output, dropped_tokens_output = self._inner_forward(
             expert_inputs, dropped_tokens
         )
+        experts_output = experts_output.to(expert_inputs.dtype)
+        dropped_tokens_output = dropped_tokens_output.to(expert_inputs.dtype)
 
         num_tokens = dropped_tokens_mask.shape[0]
         doutput = experts_output.shape[-1]
