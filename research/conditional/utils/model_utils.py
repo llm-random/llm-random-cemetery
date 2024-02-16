@@ -616,12 +616,15 @@ def make_inner_projections_mamba(
 
 
 def get_inner_projections_moe_mamba(args):
-    print("ROUTING GROUPS", args.routing_groups)
+    routing_groups = []
+    for group in args.routing_groups:
+        routing_groups.append(group.split(","))
+    print("ROUTING GROUPS", routing_groups)
     return partial(
         make_inner_projections_mamba,
         dmodel=args.dmodel,
         n_experts_per_group=args.n_experts_per_group,
-        routing_groups=args.routing_groups,
+        routing_groups=routing_groups,
         expansion_factor=args.mamba_expansion,
         seq_len=args.cutoff,
         init_type=args.init_type,
