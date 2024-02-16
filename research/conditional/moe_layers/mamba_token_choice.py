@@ -378,6 +378,8 @@ class MambaTokenChoiceFunction(LoggingLayer):
         experts_output, dropped_tokens_output = self._inner_forward(
             expert_inputs, dropped_tokens
         )
+        experts_output = experts_output.to(expert_inputs.dtype)
+        dropped_tokens_output = dropped_tokens_output.to(expert_inputs.dtype)
 
         num_tokens = dropped_tokens_mask.shape[0]
         doutput = experts_output.shape[-1]
@@ -547,7 +549,7 @@ class MambaTokenChoice(LoggingLayer):
         """
 
         batch, seqlen, dim = hidden_states.shape
-
+        print(hidden_states.dtype)
         router_input = self.router.make_routing_params_for_module(
             hidden_states, "input"
         )
@@ -564,6 +566,7 @@ class MambaTokenChoice(LoggingLayer):
             *self.router.route_according_to_params(hidden_states, "gate", router_gate)
         )  # (B L D) -> (B L D)
         z = rearrange(z, "b l d -> b d l")
+        print(x.dtype)
         A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
         # In the backward pass we write dx and dz next to each other to avoid torch.cat
 
