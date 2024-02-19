@@ -257,10 +257,10 @@ class TokenChoiceSeparateRouter(LoggingLayer):
         if self.n_experts == 1:
             assert dropped_tokens_mask.sum() == 0
         return (
-            experts_input,
+            experts_input.to(x.dtype),
             top_tokens_per_expert_indices,
             dropped_tokens_mask,
-            dropped_tokens,
+            dropped_tokens.to(x.dtype),
             masked_expert_gate,
         )
 
@@ -414,7 +414,7 @@ class MambaTokenChoiceFunction(LoggingLayer):
                         self.n_experts * experts_output.shape[1], doutput
                     ),
                 )
-        output = output.reshape(-1, self.seq_len, doutput)
+        output = output.reshape(-1, self.seq_len, doutput).to(expert_inputs.dtype)
         return output
 
     def _inner_forward(
@@ -567,7 +567,6 @@ class MambaTokenChoice(LoggingLayer):
         """
 
         batch, seqlen, dim = hidden_states.shape
-        print(hidden_states.dtype)
         router_input = self.router.make_routing_params_for_module(
             hidden_states, "input"
         )
@@ -584,7 +583,6 @@ class MambaTokenChoice(LoggingLayer):
             *self.router.route_according_to_params(hidden_states, "gate", router_gate)
         )  # (B L D) -> (B L D)
         z = rearrange(z, "b l d -> b d l")
-        print(x.dtype)
         A = -torch.exp(self.A_log.float())  # (d_inner, d_state)
         # In the backward pass we write dx and dz next to each other to avoid torch.cat
 
@@ -611,10 +609,8 @@ class MambaTokenChoice(LoggingLayer):
         dt = rearrange(dt, "d (b l) -> b d l", l=seqlen)
         B = rearrange(B, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
         C = rearrange(C, "(b l) dstate -> b dstate l", l=seqlen).contiguous()
-        print(dt.dtype)
-        print(B.dtype)
-        print(C.dtype)
-        print(self.dt_proj.bias.dtype)
+        x = x.to(A.dtype)
+        z = z.to(A.dtype)
         assert self.activation in ["silu", "swish"]
         y = selective_scan_fn(
             x,
