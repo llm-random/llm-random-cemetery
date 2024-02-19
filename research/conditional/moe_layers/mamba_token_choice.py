@@ -257,10 +257,10 @@ class TokenChoiceSeparateRouter(LoggingLayer):
         if self.n_experts == 1:
             assert dropped_tokens_mask.sum() == 0
         return (
-            experts_input,
+            experts_input.to(x.dtype),
             top_tokens_per_expert_indices,
             dropped_tokens_mask,
-            dropped_tokens,
+            dropped_tokens.to(x.dtype),
             masked_expert_gate,
         )
 
@@ -414,7 +414,7 @@ class MambaTokenChoiceFunction(LoggingLayer):
                         self.n_experts * experts_output.shape[1], doutput
                     ),
                 )
-        output = output.reshape(-1, self.seq_len, doutput)
+        output = output.reshape(-1, self.seq_len, doutput).to(expert_inputs.dtype)
         return output
 
     def _inner_forward(
