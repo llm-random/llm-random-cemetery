@@ -158,7 +158,7 @@ def create_subprocess_args(
                 f"--gres=gpu:{setup_args['n_gpus']}",
                 "--partition=plgrid-gpu-a100",
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
-                "--account=plgplggllmeffi-gpu-a100",
+                "--account=plgsubslearnath-gpu-a100",
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
                 get_grid_entrypoint(CLUSTER_NAME),
