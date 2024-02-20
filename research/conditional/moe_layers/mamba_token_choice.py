@@ -261,7 +261,6 @@ class TokenChoiceSeparateRouter(LoggingLayer):
             top_tokens_per_expert_indices,
             dropped_tokens_mask,
             dropped_tokens.to(x.dtype),
-            masked_expert_gate,
         )
 
 
