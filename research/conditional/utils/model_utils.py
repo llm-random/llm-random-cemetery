@@ -623,10 +623,13 @@ def make_inner_projections_mamba(
 
 
 def get_inner_projections_moe_mamba(args):
-    expert_modules_str: str = args.expert_modules
-    expert_modules = expert_modules_str.split(",")
-    if "" in expert_modules:
-        expert_modules.remove("")
+    if args.expert_modules is None:
+        expert_modules = []
+    else:
+        expert_modules_str: str = args.expert_modules
+        expert_modules = expert_modules_str.split(",")
+        if "" in expert_modules:
+            expert_modules.remove("")
     return partial(
         make_inner_projections_mamba,
         dmodel=args.dmodel,
