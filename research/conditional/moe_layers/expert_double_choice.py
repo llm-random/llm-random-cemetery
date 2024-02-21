@@ -1,4 +1,4 @@
-from typing import Literal, Union, Optional
+from typing import Literal, Optional
 import plotly.express as px
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,7 @@ import torch.nn as nn
 from lizrd.core.initialization import get_init_weight
 from research.conditional.utils.layer_manager import LoggingLayer
 from research.conditional.utils.layer_manager import measure_time
-from research.conditional.moe_layers.expert_choice import ExpertGating, ExpertChoiceFF
+from research.conditional.moe_layers.expert_choice import ExpertGating
 
 
 class ExpertDoubleChoiceFF(LoggingLayer):
@@ -66,7 +66,7 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         assert not self.use_full_einsum or self.one_hot_impl  # Not implemented
         assert not self.use_torch_bmm or not self.use_full_einsum  # Not implemented
 
-        init_weight = lambda shape, fan_in:  nn.Parameter(
+        init_weight = lambda shape, fan_in: nn.Parameter(
             get_init_weight(
                 shape,
                 fan_in=fan_in,
@@ -76,8 +76,10 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         ).requires_grad_(True)
 
         self.lin1_weight = init_weight((n_experts, dmodel, expert_size), dmodel)
-        self.lin2_weight = init_weight((n_experts, expert_size, self.doutput),
-                                       int(n_experts * expert_size * topk_fraction))
+        self.lin2_weight = init_weight(
+            (n_experts, expert_size, self.doutput),
+            int(n_experts * expert_size * topk_fraction),
+        )
         self.ln = LayerNorm(self.doutput) if use_layer_norm else None
         self.softmax_over = softmax_over
 
@@ -122,7 +124,12 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         return x
 
     def route_one_linear(
-        self, x: torch.Tensor, batch_size, weight, expert_gating, num,
+        self,
+        x: torch.Tensor,
+        batch_size,
+        weight,
+        expert_gating,
+        num,
     ):
         seq_len = x.shape[1]
         topk, topk_indices, topk_values = expert_gating(x, batch_size, seq_len)
@@ -162,9 +169,7 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         assert x.shape == (batch_size, seq_len, dmodel_out)
         return x
 
-    def full_bmm(
-        self, x: torch.Tensor, batch_size
-    ):
+    def full_bmm(self, x: torch.Tensor, batch_size):
         x = self.route_one_linear(
             x, batch_size, self.lin1_weight, self.expert_gating, "1"
         )
