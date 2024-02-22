@@ -1,4 +1,4 @@
-from typing import Literal, Union, Optional
+from typing import Literal, Optional
 import plotly.express as px
 import torch
 import torch.nn.functional as F
@@ -8,7 +8,7 @@ import torch.nn as nn
 from lizrd.core.initialization import get_init_weight
 from research.conditional.utils.layer_manager import LoggingLayer
 from research.conditional.utils.layer_manager import measure_time
-from research.conditional.moe_layers.expert_choice import ExpertGating, ExpertChoiceFF
+from research.conditional.moe_layers.expert_choice import ExpertGating
 
 
 class ExpertDoubleChoiceFF(LoggingLayer):
@@ -31,6 +31,8 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         group_size: int = 1,
         use_torch_bmm: bool = False,
         use_layer_norm: bool = True,
+        single_route=False,
+        both_from_start=False,
     ):
         """
         Args:
@@ -57,6 +59,8 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         self.group_size = group_size
         self.use_torch_bmm = use_torch_bmm
         self.use_layer_norm = use_layer_norm
+        self.single_route = single_route
+        self.both_from_start = both_from_start
 
         assert (
             not self.one_hot_impl or self.group_by_batch
@@ -66,7 +70,7 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         assert not self.use_full_einsum or self.one_hot_impl  # Not implemented
         assert not self.use_torch_bmm or not self.use_full_einsum  # Not implemented
 
-        init_weight = lambda shape, fan_in:  nn.Parameter(
+        init_weight = lambda shape, fan_in: nn.Parameter(
             get_init_weight(
                 shape,
                 fan_in=fan_in,
@@ -76,8 +80,10 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         ).requires_grad_(True)
 
         self.lin1_weight = init_weight((n_experts, dmodel, expert_size), dmodel)
-        self.lin2_weight = init_weight((n_experts, expert_size, self.doutput),
-                                       int(n_experts * expert_size * topk_fraction))
+        self.lin2_weight = init_weight(
+            (n_experts, expert_size, self.doutput),
+            int(n_experts * expert_size * topk_fraction),
+        )
         self.ln = LayerNorm(self.doutput) if use_layer_norm else None
         self.softmax_over = softmax_over
 
@@ -95,7 +101,8 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         )
 
         self.expert_gating = create_gating(dmodel)
-        self.expert_gating_2 = create_gating(expert_size)
+        if not self.single_route:
+            self.expert_gating_2 = create_gating(dmodel if self.both_from_start else expert_size)
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
@@ -110,7 +117,7 @@ class ExpertDoubleChoiceFF(LoggingLayer):
             )
             x = x.reshape(batch_size, seq_len, self.dmodel)
 
-        x = self.full_bmm(x, batch_size)
+        x = self.full_bmm(x)
 
         if self.use_layer_norm:
             with measure_time(self, "layer_norm"):
@@ -122,10 +129,13 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         return x
 
     def route_one_linear(
-        self, x: torch.Tensor, batch_size, weight, expert_gating, num,
+        self,
+        x: torch.Tensor,
+        batch_size,
+        weight,
+        topk, topk_indices, topk_values,
+        num,
     ):
-        seq_len = x.shape[1]
-        topk, topk_indices, topk_values = expert_gating(x, batch_size, seq_len)
 
         # emit
         with measure_time(self, "one_hot_instanciate" + num):
@@ -162,16 +172,22 @@ class ExpertDoubleChoiceFF(LoggingLayer):
         assert x.shape == (batch_size, seq_len, dmodel_out)
         return x
 
-    def full_bmm(
-        self, x: torch.Tensor, batch_size
-    ):
+    def full_bmm(self, x: torch.Tensor):
+        batch_size, seq_len = x.shape[:2]
+        route_args = self.expert_gating(x, batch_size, seq_len)
+        if self.both_from_start:
+            route_args_2 = self.expert_gating_2(x, batch_size, seq_len)
         x = self.route_one_linear(
-            x, batch_size, self.lin1_weight, self.expert_gating, "1"
+            x, batch_size, self.lin1_weight, *route_args, "1"
         )
         with measure_time(self, "activation"):
             x = F.relu(x)
+        if self.single_route:
+            route_args_2 = route_args
+        elif not self.both_from_start:
+            route_args_2 = self.expert_gating_2(x, batch_size, seq_len)
         x = self.route_one_linear(
-            x, batch_size, self.lin2_weight, self.expert_gating_2, "2"
+            x, batch_size, self.lin2_weight, *route_args_2, "2"
         )
         return x
 

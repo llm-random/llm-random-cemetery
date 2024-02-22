@@ -244,6 +244,8 @@ def introduce_parser_arguments(
     parser.add_argument("--xfavor", action="store_true")
     parser.add_argument("--mix_whole_batch", action="store_true")
     parser.add_argument("--capacity_factor", type=float, default=1.25)
+    parser.add_argument("--double_routing_from_start", action="store_true", help="Whether second routing is calculated before relu")
+    parser.add_argument("--double_routing_use_single", action="store_true", help="Mock single routing with double routing")
     parser.add_argument(
         "--routing_top_k",
         type=int,
