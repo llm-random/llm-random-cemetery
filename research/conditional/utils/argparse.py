@@ -26,6 +26,7 @@ def introduce_parser_arguments(
     parser.add_argument(
         "--token_choice_inner", type=str, choices=["relu", "swi_glu"], default="relu"
     )
+    parser.add_argument("--set_granular_auto_args", action="store_true")
 
     # CORE training hyperparameters, almost always specified in baseline configs
 
