@@ -74,6 +74,7 @@ def main(
     args: Optional[argparse.Namespace] = None,
     runner_params: Optional[list] = None,
 ):
+    os.environ['CURL_CA_BUNDLE'] = ''
     """
     rank: int - the ID of the current process (usually also the GPU ID). Only relevant for multi-GPU training.
     """
