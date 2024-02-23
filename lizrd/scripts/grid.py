@@ -166,6 +166,8 @@ def create_subprocess_args(
                 setup_args["runner"],
                 *runner_params,
             ]
+            print(subprocess_args)
+            exit()
         elif CLUSTER_NAME == MachineBackend.ATHENA:
             subprocess_args = [
                 slurm_command,
