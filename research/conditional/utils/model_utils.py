@@ -106,8 +106,17 @@ def backward_maybe_with_scaler(
     loss: torch.Tensor,
     mixed_precision_dtype: torch.dtype,
     scaler: Optional[torch.cuda.amp.GradScaler] = None,
+    autocast: bool = True,
 ):
-    with torch.autocast(device_type="cuda", enabled=False, dtype=mixed_precision_dtype):
+    if autocast:
+        with torch.autocast(
+            device_type="cuda", enabled=False, dtype=mixed_precision_dtype
+        ):
+            if scaler is None:
+                loss.backward()
+            else:
+                scaler.scale(loss).backward()
+    else:
         if scaler is None:
             loss.backward()
         else:
@@ -181,7 +190,9 @@ def chungized_llm_loss(
     if model.training:
         encoder_output.backward(encoder_output_detach.grad)
         for value in aux_info["losses"].values():
-            backward_maybe_with_scaler(value, mixed_precision_dtype, scaler)
+            backward_maybe_with_scaler(
+                value, mixed_precision_dtype, scaler, autocast=False
+            )
 
     return total_loss, aux_info
 
@@ -235,7 +246,9 @@ def calculate_llm_loss(
     if model.training:
         backward_maybe_with_scaler(loss, mixed_precision_dtype, scaler)
         for value in aux_info["losses"].values():
-            backward_maybe_with_scaler(value, mixed_precision_dtype, scaler)
+            backward_maybe_with_scaler(
+                value, mixed_precision_dtype, scaler, autocast=False
+            )
 
     return loss.item(), aux_info
 
