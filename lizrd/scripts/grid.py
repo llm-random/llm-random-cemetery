@@ -132,12 +132,13 @@ def create_subprocess_args(
 
         runner_params = translate_to_argparse(training_args)
         if CLUSTER_NAME == MachineBackend.ENTROPY:
+            mem = 16*8*setup_args['n_gpus']
             subprocess_args = [
                 slurm_command,
                 "--partition=a100",
                 f"--gres=gpu:a100:{setup_args['n_gpus']}",
                 f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
-                f"--mem={1000 // setup_args['n_gpus']}G",
+                f"--mem={mem}G",hf_datasets_cache:hf_datasets_cache: "/net/tscratch/people/plgjkrajewski/cache" "/net/tscratch/people/plgjkrajewski/cache"
                 f"--job-name={job_name}",
                 f"--time={setup_args['time']}",
                 get_grid_entrypoint(CLUSTER_NAME),
