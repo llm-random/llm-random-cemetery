@@ -52,6 +52,8 @@ def create_subprocess_args(
     check_for_argparse_correctness(grid)
     interactive_debug_session = grid[0][0]["interactive_debug_session"]
 
+    breakpoint()
+
     if CLUSTER_NAME != MachineBackend.LOCAL and not skip_confirmation:
         if not interactive_debug_session:
             total_minutes, total_n_experiments = calculate_experiments_info(grid)
@@ -77,6 +79,7 @@ def create_subprocess_args(
     else:
         print("Skip copying code to a new directory.")
 
+    breakpoint()
     slurm_command = "srun" if interactive_debug_session else "sbatch"
     experiments = []
     for setup_args, trainings_args in grid:
