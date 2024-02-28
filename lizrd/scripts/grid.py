@@ -77,6 +77,7 @@ def create_subprocess_args(
     else:
         print("Skip copying code to a new directory.")
 
+    breakpoint()
     slurm_command = "srun" if interactive_debug_session else "sbatch"
     experiments = []
     for setup_args, trainings_args in grid:
