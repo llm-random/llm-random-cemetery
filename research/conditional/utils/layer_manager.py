@@ -53,6 +53,9 @@ class LayerManager:
         self.first_mode = first_mode
         self.second_mode = second_mode
         self.final_schedule_step = final_schedule_step
+        self.chimera_scheduling_enabled = False
+        if self.final_schedule_step is not None:
+            self.chimera_scheduling_enabled = True
 
     def _register_layers(self, model):
         """
