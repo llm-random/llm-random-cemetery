@@ -536,7 +536,7 @@ def get_ff_layer(args):
             init_scale=args.init_scale,
             init_type=args.init_type,
         )
-        switch = TokenChoiceFF(
+        switch = partial(TokenChoiceFF(
             dmodel=args.dmodel,
             n_experts=args.n_experts,
             capacity_factor=args.capacity_factor,
@@ -546,7 +546,7 @@ def get_ff_layer(args):
             init_scale=args.init_scale,
             init_type=args.init_type,
             vectorize=(not args.dont_vectorize_switch),
-        )
+        ))
         return_fn = lambda: Chimera(
             mot=mot,
             ec=ec,
