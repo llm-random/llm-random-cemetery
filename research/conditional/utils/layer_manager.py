@@ -160,6 +160,7 @@ class LayerManager:
         return mode
 
     def change_chimera_mode(self, step):  # , schedule_type_id):
+        print(f"Change chimera mode at step {step}")
         if step % self.final_schedule_step == 0:
             print(f"Changing mode from {self.first_mode} to {self.second_mode}")
             for _, l in self._layers:
