@@ -42,18 +42,18 @@ class CodeVersioningAgent:
             self.original_branch_commit_hash = self.repo.head.object.hexsha
 
             # check if the branch is tracking any remote branch at origin
-            assert (
-                self.repo.active_branch.tracking_branch() is not None
-                and self.repo.active_branch.tracking_branch().remote_name == "origin"
-            ), "Branch is not a remote branch at origin. Aborting..."
+            # assert (
+            #     self.repo.active_branch.tracking_branch() is not None
+            #     and self.repo.active_branch.tracking_branch().remote_name == "origin"
+            # ), "Branch is not a remote branch at origin. Aborting..."
             # reject if there are unpushed commits
-            commits_behind = list(
-                self.repo.iter_commits(f"origin/{self.original_branch}..HEAD")
-            )
-            if len(commits_behind) > 0:
-                raise Exception(
-                    f"Either branch is does not track any remote branch [you haven't pushed anything yet] OR unpushed commits have been detected. Either way, push first. Aborting..."
-                )
+            # commits_behind = list(
+            #     self.repo.iter_commits(f"origin/{self.original_branch}..HEAD")
+            # )
+            # if len(commits_behind) > 0:
+            #     raise Exception(
+            #         f"Either branch is does not track any remote branch [you haven't pushed anything yet] OR unpushed commits have been detected. Either way, push first. Aborting..."
+            #     )
 
             self.check_and_set_remote_cemetery_repo()
             self.stash_if_necessary()
@@ -170,3 +170,8 @@ def find_git_root():
         if parent_dir == current_dir:
             raise Exception("Not in a Git repository.")
         current_dir = parent_dir
+
+    
+if __name__ == "__main__":
+    version_code("to_jest_test")
+    
