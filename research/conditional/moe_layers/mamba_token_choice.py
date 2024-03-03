@@ -336,14 +336,13 @@ class MambaRouter(LoggingLayer):
         tokens_scales = masked_expert_gate.sum(dim=1, keepdim=True)
         dropped_tokens_mask = tokens_scales.flatten() == 0
         x = x.reshape(batch_size * seq_len, din)
-        scale = self.dropped_tokens_scale.to(tokens_scales.dtype)
-        tokens_scales[dropped_tokens_mask] = scale
+        tokens_scales[dropped_tokens_mask] = self.dropped_tokens_scale
         x = x * tokens_scales
         return x.reshape(batch_size, seq_len, din)
 
     def log_light(self):
         return {
-            "dropped_tokens_scale": self.dropped_tokens_scale.item(),
+            # "dropped_tokens_scale": self.dropped_tokens_scale,
         }
 
 
