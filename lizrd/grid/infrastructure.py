@@ -203,7 +203,7 @@ class LocalBackend(MachineBackend):
         return f"{os.getenv('HOME')}/.cache/huggingface/datasets"
 
     def get_grid_entrypoint(self) -> str:
-        raise ValueError(f"Local machine should use main function directly. ")
+        return None
 
     def get_subprocess_args(
         self,
