@@ -210,7 +210,7 @@ def attention_mechanism(
 ):
     if flash:
         with torch.backends.cuda.sdp_kernel(
-            enable_flash=True, enable_math=False, enable_mem_efficient=False
+            enable_flash=False, enable_math=False, enable_mem_efficient=True
         ):
             output = F.scaled_dot_product_attention(
                 query=query,
