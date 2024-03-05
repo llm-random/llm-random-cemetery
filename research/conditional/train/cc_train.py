@@ -92,6 +92,7 @@ def main(
     check_args(args)
 
     save_weights_path = prepare_save_weights_path(args.save_weights_path)
+    print(f"Save weights path: {save_weights_path}")
 
     if rank is not None:
         os.environ["MASTER_ADDR"] = "localhost"
