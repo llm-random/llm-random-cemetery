@@ -4,6 +4,7 @@ from typing import Optional
 
 from datasets import load_dataset, load_from_disk
 import numpy as np
+import os
 
 
 class AbstractDataset:
@@ -44,13 +45,7 @@ class WikiBookDataset(AbstractDataset):
 
         self.bookcorpus_chance = len(self.dataset_book) / len(self.dataset_wiki)
 
-    def get_document(self) -> str:
-        selector = self.py_rng.random()
-        if selector < self.bookcorpus_chance:
-            return self._get_random_book_example()
-        else:
-            return self._get_random_wiki_example()
-
+    def get_document(self) -> str:HOME
     def _belongs_to_split(self, document_id: int) -> bool:
         eval_percentage = 5
 
@@ -97,6 +92,7 @@ class C4Dataset(AbstractDataset):
                 )
             self.dataset = load_dataset("stas/c4-en-10k", split=split)
         else:
+            print(f"!!!datasets cache: {os.getenv('HF_DATASETS_CACHE')}")
             self.dataset = load_dataset("c4", "en", split=split)
 
     def get_document(self) -> str:
