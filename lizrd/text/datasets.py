@@ -88,7 +88,10 @@ class C4Dataset(AbstractDataset):
     ):
         super().__init__(seed=seed)
         assert split in ["train", "validation"]
-        if dataset_path is not None:
+        print(f"dataset_path: {dataset_path}")
+        print(f"dataset_path is None: {dataset_path is None}")
+        print(f"type of dataset_path: {type(dataset_path)}")
+        if dataset_path is not None and dataset_path != "None":
             self.dataset = load_from_disk(dataset_path)
         elif use_dummy_dataset:
             if split != "train":
