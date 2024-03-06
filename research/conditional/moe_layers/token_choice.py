@@ -51,6 +51,8 @@ class TokenChoiceRouter(LoggingLayer):
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
+        if not self.training:
+            self.routing_top_k *= 2
         batch_size, seq_len, _ = x.shape
         n_tokens = batch_size * seq_len
         self.update_cache_for_logging("n_tokens", torch.Tensor([n_tokens]))
@@ -167,6 +169,9 @@ class TokenChoiceRouter(LoggingLayer):
             with measure_time(self, "assign_tokens_to_input"):
                 for i, indices in enumerate(indices_of_tokens_for_expert):
                     experts_input[i, : len(indices)] = x[indices]
+
+        if not self.training:
+            self.routing_top_k = self.routing_top_k // 2
         if self.vectorize:
             return experts_input, top_tokens_per_expert_indices, masked_expert_gate
         else:
@@ -225,6 +230,10 @@ class TokenChoiceRouter(LoggingLayer):
         else:
             expert_gate, expert_index = torch.topk(
                 gate_out, k=self.routing_top_k, dim=1
+            )
+        if not self.training:
+            expert_gate = (
+                expert_gate * torch.max(gate_out, dim=1) * torch.sum(gate_out, dim=1)
             )
         return expert_gate, expert_index
 
