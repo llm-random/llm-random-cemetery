@@ -41,16 +41,19 @@ class MachineBackend(abc.ABC):
         return None
 
     def get_cluster_default_params(self, dataset_type) -> dict:
-        return {
-            "train_dataset_path": self.get_default_train_dataset_path(dataset_type),
-            "validation_dataset_path": self.get_default_validation_dataset_path(
-                dataset_type
-            ),
+        params = {
             "common_directory": self.get_common_directory(),
             "hf_datasets_cache": self.get_cache_path(),
             "singularity_image": self.get_singularity_image(),
             "grid_entrypoint": self.get_grid_entrypoint(),
         }
+        train_dataset_path = self.get_default_train_dataset_path(dataset_type)
+        if train_dataset_path is not None:
+            params["train_dataset_path"] = train_dataset_path
+        validation_dataset_path = self.get_default_validation_dataset_path(dataset_type)
+        if validation_dataset_path is not None:
+            params["validation_dataset_path"] = validation_dataset_path
+        return params
 
     def prepare_default_infrastructure_params(self, dataset_type: str):
         infrastructure_params_dict = COMMON_DEFAULT_INFRASTRUCTURE_ARGS
