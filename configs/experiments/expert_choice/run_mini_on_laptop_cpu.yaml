@@ -1,0 +1,25 @@
+parent: configs/baselines/gpt/expert_choice/granularity/4/mini.yaml
+md5_parent_hash: 8c55b8c4ca676c8235c39a0555debad3
+time: 0-05:00:00
+n_gpus: 0
+
+params:
+  batch_size: 16
+  mixed_precision_dtype: float16
+  name: "laptop_check"
+  cutoff: 8
+  dmodel: 256
+  logging_interval_heavy: 0
+  project_name: "kkrol/llm-random-tests"
+  ff_mode: "token_choice"
+  ^n_experts: [ 2 ]
+  ^dff: [ 128 ]
+  ^expert_size: [ 128]
+  block_modules: ["feedforward", "attention"]
+#  block_modules: ["mamba"]
+#  parallel_blocks: True
+#  mamba_mode: titram
+  eval_interval: 1
+#  model_type: bert
+#  expansion_rate: 4
+  dataset_type: wikibook
