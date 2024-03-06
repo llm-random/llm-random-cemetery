@@ -88,6 +88,9 @@ class C4Dataset(AbstractDataset):
     ):
         super().__init__(seed=seed)
         assert split in ["train", "validation"]
+        print(f"dataset_path: {dataset_path}")
+        print(f"dataset_path is None: {dataset_path is None}")
+        print(f"type of dataset_path: {type(dataset_path)}")
         if dataset_path is not None:
             self.dataset = load_from_disk(dataset_path)
         elif use_dummy_dataset:
@@ -97,6 +100,7 @@ class C4Dataset(AbstractDataset):
                 )
             self.dataset = load_dataset("stas/c4-en-10k", split=split)
         else:
+            breakpoint()
             self.dataset = load_dataset("c4", "en", split=split)
 
     def get_document(self) -> str:
