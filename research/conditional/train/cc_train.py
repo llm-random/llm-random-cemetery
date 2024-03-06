@@ -246,6 +246,7 @@ def main(
         "use_dummy_dataset": args.use_dummy_dataset,
     }
 
+    print(f"In cc train. train dataset path: {args.train_dataset_path}")
     train_dataloader = get_processed_dataset(
         **common_dataloaders_kwargs,
         dataset_split="train",
