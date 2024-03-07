@@ -100,7 +100,7 @@ def main(
 
     if args.predefined_model_config is not None:
         dmodel, dff, n_att_heads, n_blocks = get_model_size_config(
-            args.predefined_config
+            args.predefined_model_config
         )
         args.dmodel = dmodel
         args.dff = dff
