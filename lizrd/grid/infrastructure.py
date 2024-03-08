@@ -85,6 +85,7 @@ class AthenaBackend(MachineBackend):
             f"--gres=gpu:{setup_args['n_gpus']}",
             "--partition=plgrid-gpu-a100",
             f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
+            "--nodelist=login01"
             "--account=plgsubslearnath-gpu-a100",
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
