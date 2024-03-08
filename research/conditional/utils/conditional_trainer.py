@@ -111,7 +111,7 @@ class ConditionalTrainer:
                 beta1=0.9,
                 beta2=0.999,
                 log_eps=-8.0,
-                optimizer=SGD(alpha=1e-5),
+                optimizer=SGD(alpha=1e-6, mu=0.9, optimizer=SGD(alpha=1e-9, mu=0.9)),
             ),
         )
         self.model.initialize()

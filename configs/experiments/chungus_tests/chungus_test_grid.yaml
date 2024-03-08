@@ -1,0 +1,36 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: e1ad1f2706fb54ba63da097b126d0cc0
+# hf_datasets_cache: /raid/NFS_SHARE/home/kamil.ciebiera/datasets/datasets
+time: "0:20:00"
+n_gpus: 1
+
+params:
+
+  name: "CHUNGUS_TESTS_NEW"
+  # fsdp_enabled: true
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+  # fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  # activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  tags: ["new", "memory"]
+
+  dataset_type: c4
+  # use_dummy_dataset: true
+  # dataset_type: wikibook
+  n_steps: 100
+  learning_rate: 5e-4
+  decoding_interval: 0
+  # logging_interval_heavy: 10_000
+  save_weights_interval: 0
+  loss_checkpoint_chungs: 8
+  # ^gradient_accumulation_steps: [4]
+  init_type: truncated_normal
+  init_scale: 0.1
+  profiler_enabled: true
+  profiler_trace_path: profiler_trace
+  profiler_schedule_wait: 50
+  profiler_schedule_warmup: 20
+  profiler_schedule_active: 1
+  profiler_schedule_repeat: 0
+  profiler_schedule_skip_first: 20
