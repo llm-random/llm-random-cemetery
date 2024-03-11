@@ -1,3 +1,4 @@
+import argparse
 from typing import Optional
 from git import Repo
 
@@ -58,3 +59,18 @@ def reset_to_original_repo_state(
         repo.git.branch("-D", versioning_branch)
     repo.head.reset(original_branch_commit_hash, index=True)
     print("Successfully restored working tree to the original state!")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--branch", type=str, help="Name of a branch to version code", required=True
+    )
+    parser.add_argument(
+        "--repository_path",
+        type=str,
+        help="Path of the repository which we want to version. If unspecified current working directory will be used.",
+        required=False,
+    )
+    args = parser.parse_args()
+    version_code(args.branch, args.repository_path)
