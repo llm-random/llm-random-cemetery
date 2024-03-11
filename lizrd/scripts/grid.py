@@ -6,6 +6,7 @@ Remember to set RUNNER and PARAMS in the script or add an argument parser.
 
 import argparse
 import datetime
+import os
 import subprocess
 from time import sleep
 from lizrd.grid.infrastructure import get_machine_backend, LocalBackend
@@ -119,6 +120,7 @@ if __name__ == "__main__":
     parser.add_argument("--skip_copy_code", action="store_true")
     args = parser.parse_args()
     CLUSTER = get_machine_backend()
+    print("TEST TUTAJ", args.neptune_key)
     experiments, interactive_debug_session = create_subprocess_args(
         args.config_path,
         args.git_branch,
