@@ -65,15 +65,15 @@ def create_subprocess_args(
             print("Aborting...")
             exit(1)
 
-    if not isinstance(CLUSTER, LocalBackend) and (not skip_copy_code):
-        _, first_exp_trainings_args = grid[0]
-        exp_name = first_exp_trainings_args[0]["name"]
-        newdir_name = (
-            f"{exp_name}_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
-        )
-        copy_code(newdir_name)
-    else:
-        print("Skip copying code to a new directory.")
+    # if not isinstance(CLUSTER, LocalBackend) and (not skip_copy_code):
+    #     _, first_exp_trainings_args = grid[0]
+    #     exp_name = first_exp_trainings_args[0]["name"]
+    #     newdir_name = (
+    #         f"{exp_name}_{datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')}"
+    #     )
+    #     copy_code(newdir_name)
+    # else:
+    #     print("Skip copying code to a new directory.")
 
     slurm_command = "srun" if interactive_debug_session else "sbatch"
     experiments = []
