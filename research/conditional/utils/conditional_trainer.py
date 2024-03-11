@@ -111,7 +111,7 @@ class ConditionalTrainer:
                 beta1=0.9,
                 beta2=0.999,
                 log_eps=-8.0,
-                optimizer=SGD(alpha=1e-5),
+                optimizer=SGD(alpha=1e-6, mu=0.9, optimizer=SGD(alpha=1e-9, mu=0.9)),
             ),
         )
         self.model.initialize()
@@ -199,7 +199,15 @@ class ConditionalTrainer:
             self.layer_manager.log(step)
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
+            self._log_custom_lr(step)
         self._save_weights(step)
+
+    def _log_custom_lr(self, step):
+        self.logger.report_scalar(
+            title="custom_lr",
+            value=self.model.optimizer.parameters["alpha"],
+            iteration=step,
+        )
 
     def calculate_loss_and_maybe_optimize(
         self, processed_batch: LLMBatch, should_optimize: bool
