@@ -19,6 +19,9 @@ rm /tmp/git_branch.txt
 run_grid_remotely() {
   host=$1
   config=$2
+
+
+  
   session_name=$(date "+%Y_%m_%d_%H_%M_%S")
   echo "Running grid search on $host with config $config"
 
