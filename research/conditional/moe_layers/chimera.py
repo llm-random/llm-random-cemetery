@@ -114,4 +114,11 @@ class Chimera(LoggingLayer):
         return self.get_current_module().forward(x)
 
     def log_heavy(self):
-        return self.get_current_module().log_heavy()
+        self.get_current_module().log_heavy()
+        if self.current_mode == "tc":
+            self.ec.router.log_heavy()
+
+    def log_light(self):
+        self.get_current_module().log_light()
+        if self.current_mode == "tc":
+            self.ec.router.log_light()
