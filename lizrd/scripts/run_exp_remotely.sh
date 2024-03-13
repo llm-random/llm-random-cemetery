@@ -5,37 +5,50 @@
 # 3. needs to be called with the path to config file as the second argument (e.g. "runs/my_config.yaml")
 # EXAMPLE USAGE: bash lizrd/scripts/run_exp_remotely.sh atena lizrd/configs/quick.json
 set -e
+regex_branch="<<'(.*)'>>"
+regex_directory="##>(.*)<##"
 
-source venv/bin/activate
-# run your python script
-python3 -m lizrd.support.sync_code --host $1
-base_dir=$(cat /tmp/base_dir.txt)
-git_branch=$(cat /tmp/git_branch.txt)
-python3 -m lizrd.support.code_versioning --branch $git_branch
-rm /tmp/base_dir.txt
-rm /tmp/git_branch.txt
-
-
+# source venv/bin/activate
+# python3 -m lizrd.support.sync_code --host $1
 
 run_grid_remotely() {
   host=$1
   config=$2
-  session_name=$(date "+%Y_%m_%d_%H_%M_%S")
-  echo "Running grid search on $host with config $config"
 
-  script="cd $base_dir && tmux new-session -d -s $session_name bash"
-  script+="; tmux send-keys -t $session_name 'python3 -m lizrd.grid --config_path=$config --git_branch=$git_branch"
-  if [ -n "$NEPTUNE_API_TOKEN" ]; then
-    script+=" --neptune_key=$NEPTUNE_API_TOKEN"
-  fi
-  if [ -n "$WANDB_API_KEY" ]; then
-    script+=" --wandb_key=$WANDB_API_KEY"
-  fi
-  script+="' C-m"
-  script+="; tmux attach -t $session_name"
-  script+="; echo 'done'" #black magic: without it, interactive sessions like "srun" cannot be detached from without killing the session
+  # python3 -m submit_experiment --host $host --config $config --clone_only
+  output=$(python3 -m submit_experiment --host $host --config $config --clone_only  | tee /dev/fd/2)
 
-  ssh -t $host "$script"
+  # output=$(python3 -m submit_experiment --host $host --config $config --clone_only)
+  # echo $output
+  # if [[ $output =~ $regex_branch ]]; then
+  #   experiment_branch="${BASH_REMATCH[1]}"
+  # else 
+  #   echo "Could not find experiment branch. Exiting."
+  #   exit 1
+  # fi
+  # if [[ $output =~ $regex_directory ]]; then
+  #   experiment_directory="${BASH_REMATCH[1]}"
+  # else 
+  #   echo "Could not find experiment directory. Exiting."
+  #   exit 1
+  # fi
+  # echo "Experiment branch: $experiment_branch"
+  # echo "Experiment directory: $experiment_directory"
+
+  # script="cd $experiment_directory && tmux new-session -d -s $experiment_branch bash"
+  # script+="; tmux send-keys -t $experiment_branch '"
+  # if [ -n "$NEPTUNE_API_TOKEN" ]; then
+  #   script+="NEPTUNE_API_TOKEN=$NEPTUNE_API_TOKEN "
+  # fi
+  # if [ -n "$WANDB_API_KEY" ]; then
+  #   script+="WANDB_API_KEY=$WANDB_API_KEY"
+  # fi
+  # script+="./run_experiment.sh' C-m"
+  # script+="; tmux attach -t $experiment_branch"
+  # script+="; echo 'done'" #black magic: without it, interactive sessions like "srun" cannot be detached from without killing the session
+
+  # ssh -t $host "$script"
+  echo $script
 }
 
 for i in "${@:2}"
