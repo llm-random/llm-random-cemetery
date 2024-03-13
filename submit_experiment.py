@@ -46,15 +46,8 @@ def ConnectWithPassphrase(*args, **kwargs) -> Generator[Connection, None, None]:
 
 def submit_experiment(hostname, experiment_branch_name, experiment_config_path):
     if experiment_branch_name is None:
-        configs, paths_to_all_configs = load_with_inheritance(experiment_config_path)
-        job_name = configs[0]["params"]["name"]
-        experiment_branch_name = (
-            f"{job_name}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
-        )
-        version_code(
-            experiment_branch_name,
-            experiment_config_path,
-            files_to_force_add=paths_to_all_configs,
+        experiment_branch_name = version_code(
+            experiment_config_path
         )
 
     with ConnectWithPassphrase(hostname) as connection:
