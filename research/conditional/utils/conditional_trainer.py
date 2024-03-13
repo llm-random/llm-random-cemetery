@@ -205,7 +205,7 @@ class ConditionalTrainer:
     def _log_custom_lr(self, step):
         self.logger.report_scalar(
             title="custom_lr",
-            value=self.model.optimizer.parameters["alpha"],
+            value=self.model.optimizer.parameters["alpha"].exp().item(),
             iteration=step,
         )
 
