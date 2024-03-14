@@ -1,10 +1,12 @@
 parent: configs/baselines/gpt/expert_choice/medium.yaml
 md5_parent_hash: 6cf838824bd0834411030b771c73398f
-time: 0-10:00:00
+time: 0-5:00:00
+hf_datasets_cache: "/net/tscratch/people/plgjkrajewski/cache"
 
 params:
   name: fsdp_grid
   tags: ["moe_refactor"]
+  save_weights_interval: 0
   ^ff_mode: [expert_choice, expert_choice_old,
              token_choice, token_choice_old]
 
