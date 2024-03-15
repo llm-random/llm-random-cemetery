@@ -1,0 +1,11 @@
+parent: configs/baselines/gpt/expert_choice/medium.yaml
+md5_parent_hash: 6cf838824bd0834411030b771c73398f
+time: 0-10:00:00
+hf_datasets_cache: "/net/tscratch/people/plgjkrajewski/cache"
+
+params:
+  name: softmax_dim
+  ff_mode: expert_choice
+  moe_inner_expert: ff_gated
+  ^activation_type: [softmax, softmax_last]
+  save_weights_interval: 0
