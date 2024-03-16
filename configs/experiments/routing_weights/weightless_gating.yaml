@@ -1,0 +1,13 @@
+parent: configs/baselines/gpt/expert_choice/small.yaml
+md5_parent_hash: c11efe41b6bdcd50cb970eb85f922f25
+time: 0-20:00:00
+hf_datasets_cache: "/net/tscratch/people/plgjkrajewski/cache"
+
+params:
+  name: weightless_gating
+  ff_mode: expert_choice
+  moe_inner_expert: ff_gated
+  ^activation_type: [silu, softmax]
+  ^get_router_values_from: [gate_weight, weights]
+  ^moe_values_exp: [1., 0.]
+  save_weights_interval: 0
