@@ -141,8 +141,8 @@ class IdeasBackend(MachineBackend):
     ):
         return [
             slurm_command,
-            f"--gres=gpu:ampere:{setup_args['n_gpus']}",
-            f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+            # f"--gres=gpu:ampere:{setup_args['n_gpus']}",
+            # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
             f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
