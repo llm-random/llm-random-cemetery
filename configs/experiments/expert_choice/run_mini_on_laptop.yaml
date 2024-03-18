@@ -4,9 +4,8 @@ time: 0-05:00:00
 
 params:
   name: "laptop_check"
-  ff_mode: expert_choice
   cutoff: 16
   granularity: 1
-  dataset_type: wikibook
+  dataset_type: c4
   torch_compile: false
   mixed_precision_dtype: "float16"

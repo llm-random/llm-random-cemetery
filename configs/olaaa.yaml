@@ -1,0 +1,18 @@
+parent: configs/baselines/gpt/dense/mini.yaml
+md5_parent_hash: bc3ba81ffd922aea064176ff5b0c1fad
+time: 0-05:00:00
+
+params:
+  name: "dense_laptop"
+  cutoff: 16
+  dataset_type: c4
+  torch_compile: false
+  mixed_precision_dtype: "float16"
+  steps: 10
+  use_dummy: true
+  project_name: "crewtool/mojtestproject"
+  learning_rate: 0.001
+  init_type: kaiming_uniform
+  init_scale: 1.0
+  eval_interval: 3
+  n_blocks: 2
