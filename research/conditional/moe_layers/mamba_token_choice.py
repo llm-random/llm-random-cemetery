@@ -14,7 +14,7 @@ from einops import rearrange, repeat
 
 from lizrd.core.initialization import get_init_weight
 
-from research.conditional.moe_layers.token_choice import (
+from research.conditional.moe_layers.load_balancing_loss import (
     calculate_load_balancing_loss,
 )
 from research.conditional.utils.layer_manager import measure_time, LoggingLayer
