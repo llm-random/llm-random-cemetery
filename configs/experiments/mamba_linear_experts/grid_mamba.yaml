@@ -1,0 +1,64 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: e1ad1f2706fb54ba63da097b126d0cc0
+# singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif # athena
+n_gpus: 2
+time: "0-3:00:00"
+
+params:
+    #tuning
+    # ^learning_rate: [2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
+    learning_rate: 1e-3
+    load_balancing_loss_weight: 0.01
+    capacity_factor: 1.00 # literatoora
+
+    #name
+    name: mamba_linear_experts
+    tags: ["magisterka_moemamba_inner", "less_experts", "baseline"]
+
+
+    batch_size: 64
+    cutoff: 1024
+    dataset_type: c4
+    # dataset_type: wikibook
+
+    #eval and logging
+    log_gradients_and_weights: false
+    # eval_interval: 1
+    decoding_interval: 0
+    logging_interval_heavy: 1000
+    save_weights_interval: 0
+
+
+
+    #fsdp
+    fsdp_enabled: true
+    fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating,RoPE,TokenChoiceSeparateRouter"
+    grad_clip: 0.5
+
+    #throughput
+    mixed_precision: true
+    mixed_precision_dtype: bfloat16
+    flash_attention: false
+    gradient_accumulation_steps: 1 #!!!!!!!!!!!! THIS IS NONTRIVIAL
+    init_type: truncated_normal
+    init_scale: 0.1
+    n_steps: 15_000
+    final_lr_step: 15_000
+    weight_decay: 0.1
+    scheduler: "cosine"
+    lr_warmup_steps: 150
+
+    #mamba
+    ^n_blocks: [16]
+    no_positional_embedding: true
+
+    block_modules: ["vanilla_mamba"]
+    mamba_mode: "inner_projections_moe"
+    # łącznie 48 macierzy
+    n_experts: 47
+    # ^expert_modules: ["input","gate","output"]
+    expert_modules: "gate,output"
+    init_type: kaiming_uniform
+    init_scale: 0.577
