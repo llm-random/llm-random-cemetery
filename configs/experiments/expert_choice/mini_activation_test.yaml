@@ -1,0 +1,9 @@
+parent: configs/baselines/gpt/expert_choice/mini.yaml
+md5_parent_hash: 61ba915c04b82bd97d74bb7ef99a1c18
+time: 0-05:00:00
+
+params:
+  name: "expert_choice_activation_test_mini"
+  ^moe_choice_activation: ["sigmoid", "softmax"]
+  torch_compile: true
+  logging_interval_heavy: 0
