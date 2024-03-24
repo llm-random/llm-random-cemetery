@@ -1,0 +1,64 @@
+md5_parent_hash: 0ce50b80b78d47fb6f0b5981b2e991cc
+parent: configs/baselines/gpt/dense/large.yaml
+# cuda_visible: "4"
+n_gpus: 1
+time: "1-01:00:00"
+
+params:
+    #tuning
+    learning_rate: 5e-4
+    load_balancing_loss_weight: 0.01
+    capacity_factor: 1.00 # literatoora
+
+    #name
+    name: baseline
+#    tags: ["moe_mamba_parallel"]
+
+    #mot
+    ^ff_mode: ["token_choice"]
+
+    # N_experts: 32 every expert size of normal DFF in vanilla
+
+    ^n_experts: [16]
+    ^dff: [3072]
+    ^expert_size: [3072]
+
+    batch_size: 64
+    cutoff: 1024
+    dataset_type: c4
+    # dataset_type: wikibook
+    # use_dummy_dataset: true
+
+    #eval and logging
+    log_gradients_and_weights: false
+    decoding_interval: 0
+    logging_interval_heavy: 1000
+    save_weights_interval: 0
+
+
+
+    #fsdp
+    fsdp_enabled: true
+    fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    fsdp_selective_precision_modules: [ "AttentionMechanism,ExpertGating" ]
+    grad_clip: 0.5
+
+    #throughput
+    mixed_precision: true
+    mixed_precision_dtype: bfloat16
+    flash_attention: false
+    gradient_accumulation_steps: 1 #!!!!!!!!!!!! THIS IS NONTRIVIAL
+    init_type: truncated_normal
+    init_scale: 0.1
+    n_steps: 45_000
+    final_lr_step: 45_000
+    weight_decay: 0.1
+    scheduler: "cosine"
+    lr_warmup_steps: 150
+
+    #mamba
+
+    block_modules: [ "mamba", "feedforward" ]
+    ^parallel_blocks: [ false ]
+    no_positional_embedding: true
