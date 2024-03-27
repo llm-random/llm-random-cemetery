@@ -40,6 +40,7 @@ if __name__ == "__main__":
     if not isinstance(CLUSTER, LocalBackend):
         for i, experiment in enumerate(experiments):
             subprocess_args, job_name = experiment
+            print(subprocess_args)
             print(f"running experiment {i} from {job_name}...")
             PROCESS_CALL_FUNCTION(subprocess_args)
             sleep(5)
