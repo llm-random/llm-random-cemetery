@@ -1,0 +1,31 @@
+parent: configs/baselines/gpt/dense/small.yaml
+md5_parent_hash: 9bcdbfe14ff178e8ee90a04000ab9546
+time: "4:00:00"
+
+params:
+  # tokenizer: gpt
+
+  # blanx args
+  name: "miu_relative_test"
+  mixed_precision: true
+  flash_attention: true
+  mixed_precision_dtype: bfloat16
+  grad_clip: 1.0
+
+
+  n_steps: 15000
+  lr_warmup_steps: 150
+  weight_decay: 0.1
+  final_lr_step: 15000
+  ^learning_rate: [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2]
+  decoding_interval: 0
+  logging_interval_heavy: 1000
+  save_weights_interval: 0
+  init_type: truncated_normal
+  init_scale: 0.1
+
+  use_hidden_weights_fanin: true
+  output_weight_relative_init_scale: 512
+  output_weight_multiplier: 0.001953125
+  
+  dataset_type: c4
