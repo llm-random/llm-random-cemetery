@@ -71,13 +71,13 @@ class AthenaBackend(MachineBackend):
         return "/net/pr2/projects/plgrid/plggllmeffi"
 
     def get_cache_path(self) -> str:
-        return f"/net/tscratch/people/{os.environ.get('USER')}/.cache"
+        return f"/net/tscratch/people/plgkciebiera/.cache"
 
     def get_grid_entrypoint(self) -> str:
         return "lizrd/grid/grid_entrypoint.sh"
 
     def get_cemetery_directory(self):
-        return f"/net/pr2/projects/plgrid/plggsubgoal/{os.environ.get('USER')}/llm_random_cemetery"
+        return f"/net/pr2/projects/plgrid/plggllmeffi/kciebiera/llm_random_cemetery"
 
     def get_subprocess_args(
         self,
