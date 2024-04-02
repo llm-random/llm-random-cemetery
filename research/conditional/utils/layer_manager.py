@@ -101,6 +101,7 @@ class LayerManager:
 
     def manage_learnable_temperature(self, step):
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
+
         for block_name, layer in self._layers:
             for name, param in layer.named_parameters():
                 if name in ["temperature_merge", "temperature_emit"]:
