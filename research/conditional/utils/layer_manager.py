@@ -101,6 +101,13 @@ class LayerManager:
 
     def manage_learnable_temperature(self, step):
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
+
+        for block_name, layer in self._logable_layers:
+            if step > 150_000 and hasattr(layer, "routing_top_k"):
+                layer.routing_top_k = 2
+                layer.router.gate.requires_grad = False
+
+
         for block_name, layer in self._layers:
             for name, param in layer.named_parameters():
                 if name in ["temperature_merge", "temperature_emit"]:
