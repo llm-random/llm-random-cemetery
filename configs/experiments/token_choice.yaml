@@ -1,0 +1,20 @@
+parent: configs/baselines/gpt/dense/small.yaml
+md5_parent_hash: 9bcdbfe14ff178e8ee90a04000ab9546
+
+time: 1-00:00:00
+
+params:
+  name: "switch_topN_eval_medium"
+  tags: ["default_top2"]
+  ff_mode: token_choice
+
+  save_weights_interval: 0
+
+  n_experts: 8
+  expert_size: 2048
+  mixed_precision_dtype: "bfloat16"
+  learning_rate: 1e-4
+
+  # init
+  init_type: truncated_normal
+  init_scale: 0.1
