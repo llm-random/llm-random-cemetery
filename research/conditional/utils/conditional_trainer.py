@@ -175,8 +175,10 @@ class ConditionalTrainer:
         if self.is_logging_process:
             self.layer_manager.prepare_for_logging(step)
         processed_batch = self.train_dataloader.get_batch()
-
-        self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
+        if step > 15_000:
+            self.lr_scheduler.set_lr(step=step - 15_000, optimizer=self.optimizer)
+        else:
+            self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
         self._apply_gradient()
         if self.is_logging_process:
