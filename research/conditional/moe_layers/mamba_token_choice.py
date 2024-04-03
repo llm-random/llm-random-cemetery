@@ -302,7 +302,8 @@ class MambaRouter(LoggingLayer):
             init_type=init_type,
             init_scale=init_scale,
         )
-        self.dropped_tokens_scale = nn.Parameter(torch.tensor(1 / n_experts))
+        self.register_buffer("dropped_tokens_scale", torch.tensor(0.0))
+        # self.dropped_tokens_scale = nn.Parameter(torch.tensor(1 / n_experts))
 
     def make_routing_params(self, x: torch.Tensor):
         """
