@@ -80,7 +80,7 @@ def athena_user_to_workdir(connection):
         "plgmaciejpioro": "maciejpioro",
         "plgludziej": "ludziej",
         "plgsimontwice": "simontwice",
-        "plgkciebiera": "kciebiera",
+        "plgkamilciebiera": "kciebiera",
     }
     user = connection.user
     return d[user] if user in d else user[3:]
@@ -88,6 +88,7 @@ def athena_user_to_workdir(connection):
 
 def get_base_directory(connection):
     if connection.host == "athena.cyfronet.pl":
+        print(connection.user)
         base_dir = f"/net/pr2/projects/plgrid/plggllmeffi/{athena_user_to_workdir(connection)}/llm-random"
     else:
         base_dir = f"~/llm-random"
