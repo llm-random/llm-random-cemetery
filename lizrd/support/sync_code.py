@@ -80,7 +80,7 @@ def athena_user_to_workdir(connection):
         "plgmaciejpioro": "maciejpioro",
         "plgludziej": "ludziej",
         "plgsimontwice": "simontwice",
-        "plgkciebiera": "kciebiera",
+        "plgkciebiera": "kamilciebiera",
     }
     user = connection.user
     return d[user] if user in d else user[3:]
