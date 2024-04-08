@@ -56,6 +56,7 @@ def runner(
         **builder.get_train_artefacts(),
         dataset_type=args.dataset_type,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
+        grad_clip=args.grad_clip,
     )
     trainer.train(args.n_steps)
     if rank is not None:

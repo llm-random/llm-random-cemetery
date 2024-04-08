@@ -134,6 +134,8 @@ class Builder:
         #TODO load weights
         if args.fsdp_enabled:
             self.wrap_distributed(args, rank)
+        else:
+            self.model.to(device)
 
     def get_train_artefacts(self):
         return {
