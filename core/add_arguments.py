@@ -97,4 +97,8 @@ def add_default_parser_arguments(
         default=None,
         help="This argument is used only if fsdp_enabled is set to True. It is used to set the minimum number of parameters in a module to be wrapped in FSDP. If the number of parameters is smaller than this value, then the module is not wrapped in FSDP. This is useful for small modules, where the overhead of FSDP is too large compared to the compute of the module.",
     )
+    parser.add_argument(
+        "--grad_clip", type=float, required=True
+    )  # TODO make it optional when scheduler is constant
+    parser.add_argument("--validation_dataset_path", type=str, required=False)
     return parser
