@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Literal, Optional
 from dataclasses import dataclass
 
 import torch
@@ -51,6 +51,7 @@ class BaseTrainer:
     lr_scheduler: AbstractLRScheduler
     dataset_type: Literal["wikibook", "c4"]
     gradient_accumulation_steps: int
+    grad_clip: Optional[float]
     hold_metrics: bool = False
 
     def __attrs_post_init__(self):
@@ -67,7 +68,7 @@ class BaseTrainer:
                 loss, _ = self.calculate_loss(batch)
                 total_loss += loss.item() / self.gradient_accumulation_steps
                 loss.backward()
-
+            print(f"Step: {step}: {total_loss}")
             self._apply_gradient()
 
             # Metrics for testing purposes only
@@ -104,5 +105,7 @@ class BaseTrainer:
         return loss, aux_info
 
     def _apply_gradient(self):
+        if self.grad_clip is not None:
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), self.grad_clip)
         self.optimizer.step()
         self.optimizer.zero_grad()
