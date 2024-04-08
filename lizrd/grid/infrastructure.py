@@ -46,10 +46,10 @@ class MachineBackend(abc.ABC):
 
     def get_cluster_default_params(self, dataset_type) -> dict:
         return {
-            "train_dataset_path": self.get_default_train_dataset_path(dataset_type),
-            "validation_dataset_path": self.get_default_validation_dataset_path(
-                dataset_type
-            ),
+            # "train_dataset_path": self.get_default_train_dataset_path(dataset_type),
+            # "validation_dataset_path": self.get_default_validation_dataset_path(
+            #     dataset_type
+            # ),
             "common_directory": self.get_common_directory(),
             "hf_datasets_cache": self.get_cache_path(),
             "singularity_image": self.get_singularity_image(),
