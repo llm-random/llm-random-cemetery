@@ -35,6 +35,14 @@ class MoeGating(LoggingLayer):
         self._checkpointed_topk_indices: Union[None, torch.Tensor] = None
         assert softmax_over in ["tokens", "experts"]
 
+    def double_n_experts(self):
+        self.n_experts = self.n_experts * 2
+        self.gate.data = self.gate.data.repeat_interleave(2, dim=1)
+
+    def half_n_experts(self):
+        self.n_experts = self.n_experts // 2
+        self.gate.data = self.gate.data.reshape(-1, self.n_experts, 2).sum(dim=-1)
+
     def calculate_gate(self, x, batch_size, seq_len):
         with measure_time(self, "expert_embedding"):
             if self.use_torch_bmm:
