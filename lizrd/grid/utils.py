@@ -225,7 +225,7 @@ def check_for_argparse_correctness(grid: list[dict[str, str]]):
                 parser = cc_introduce_parser_arguments(parser)
             elif runner == "research.blanks.train":
                 parser = blanks_introduce_parser_arguments(parser)
-            elif runner == "mycore":
+            elif runner == "core":
                 parser = add_default_parser_arguments(parser)
             else:
                 raise ValueError(f"Unknown runner: {runner}")

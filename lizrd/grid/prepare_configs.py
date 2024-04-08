@@ -90,7 +90,7 @@ def prepare_configs(
         # Arguments below are used both in the runner and in the infrastructure
         config["params"]["n_gpus"] = config["n_gpus"]
         config["params"]["train_dataset_path"] = config["train_dataset_path"]
-        config["params"]["validation_dataset_path"] = config["validation_dataset_path"]
+        # config["params"]["validation_dataset_path"] = config["validation_dataset_path"]
 
     validate_configs(configs)
 
