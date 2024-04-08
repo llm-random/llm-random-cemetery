@@ -6,6 +6,7 @@ from typing import Callable, Iterable, Optional, Literal
 import torch
 from torch.profiler import profile, ProfilerActivity
 from attr import define
+from core.training import TrainingMetricHolder
 from lizrd.core.misc import propagate_forward_pass_cache
 from lizrd.support.decoding import decode_single_example
 from lizrd.support.logging import AbstractLogger
@@ -105,6 +106,7 @@ class ConditionalTrainer:
         # if temp training is delayed, turn if off for now
         self.layer_manager.manage_learnable_temperature(0)
         self._check_config()
+        self.metric_holder = TrainingMetricHolder()
 
     def _before_train_operations(self):
         propagate_forward_pass_cache(self.model)
@@ -167,6 +169,7 @@ class ConditionalTrainer:
                     except:
                         print("Decoding failed, skipping...")
                 self._after_step_operations(step)
+        print(self.metric_holder)
 
     def _train_step(
         self,
@@ -188,6 +191,7 @@ class ConditionalTrainer:
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
         self._save_weights(step)
+        self.metric_holder.append_metrics(step, loss, self.model)
 
     def calculate_loss_and_gradient(self, processed_batch: LLMBatch):
         """gradient accumulation: slice the batch into minibatches, get gradients from each, then average and apply them
