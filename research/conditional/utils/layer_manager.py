@@ -1,3 +1,4 @@
+import random
 import re
 import time
 from contextlib import contextmanager
@@ -101,6 +102,18 @@ class LayerManager:
 
     def manage_learnable_temperature(self, step):
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
+
+        for block_name, layer in self._logable_layers:
+            if step == 100 and (
+                hasattr(layer, "router") or hasattr(layer, "expert_gating")
+            ):
+                print(f"Half n_experts for {block_name}")
+                layer.half_n_experts()
+            if step == 100:
+                print(
+                    f"Block {block_name}; router {hasattr(layer, 'router')}; router {hasattr(layer, 'expert_gating')}"
+                )
+
         for block_name, layer in self._layers:
             for name, param in layer.named_parameters():
                 if name in ["temperature_merge", "temperature_emit"]:
