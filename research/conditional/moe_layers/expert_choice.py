@@ -88,6 +88,16 @@ class ExpertChoiceFF(LoggingLayer):
             n_gating_heatmaps=n_gating_heatmaps,
         )
 
+    def double_n_experts(self):
+        self.n_experts = 2 * self.n_experts
+        self.expert_inner_function.double_n_experts()
+        self.expert_gating.double_n_experts()
+
+    def half_n_experts(self):
+        self.n_experts = self.n_experts // 2
+        self.expert_inner_function.half_n_experts()
+        self.expert_gating.half_n_experts()
+
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
         batch_size, seq_len, _ = x.shape
