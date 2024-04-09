@@ -167,6 +167,13 @@ class ConditionalTrainer:
                         print("Decoding failed, skipping...")
                 self._after_step_operations(step)
 
+                for block_name, layer in self.model.named_modules():
+                    if step == 100 and (
+                        hasattr(layer, "router") or hasattr(layer, "expert_gating")
+                    ):
+                        print(f"Double n_experts for {block_name}")
+                        layer.double_n_experts()
+
     def _train_step(
         self,
         step,
