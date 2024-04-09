@@ -64,14 +64,7 @@ class ConditionalTrainer:
     total_time_trainsteps: float = 0.0
     total_time_decoding: float = 0.0
     total_time_afterstep: float = 0.0
-    eval_min_group_size_logfactor: int = 0
-    eval_max_group_size_logfactor: int = 0
-    eval_discrete_mot: bool = False
     is_logging_process: bool = True
-    eval_dynamic_groupsize: bool = False
-    steps_until_start_temperature_learn: int = -1
-    model_fit_gpu_info_database_path: str = None
-    model_fit_gpu_info_params: [str] = None
     profiler_enabled: bool = False
     profiler_trace_path: str = None
     profiler_schedule: None = None
@@ -99,7 +92,7 @@ class ConditionalTrainer:
             self.model,
             self.logging_interval_light,
             self.logging_interval_heavy,
-            self.steps_until_start_temperature_learn,
+            100000000,
         )
         # if temp training is delayed, turn if off for now
         self.layer_manager.manage_learnable_temperature(0)
