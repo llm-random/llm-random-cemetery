@@ -1,6 +1,8 @@
 import copy
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
+from functools import partial
+import torch.nn.functional as F
 
 import torch
 from attr import define
@@ -10,11 +12,143 @@ from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
 from research.token_dropping.layer_manager import LayerManager
-from research.token_dropping.model_utils import (
-    make_loss_and_gradient_function,
-)
+
 from research.datasets import DataloaderWrapper
 from lizrd.train.load_and_save_model import save_checkpoint
+
+
+def make_loss_and_gradient_function(
+    loss_checkpoint_chungs: int,
+) -> Callable:
+    if loss_checkpoint_chungs == 0:
+        return calculate_llm_loss_and_gradient
+    else:
+        return partial(chungized_llm_loss_and_gradient, n_chungs=loss_checkpoint_chungs)
+
+
+def calculate_single_chung_loss(
+    model: torch.nn.Module,
+    encoder_output: torch.Tensor,
+    gt: torch.Tensor,
+    mask: torch.Tensor,
+):
+    output = model(encoder_output)
+    gt = gt.to(output.device)
+    loss = F.cross_entropy(
+        output.flatten(0, -2),
+        gt.reshape(-1).long(),
+        reduction="none",
+    )
+
+    correct_tokens = gt.long() == output.argmax(dim=-1)
+    correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
+    correct_tokens = correct_tokens.sum()
+
+    total_tokens = mask.sum()
+
+    return loss[mask.reshape(-1) == 1], correct_tokens, total_tokens
+
+
+def chungized_llm_loss_and_gradient(
+    batch: LLMBatch,
+    model: torch.nn.Module,
+    n_chungs: int,
+    num_checkpoint_accumulation_steps: int,
+) -> tuple[float, dict]:
+    input_tokens = batch.input_ids
+    gt_tokens = batch.target_ids
+    mask = batch.should_calculate_loss
+
+    embeddings = model.embedding_layer(input_tokens)
+    encoder_output = model.encoder(embeddings)
+    encoder_output_detach = encoder_output.detach()
+    encoder_output_detach.requires_grad = True
+    chunged_encoder_outputs = torch.chunk(encoder_output_detach, n_chungs, dim=0)
+    chunged_non_masked_inputs = torch.chunk(gt_tokens, n_chungs, dim=0)
+    chunged_non_masked_masks = torch.chunk(mask, n_chungs, dim=0)
+
+    total_loss = 0
+    total_correct_tokens = 0
+    total_masked_tokens = 0
+    for chunged_encoder_output, chunged_gt, chunged_mask in zip(
+        chunged_encoder_outputs, chunged_non_masked_inputs, chunged_non_masked_masks
+    ):
+        (
+            single_chung_loss,
+            single_chung_correct_tokens,
+            single_chung_masked_tokens,
+        ) = calculate_single_chung_loss(
+            model.head,
+            chunged_encoder_output,
+            chunged_gt,
+            chunged_mask,
+        )
+        partial_loss = (
+            single_chung_loss.mean() / n_chungs / num_checkpoint_accumulation_steps
+        )
+        if model.training:
+            partial_loss.backward()
+        total_loss += partial_loss.item()
+        total_correct_tokens += single_chung_correct_tokens
+        total_masked_tokens += single_chung_masked_tokens
+
+    aux_info = {
+        "correct_tokens": total_correct_tokens,
+        "total_masked_tokens": total_masked_tokens,
+    }
+
+    if model.training:
+        # ok, we need to backward one loss (because of torch autograd)
+        # the "loss" that has the same gradient as the original cross entropy loss is the sum below
+        assert encoder_output_detach.grad.shape == encoder_output.shape
+        loss_to_optimize = (encoder_output * encoder_output_detach.grad).sum()
+        loss_to_optimize.backward()
+    return total_loss, aux_info
+
+
+def calculate_llm_loss_and_gradient(
+    batch: LLMBatch,
+    model: torch.nn.Module,
+    num_checkpoint_accumulation_steps: int,
+) -> tuple[float, dict]:
+    def hack_for_python_garbage_collection():
+        """we want to have no reference to model output while backpropagating to allow torch to free memory,
+        so we wrap loss calculation in a function"""
+        input_tokens = batch.input_ids
+        gt_tokens = batch.target_ids
+        mask = batch.should_calculate_loss
+
+        model_output = model(input_tokens)
+
+        # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
+        gt_tokens = gt_tokens.to(model_output.device)
+        mask = mask.to(model_output.device)
+
+        mask_loss = F.cross_entropy(
+            model_output.flatten(0, -2),
+            gt_tokens.reshape(-1).long(),
+            reduction="none",
+        )
+        mask_loss = mask_loss[mask.reshape(-1) == 1]
+        loss = mask_loss.mean() / num_checkpoint_accumulation_steps
+
+        correct_tokens = gt_tokens.long() == model_output.argmax(dim=-1)
+        correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
+        correct_tokens = correct_tokens.sum()
+        total_masked_tokens = mask.sum()
+
+        aux_info = {
+            "correct_tokens": correct_tokens,
+            "total_masked_tokens": total_masked_tokens,
+        }
+        return loss, aux_info
+
+    loss, aux_info = hack_for_python_garbage_collection()
+    if model.training:
+        loss_to_optimize = loss.clone()
+        loss_to_optimize.backward()
+
+    return loss.item(), aux_info
 
 
 @define(slots=False)

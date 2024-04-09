@@ -24,7 +24,7 @@ from research.datasets import get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.token_dropping.trainer import ConditionalTrainer
 from research.token_dropping.argparse import introduce_parser_arguments
-from research.token_dropping.model_utils import (
+from research.token_dropping.build import (
     get_classes_from_module_names,
     get_ff_layer,
     get_attention_layer,
