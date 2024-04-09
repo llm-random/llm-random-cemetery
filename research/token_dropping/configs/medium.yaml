@@ -43,6 +43,10 @@ params:
   #hyper
   learning_rate: 0.0001
 
+
+  deterministic_experiment: true
+  data_seed: 21
+
   gradient_accumulation_steps: 2
   init_type: truncated_normal
   init_scale: 0.1
