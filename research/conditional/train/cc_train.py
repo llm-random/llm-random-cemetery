@@ -134,6 +134,7 @@ def main(
 
     # in case of data parallelism (DDP/FSDP), only gpu:0 should log
     is_logging_process = True if rank is None or rank == 0 else False
+    print("to jeST LOGGING process? ", is_logging_process)
 
     activation_checkpointing_modules = get_classes_from_module_names(
         args.activation_checkpointing_modules
