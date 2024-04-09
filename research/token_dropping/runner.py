@@ -15,9 +15,6 @@ from lizrd.support.misc import (
     get_n_learnable_parameters,
     set_seed,
 )
-from lizrd.train.train_utils import (
-    get_model,
-)
 from lizrd.text import tokenizers
 from research.token_dropping.check_args import check_args
 from research.datasets import get_processed_dataset
@@ -29,6 +26,7 @@ from research.token_dropping.build import (
     get_ff_layer,
     get_attention_layer,
     get_mixed_precision_ignored_classes,
+    get_model,
     get_residual_layer,
     get_classes_from_module_names,
 )
