@@ -3,7 +3,7 @@ md5_parent_hash: 5d2c694464b7a6c44cd2c981e2aff30e
 interactive_debug: true
 cuda_visible: "0,1"
 n_gpus: 2
-time: "26:00:00"
+time: "00:20:00"
 params:
     fsdp_enabled: true
     mixed_precision: true
