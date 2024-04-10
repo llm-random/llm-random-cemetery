@@ -225,6 +225,7 @@ class ConditionalTrainer:
         """
 
         for step in range(self.start_step, n_steps + 1):
+            print("STEP:", step)
             self._train_step(step)
             if step > 0 and self.eval_interval > 0 and step % self.eval_interval == 0:
                 self._eval_step(step)
