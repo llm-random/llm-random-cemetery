@@ -186,6 +186,7 @@ def get_model(
     checkpoint: dict[str, torch.Tensor] = None,
     reduced_number_of_tokens: int = None,
 ):
+    print("REDNUM", reduced_number_of_tokens)
 
     embedding_components = [
         llm.TokenEmbedding(vocab_size, dm, init_type=init_type, init_scale=init_scale),
@@ -221,6 +222,8 @@ def get_model(
     head = llm.PredictionHead(
         dm, vocab_size, init_type=init_type, init_scale=init_scale
     ).to(device)
+
+    print("REDNUM 2", reduced_number_of_tokens)
 
     model = (
         layers.TRLLM(embedding_layer, encoder_tower, head, reduced_number_of_tokens)
