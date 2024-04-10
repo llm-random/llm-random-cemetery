@@ -83,6 +83,7 @@ def submit_experiment(
                 f"Experiment {experiment_branch_name} already exists on {node}. Skipping."
             )
 
+        connection.run(f"echo $NEPTUNE_API_TOKEN")
         connection.run(f"chmod +x {experiment_directory}/run_experiment.sh")
         if not clone_only:
             connection.run(f"cd {experiment_directory} && ./run_experiment.sh")
