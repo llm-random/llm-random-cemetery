@@ -15,6 +15,7 @@ from research.token_dropping.layer_manager import LayerManager
 
 from research.datasets import DataloaderWrapper
 from lizrd.train.load_and_save_model import save_checkpoint
+from research.token_dropping.layers import TRLLM
 
 
 def make_loss_and_gradient_function(
@@ -120,7 +121,11 @@ def calculate_llm_loss_and_gradient(
 
         model_output = model(input_tokens)
 
-        # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
+        if isinstance(model, TRLLM) and model.training:
+            indices_to_keep = model.embedding_layer.token_reduction.indices_to_keep
+            mask = keep_given_indeces(mask, 1, indices_to_keep)
+            gt_tokens = keep_given_indeces(gt_tokens, 1, indices_to_keep)
+
         gt_tokens = gt_tokens.to(model_output.device)
         mask = mask.to(model_output.device)
 
@@ -382,3 +387,20 @@ class ConditionalTrainer:
                 self.rank,
                 step,
             )
+
+
+def keep_given_indeces(input, dim, index):
+    """
+    origin: https://discuss.pytorch.org/t/batched-index-select/9115/8
+    input: B x * x ... x *
+    dim: 0 < scalar
+    index: B x M
+    """
+    views = [input.shape[0]] + [
+        1 if i != dim else -1 for i in range(1, len(input.shape))
+    ]
+    expanse = list(input.shape)
+    expanse[0] = -1
+    expanse[dim] = -1
+    index = index.view(views).expand(expanse)
+    return torch.gather(input, dim, index)
