@@ -15,6 +15,7 @@ from research.token_dropping.layer_manager import LayerManager
 
 from research.datasets import DataloaderWrapper
 from lizrd.train.load_and_save_model import save_checkpoint
+from research.token_dropping.layers import TRLLM
 
 
 def make_loss_and_gradient_function(
@@ -110,6 +111,7 @@ def calculate_llm_loss_and_gradient(
     batch: LLMBatch,
     model: torch.nn.Module,
     num_checkpoint_accumulation_steps: int,
+    reduced_number_of_tokens: int = None,
 ) -> tuple[float, dict]:
     def hack_for_python_garbage_collection():
         """we want to have no reference to model output while backpropagating to allow torch to free memory,
@@ -118,7 +120,18 @@ def calculate_llm_loss_and_gradient(
         gt_tokens = batch.target_ids
         mask = batch.should_calculate_loss
 
+        # if isinstance(model, TRLLM) and not model.training:
+        #     input_tokens = input_tokens[:, :reduced_number_of_tokens]
+        #     gt_tokens = gt_tokens[:, :reduced_number_of_tokens]
+        #     mask = mask[:, :reduced_number_of_tokens]
+
         model_output = model(input_tokens)
+
+        # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
+        if isinstance(model, TRLLM) and model.training:
+            indices_to_keep = model.embedding_layer.token_reduction.indices_to_keep
+            mask = keep_given_indeces(mask, 1, indices_to_keep)
+            gt_tokens = keep_given_indeces(gt_tokens, 1, indices_to_keep)
 
         # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
         gt_tokens = gt_tokens.to(model_output.device)
@@ -245,7 +258,7 @@ class ConditionalTrainer:
             self._log_weights_and_gradients(step)
         self._save_weights(step)
 
-    def calculate_loss_and_gradient(self, processed_batch: LLMBatch):
+    def calculate_loss_and_gradient(self, processed_batch: LLMBatch, reduced_number_of_tokens: int = None):
         """gradient accumulation: slice the batch into minibatches, get gradients from each, then average and apply them
         NOTE: this function will not set the gradients for the model if model is in eval mode
         """
@@ -265,6 +278,7 @@ class ConditionalTrainer:
                 batch=batch_copy,
                 model=self.model,
                 num_checkpoint_accumulation_steps=self.gradient_accumulation_steps,
+                reduced_number_of_tokens=reduced_number_of_tokens,
             )
 
             total_cross_entropy_loss += cross_entropy_loss
@@ -301,7 +315,10 @@ class ConditionalTrainer:
         total_masked_tokens = 0
         for processed_batch in batches:
             with torch.no_grad():
-                loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
+                reduced_number_of_tokens = self.model.reduced_number_of_tokens if isinstance(self.model, TRLLM) else None
+                loss, aux_info = self.calculate_loss_and_gradient(
+                    processed_batch, reduced_number_of_tokens
+                )
             total_loss += loss
             total_correct_tokens += aux_info["correct_tokens"]
             total_masked_tokens += aux_info["total_masked_tokens"]
@@ -382,3 +399,20 @@ class ConditionalTrainer:
                 self.rank,
                 step,
             )
+
+
+def keep_given_indeces(input, dim, index):
+    """
+    origin: https://discuss.pytorch.org/t/batched-index-select/9115/8
+    input: B x * x ... x *
+    dim: 0 < scalar
+    index: B x M
+    """
+    views = [input.shape[0]] + [
+        1 if i != dim else -1 for i in range(1, len(input.shape))
+    ]
+    expanse = list(input.shape)
+    expanse[0] = -1
+    expanse[dim] = -1
+    index = index.view(views).expand(expanse)
+    return torch.gather(input, dim, index)
