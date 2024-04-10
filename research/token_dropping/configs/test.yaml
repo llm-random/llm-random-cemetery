@@ -25,8 +25,8 @@ params:
 
   eval_interval: 100  
   
-  cutoff: 1126
-  reduced_number_of_tokens: 1024
+  cutoff: 1128
+  # reduced_number_of_tokens: 1024
 
   # cutoff: 32
   # batch_size: 8
