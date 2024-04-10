@@ -63,6 +63,7 @@ def submit_experiment(
         connection.run(f"mkdir -p {cemetery_dir}")
         experiment_directory = f"{cemetery_dir}/{experiment_branch_name}"
 
+        print( "TO JEST TO",  os.environ["NEPTUNE_API_TOKEN"] )
         if "NEPTUNE_API_TOKEN" in os.environ:
             connection.config["run"]["env"] = {
                 "NEPTUNE_API_TOKEN": os.environ["NEPTUNE_API_TOKEN"]
@@ -83,6 +84,8 @@ def submit_experiment(
                 f"Experiment {experiment_branch_name} already exists on {node}. Skipping."
             )
 
+        connection.run(f'echo CO')
+        connection.run(f"echo $NEPTUNE_API_TOKEN")
         connection.run(f"chmod +x {experiment_directory}/run_experiment.sh")
         if not clone_only:
             connection.run(f"cd {experiment_directory} && ./run_experiment.sh")
