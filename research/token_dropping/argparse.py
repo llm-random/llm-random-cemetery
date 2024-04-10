@@ -4,9 +4,6 @@ import argparse
 def introduce_parser_arguments(
     parser: argparse.ArgumentParser,
 ) -> argparse.ArgumentParser:
-    # TOKEN REDUCTION
-    parser.add_argument("--reduced_number_of_tokens", type=int, default=None)
-
     # CORE model hyperparameters, almost always specified in baseline configs
     parser.add_argument(
         "--model_type", type=str, choices=["gpt", "bert"], required=True
@@ -167,4 +164,5 @@ def introduce_parser_arguments(
     parser.add_argument(
         "--block_modules", type=str, default=["attention", "feedforward"], nargs="+"
     )
+    parser.add_argument("--no_positional_embedding", action="store_true")
     return parser
