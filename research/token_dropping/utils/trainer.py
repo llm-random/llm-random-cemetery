@@ -12,9 +12,6 @@ from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.token_dropping.moe_layers.continuous_moe import ContinuousMoE
-from research.token_dropping.moe_layers._expert_choice_old import ExpertChoiceFFOld
-from research.token_dropping.moe_layers.expert_choice import ExpertChoiceFF
 from research.token_dropping.utils.layer_manager import LayerManager
 from research.token_dropping.utils.misc_tools import temp_modify_attr
 from research.token_dropping.utils.model_utils import (

@@ -189,7 +189,7 @@ def get_train_main_function(runner: str):
 
         return blanks_train_main
     elif runner == "research.token_dropping.runner":
-        from research.token_dropping.runner import main as token_dropping_main
+        from research.token_dropping.td_train import main as token_dropping_main
 
         return token_dropping_main
     else:

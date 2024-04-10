@@ -14,6 +14,7 @@ from lizrd.core import llm
 from lizrd.text.data import LLMBatch
 from lizrd.core.llm import Parallel
 
+
 def make_loss_and_gradient_function(
     loss_checkpoint_chungs: int,
 ) -> Callable:
