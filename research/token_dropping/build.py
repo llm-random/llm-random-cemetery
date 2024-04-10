@@ -186,6 +186,8 @@ def get_model(
     checkpoint: dict[str, torch.Tensor] = None,
     reduced_number_of_tokens: int = None,
 ):
+    
+    print("MY DEVICE", device)
 
     embedding_components = [
         llm.TokenEmbedding(vocab_size, dm, init_type=init_type, init_scale=init_scale),
