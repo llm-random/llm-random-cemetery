@@ -2,6 +2,9 @@ import copy
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 from functools import partial
+from torch.distributed.fsdp.fully_sharded_data_parallel import (
+    FullyShardedDataParallel as FSDP,
+)
 import torch.nn.functional as F
 
 import torch
@@ -119,12 +122,35 @@ def calculate_llm_loss_and_gradient(
         gt_tokens = batch.target_ids
         mask = batch.should_calculate_loss
 
-        model_output = model(input_tokens)
+        # shapes
+        print("input_tokens.shape:", input_tokens.shape)
+        print("gt_tokens.shape:", gt_tokens.shape)
+        print("mask.shape:", mask.shape)
 
-        if isinstance(model, TRLLM) and model.training:
+        model_output = model(input_tokens)
+        print("model_output.shape:", model_output.shape)
+
+        print("is instance ok?", isinstance(model, TRLLM))
+        print("is training ok?", model.training)
+
+        if ( isinstance(model, FSDP) and isinstance(model._fsdp_wrapped_module, TRLLM) ) or isinstance(model, TRLLM):
+               indices_to_keep = model.embedding_layer.token_reduction.indices_to_keep
+                print("indices_to_keep.shape:", indices_to_keep.shape)
+                gt_tokens = keep_given_indeces(gt_tokens, 1, indices_to_keep)
+                mask = keep_given_indeces(mask, 1, indices_to_keep)             
+    
+        
+        else if isinstance(model, TRLLM):
             indices_to_keep = model.embedding_layer.token_reduction.indices_to_keep
-            mask = keep_given_indeces(mask, 1, indices_to_keep)
+            print("indices_to_keep.shape:", indices_to_keep.shape)
             gt_tokens = keep_given_indeces(gt_tokens, 1, indices_to_keep)
+            mask = keep_given_indeces(mask, 1, indices_to_keep)
+
+        # shapes2
+        print("AFTER:")
+        print("input_tokens.shape:", input_tokens.shape)
+        print("gt_tokens.shape:", gt_tokens.shape)
+        print("mask.shape:", mask.shape)
 
         gt_tokens = gt_tokens.to(model_output.device)
         mask = mask.to(model_output.device)
@@ -225,7 +251,9 @@ class ConditionalTrainer:
         """
 
         for step in range(self.start_step, n_steps + 1):
+            print("STEP:", step)
             self._train_step(step)
+            print("AFTER STEP:", step)
             if step > 0 and self.eval_interval > 0 and step % self.eval_interval == 0:
                 self._eval_step(step)
 
