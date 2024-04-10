@@ -119,7 +119,13 @@ def calculate_llm_loss_and_gradient(
         gt_tokens = batch.target_ids
         mask = batch.should_calculate_loss
 
+        #shapes
+        print("input_tokens.shape:", input_tokens.shape)
+        print("gt_tokens.shape:", gt_tokens.shape)
+        print("mask.shape:", mask.shape)
+
         model_output = model(input_tokens)
+        print("model_output.shape:", model_output.shape)
 
         if isinstance(model, TRLLM) and model.training:
             indices_to_keep = model.embedding_layer.token_reduction.indices_to_keep
@@ -225,7 +231,9 @@ class ConditionalTrainer:
         """
 
         for step in range(self.start_step, n_steps + 1):
+            print("STEP:", step)
             self._train_step(step)
+            print("AFTER STEP:", step)
             if step > 0 and self.eval_interval > 0 and step % self.eval_interval == 0:
                 self._eval_step(step)
 
