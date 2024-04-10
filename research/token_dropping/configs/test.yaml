@@ -35,3 +35,6 @@ params:
   # n_blocks: 2
   # n_att_heads: 2
   # use_dummy_dataset: true
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
