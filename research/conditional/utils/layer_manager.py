@@ -219,21 +219,22 @@ def measure_time(layer: LoggingLayer, instruction_name: str):
         layer: The LoggingLayer object that will be used to cache the time.
         instruction_name: The name of the instruction that is being measured.
     """
-    if layer.logging_switch:
-        if torch.cuda.is_available():
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            start.record()
-        else:
-            start = time.time()
     yield
-    if layer.logging_switch:
-        if torch.cuda.is_available():
-            end.record()
-            torch.cuda.synchronize()
-            layer.update_cache_for_logging(
-                "time", {instruction_name: start.elapsed_time(end)}
-            )
-        else:
-            end = time.time()
-            layer.update_cache_for_logging("time", {instruction_name: end - start})
+    # if layer.logging_switch:
+    #     if torch.cuda.is_available():
+    #         start = torch.cuda.Event(enable_timing=True)
+    #         end = torch.cuda.Event(enable_timing=True)
+    #         start.record()
+    #     else:
+    #         start = time.time()
+    # yield
+    # if layer.logging_switch:
+    #     if torch.cuda.is_available():
+    #         end.record()
+    #         torch.cuda.synchronize()
+    #         layer.update_cache_for_logging(
+    #             "time", {instruction_name: start.elapsed_time(end)}
+    #         )
+    #     else:
+    #         end = time.time()
+    #         layer.update_cache_for_logging("time", {instruction_name: end - start})
