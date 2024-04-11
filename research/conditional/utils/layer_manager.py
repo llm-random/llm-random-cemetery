@@ -1,5 +1,4 @@
 import re
-import time
 from contextlib import contextmanager
 from typing import Union
 from plotly import express as px
@@ -9,6 +8,7 @@ import torch
 import torch.nn as nn
 from lizrd.support.logging import get_current_logger
 from functools import wraps
+from research.speedtest.utils.layer_manager import LoggingLayer as Inny
 
 
 def get_registered_name(name):
@@ -84,9 +84,15 @@ class LayerManager:
 
         for verbosity_level in verbosity_levels:
             for block_name, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer) or (
-                    isinstance(layer, torch.distributed.fsdp.FullyShardedDataParallel)
-                    and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
+                if (
+                    isinstance(layer, LoggingLayer)
+                    or isinstance(layer, Inny)
+                    or (
+                        isinstance(
+                            layer, torch.distributed.fsdp.FullyShardedDataParallel
+                        )
+                        and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
+                    )
                 ):
                     info = layer.log(verbosity_level)
                     for name, data in info.items():
@@ -96,7 +102,7 @@ class LayerManager:
                         )
         if should_clean_up:
             for _, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer):
+                if isinstance(layer, LoggingLayer) or isinstance(layer, Inny):
                     layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
@@ -219,21 +225,22 @@ def measure_time(layer: LoggingLayer, instruction_name: str):
         layer: The LoggingLayer object that will be used to cache the time.
         instruction_name: The name of the instruction that is being measured.
     """
-    if layer.logging_switch:
-        if torch.cuda.is_available():
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            start.record()
-        else:
-            start = time.time()
     yield
-    if layer.logging_switch:
-        if torch.cuda.is_available():
-            end.record()
-            torch.cuda.synchronize()
-            layer.update_cache_for_logging(
-                "time", {instruction_name: start.elapsed_time(end)}
-            )
-        else:
-            end = time.time()
-            layer.update_cache_for_logging("time", {instruction_name: end - start})
+    # if layer.logging_switch:
+    #     if torch.cuda.is_available():
+    #         start = torch.cuda.Event(enable_timing=True)
+    #         end = torch.cuda.Event(enable_timing=True)
+    #         start.record()
+    #     else:
+    #         start = time.time()
+    # yield
+    # if layer.logging_switch:
+    #     if torch.cuda.is_available():
+    #         end.record()
+    #         torch.cuda.synchronize()
+    #         layer.update_cache_for_logging(
+    #             "time", {instruction_name: start.elapsed_time(end)}
+    #         )
+    #     else:
+    #         end = time.time()
+    #         layer.update_cache_for_logging("time", {instruction_name: end - start})

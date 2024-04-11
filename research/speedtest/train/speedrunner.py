@@ -30,12 +30,10 @@ from research.speedtest.utils.model_utils import (
     get_classes_from_module_names,
     get_ff_layer,
     get_attention_layer,
-    get_mamba_layer,
     get_mixed_precision_ignored_classes,
     get_residual_layer,
     get_classes_from_module_names,
     update_model_fit_gpu_info,
-    get_vanilla_mamba_layer,
 )
 from lizrd.train.load_and_save_model import (
     get_checkpoint_from_path,
@@ -154,10 +152,6 @@ def main(
             block_modules[module_name] = get_attention_layer(args)
         elif module_name == "feedforward":
             block_modules[module_name] = get_ff_layer(args)
-        elif module_name == "mamba":
-            block_modules[module_name] = get_mamba_layer(args)
-        elif module_name == "vanilla_mamba":
-            block_modules[module_name] = get_vanilla_mamba_layer(args)
         else:
             raise ValueError(f"Unknown module name: {module_name}")
 
