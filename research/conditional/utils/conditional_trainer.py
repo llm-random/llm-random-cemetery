@@ -12,9 +12,6 @@ from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.conditional.moe_layers.continuous_moe import ContinuousMoE
-from research.conditional.moe_layers._expert_choice_old import ExpertChoiceFFOld
-from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
 from research.conditional.utils.layer_manager import LayerManager
 from research.conditional.utils.misc_tools import temp_modify_attr
 from research.conditional.utils.model_utils import (
@@ -50,7 +47,7 @@ class ConditionalTrainer:
     _calculate_loss_and_gradient: Optional[Callable] = None
     mask_percent: Optional[float] = None
     scaler: Optional[torch.cuda.amp.GradScaler] = None
-    layer_manager: Optional[LayerManager] = None
+    # layer_manager: Optional[LayerManager] = None
     loss_accumulator: Optional[float] = None
     n_gpus: int = 1
     save_weights_path: str = None
@@ -102,7 +99,7 @@ class ConditionalTrainer:
             self.steps_until_start_temperature_learn,
         )
         # if temp training is delayed, turn if off for now
-        self.layer_manager.manage_learnable_temperature(0)
+        # self.layer_manager.manage_learnable_temperature(0)
         self._check_config()
 
     def _before_train_operations(self):
@@ -122,7 +119,7 @@ class ConditionalTrainer:
 
     def _after_step_operations(self, step):
         self.model.forward_pass_cache.clear()
-        self.layer_manager.manage_learnable_temperature(step)
+        # self.layer_manager.manage_learnable_temperature(step)
 
     def train(self, n_steps: int):
         """
@@ -250,46 +247,6 @@ class ConditionalTrainer:
             step=step,
             variant_name="normal",
         )
-        layers = [
-            l
-            for _, l in self.layer_manager._layers
-            if isinstance(
-                l,
-                (
-                    ContinuousMoE,
-                    ExpertChoiceFFOld,
-                    ExpertChoiceFF,
-                ),
-            )
-        ]
-        if self.eval_dynamic_groupsize:
-            original_group_size = layers[0].group_size
-            for log_group_size_factor in range(
-                self.eval_min_group_size_logfactor,
-                self.eval_max_group_size_logfactor + 1,
-            ):
-                current_group_size = int(
-                    2**log_group_size_factor * original_group_size
-                )
-                if (
-                    current_group_size
-                    <= self.batch_size // self.gradient_accumulation_steps
-                    and current_group_size > 0
-                ):
-                    with temp_modify_attr(layers, "group_size", current_group_size):
-                        self._eval_single_variant(
-                            batches=batches,
-                            step=step,
-                            variant_name=f"group size={current_group_size}",
-                        )
-
-        if self.eval_discrete_mot:
-            with temp_modify_attr(layers, "use_discrete_routing", True):
-                self._eval_single_variant(
-                    batches=batches,
-                    step=step,
-                    variant_name="discrete MoT routing",
-                )
 
     def _eval_single_variant(
         self, batches: Iterable[LLMBatch], step: int, variant_name: str
