@@ -1,13 +1,13 @@
 # runner: "research.token_dropping.runner"
-# runner: "research.conditional.train.cc_train"
-runner: "research.speedtest.train.speedrunner"
-time: 2-00:00:00
+runner: "research.conditional.train.cc_train"
+# runner: "research.speedtest.train.speedrunner"
+time: 0-01:00:00
 n_gpus: 1
 interactive_debug: false
 
 # train params
 params:
-  name: "testPredkosci"
+  name: "inny"
 
 
   model_type: gpt
