@@ -192,7 +192,6 @@ def main(
         fsdp_min_num_params=args.fsdp_min_num_params,
         fsdp_modules_to_wrap=fsdp_modules_to_wrap,
         activation_checkpointing_modules=activation_checkpointing_modules,
-        model_fragmentation=args.model_parallelism_fragmentation,
         residual_fn=residual_fn,
         is_logging_process=is_logging_process,
         rank=rank,
