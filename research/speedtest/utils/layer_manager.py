@@ -9,6 +9,7 @@ import torch
 import torch.nn as nn
 from lizrd.support.logging import get_current_logger
 from functools import wraps
+from research.conditional.utils.layer_manager import LoggingLayer as InnyLayer
 
 
 def get_registered_name(name):
@@ -84,7 +85,7 @@ class LayerManager:
 
         for verbosity_level in verbosity_levels:
             for block_name, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer) or (
+                if isinstance(layer, InnyLayer) or (
                     isinstance(layer, torch.distributed.fsdp.FullyShardedDataParallel)
                     and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
                 ):
@@ -96,7 +97,7 @@ class LayerManager:
                         )
         if should_clean_up:
             for _, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer):
+                if isinstance(layer, InnyLayer):
                     layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
@@ -151,9 +152,11 @@ class LoggingLayer(nn.Module):
         self.logging_cache = {}
 
     def prepare_for_logging(self):
+        # pass
         self.logging_switch = True
 
     def update_cache_for_logging(self, key, value):
+        # pass
         if self.logging_switch:
             if isinstance(value, dict):
                 if key in self.logging_cache:
@@ -168,19 +171,23 @@ class LoggingLayer(nn.Module):
                 raise NotImplementedError
 
     def _combine_to_dict_key(self, key, layer_type, block_number):
+        pass
         return f"block_{block_number}_{layer_type}_{key}"
 
     def update_forward_pass_cache(self, key, value):
+        pass
         combined_key = self._combine_to_dict_key(
             key, self.layer_type, self.block_number
         )
         self.forward_pass_cache[combined_key] = value
 
     def get_from_forward_pass_cache(self, key, block_number, layer_type):
+        pass
         combined_key = self._combine_to_dict_key(key, layer_type, block_number)
         return self.forward_pass_cache[combined_key]
 
     def log(self, verbosity_level):
+        pass
         if verbosity_level == 0:
             return self.log_time()
         elif verbosity_level == 1:
@@ -197,6 +204,7 @@ class LoggingLayer(nn.Module):
         return {}
 
     def log_time(self):
+        # pass
         log = {}
         if "time" in self.logging_cache:
             instr_names = list(self.logging_cache["time"].keys())
@@ -219,21 +227,22 @@ def measure_time(layer: LoggingLayer, instruction_name: str):
         layer: The LoggingLayer object that will be used to cache the time.
         instruction_name: The name of the instruction that is being measured.
     """
-    if layer.logging_switch:
-        if torch.cuda.is_available():
-            start = torch.cuda.Event(enable_timing=True)
-            end = torch.cuda.Event(enable_timing=True)
-            start.record()
-        else:
-            start = time.time()
     yield
-    if layer.logging_switch:
-        if torch.cuda.is_available():
-            end.record()
-            torch.cuda.synchronize()
-            layer.update_cache_for_logging(
-                "time", {instruction_name: start.elapsed_time(end)}
-            )
-        else:
-            end = time.time()
-            layer.update_cache_for_logging("time", {instruction_name: end - start})
+    # if layer.logging_switch:
+    #     if torch.cuda.is_available():
+    #         start = torch.cuda.Event(enable_timing=True)
+    #         end = torch.cuda.Event(enable_timing=True)
+    #         start.record()
+    #     else:
+    #         start = time.time()
+    # yield
+    # if layer.logging_switch:
+    #     if torch.cuda.is_available():
+    #         end.record()
+    #         torch.cuda.synchronize()
+    #         layer.update_cache_for_logging(
+    #             "time", {instruction_name: start.elapsed_time(end)}
+    #         )
+    #     else:
+    #         end = time.time()
+    #         layer.update_cache_for_logging("time", {instruction_name: end - start})
