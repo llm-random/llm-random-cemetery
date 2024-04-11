@@ -151,9 +151,11 @@ class LoggingLayer(nn.Module):
         self.logging_cache = {}
 
     def prepare_for_logging(self):
+        # pass
         self.logging_switch = True
 
     def update_cache_for_logging(self, key, value):
+        # pass
         if self.logging_switch:
             if isinstance(value, dict):
                 if key in self.logging_cache:
@@ -168,19 +170,23 @@ class LoggingLayer(nn.Module):
                 raise NotImplementedError
 
     def _combine_to_dict_key(self, key, layer_type, block_number):
+        pass
         return f"block_{block_number}_{layer_type}_{key}"
 
     def update_forward_pass_cache(self, key, value):
+        pass
         combined_key = self._combine_to_dict_key(
             key, self.layer_type, self.block_number
         )
         self.forward_pass_cache[combined_key] = value
 
     def get_from_forward_pass_cache(self, key, block_number, layer_type):
+        pass
         combined_key = self._combine_to_dict_key(key, layer_type, block_number)
         return self.forward_pass_cache[combined_key]
 
     def log(self, verbosity_level):
+        pass
         if verbosity_level == 0:
             return self.log_time()
         elif verbosity_level == 1:
