@@ -100,6 +100,11 @@ class LayerManager:
                     layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
+        for block_name, layer in self._logable_layers:
+            if step == 10 and (
+                hasattr(layer, "router") or hasattr(layer, "expert_gating")
+            ):
+                layer.double_n_experts()
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
         for block_name, layer in self._layers:
             for name, param in layer.named_parameters():
