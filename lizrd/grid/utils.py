@@ -13,6 +13,9 @@ from research.blanks.argparse import (
 from research.token_dropping.argparse import (
     introduce_parser_arguments as td_introduce_parser_arguments,
 )
+from research.speedtest.utils.argparse import (
+    introduce_parser_arguments as speed_introduce_parser_arguments,
+)
 
 
 def split_params(params: dict) -> Tuple[list, list, list]:
@@ -192,6 +195,10 @@ def get_train_main_function(runner: str):
         from research.token_dropping.runner import main as token_dropping_main
 
         return token_dropping_main
+    elif runner == "research.speedtest.train.speedrunner":
+        from research.speedtest.train.speedrunner import main as main
+
+        return main
     else:
         raise ValueError(f"Unknown runner: {runner}")
 
@@ -229,7 +236,8 @@ def check_for_argparse_correctness(grid: list[dict[str, str]]):
                 parser = blanks_introduce_parser_arguments(parser)
             elif runner == "research.token_dropping.runner":
                 parser = td_introduce_parser_arguments(parser)
-
+            elif runner == "research.speedtest.train.speedrunner":
+                parser = speed_introduce_parser_arguments(parser)
             try:
                 args, extra = parser.parse_known_args(runner_params)
                 if extra != []:

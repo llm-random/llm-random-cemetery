@@ -105,5 +105,6 @@ def validate_configs(configs: List[dict]):
         assert config["runner"] in [
             "research.conditional.train.cc_train",
             "research.blanks.train",
-            "research.token_dropping.runner"
+            "research.token_dropping.runner",
+            "research.speedtest.train.speedrunner",
         ], f"Unknown runner: {config['runner']} \nIf a new one was implemented, include it here as well"
