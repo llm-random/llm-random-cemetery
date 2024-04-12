@@ -36,6 +36,10 @@ def get_processed_dataset(
     dataset_split: str = "train",
     dataset_path: Optional[str] = None,
 ):
+    if dataset_path is None:
+        print("EEEEEEEEERRRROOOOOOOOOOOOOOOOORRRRRRx, NO DATASET PATH")
+    else:
+        print("DATASET PATH IS: ", dataset_path)
     if dataset_type == "wikibook":
         dataset = partial(
             datasets.WikiBookDataset,
