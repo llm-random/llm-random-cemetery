@@ -275,6 +275,8 @@ def main(
         "dataset_type": args.dataset_type,
         "use_dummy_dataset": args.use_dummy_dataset,
     }
+    print("DATASET TRAIN PATH IS: ", args.train_dataset_path)
+    print("DATASET VALIDATION PATH IS: ", args.validation_dataset_path)
 
     train_dataloader = get_processed_dataset(
         **common_dataloaders_kwargs,
