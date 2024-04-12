@@ -1,0 +1,29 @@
+parent: research/conditional/train/configs/baselines/gpt/dense/mini.yaml
+md5_parent_hash: 549895edc027ef23656e1f8b7e2ffaab
+# cuda_visible: "2"
+# interactive_debug: true
+time: "2:00:00"
+hf_datasets_cache: "/raid/NFS_SHARE/home/kamil.ciebiera/datasets/datasets"
+
+# LOCAL:
+n_gpus: 1
+
+params:
+
+  name: "CHUNGUS_AGAIN"
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+  tags: ["old"]
+
+  dataset_type: c4
+  # dataset_type: wikibook
+  # use_dummy_dataset: true
+  n_steps: 30_000
+  learning_rate: 5e-4
+  decoding_interval: 0
+  logging_interval_heavy: 10_000
+  ^loss_checkpoint_chungs: [1, 8]
+  # eval_interval: 1000
+  init_type: truncated_normal
+  init_scale: 0.1
