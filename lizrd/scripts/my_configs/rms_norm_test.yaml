@@ -1,0 +1,30 @@
+parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
+# cuda_visible: "2"
+time: "1:00:00"
+
+params:
+
+  name: "rms_norm_test"
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+
+
+
+  ff_mode: vanilla
+  ^residual_mode: ["both_norm", "post_norm", "pre_norm"]
+  ^norm_type: ["rms_norm", "learnable_rms_norm_coarse", "learnable_rms_norm_fine", "layer_norm"]
+  ^init_learnable_p: [0.5]
+  tags: ["smaller_lr"]
+
+  dataset_type: c4
+  learning_rate: 2e-4
+  logging_interval_heavy: 1000
+  decoding_interval: 0
+  save_weights_interval: 0
+  init_type: truncated_normal
+  init_scale: 0.1
+  batch_size: 256
+  loss_checkpoint_chungs: 8
+
