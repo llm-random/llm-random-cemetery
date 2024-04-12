@@ -74,6 +74,7 @@ def log_batch(
 def make_param_groups_and_lr_ratios(args, model):
     lr = args.learning_rate
     use_hidden_fanin = args.use_hidden_weights_fanin
+    print("USE_HIDDEN_FANIN: ", use_hidden_fanin)
 
     if not use_hidden_fanin:
         param_grops = [{"params": model.parameters(), "lr": lr}]
@@ -275,6 +276,8 @@ def main(
         "dataset_type": args.dataset_type,
         "use_dummy_dataset": args.use_dummy_dataset,
     }
+    print("DATASET TRAIN PATH IS: ", args.train_dataset_path)
+    print("DATASET VALIDATION PATH IS: ", args.validation_dataset_path)
 
     train_dataloader = get_processed_dataset(
         **common_dataloaders_kwargs,
