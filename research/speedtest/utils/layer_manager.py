@@ -82,18 +82,18 @@ class LayerManager:
 
         should_clean_up = len(verbosity_levels) > 0
 
-        for verbosity_level in verbosity_levels:
-            for block_name, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer) or (
-                    isinstance(layer, torch.distributed.fsdp.FullyShardedDataParallel)
-                    and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
-                ):
-                    info = layer.log(verbosity_level)
-                    for name, data in info.items():
-                        logging_name = block_name + "/" + name
-                        self.logger.report_generic_info(
-                            title=logging_name, iteration=step, data=data
-                        )
+        # for verbosity_level in verbosity_levels:
+        #     for block_name, layer in self._logable_layers:
+        #         if isinstance(layer, LoggingLayer) or (
+        #             isinstance(layer, torch.distributed.fsdp.FullyShardedDataParallel)
+        #             and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
+        #         ):
+        #             info = layer.log(verbosity_level)
+        #             for name, data in info.items():
+        #                 logging_name = block_name + "/" + name
+        #                 self.logger.report_generic_info(
+        #                     title=logging_name, iteration=step, data=data
+        #                 )
         if should_clean_up:
             for _, layer in self._logable_layers:
                 if isinstance(layer, LoggingLayer):
