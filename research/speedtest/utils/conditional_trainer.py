@@ -172,8 +172,8 @@ class ConditionalTrainer:
         step,
     ):
         self.model.train()
-        if self.is_logging_process:
-            self.layer_manager.prepare_for_logging(step)
+        # if self.is_logging_process:
+        #     self.layer_manager.prepare_for_logging(step)
         processed_batch = self.train_dataloader.get_batch()
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
@@ -251,16 +251,16 @@ class ConditionalTrainer:
             variant_name="normal",
         )
         layers = [
-            l
-            for _, l in self.layer_manager._layers
-            if isinstance(
-                l,
-                (
-                    ContinuousMoE,
-                    ExpertChoiceFFOld,
-                    ExpertChoiceFF,
-                ),
-            )
+            # l
+            # for _, l in self.layer_manager._layers
+            # if isinstance(
+            #     l,
+            #     (
+            #         ContinuousMoE,
+            #         ExpertChoiceFFOld,
+            #         ExpertChoiceFF,
+            #     ),
+            # )
         ]
         if self.eval_dynamic_groupsize:
             original_group_size = layers[0].group_size
