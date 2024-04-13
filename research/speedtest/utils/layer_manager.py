@@ -48,6 +48,7 @@ class LayerManager:
         Currently, those are only the feedforward and residual blocks.
         During model creation in LLM [llm.py], the feedforward layers are expected to be named "feedforward" and the residual layers "residual" (hardcoded in the repo as of 14.11.2023).
         """
+        return
         for name, layer in model.named_modules():
             suffix = name.split(".")[-1]
             registered_name = get_registered_name(name)
