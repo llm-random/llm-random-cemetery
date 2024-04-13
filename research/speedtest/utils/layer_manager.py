@@ -61,6 +61,7 @@ class LayerManager:
                 self._logable_layers.append((registered_name, layer))
 
     def prepare_for_logging(self, step):
+        return 
         if (
             self.logging_interval_light > 0
             and step % self.logging_interval_light == 0
@@ -72,6 +73,7 @@ class LayerManager:
                     layer.prepare_for_logging()
 
     def log(self, step):
+        return 
         verbosity_levels = []
         if self.logging_interval_heavy > 0 and step % self.logging_interval_heavy == 0:
             verbosity_levels = [2, 1, 0]
@@ -82,24 +84,25 @@ class LayerManager:
 
         should_clean_up = len(verbosity_levels) > 0
 
-        for verbosity_level in verbosity_levels:
-            for block_name, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer) or (
-                    isinstance(layer, torch.distributed.fsdp.FullyShardedDataParallel)
-                    and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
-                ):
-                    info = layer.log(verbosity_level)
-                    for name, data in info.items():
-                        logging_name = block_name + "/" + name
-                        self.logger.report_generic_info(
-                            title=logging_name, iteration=step, data=data
-                        )
-        if should_clean_up:
-            for _, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer):
-                    layer.clean_up_after_logging()
+        # for verbosity_level in verbosity_levels:
+        #     for block_name, layer in self._logable_layers:
+        #         if isinstance(layer, LoggingLayer) or (
+        #             isinstance(layer, torch.distributed.fsdp.FullyShardedDataParallel)
+        #             and isinstance(layer._fsdp_wrapped_module, LoggingLayer)
+        #         ):
+        #             info = layer.log(verbosity_level)
+        #             for name, data in info.items():
+        #                 logging_name = block_name + "/" + name
+        #                 self.logger.report_generic_info(
+        #                     title=logging_name, iteration=step, data=data
+        #                 )
+        # if should_clean_up:
+        #     for _, layer in self._logable_layers:
+        #         if isinstance(layer, LoggingLayer):
+        #             layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
+        return 
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
         for block_name, layer in self._layers:
             for name, param in layer.named_parameters():

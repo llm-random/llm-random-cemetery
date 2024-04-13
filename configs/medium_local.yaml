@@ -7,7 +7,7 @@ interactive_debug: false
 
 # train params
 params:
-  name: "return"
+  name: "testPredkosci"
 
 
   model_type: gpt
@@ -26,8 +26,8 @@ params:
   # save_weights_interval: 25_000
 
   # shallower bass
-  cutoff: 256
-  batch_size: 256
+  # cutoff: 256
+  # batch_size: 256
   n_steps: 75_000
   final_lr_step: 75_000
   scheduler: cosine
@@ -37,10 +37,18 @@ params:
   grad_clip: 1
 
   #model params
-  dmodel: 512
-  dff: 2048
-  n_blocks: 8
-  n_att_heads: 8
+  # dmodel: 512
+  # dff: 2048
+  # n_blocks: 8
+  # n_att_heads: 8
+  dmodel: 32
+  dff: 128
+  n_blocks: 2
+  n_att_heads: 2
+
+  cutoff: 16
+  batch_size: 16
+
 
   #hyper
   learning_rate: 0.0001
@@ -53,3 +61,6 @@ params:
   init_type: truncated_normal
   init_scale: 0.1
   block_modules: ["attention", "feedforward"]
+
+
+  use_dummy_dataset: true
