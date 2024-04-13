@@ -57,8 +57,8 @@ class LayerManager:
                 "feedforward",
             ]:
                 self._layers.append((registered_name, layer))
-            if hasattr(layer, "log"):
-                self._logable_layers.append((registered_name, layer))
+            # if hasattr(layer, "log"):
+            #     self._logable_layers.append((registered_name, layer))
 
     def prepare_for_logging(self, step):
         if (
