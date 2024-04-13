@@ -51,12 +51,12 @@ class LayerManager:
         for name, layer in model.named_modules():
             suffix = name.split(".")[-1]
             registered_name = get_registered_name(name)
-            if suffix in [
-                "residual_feedforward",
-                "residual_attention",
-                "feedforward",
-            ]:
-                self._layers.append((registered_name, layer))
+            # if suffix in [
+            #     "residual_feedforward",
+            #     "residual_attention",
+            #     "feedforward",
+            # ]:
+            #     self._layers.append((registered_name, layer))
             if hasattr(layer, "log"):
                 self._logable_layers.append((registered_name, layer))
 
@@ -72,6 +72,7 @@ class LayerManager:
                     layer.prepare_for_logging()
 
     def log(self, step):
+        return
         verbosity_levels = []
         if self.logging_interval_heavy > 0 and step % self.logging_interval_heavy == 0:
             verbosity_levels = [2, 1, 0]
@@ -100,6 +101,7 @@ class LayerManager:
                     layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
+        return
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
         for block_name, layer in self._layers:
             for name, param in layer.named_parameters():
@@ -154,6 +156,7 @@ class LoggingLayer(nn.Module):
         self.logging_switch = True
 
     def update_cache_for_logging(self, key, value):
+        return
         if self.logging_switch:
             if isinstance(value, dict):
                 if key in self.logging_cache:
