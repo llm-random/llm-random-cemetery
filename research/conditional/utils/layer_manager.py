@@ -161,6 +161,7 @@ class LoggingLayer(nn.Module):
                 else:
                     self.logging_cache[key] = value
             elif isinstance(value, torch.Tensor):
+                pass
                 self.logging_cache[key] = value.clone().detach().cpu()
             elif isinstance(value, float) or isinstance(value, int):
                 self.logging_cache[key] = value

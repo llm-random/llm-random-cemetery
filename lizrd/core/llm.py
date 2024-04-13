@@ -10,7 +10,7 @@ from lizrd.core import misc
 from lizrd.core.misc import default, Aggregate
 from lizrd.core.initialization import get_init_weight
 from lizrd.core.misc import Linear
-from research.conditional.utils.layer_manager import LoggingLayer
+from research.speedtest.utils.layer_manager import LoggingLayer
 
 
 def decode_bias_string(bias):
