@@ -94,10 +94,10 @@ class LayerManager:
                         self.logger.report_generic_info(
                             title=logging_name, iteration=step, data=data
                         )
-        if should_clean_up:
-            for _, layer in self._logable_layers:
-                if isinstance(layer, LoggingLayer):
-                    layer.clean_up_after_logging()
+        # if should_clean_up:
+        #     for _, layer in self._logable_layers:
+        #         if isinstance(layer, LoggingLayer):
+        #             layer.clean_up_after_logging()
 
     def manage_learnable_temperature(self, step):
         is_learning_temperature = step >= self.steps_until_start_temperature_learn
