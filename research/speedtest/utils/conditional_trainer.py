@@ -251,16 +251,16 @@ class ConditionalTrainer:
             variant_name="normal",
         )
         layers = [
-            l
-            for _, l in self.layer_manager._layers
-            if isinstance(
-                l,
-                (
-                    ContinuousMoE,
-                    ExpertChoiceFFOld,
-                    ExpertChoiceFF,
-                ),
-            )
+            # l
+            # for _, l in self.layer_manager._layers
+            # if isinstance(
+            #     l,
+            #     (
+            #         ContinuousMoE,
+            #         ExpertChoiceFFOld,
+            #         ExpertChoiceFF,
+            #     ),
+            # )
         ]
         if self.eval_dynamic_groupsize:
             original_group_size = layers[0].group_size
