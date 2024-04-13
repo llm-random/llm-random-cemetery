@@ -172,8 +172,8 @@ class ConditionalTrainer:
         step,
     ):
         self.model.train()
-        if self.is_logging_process:
-            self.layer_manager.prepare_for_logging(step)
+        # if self.is_logging_process:
+        #     self.layer_manager.prepare_for_logging(step)
         processed_batch = self.train_dataloader.get_batch()
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
@@ -182,7 +182,7 @@ class ConditionalTrainer:
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
-            self.layer_manager.log(step)
+            # self.layer_manager.log(step)
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
         self._save_weights(step)
