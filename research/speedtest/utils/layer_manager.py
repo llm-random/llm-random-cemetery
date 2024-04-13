@@ -51,12 +51,12 @@ class LayerManager:
         for name, layer in model.named_modules():
             suffix = name.split(".")[-1]
             registered_name = get_registered_name(name)
-            if suffix in [
-                "residual_feedforward",
-                "residual_attention",
-                "feedforward",
-            ]:
-                self._layers.append((registered_name, layer))
+            # if suffix in [
+            #     "residual_feedforward",
+            #     "residual_attention",
+            #     "feedforward",
+            # ]:
+            #     self._layers.append((registered_name, layer))
             if hasattr(layer, "log"):
                 self._logable_layers.append((registered_name, layer))
 
