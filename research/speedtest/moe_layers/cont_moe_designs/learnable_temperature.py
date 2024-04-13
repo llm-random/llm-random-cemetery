@@ -3,7 +3,7 @@ import dataclasses
 import torch
 
 import torch.nn as nn
-from research.conditional.moe_layers.continuous_moe import ContinuousMoeBaseClass
+from research.speedtest.moe_layers.continuous_moe import ContinuousMoeBaseClass
 
 
 @dataclasses.dataclass(eq=False, repr=False)
@@ -35,10 +35,10 @@ class ContinuousMoEAdaTemp(ContinuousMoeBaseClass):
 
     def log_heavy(self):
         log = super().log_heavy()
-        log[
-            "merge_weights/merge_temperature"
-        ] = self.temperature_merge.data.flatten().tolist()
-        log[
-            "merge_weights/emit_temperature"
-        ] = self.temperature_emit.data.flatten().tolist()
+        log["merge_weights/merge_temperature"] = (
+            self.temperature_merge.data.flatten().tolist()
+        )
+        log["merge_weights/emit_temperature"] = (
+            self.temperature_emit.data.flatten().tolist()
+        )
         return log

@@ -4,8 +4,8 @@ import torch
 from lizrd.core import misc
 import torch.nn as nn
 import lizrd.core.initialization
-from research.conditional.moe_layers.continuous_moe import ContinuousMoeBaseClass
-from research.conditional.utils.misc_tools import stable_softmax_temperature
+from research.speedtest.moe_layers.continuous_moe import ContinuousMoeBaseClass
+from research.speedtest.utils.misc_tools import stable_softmax_temperature
 
 
 @dataclasses.dataclass(eq=False, repr=False)

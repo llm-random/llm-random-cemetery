@@ -2,11 +2,11 @@ from typing import Optional
 
 import torch
 
-from research.conditional.utils.layer_manager import (
+from research.speedtest.utils.layer_manager import (
     LoggingLayer,
     time_measured,
 )
-from research.conditional.moe_layers.moe_gating import TokenGating
+from research.speedtest.moe_layers.moe_gating import TokenGating
 
 
 class TokenChoiceFF(LoggingLayer):

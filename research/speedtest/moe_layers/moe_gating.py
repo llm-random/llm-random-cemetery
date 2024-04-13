@@ -7,11 +7,11 @@ from lizrd.support.logging import make_histogram
 from lizrd.train import checkpointing
 import torch.nn.functional as F
 
-from research.conditional.moe_layers.load_balancing_loss import (
+from research.speedtest.moe_layers.load_balancing_loss import (
     calculate_load_balancing_loss,
 )
-from research.conditional.utils.layer_manager import LoggingLayer
-from research.conditional.utils.layer_manager import measure_time
+from research.speedtest.utils.layer_manager import LoggingLayer
+from research.speedtest.utils.layer_manager import measure_time
 from lizrd.core.initialization import get_init_fun
 
 

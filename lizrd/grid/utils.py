@@ -10,6 +10,9 @@ from research.conditional.utils.argparse import (
 from research.blanks.argparse import (
     introduce_parser_arguments as blanks_introduce_parser_arguments,
 )
+from research.speedtest.utils.argparse import (
+    introduce_parser_arguments as speedtest_introduce_parser_arguments,
+)
 
 
 def split_params(params: dict) -> Tuple[list, list, list]:
@@ -185,6 +188,10 @@ def get_train_main_function(runner: str):
         from research.blanks.train import main as blanks_train_main
 
         return blanks_train_main
+    elif runner == "research.speedtest.train.cc_train":
+        from research.speedtest.train.cc_train import main as speedtest_main
+
+        return speedtest_main
     else:
         raise ValueError(f"Unknown runner: {runner}")
 
@@ -218,8 +225,12 @@ def check_for_argparse_correctness(grid: list[dict[str, str]]):
             parser = argparse.ArgumentParser()
             if runner == "research.conditional.train.cc_train":
                 parser = cc_introduce_parser_arguments(parser)
-            else:
+            elif runner == "research.blanks.train":
                 parser = blanks_introduce_parser_arguments(parser)
+            elif runner == "research.speedtest.train.cc_train":
+                parser = speedtest_introduce_parser_arguments(parser)
+            else:
+                raise ValueError(f"Unknown runner: {runner}")
 
             try:
                 args, extra = parser.parse_known_args(runner_params)

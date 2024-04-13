@@ -1,6 +1,6 @@
 # runner: "research.token_dropping.runner"
-runner: "research.conditional.train.cc_train"
-# runner: "research.speedtest.train.speedrunner"
+# runner: "research.conditional.train.cc_train"
+runner: "research.speedtest.train.cc_train"
 time: 0-01:0:00
 n_gpus: 1
 interactive_debug: false

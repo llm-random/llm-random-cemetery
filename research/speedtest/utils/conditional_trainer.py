@@ -12,12 +12,12 @@ from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.conditional.moe_layers.continuous_moe import ContinuousMoE
-from research.conditional.moe_layers._expert_choice_old import ExpertChoiceFFOld
-from research.conditional.moe_layers.expert_choice import ExpertChoiceFF
-from research.conditional.utils.layer_manager import LayerManager
-from research.conditional.utils.misc_tools import temp_modify_attr
-from research.conditional.utils.model_utils import (
+from research.speedtest.moe_layers.continuous_moe import ContinuousMoE
+from research.speedtest.moe_layers._expert_choice_old import ExpertChoiceFFOld
+from research.speedtest.moe_layers.expert_choice import ExpertChoiceFF
+from research.speedtest.utils.layer_manager import LayerManager
+from research.speedtest.utils.misc_tools import temp_modify_attr
+from research.speedtest.utils.model_utils import (
     make_loss_and_gradient_function,
     update_model_fit_gpu_info,
 )
@@ -268,9 +268,7 @@ class ConditionalTrainer:
                 self.eval_min_group_size_logfactor,
                 self.eval_max_group_size_logfactor + 1,
             ):
-                current_group_size = int(
-                    2**log_group_size_factor * original_group_size
-                )
+                current_group_size = int(2**log_group_size_factor * original_group_size)
                 if (
                     current_group_size
                     <= self.batch_size // self.gradient_accumulation_steps

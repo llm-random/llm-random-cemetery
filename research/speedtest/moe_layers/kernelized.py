@@ -1,7 +1,7 @@
 import torch.nn
 from lizrd.core import misc
 from lizrd.core.misc import resolve_activation_name
-from research.conditional.utils.layer_manager import LoggingLayer, measure_time
+from research.speedtest.utils.layer_manager import LoggingLayer, measure_time
 from functools import partial
 from performer_pytorch.performer_pytorch import (
     gaussian_orthogonal_random_matrix,
