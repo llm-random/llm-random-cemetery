@@ -102,7 +102,7 @@ class ConditionalTrainer:
             self.steps_until_start_temperature_learn,
         )
         # if temp training is delayed, turn if off for now
-        self.layer_manager.manage_learnable_temperature(0)
+        # self.layer_manager.manage_learnable_temperature(0)
         self._check_config()
 
     def _before_train_operations(self):
@@ -122,7 +122,7 @@ class ConditionalTrainer:
 
     def _after_step_operations(self, step):
         self.model.forward_pass_cache.clear()
-        self.layer_manager.manage_learnable_temperature(step)
+        # self.layer_manager.manage_learnable_temperature(step)
 
     def train(self, n_steps: int):
         """
@@ -172,8 +172,8 @@ class ConditionalTrainer:
         step,
     ):
         self.model.train()
-        if self.is_logging_process:
-            self.layer_manager.prepare_for_logging(step)
+        # if self.is_logging_process:
+        #     self.layer_manager.prepare_for_logging(step)
         processed_batch = self.train_dataloader.get_batch()
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
@@ -182,7 +182,7 @@ class ConditionalTrainer:
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
-            self.layer_manager.log(step)
+            # self.layer_manager.log(step)
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
         self._save_weights(step)
@@ -251,16 +251,16 @@ class ConditionalTrainer:
             variant_name="normal",
         )
         layers = [
-            l
-            for _, l in self.layer_manager._layers
-            if isinstance(
-                l,
-                (
-                    ContinuousMoE,
-                    ExpertChoiceFFOld,
-                    ExpertChoiceFF,
-                ),
-            )
+            # l
+            # for _, l in self.layer_manager._layers
+            # if isinstance(
+            #     l,
+            #     (
+            #         ContinuousMoE,
+            #         ExpertChoiceFFOld,
+            #         ExpertChoiceFF,
+            #     ),
+            # )
         ]
         if self.eval_dynamic_groupsize:
             original_group_size = layers[0].group_size
