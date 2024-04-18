@@ -4,19 +4,15 @@ time: "2-00:00:00"
 runner: "research.token_reduction.runner"
 
 params:
-  name: "baseline_medium"
+  name: "medium"
   logger_types: "neptune,wandb"
   mixed_precision: true
   mixed_precision_dtype: bfloat16
   flash_attention: true
   grad_clip: 1.0
-  tags: ["baseline", "medium"]
+  tags: ["baseline", "medium", "dense"]
 
 
-  final_lr_step: 75_000
-  scheduler: cosine
-  lr_warmup_steps: 750
-  final_lr_fraction: 0.1
   n_steps: 75_000
   learning_rate: 1e-4
   decoding_interval: 0
@@ -24,16 +20,29 @@ params:
   init_type: truncated_normal
   init_scale: 0.1
   save_weights_interval: 0
-  batch_size: 64
+  batch_size: 32
   dataset_type: c4
-
-  weight_decay: 0.1
 
   eval_interval: 100  
   
+  # ^cutoff: [2252, 2464, 3072, 4096]
+  # ^cutoff: [3072, 4096]
+  # gradient_accumulation_steps: 2
+  # reduced_number_of_tokens: 2048
+  weight_decay: 0.1
+  ^cutoff: [2048]
+  ^cutoff: [2252, 2464, 3072, 4096]
+  # reduced_number_of_tokens: 2048
   # ^cutoff: [1126, 1232, 1536, 2048]
   # reduced_number_of_tokens: 1024
-  cutoff: 1024
 
-  # ^cutoff: [2252, 2464, 3072, 4096]
-  # reduced_number_of_tokens: 2048
+
+
+  # cutoff: 32
+  # reduced_number_of_tokens: 24
+  # batch_size: 8
+  # dmodel: 32
+  # dff: 128
+  # n_blocks: 2
+  # n_att_heads: 2
+  # use_dummy_dataset: true
