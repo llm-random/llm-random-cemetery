@@ -90,6 +90,7 @@ class C4Dataset(AbstractDataset):
         assert split in ["train", "validation"]
         if dataset_path is not None:
             self.dataset = load_from_disk(dataset_path)
+            # pass
         elif use_dummy_dataset:
             if split != "train":
                 raise NameError(
@@ -101,3 +102,5 @@ class C4Dataset(AbstractDataset):
 
     def get_document(self) -> str:
         return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]["text"]
+        # copilot generated example text
+        # return """The C4 dataset is a large-scale dataset of web pages collected by Google. It is designed to be used for training large language models. The dataset contains over 750GB of text data, which is equivalent to over 40 billion words. The C4 dataset is available in multiple languages, including English, Spanish, French, German, and Chinese. The dataset is preprocessed and tokenized, making it easy to use for training language models. The C4 dataset is commonly used for training large language models, such as GPT-3 and BERT. The dataset is available for download on the Google Research website."""

@@ -1,0 +1,52 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+# hf_datasets_cache: /raid/NFS_SHARE/home/kamil.ciebiera/datasets/datasets # dgx
+
+
+time: "48:00:00"
+n_gpus: 1
+
+params:
+
+  name: "mamba_linear_experts"
+
+  block_modules: ["vanilla_mamba", "mamba"]
+  mamba_mode: "inner_projections_moe"
+  expert_modules: ["gate,output"]
+  n_experts: 64
+  tags: ["MOE_IN_MAMBA_FULL", "fsdp", "alternative_lr"]
+
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating,RoPE,TokenChoiceRouter,TokenChoiceSeparateRouter"
+
+  n_blocks: 8
+  mixed_precision: true
+  flash_attention: false
+  mixed_precision_dtype: "bfloat16"
+  dataset_type: c4
+  use_dummy_dataset: true
+  # dataset_type: wikibook
+  n_steps: 150_000
+  no_positional_embedding: true
+  learning_rate: 5e-4
+  decoding_interval: 0
+  logging_interval_heavy: 0
+  logging_interval_light: 0
+  batch_size: 64
+  cutoff: 1024
+  final_lr_step: 150_000
+  weight_decay: 0.1
+  lr_warmup_steps: 1_500
+  data_seed: 42
+  grad_clip: 0.5
+  final_lr_fraction: 0.1
+  load_balancing_loss_weight: 0.01
+  capacity_factor: 1.00
+  save_weights_interval: 0
+  # same initialization as normal mamba
+  init_type: kaiming_uniform
+  init_scale: 0.577
+  # init_type: truncated_normal
+  # init_scale: 0.1
