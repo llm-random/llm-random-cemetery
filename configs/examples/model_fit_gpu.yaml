@@ -6,8 +6,8 @@ n_gpus: 1
 
 cuda_visible: "1"
 params:
-    ^group_size: [32, 64, 128, 256, 512]
-    ^batch_size: [32, 64, 128]
+    ^group_size: [32]
+    ^batch_size: [32]
 
 
     flash_attention: true
