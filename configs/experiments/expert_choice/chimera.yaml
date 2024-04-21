@@ -1,0 +1,76 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: e1ad1f2706fb54ba63da097b126d0cc0
+interactive_debug: false
+n_gpus: 1
+cuda_visible: "0"
+time: "2-00:00:00"
+params:
+    n_steps: 31250
+    chimera_option: "layer_independent"
+    chimera_first_mode: "ec"
+    chimera_second_mode: "switch"
+    chimera_warmup_constant_steps: 23437
+    chimera_final_schedule_step: 23437
+    chimera_start_prob: 1
+    chimera_end_prob: 0
+    
+    #name
+    name: chimera_moe_into_switch
+    tags: [moe,switch,chimera]
+
+    ff_mode: moe_chimera
+
+    #switch
+    load_balancing_loss_weight: 0.01
+    capacity_factor: 1.25
+    expert_size: 2048
+
+    #ec
+
+    n_experts: 64
+    effective_dff_x: 4
+    softmax_over: experts
+    n_blocks: 4
+    granularity: 1
+    expansion_rate: 64
+    group_granular_moe_by_batch: true
+    use_torch_bmm: true
+    granular_moe_one_hot_impl: true
+    layer_norm_in_expert_choice: true
+
+
+    #tuning
+    learning_rate: 2e-4
+    final_lr_fraction: 0.1
+    final_lr_step: 31250
+    lr_warmup_steps: 312
+    weight_decay: 0.1
+    init_type: truncated_normal
+    init_scale: 0.1
+
+    #data
+    batch_size: 2048
+    dataset_type: c4
+
+    #eval and logging
+
+    log_gradients_and_weights: false
+    decoding_interval: 0
+    logging_interval_heavy: 0
+    eval_interval: 1000
+    save_weights_interval: 0
+
+    #fsdp
+    fsdp_enabled: true
+#    fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+    fsdp_min_num_params: 10000
+    fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating"
+
+    #throughput
+    mixed_precision: true
+    mixed_precision_dtype: bfloat16
+    flash_attention: false
+    gradient_accumulation_steps: 8
+
+    activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
+#    loss_checkpoint_chungs: 0
