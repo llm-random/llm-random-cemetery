@@ -204,7 +204,7 @@ def get_model(
                     ("normal", embedding_layer),
                     (
                         "token_reduction",
-                        layers.TokenReductionLayer(reduced_number_of_tokens),
+                        layers.TokenReductionLayer(reduced_number_of_tokens, dm),
                     ),
                 ]
             )
