@@ -144,10 +144,7 @@ def get_classes_from_module_names(
 
 
 def get_mixed_precision_ignored_classes(args) -> list[Type[torch.nn.Module]]:
-    ignored_classes = [
-        LayerNorm,
-        _BatchNorm,
-    ]
+    ignored_classes = [LayerNorm, _BatchNorm, layers.TokenReductionLayer]
 
     selective_precision_modules = get_classes_from_module_names(
         args.fsdp_selective_precision_modules
@@ -204,7 +201,7 @@ def get_model(
                     ("normal", embedding_layer),
                     (
                         "token_reduction",
-                        layers.TokenReductionLayer(reduced_number_of_tokens),
+                        layers.TokenReductionLayer(reduced_number_of_tokens, dm),
                     ),
                 ]
             )
