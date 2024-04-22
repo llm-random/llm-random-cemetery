@@ -64,8 +64,8 @@ class ExpertFF(LoggingLayer):
             assert inner_values is not None
             # from icecream import ic
 
-            # print("adding inner values to experts output")
-            # ic(experts_output.shape, inner_values.shape)
+            print("adding inner values to experts output")
+            print(experts_output.shape, inner_values.shape)
             experts_output = experts_output + inner_values.squeeze(1).unsqueeze(-1)
 
         experts_output = self.activation(experts_output)
