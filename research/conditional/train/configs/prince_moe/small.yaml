@@ -1,6 +1,7 @@
 parent: configs/baselines/gpt/expert_choice/granularity/4/mini.yaml
 md5_parent_hash: 8c55b8c4ca676c8235c39a0555debad3
 time: 0-05:00:00
+interactive_debug: true
 
 params:
   name: "laptop_check"
@@ -12,4 +13,4 @@ params:
 
   save_weights_interval: -1
   # ^use_principled_moe: [true, false]
-  ^use_principled_moe: [false]
+  ^use_principled_moe: [true]
