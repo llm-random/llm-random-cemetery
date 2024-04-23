@@ -1,6 +1,8 @@
 import abc
 import os
 import platform
+import hashlib
+
 
 from lizrd.grid.setup_arguments import make_singularity_mount_paths
 
@@ -210,26 +212,26 @@ class EntropyBackend(MachineBackend):
 
 class WriterBackend(MachineBackend):
     def get_common_directory(self) -> str:
-        return "/home/ubuntu/llm-random"
+        return "/home/ubuntu/llm-random-group"
 
     def get_cache_path(self) -> str:
-        return "/home/ubuntu/llm-random"
+        return "/home/ubuntu/.cache"
 
     def get_grid_entrypoint(self) -> str:
         return "lizrd/grid/grid_entrypoint.sh"
 
-    # def get_default_train_dataset_path(self, dataset_type: str):
-    #     if dataset_type == "c4":
-    #         return "/local_storage_2/llm-random/datasets/c4_train"
-    #     return super().get_default_train_dataset_path(dataset_type)
+    def get_default_train_dataset_path(self, dataset_type: str):
+        if dataset_type == "c4":
+            return "/home/ubuntu/llm-random-group/datasets/c4_train"
+        return super().get_default_train_dataset_path(dataset_type)
 
-    # def get_default_validation_dataset_path(self, dataset_type: str):
-    #     if dataset_type == "c4":
-    #         return "/local_storage_2/llm-random/datasets/c4_validation"
-    #     return super().get_default_train_dataset_path(dataset_type)
+    def get_default_validation_dataset_path(self, dataset_type: str):
+        if dataset_type == "c4":
+            return "/home/ubuntu/llm-random-group/datasets/c4_validation"
+        return super().get_default_train_dataset_path(dataset_type)
 
     def get_cemetery_directory(self):
-        return "/home/ubuntu/llm-random-cemetery"
+        return "/home/ubuntu/llm-random-group/llm-random-cemetery"
 
     def get_subprocess_args(
         self,
@@ -304,7 +306,10 @@ def get_machine_backend(node=None) -> MachineBackend:
         return AthenaBackend()
     elif node == "login01":
         return IdeasBackend()
-    elif node == "164-152-24-115":
+    elif (
+        hashlib.sha256(node.encode()).hexdigest()
+        == "53cb84932d7356993300456b370e2e796c68d28be3e584c17f5eeacad9d36a12"
+    ):  # no need for anyone to know the hostname :)
         return WriterBackend()
     else:
         return LocalBackend()
