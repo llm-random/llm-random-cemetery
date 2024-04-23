@@ -39,6 +39,12 @@ def keep_given_indeces(input, dim, index):
     return torch.gather(input, dim, index)
 
 
+def keep_given_indeces2(input, index):
+    batch_size, _ = input.shape
+    input = input.view(-1)
+    output = torch.index_select(input, 0, index)
+    return output.view(batch_size, -1)
+
 def make_loss_and_gradient_function(
     loss_checkpoint_chungs: int,
 ) -> Callable:
@@ -178,8 +184,10 @@ def calculate_llm_loss_and_gradient(
             )
         ) and model.training:
             indices_to_keep = model.embedding_layer.token_reduction.indices_to_keep
-            mask = keep_given_indeces(mask, 1, indices_to_keep)
-            gt_tokens = keep_given_indeces(gt_tokens, 1, indices_to_keep)
+            # mask = keep_given_indeces(mask, 1, indices_to_keep)
+            # gt_tokens = keep_given_indeces(gt_tokens, 1, indices_to_keep)
+            mask = keep_given_indeces2(mask, indices_to_keep)
+            gt_tokens = keep_given_indeces2(gt_tokens,indices_to_keep)
 
         # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
         gt_tokens = gt_tokens.to(model_output.device)
