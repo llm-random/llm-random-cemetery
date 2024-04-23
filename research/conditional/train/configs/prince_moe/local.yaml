@@ -5,8 +5,7 @@ time: 0-05:00:00
 params:
   name: "laptop_check"
   ff_mode: expert_choice
-  cutoff: 16
-  granularity: 2
+  # cutoff: 17
   dataset_type: wikibook
   use_dummy_dataset: true
   torch_compile: false
@@ -15,10 +14,8 @@ params:
   # activation_type: softmax_last
   activation_type: relu
 
-  # get_router_values_from: "gate_weight"
-  # moe_values_exp: 1.
-  # moe_detach_gate: true
+
   save_weights_interval: -1
-  batch_size: 32
+  # batch_size: 32
   n_blocks: 1
   use_principled_moe: true
