@@ -6,12 +6,12 @@ n_gpus: 1
 
 params:
   name: "medium_merging_1024"
-  # logger_types: "neptune,wandb"
+  logger_types: "neptune,wandb"
   mixed_precision: true
   mixed_precision_dtype: bfloat16
   flash_attention: true
   grad_clip: 1.0
-  tags: ["medium", "token_reduction", "merging"]
+  tags: ["medium","baseline"]
 
 
   final_lr_step: 75_000
@@ -35,9 +35,9 @@ params:
   # gradient_accumulation_steps: 2
 
   #### Baseline params #####
-  # cutoff: 2048
-  # batch_size: 32
-  # learning_rate: 5e-5
+  cutoff: 2048
+  batch_size: 32
+  learning_rate: 5e-5
 
   # # cutoff: 1024
   # batch_size: 64
@@ -56,15 +56,15 @@ params:
 
 
   #### DEBUG ####
-  learning_rate: 5e-5
-  cutoff: 32
-  reduced_number_of_tokens: 24
-  batch_size: 8
-  dmodel: 32
-  dff: 128
-  n_blocks: 2
-  n_att_heads: 2
-  use_dummy_dataset: true
-  num_workers: 0
-  logger_types: "stdout"
+  # learning_rate: 5e-5
+  # cutoff: 32
+  # reduced_number_of_tokens: 24
+  # batch_size: 8
+  # dmodel: 32
+  # dff: 128
+  # n_blocks: 2
+  # n_att_heads: 2
+  # use_dummy_dataset: true
+  # num_workers: 0
+  # logger_types: "stdout"
 
