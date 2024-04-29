@@ -62,11 +62,12 @@ class ExpertFF(LoggingLayer):
 
         if self.principled_moe:
             assert inner_values is not None
+            assert inner_values.shape == (n_experts, capacity, 1)
             # from icecream import ic
 
             print("adding inner values to experts output")
             print(experts_output.shape, inner_values.shape)
-            experts_output = experts_output + inner_values.squeeze(1).unsqueeze(-1)
+            experts_output = experts_output + inner_values
 
         experts_output = self.activation(experts_output)
         if self.use_einsum:
