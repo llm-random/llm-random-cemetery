@@ -73,7 +73,7 @@ def get_processed_dataset(
         batch_size=batch_size,
         collate_fn=data.LLMBatch,
         worker_init_fn=partial(worker_init_fn, seed),
-        shuffle=False,
+        shuffle=True,
         pin_memory=True,
     )
 
