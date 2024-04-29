@@ -100,13 +100,15 @@ class C4Dataset(AbstractDataset):
             self.dataset = load_dataset("stas/c4-en-10k", split=split)
         else:
             self.dataset = load_dataset("c4", "en", split=split)
-        self.dataset_iterator = iter(self.dataset)
+        self.dataset_iterator = iter(self.dataset.to_iterable_dataset())
 
     def get_document(self) -> str:
         try:
             return next(self.dataset_iterator)["text"]
         except StopIteration:
             self.dataset_iterator = iter(
-                self.dataset.shuffle(seed=self.py_rng.randint(0, 2**32))
+                self.dataset.shuffle(
+                    seed=self.py_rng.randint(0, 2**32)
+                ).to_iterable_dataset()
             )
             return next(self.dataset_iterator)["text"]
