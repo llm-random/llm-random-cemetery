@@ -89,8 +89,10 @@ class C4Dataset(AbstractDataset):
         super().__init__(seed=seed)
         assert split in ["train", "validation"]
         if dataset_path is not None:
-            self.dataset = load_from_disk(dataset_path).shuffle(
-                seed=self.py_rng.randint(0, 2**32)
+            self.dataset = (
+                load_from_disk(dataset_path)
+                .to_iterable_dataset()
+                .shuffle(seed=self.py_rng.randint(0, 2**32))
             )
         elif use_dummy_dataset:
             if split != "train":

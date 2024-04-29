@@ -1,0 +1,33 @@
+parent: configs/baselines/gpt/dense/small.yaml
+md5_parent_hash: 9c33561435876b217623fcc532b8ab73
+# singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2024.04.19_19.24.28.sif
+time: "0:20:00"
+
+params:
+  # tokenizer: gpt
+
+  # blanx args
+  name: "debug_athena"
+  mixed_precision: true
+  flash_attention: true
+  mixed_precision_dtype: bfloat16
+  grad_clip: 1.0
+
+
+  n_steps: 1500
+  lr_warmup_steps: 150
+  weight_decay: 0.1
+  final_lr_step: 15000
+  dmodel: 768
+  dff: 3072
+  learning_rate: 1e-3
+  decoding_interval: 0
+  logging_interval_heavy: 1000
+  save_weights_interval: 0
+  init_type: truncated_normal
+  init_scale: 0.1
+  #tags: ["big", "base"]
+  ^num_workers: [8]
+  tags: ["normal_dataset"]
+  
+  dataset_type: c4
