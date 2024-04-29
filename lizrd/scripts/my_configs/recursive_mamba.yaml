@@ -1,0 +1,40 @@
+parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
+singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif
+md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
+# cuda_visible: "2"
+# interactive_debug: true
+time: "01:00:00"
+
+params:
+  # tokenizer: gpt
+
+  name: "recursive_mamba_test"
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+  # fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  # activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
+
+
+  ff_mode: vanilla
+
+  learning_rate: 5e-4
+  n_blocks: 16
+  decoding_interval: 0
+  logging_interval_heavy: 1000
+  # eval_interval: 1000
+  init_type: truncated_normal
+  init_scale: 0.1
+  dataset_type: c4
+
+  ^mamba_mode: ['recursive']
+  # mamba_mode: 'recursive'
+  ^mamba_n_levels: [4, 8]
+  block_modules: ["mamba"]
+
+  # LOCAL:
+  # dataset_type: wikibook
+  # use_dummy_dataset: true
+  # batch_size: 4
+  # num_workers: 0
+  save_weights_interval: 0
