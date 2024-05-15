@@ -1,0 +1,15 @@
+1. Hi. I'm Jan Ludziejewski and it is my pleasue to talk about our work done at IDEAS NCBR "Scaling Laws for Fine-Gradined Mixture Of Experts"
+2. Injecting chinchilla scaling law bug arguments
+3. Standard MoE - now i;m gonna explain how granularity works
+4. Granularity - constant activated parameters & total parameters
+4. Intuition behoidn granularity - now lekts talk how granularity works in general
+5. Preliminary results - puscilismy pierwsze experymebty i jak widac rzecyzwisic jest poprawa , im wieksza granularnosc tym lepszy loss i szybsz tempo zbiegania
+6. Scaling laws 
+7. We have observed a power law dependence of granularity =
+
+150 exp - values -> models
+remove shorten
+
+powiedzieć o dense linia przerywana
+
+
