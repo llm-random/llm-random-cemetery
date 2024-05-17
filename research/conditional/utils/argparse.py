@@ -367,4 +367,6 @@ def introduce_parser_arguments(
 
     parser.add_argument("--moe_clustering_interval", type=int, default=1)
     parser.add_argument("--moe_clustering_iters", type=int, default=1)
+    parser.add_argument("--weights_base_relative", type=float, default=1.)
+
     return parser
