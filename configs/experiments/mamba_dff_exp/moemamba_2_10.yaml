@@ -2,12 +2,12 @@ md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
 parent: configs/baselines/gpt/dense/medium.yaml
 # singularity_image: /common/llm-random/images/sparsity_2023.12.14_16.44.42.sif
 # singularity_image:
-singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif
+# singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif
 # singularity_image: /raid/NFS_SHARE/llm-random/images/sparsity_2023.12.14_16.44.42.sif
 # cuda_visible: "1"
 n_gpus: 1
-# time: "00:10:00"
-time: "10:00:00"
+time: "00:20:00"
+# time: "10:00:00"
 # hf_datasets_cache: /local_storage_1/dataset_cache
 # singularity_image: /home/jkrajewski_a100/images/sparsity_2023.11.10_15.23.19.sif
 
@@ -24,7 +24,7 @@ params:
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
   activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
   fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating,RoPE,TokenChoiceRouter"
-
+  logger_types: '""'
   grad_clip: 0.5
   weight_decay: 0.1
 
