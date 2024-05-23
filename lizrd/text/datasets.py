@@ -105,7 +105,7 @@ class C4Dataset(AbstractDataset):
     def get_document(self) -> str:
         document_id = self.offset % len(self.dataset)
         self.offset = (self.offset + self.total_workers) % len(self.dataset)
-        return self.dataset[document_id]["text"]
+        return self.dataset[0]["text"]
 
     def set_rng(self, seed: int | None = None):
         super().set_rng(seed)
