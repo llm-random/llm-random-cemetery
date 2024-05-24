@@ -13,6 +13,7 @@ class DataloaderWrapper:
         self.device = device
 
     def get_batch(self) -> data.LLMBatch:
+        print("Getting batch", flush=True)
         return next(self.generator).to(self.device)
 
 
