@@ -104,7 +104,7 @@ class C4Dataset(AbstractDataset):
 
     def get_document(self) -> str:
         document_id = self.offset % len(self.dataset)
-        self.offset = (self.offset + self.total_workers) % len(self.dataset)
+        self.offset += self.total_workers
         # print(document_id, flush=True)
         # print(self.dataset[document_id], flush=True)
         return self.dataset[document_id]["text"]
