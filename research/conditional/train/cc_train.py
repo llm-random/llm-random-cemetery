@@ -269,6 +269,7 @@ def main(
     else:
         logger = None
 
+    print("BEFORE BATCH LOGGING", flush=True)
     if args.model_type == "gpt" and is_logging_process:
         log_batch(
             train_dataloader,
@@ -278,7 +279,7 @@ def main(
                 else tokenizers.BertTokenizer
             ),
         )
-
+    print("AFTER BATCH LOGGING", flush=True)
     profiler_schedule = (
         torch.profiler.schedule(
             wait=args.profiler_schedule_wait,
