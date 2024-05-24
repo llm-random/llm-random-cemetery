@@ -50,8 +50,10 @@ def log_batch(
 ):
     # In case of GPT, log an example sequence for a possible inspection
 
-    print("Logging example batch...")
+    print("Logging example batch...", flush=True)
     batch = wrapper.get_batch()
+    print("Got batch...", flush=True)
+    print("Batch is:", batch, flush=True)
     hf_tokenizer = tokenizer_maker().tokenizer
 
     num_to_log = 5
@@ -269,16 +271,17 @@ def main(
     else:
         logger = None
 
-    if args.model_type == "gpt" and is_logging_process:
-        log_batch(
-            train_dataloader,
-            tokenizer_maker=(
-                tokenizers.GPTTokenizer
-                if args.model_type == "gpt"
-                else tokenizers.BertTokenizer
-            ),
-        )
-
+    print("BEFORE BATCH LOGGING", flush=True)
+    # if args.model_type == "gpt" and is_logging_process:
+    #     log_batch(
+    #         train_dataloader,
+    #         tokenizer_maker=(
+    #             tokenizers.GPTTokenizer
+    #             if args.model_type == "gpt"
+    #             else tokenizers.BertTokenizer
+    #         ),
+    #     )
+    print("AFTER BATCH LOGGING", flush=True)
     profiler_schedule = (
         torch.profiler.schedule(
             wait=args.profiler_schedule_wait,

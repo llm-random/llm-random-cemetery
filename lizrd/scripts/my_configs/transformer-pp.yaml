@@ -1,0 +1,74 @@
+parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
+
+time: "20:00:00"
+
+params:
+
+  name: "transformer_pp_ablations"
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: false
+
+  n_blocks: 8
+  ^ff_mode: [swi_glu]
+  dff: 1365
+  # dff: 2048
+  ^attention_mode: [vanilla, rope]
+  ^norm_class: [rms_norm]
+  dataset_type: c4
+  # fsdp 
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: ["RoPE,AttentionMechanism,ExpertGating"]
+
+  grad_clip: 0.5
+  learning_rate: 5e-4
+  scheduler: "cosine"
+  weight_decay: 0.1
+  # adam_beta2: 0.95
+
+  lr_warmup_steps: 1000
+  decoding_interval: 0
+  save_weights_interval: 0
+  init_type: truncated_normal
+  init_scale: 0.1
+  n_steps: 100_000
+  final_lr_step: 100_000
+
+# --- 
+
+# parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
+# md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
+
+# time: "20:00:00"
+
+# params:
+
+#   name: "transformer_pp_parameters_baseline"
+#   mixed_precision: true
+#   mixed_precision_dtype: bfloat16
+#   flash_attention: false
+
+#   n_blocks: 8
+#   dataset_type: c4
+#   # fsdp 
+#   fsdp_enabled: true
+#   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+#   activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+#   fsdp_selective_precision_modules: ["AttentionMechanism,ExpertGating"]
+
+#   adam_beta2: 0.95
+#   grad_clip: 1.0
+#   learning_rate: 5e-4
+#   scheduler: "cosine"
+#   weight_decay: 0.1
+  
+#   lr_warmup_steps: 1000
+#   decoding_interval: 0
+#   save_weights_interval: 0
+#   init_type: truncated_normal
+#   init_scale: 0.1
+#   n_steps: 100_000
+#   final_lr_step: 100_000

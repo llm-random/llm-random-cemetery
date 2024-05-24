@@ -1,0 +1,68 @@
+parent: research/conditional/train/configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 7a0330388646a9bfbcbee67008f9538a
+# singularity_image: /common/llm-random/images/sparsity_2023.12.14_16.44.42.sif # entropy
+# singularity_image: /net/pr2/projects/plgrid/plggllmeffi/images/sparsity_2023.12.14_16.44.42.sif # athena
+singularity_image: /raid/NFS_SHARE/llm-random/images/sparsity_2023.12.14_16.44.42.sif # dgx
+# cuda_visible: "4"
+n_gpus: 1
+time: "2:00:00"
+hf_datasets_cache: "/raid/NFS_SHARE/home/kamil.ciebiera/datasets/datasets"
+nodelist: "login01"
+params:
+    #tuning
+    learning_rate: 5e-4
+    load_balancing_loss_weight: 0.01 # wyjebać
+    capacity_factor: 1.25 # literatoora
+
+    #name
+    name: switch_test_decoupled
+    tags: ["old"]
+    #mot
+    ff_mode: token_choice
+    
+    # N_experts: 32 every expert size of normal DFF in vanilla
+    # ^token_choice_inner: ["relu"]
+    ^n_experts: [8]
+    dff: 2048
+    expert_size: 2048
+
+
+    batch_size: 256
+    # batch_size: 32
+    # batch_size: 2
+    dataset_type: c4
+    # dataset_type: wikibook
+    # use_dummy_dataset: true
+
+    #eval and logging
+    log_gradients_and_weights: false
+    decoding_interval: 0
+    logging_interval_heavy: 1000
+    # logging_interval_heavy: -1
+    save_weights_interval: 0
+
+
+
+    #fsdp
+    fsdp_enabled: true
+    fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    fsdp_selective_precision_modules: ["AttentionMechanism,ExpertGating"]
+    grad_clip: 0.5
+
+    #throughput
+    mixed_precision: true
+    mixed_precision_dtype: bfloat16
+    flash_attention: false
+    # gradient_accumulation_steps: 1 #!!!!!!!!!!!! THIS IS NONTRIVIAL
+    loss_checkpoint_chungs: 8 # szymon ma 8
+    init_type: truncated_normal
+    init_scale: 0.1
+    n_steps: 10_000
+    final_lr_step: 100_000
+    scheduler: "constant"
+    lr_warmup_steps: 1000
+
+    # datasets
+    # train_dataset_path: /raid/NFS_SHARE/datasets/c4/train/c4_train
+    # eval_dataset_path: /raid/NFS_SHARE/datasets/c4/validation/c4_validation
