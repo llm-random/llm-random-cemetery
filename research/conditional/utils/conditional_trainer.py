@@ -176,7 +176,9 @@ class ConditionalTrainer:
         self.model.train()
         if self.is_logging_process:
             self.layer_manager.prepare_for_logging(step)
+        print("Getting batch from loader", flush=True)
         processed_batch = self.train_dataloader.get_batch()
+        print("Got batch from loader", flush=True)
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
