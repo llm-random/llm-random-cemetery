@@ -278,7 +278,7 @@ def main(
                 else tokenizers.BertTokenizer
             ),
         )
-
+    print("AFTER BATCH LOGGING", flush=True)
     profiler_schedule = (
         torch.profiler.schedule(
             wait=args.profiler_schedule_wait,
