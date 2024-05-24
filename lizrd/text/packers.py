@@ -207,7 +207,8 @@ class GPTPacker(
             document_lengths.append(len(tokens) + 1)
             if (sum(document_lengths) - max(document_lengths)) > self.sequence_length:
                 break
-
+        print("SAMPLED WHAT I NEEDED")
+        print(len(buffer))
         sample_start = self.py_rng.randint(0, len(buffer) - 1)
         sample_end = sample_start + self.sequence_length
 
