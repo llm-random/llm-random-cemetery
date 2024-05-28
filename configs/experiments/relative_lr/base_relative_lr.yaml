@@ -1,0 +1,37 @@
+parent: configs/baselines/gpt/dense/base.yaml
+md5_parent_hash: 763f39978a58f704200275285162594c
+time: "24:00:00"
+n_gpus: 1
+
+params:
+  # tokenizer: gpt
+
+  name: "relative_lr_base"
+  # fsdp_enabled: true
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+  # fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  # activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  gradient_accumulation_steps: 2
+  grad_clip: 1.0
+
+  lr_ratio_modules: ["logging_ff_pre_relu.weight", "logging_ff_post_relu.weight", "attention.output_projection.weight"]
+  lr_ratios: [2, 0.2, 0.2]
+  tags: ["relative_lr", "baseline", "base", "no_fsdp"]
+
+  n_steps: 150000
+  learning_rate: 2.5e-4
+  lr_warmup_steps: 1500
+  final_lr_step: 150000
+  weight_decay: 0.01
+  scheduler: "cosine"
+  decoding_interval: 0
+  logging_interval_heavy: 10000
+  init_type: truncated_normal
+  init_scale: 0.1
+  save_weights_interval: 0
+  batch_size: 32
+  cutoff: 1024
+  dataset_type: c4
+
