@@ -89,7 +89,7 @@ class MoeGating(LoggingLayer):
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
         if return_logits:
-            self.update_cache_for_logging("gate_logits_all_values", gate_logits)
+            self.update_cache_for_logging("gate_logits_all_values", gate_logits.to(torch.float32))
             return gate_out, gate_logits
 
         return gate_out
