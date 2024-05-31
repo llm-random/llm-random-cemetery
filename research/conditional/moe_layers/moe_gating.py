@@ -89,7 +89,7 @@ class MoeGating(LoggingLayer):
 
         self.update_cache_for_logging("gate_softmax_all_values", gate_out)
         if return_logits:
-            self.update_cache_for_logging("gate_logits_all_values", gate_logits)
+            self.update_cache_for_logging("gate_logits_all_values", gate_logits.to(torch.float32))
             return gate_out, gate_logits
 
         return gate_out
@@ -279,15 +279,10 @@ class TokenGating(MoeGating):
         )
         self.update_cache_for_logging("n_tokens", torch.Tensor([n_tokens]))
 
-        if self.zloss_weight != 0:
-            gate_out, gate_logits = self.calculate_gate(
-                x, batch_size, seq_len, return_logits=True
-            )
-            gate_out = gate_out.T
-        else:
-            gate_out = self.calculate_gate(
-                x, batch_size, seq_len, return_logits=False
-            ).T
+        gate_out, gate_logits = self.calculate_gate(
+            x, batch_size, seq_len, return_logits=True
+        )
+        gate_out = gate_out.T
 
         assert gate_out.shape == (n_tokens, self.n_experts)
 
