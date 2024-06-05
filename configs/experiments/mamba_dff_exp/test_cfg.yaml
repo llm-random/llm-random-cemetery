@@ -1,0 +1,50 @@
+runner: "research.conditional.train.cc_train"
+time: 0-05:00:00
+n_gpus: 1
+interactive_debug: false
+
+# LOCAL:
+n_gpus: 0
+
+# train params
+params:
+  name: "DELETE_ME"
+
+  # model
+  model_type: gpt
+  dataset_type: c4
+  dmodel: 256
+  dff: 1024
+  n_blocks: 4
+  n_att_heads: 4
+
+  # base bass
+  mixed_precision: false
+  flash_attention: false
+
+  # logging etc.
+  logger_types: "neptune"
+  project_name: "pmtest/llm-random"
+  logging_interval_heavy: 500
+  logging_interval_loss: 1000
+  save_weights_path: "model_ckpt"
+  save_weights_interval: 0
+  
+  # shallower bass
+  cutoff: 256
+  batch_size: 8
+  n_steps: 100
+  final_lr_step: 250_000
+  scheduler: cosine
+  lr_warmup_steps: 2500
+  final_lr_fraction: 0.1
+
+  grad_clip: 1.0
+  learning_rate: 1e-3
+  decoding_interval: 0
+
+  torch_compile: true
+
+  # init
+  init_type: truncated_normal
+  init_scale: 0.1
