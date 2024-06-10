@@ -1,0 +1,36 @@
+# grid args
+runner: "research.conditional.train.cc_train"
+time: 0-40:00:00
+interactive_debug_session: false
+n_gpus: 1
+
+# train params
+params:
+  name: "vanilla_transformer_mlp"
+  tags: [vanilla transformer mlp]
+  logger_types: "neptune"
+  project_name: pmtest/llm-random
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+
+  # model
+  model_type: gpt
+  ff_mode: vanilla
+  batch_size: 4
+  cutoff: 16
+  dmodel: 64
+  dff: 256
+  n_blocks: 2
+  n_att_heads: 4
+
+  logging_interval_heavy: 2
+  logging_interval_loss: 1
+  grad_clip: 0.5
+  scheduler: constant
+  lr_warmup_steps: 10
+  n_steps: 200
+  learning_rate: 1e-4
+  dataset_type: wikibook
+  use_dummy_dataset: true
+  init_type: kaiming_uniform
+  init_scale: 1.0
