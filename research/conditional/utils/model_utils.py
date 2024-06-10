@@ -11,6 +11,7 @@ from torch.nn.modules.batchnorm import _BatchNorm
 from torch.profiler import ProfilerAction
 
 from lizrd.core import llm
+from lizrd.core import kan
 from lizrd.text.data import LLMBatch
 from lizrd.core.llm import Parallel
 from research.conditional.moe_layers.cont_moe_designs.common_weighted_parameter_matrices import (
@@ -537,6 +538,10 @@ def get_common_mot_kwargs(args):
 def get_ff_layer(args):
     if args.ff_mode == "vanilla":
         return_fn = lambda: llm.FeedForward(
+            args.dmodel, args.dff, init_type=args.init_type, init_scale=args.init_scale
+        )
+    elif args.ff_mode == "kan":
+        return_fn = lambda: kan.KanFF(
             args.dmodel, args.dff, init_type=args.init_type, init_scale=args.init_scale
         )
     elif args.ff_mode == "swi_glu":
