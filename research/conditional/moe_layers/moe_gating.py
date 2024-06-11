@@ -40,7 +40,9 @@ class MoeGating(LoggingLayer):
         self.softmax_over = softmax_over
         self.use_torch_bmm = use_torch_bmm
         self.detach_gate = detach_gate
-        self.get_router_values_from = get_router_values_from
+        if get_router_values_from == "ground_truth_weightless":
+            self.expert_inner_function = expert_inner_function
+            self.get_router_values_from = get_router_values_from
         self.gate, self.get_gate = self.init_gate(
             expert_inner_function,
             get_router_values_from,
@@ -66,6 +68,7 @@ class MoeGating(LoggingLayer):
             tokens_for_all_experts = x.reshape(
                 1, batch_size * seq_len, self.dmodel
             ).repeat(self.n_experts, 1, 1)
+            print(self.expert_inner_function)
             experts_output = self.expert_inner_function(tokens_for_all_experts).to(
                 x.dtype
             )
