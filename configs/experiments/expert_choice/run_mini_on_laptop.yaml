@@ -8,3 +8,6 @@ params:
   cutoff: 16
   granularity: 4
   dataset_type: wikibook
+  moe_detach_gate: True
+  mixed_precision: False
+  flash_attention: False
