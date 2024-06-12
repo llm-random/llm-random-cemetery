@@ -49,6 +49,9 @@ class MachineBackend(abc.ABC):
     def get_default_validation_dataset_path(self, dataset_type: str):
         return None
 
+    def get_cluster_name(self) -> str:
+        return None
+
     def get_cluster_default_params(self, dataset_type) -> dict:
         return {
             "train_dataset_path": self.get_default_train_dataset_path(dataset_type),
@@ -95,6 +98,9 @@ class AthenaBackend(MachineBackend):
         return (
             f"/net/pr2/projects/plgrid/plggllmeffi/{self.username}/llm_random_cemetery"
         )
+
+    def get_cluster_name(self) -> str:
+        return "athena"
 
     def get_subprocess_args(
         self,
@@ -148,6 +154,9 @@ class IdeasBackend(MachineBackend):
     def get_cemetery_directory(self):
         return f"~/llm_random_cemetery"
 
+    def get_cluster_name(self) -> str:
+        return "ideas"
+
     def get_subprocess_args(
         self,
         slurm_command,
@@ -198,6 +207,9 @@ class EntropyBackend(MachineBackend):
     def get_cemetery_directory(self):
         return f"~/llm_random_cemetery"
 
+    def get_cluster_name(self) -> str:
+        return "entropy"
+
     def get_subprocess_args(
         self,
         slurm_command,
@@ -247,6 +259,9 @@ class WriterBackend(MachineBackend):
 
     def get_cemetery_directory(self):
         return "/home/ubuntu/llm-random-group/llm-random-cemetery"
+
+    def get_cluster_name(self) -> str:
+        return "writer"
 
     def get_subprocess_args(
         self,
