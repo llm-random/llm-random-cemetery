@@ -79,6 +79,7 @@ def prepare_configs(
         config["params"]["git_branch"] = git_branch
         config["params"]["path_to_entry_config"] = config_path
         config["params"]["all_config_paths"] = ",".join(all_config_paths)
+        config["params"]["cluster"] = CLUSTER.get_cluster_name()
 
     for config in configs:
         default_params = CLUSTER.prepare_default_infrastructure_params(

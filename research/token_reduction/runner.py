@@ -245,6 +245,9 @@ def main(
     )
 
     if is_logging_process:
+        if 'SLURM_JOB_ID' in os.environ:
+            args.slurm_id = os.environ['SLURM_JOB_ID']
+            print("SLURM_JOB_ID:", args.slurm_id)
         logger = get_logger(args, model, VOCAB_SIZE)
     else:
         logger = None
