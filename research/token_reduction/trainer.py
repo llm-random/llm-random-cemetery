@@ -189,8 +189,7 @@ def calculate_llm_loss_and_gradient(
                     model._fsdp_wrapped_module.embedding_layer, TokenReductionEmbedding
                 )
             )
-            and model.training
-        ):
+        ) and model.training:
             reduction_layer = (
                 model.embedding_layer.reduction_layer
                 if not isinstance(model, FSDP)
