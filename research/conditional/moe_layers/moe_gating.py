@@ -83,9 +83,7 @@ class MoeGating(LoggingLayer):
                         :, start_index : start_index + chunk_size, :
                     ]
                     chunk_tokens = chunk_tokens.repeat(self.n_experts, 1, 1)
-                    experts_output = self.expert_inner_function(chunk_tokens).to(
-                        x.dtype
-                    )
+                    experts_output = torch.matmul(chunk_tokens, self.expert_inner_function.lin1_weight).to(x.dtype)
                     gate_out[
                         :, start_index : start_index + chunk_size
                     ] = experts_output.sum(-1)
@@ -93,10 +91,10 @@ class MoeGating(LoggingLayer):
                 start_index = (self.n_experts - 1) * chunk_size
                 chunk_tokens = tokens_for_all_experts[:, start_index:, :]
                 chunk_tokens = chunk_tokens.repeat(self.n_experts, 1, 1)
-                experts_output = self.expert_inner_function(chunk_tokens).to(x.dtype)
+                experts_output = torch.matmul(chunk_tokens, self.expert_inner_function.lin1_weight).to(x.dtype)
                 gate_out[:, start_index:] = experts_output.sum(-1)
 
-                gate_out = gate_out.reshape(self.n_experts, batch_size, seq_len)
+                gate_out = torch.softmax(gate_out, dim=0)
 
         else:
             with measure_time(self, "expert_embedding"):
