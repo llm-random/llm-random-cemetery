@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/token_reduction/configs/256/vanilla_small_finetuning.yaml --git_branch=baseline_small_finetuning_cutoff_256_2024-06-13_14-58-35 --skip_copy_code
