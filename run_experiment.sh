@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/token_reduction/configs/max_batch_size_base.yaml/base_512.yaml --git_branch=check_base_batch_size_seq_len_512_2024-06-13_11-17-23 --skip_copy_code
