@@ -15,7 +15,7 @@ params:
 
   # model
   model_type: gpt
-  ^ff_mode: [vanilla_timed, kan, vanilla]
+  ^ff_mode: [kan_squared, kan, vanilla]
   batch_size: 32
   cutoff: 128
   dmodel: 256
@@ -43,14 +43,14 @@ params:
   no_ff: false
 
   # tiny
-  batch_size: 4
-  cutoff: 16
-  dmodel: 16
-  dff: 64
-  n_blocks: 2
-  n_att_heads: 2
+  # batch_size: 4
+  # cutoff: 16
+  # dmodel: 16
+  # dff: 64
+  # n_blocks: 2
+  # n_att_heads: 2
 
-  n_gpus: 0
-  use_dummy_dataset: true
-  logger_types: "stdout"
+  # n_gpus: 0
+  # use_dummy_dataset: true
+  # logger_types: "stdout"
 
