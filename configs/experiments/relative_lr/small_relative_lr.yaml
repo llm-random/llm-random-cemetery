@@ -10,7 +10,7 @@ params:
   flash_attention: false
   mixed_precision: false
 
-  ^lr_ratio_modules: [["embedding_layer", "head", "layer.feedforward.logging_ff"], ["embedding_layer", "head", "layer.attention"]]
+  ^lr_ratio_modules: [["embedding_layer", "head", "pre_norm.weight"], ["embedding_layer", "head", "pre_norm.bias"]]
   ^lr_ratios: [[5, 0.2, 0.2], [5, 0.2, 0.5], [5, 0.2, 2], [5, 0.2, 5]]
   tags: ["relative_lr", "check_relative_with_emb_head"]
 
