@@ -35,7 +35,7 @@ class ExpertKAN(LoggingLayer):
             )
         else:
             self.kan_experts = torch.nn.ModuleList(
-                [KanFF(dmodel=dmodel, dff=dmodel // 2) for _ in range(n_experts)]
+                [KanFF(dmodel=dmodel, dff=expert_size // 8) for _ in range(n_experts)]
             )
 
     @time_measured("process_by_experts")
