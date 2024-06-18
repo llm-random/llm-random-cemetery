@@ -201,6 +201,14 @@ def main(
         checkpoint=checkpoint,
     )
 
+    def print_parameters(model):
+        with open('/home/janek/Documents/model_params.txt', 'w') as f:
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    f.write(f'Layer: {name} | Size: {param.size()} | Number of parameters: {param.numel()}\n')
+
+    print_parameters(model)
+
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
     print(f"Number of learnable parameters: {n_learnable_parameters:_}")

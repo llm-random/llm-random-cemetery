@@ -136,6 +136,14 @@ def main(
         blanks_use_custom_positional_embedding=args.blanks_use_custom_positional_embedding,
     )
 
+    def print_parameters(model):
+        with open('/home/janek/Documents/model_params.txt', 'w') as f:
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    f.write(f'Layer: {name} | Size: {param.size()} | Number of parameters: {param.numel()}\n')
+
+    print_parameters(model)
+
     # make model data_distributed if necessary
     if rank is not None:
         print(f"Moving model to cuda:{rank}")
