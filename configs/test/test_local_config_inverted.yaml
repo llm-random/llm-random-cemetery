@@ -16,7 +16,7 @@ params:
   name: "DELETE_ME"
   mixed_precision: false
   flash_attention: false
-  #logger_types: ["neptune"]
+  # logger_types: ["stdout"]
   # use_neptune: false
   # mixed_precision: true
   # mixed_precision_dtype: bfloat16
@@ -31,6 +31,7 @@ params:
   # eval_interval: 1000
   init_type: truncated_normal
   init_scale: 0.1
+  inverted: true
 
   # use_hidden_weights_fanin: true
   # output_weight_relative_init_scale: 0.1
