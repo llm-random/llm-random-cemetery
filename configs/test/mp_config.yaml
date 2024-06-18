@@ -23,7 +23,7 @@ params:
   lr_warmup_steps: 5000
   grad_clip: 1.0
   weight_decay: 0.01
-  learning_rate: 5e-4
+  learning_rate: 2e-4
   logging_interval_heavy: 5000
   logging_interval_loss: 1000
   mixed_precision: true
@@ -43,20 +43,21 @@ params:
   # medium size (otherwise cuda out of memory error)
   dmodel: 512
   dff: 2048
-  n_blocks: 8
   n_att_heads: 8
+  n_blocks: 8
 
   # moe
+  # n_experts: 8
   effective_dff_x: 4
   expansion_rate: 8
   granularity: 1
   ff_mode: token_choice
-  ^moe_inner_expert: [kan, kan_squared]
+  ^moe_inner_expert: [kan, ff_gated]
   use_torch_bmm: true
   softmax_over: experts
   group_granular_moe_by_batch: true
   granular_moe_one_hot_impl: true
-  layer_norm_in_expert_choice: true
+  ^layer_norm_in_expert_choice: [true]
   zloss_weight: 0
 
   # init
@@ -70,3 +71,43 @@ params:
   # dmodel: 16
   # n_att_heads: 1
   # zloss_weight: 0
+
+
+# parent: configs/baselines/gpt/dense/base.yaml
+# md5_parent_hash: 763f39978a58f704200275285162594c
+# time: "40:00:00"
+# n_gpus: 1
+
+# params:
+#   # tokenizer: gpt
+
+#   name: "zloss_may_help_here"
+#   # fsdp_enabled: true
+#   mixed_precision: true
+#   mixed_precision_dtype: bfloat16
+#   flash_attention: true
+#   # fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+#   # activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
+#   gradient_accumulation_steps: 4
+#   grad_clip: 1.0
+
+#   # lr_ratio_modules: ["logging_ff_pre_relu.weight", "logging_ff_post_relu.weight", "attention.output_projection.weight"]
+#   # lr_ratios: [2, 0.2, 0.2]
+#   tags: ["zloss"]
+
+#   n_steps: 37500
+#   learning_rate: 1e-3
+#   lr_warmup_steps: 375
+#   final_lr_step: 37500
+#   weight_decay: 0.01
+#   scheduler: "cosine"
+#   decoding_interval: 0
+#   logging_interval_heavy: 10000
+#   init_type: truncated_normal
+#   init_scale: 0.1
+#   save_weights_interval: 0
+#   batch_size: 128
+#   cutoff: 1024
+#   dataset_type: c4
+
+#   ^zloss_weight: [0, 0.0001]
