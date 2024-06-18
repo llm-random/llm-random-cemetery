@@ -4,7 +4,12 @@ time: 0-05:00:00
 
 params:
   name: "laptop_check"
-  ff_mode: token_choice
+  ff_mode: chimera
   cutoff: 16
   granularity: 4
+  final_lr_step: 100
+  lr_warmup_steps: 2
   dataset_type: wikibook
+  chimera_change_after_percent: 0.1
+  lr_restart_on_chimera: true
+  lr_restart_first_full: true
