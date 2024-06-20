@@ -10,6 +10,7 @@ from torch.utils.data import IterableDataset
 from lizrd.text.datasets import AbstractDataset
 from lizrd.text.data import LLMExample
 from lizrd.text.tokenizers import AbstractTokenizer, BertTokenizer, GPTTokenizer
+from research.subtoken.text.data import SubtokenLLMExample
 
 
 def take_circular(iterable, start, stop):
@@ -216,3 +217,75 @@ class GPTPacker(
         calculate_loss = [1] * len(target_ids)
 
         return LLMExample(input_ids, target_ids, calculate_loss)
+
+
+def token_ids_to_strings(token_ids: List[int], tokenizer) -> List[str]:
+    return tokenizer.batch_decode(
+        [[tid] for tid in token_ids], skip_special_tokens=True
+    )
+
+
+def string_to_bytes_list(s: str) -> List[int]:
+    return list(s.encode("utf-8"))
+
+
+class SubtokenGPTPacker(
+    AbstractPacker,
+):
+    def __init__(
+        self,
+        sequence_length: int,
+        dataset_maker: AbstractDataset,
+        tokenizer_maker: Callable[[], GPTTokenizer],
+        seed: Optional[int] = None,
+    ):
+        super().__init__(
+            sequence_length,
+            dataset_maker,
+            tokenizer_maker,
+            seed=seed,
+        )
+
+    def get_sample(self) -> SubtokenLLMExample:
+        """
+        Sample examples from the dataset until we reach the desired sequence length.
+        """
+        eot_id = self.tokenizer.eot_id
+        assert eot_id is not None
+
+        buffer: List[int] = []
+        calculate_loss: List[int] = []
+        document_lengths: List[int] = []
+
+        while True:
+            document = self.dataset.get_document()
+            tokens = self.tokenizer.text_to_ids(document)
+            if len(set(tokens) & self.tokenizer.UNWANTED_TOKENS) > 0:
+                print("Skipping document with unwanted tokens")
+                continue
+            buffer.extend(tokens + [eot_id])
+
+            document_lengths.append(len(tokens) + 1)
+            if (sum(document_lengths) - max(document_lengths)) > self.sequence_length:
+                break
+
+        sample_start = self.py_rng.randint(0, len(buffer) - 1)
+        sample_end = sample_start + self.sequence_length
+
+        input_ids = list(take_circular(buffer, sample_start, sample_end))
+        input_bytes = []
+        for token in input_ids:
+            if token != self.tokenizer.eot_id:
+                bytes_ = list(
+                    bytes(self.tokenizer.token_id_to_text[token].encode("utf-8"))
+                )
+                assert len(bytes_) <= self.tokenizer.MAX_BYTES_PER_TOKEN
+                input_bytes.append(
+                    bytes_ + [-1] * (self.tokenizer.MAX_BYTES_PER_TOKEN - len(bytes_))
+                )
+            else:
+                input_bytes.append([-1] * self.tokenizer.MAX_BYTES_PER_TOKEN)
+        target_ids = list(take_circular(buffer, sample_start + 1, sample_end + 1))
+        calculate_loss = [1] * len(target_ids)
+
+        return SubtokenLLMExample(input_ids, input_bytes, target_ids, calculate_loss)
