@@ -631,6 +631,52 @@ class PositionalEmbedding(nn.Module):
         return embeddings
 
 
+class SubtokenEmbedding(nn.Module):
+    def __init__(
+        self,
+        embedding_dim: int,
+        max_n_bytes: int,
+        init_type: Literal["kaiming_uniform", "truncated_normal"],
+        init_scale: float,
+    ):
+        super().__init__()
+        self.byte_embedding = nn.Embedding(256, embedding_dim)
+        self.positional_embedding = torch.nn.Parameter(
+            torch.zeros((embedding_dim, embedding_dim))
+        )
+        self.max_n_bytes = max_n_bytes
+
+        # self.layer = nn.Embedding(max_length, embedding_dim)
+        # default_weight = self.layer.weight.data
+        # self.layer.weight.data = get_init_weight(
+        #     shape=default_weight.shape,
+        #     fan_in=1,
+        #     init_type=init_type,
+        #     scale=init_scale,
+        #     dtype=default_weight.dtype,
+        # )
+        # TODO(jaszczur): add initialization as positional encoding
+
+    def forward(self, bytes_ids):
+        positional_embeddings = [self.positional_embedding]
+        for _ in range(self.max_n_bytes - 1):
+            positional_embeddings.append(
+                self.positional_embedding @ positional_embeddings[-1]
+            )
+        positional_embeddings = torch.stack(positional_embeddings)
+        is_missing_byte = bytes_ids.eq(-1)
+        bytes_ids = bytes_ids.clone()
+        bytes_ids[is_missing_byte] = 0
+        bytes_embeddings = self.byte_embedding(bytes_ids)
+        embeddings = positional_embeddings @ bytes_embeddings
+        embeddings = embeddings * ~is_missing_byte.unsqueeze(-1)
+        embeddings = embeddings.sum(dim=-1)
+        # positions = torch.arange(0, x.shape[-1], device=x.device)
+        # positions = positions * torch.ones_like(x)
+        # embeddings = self.layer(positions)
+        return embeddings
+
+
 class EmbeddingLayer(Aggregate):
     def __init__(self, *layers):
         super(EmbeddingLayer, self).__init__((lambda x, y: x + y), *layers)
