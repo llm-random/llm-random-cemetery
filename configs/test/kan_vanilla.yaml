@@ -18,15 +18,15 @@ params:
   cutoff: 256
   final_lr_fraction: 0.1
   scheduler: cosine
-  final_lr_step: 50000
-  n_steps: 50000
-  lr_warmup_steps: 5000
+  final_lr_step: 1000
+  n_steps: 1000
+  lr_warmup_steps: 10
   grad_clip: 1.0
   weight_decay: 0.01
   ^learning_rate: [5e-4]
   # learning_rate: 5e-4
-  logging_interval_heavy: 5000
-  logging_interval_loss: 1000
+  logging_interval_heavy: 50
+  logging_interval_loss: 10
   mixed_precision: true
   mixed_precision_dtype: bfloat16
   torch_compile: false
@@ -48,15 +48,11 @@ params:
   n_att_heads: 8
 
   # # mini size
-  # dmodel: 256
-  # n_blocks: 4
-  # n_att_heads: 4
+  dmodel: 256
+  n_blocks: 4
+  n_att_heads: 4
 
-  # moe
-  effective_dff_x: 4
-  expansion_rate: 8
-  granularity: 1
-  ^ff_mode: [kan, kan_squared]
+  ^ff_mode: [kan]
   use_torch_bmm: true
   softmax_over: experts
 
