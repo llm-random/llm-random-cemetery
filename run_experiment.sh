@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_test_0_learning_rate_IORIQ2S5.yaml --git_branch=local_search_test_0_learning_rate_IORIQ2S5_2024-06-20_21-31-53 --skip_copy_code
