@@ -5,7 +5,7 @@ runner: research.conditional.train.cc_train
 n_gpus: 1
 
 params:
-  name: "kan_squared_prof"
+  name: "ff_512"
   save_weights_interval: -1
   tags: [kan]
 
@@ -43,7 +43,7 @@ params:
 
   # medium size
   dmodel: 512
-  dff: 256
+  dff: 2048
   n_blocks: 8
   n_att_heads: 8
 
@@ -53,7 +53,7 @@ params:
   # n_blocks: 4
   # n_att_heads: 4
 
-  ^ff_mode: [kan, kan_squared]
+  ^ff_mode: [vanilla]
   use_torch_bmm: true
   softmax_over: experts
 
