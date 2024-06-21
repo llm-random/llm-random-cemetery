@@ -42,12 +42,14 @@ class TrainRun:
         self.connection = search.connection
         self.server = search.server_name
         self.val = val
+        time.sleep(5)
 
     def is_submitted(self):
         return self.process.poll() is not None
 
     def is_queued(self):
         out = run_command(f"ssh -qt {self.server} 'squeue --start --states=R -o \"%.50j\" | grep {self.pid} ; squeue --states=R -o \"%.50j\"' | grep {self.pid} 2>/dev/null")
+        print(out)
         return len(out) > 1
 
     def is_running(self):
