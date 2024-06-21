@@ -9,10 +9,15 @@ params:
   name: "relative_lr_base"
   gradient_accumulation_steps: 2
   grad_clip: 1.0
+  flash_attention: false
+  mixed_precision: false
 
   relative_lr: 
     embedding_layer: 5
     head: 0.2
+    attention.output_projection.weight: 0.2
+    feedforward.logging_ff_pre_relu.weight: 2
+    feedforward.logging_ff_post_relu.weight: 0.2
 
   tags: ["relative_lr", "base", "best_combo"]
 
