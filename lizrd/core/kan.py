@@ -389,3 +389,30 @@ def MlpKan(
             ]
         )
     )
+
+def MlpKan_norelu(
+    dmodel,
+    dff,
+    init_type: Literal["kaiming_uniform", "truncated_normal"] = "kaiming_uniform",
+    init_scale: float = 0.0,
+    bias: Literal["both", "first", "second", "none"] = "both",
+):
+    return nn.Sequential(
+        OrderedDict(
+            [
+                (
+                    "MLP",
+                    Linear(
+                        dmodel,
+                        dff,
+                        init_type=init_type,
+                        init_scale=init_scale,
+                    ),
+                ),
+                (
+                    "KAN",
+                    KAN(layers_hidden=[dff, dmodel]),
+                ),
+            ]
+        )
+    )
