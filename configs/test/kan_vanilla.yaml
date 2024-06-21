@@ -5,9 +5,9 @@ runner: research.conditional.train.cc_train
 n_gpus: 1
 
 params:
-  name: "kanmlp"
+  name: "kan_512"
   save_weights_interval: -1
-  tags: [kan]
+  tags: [kan, dmodel512, 1expert]
 
   logger_types: "neptune"
   project_name: pmtest/llm-random
@@ -43,23 +43,23 @@ params:
 
   # medium size
   dmodel: 512
-  dff: 2048
+  dff: 32
   n_blocks: 8
   n_att_heads: 8
 
   # # mini size
-  dmodel: 256
-  # ^dff: [1024, 512]
-  n_blocks: 4
-  n_att_heads: 4
+  # dmodel: 256
+  # ^dff: [128, 90, 64, 50]
+  # n_blocks: 4
+  # n_att_heads: 4
 
-  final_lr_step: 10000
-  n_steps: 10100
-  lr_warmup_steps: 100
-  logging_interval_heavy: 200
-  logging_interval_loss: 50
+  # final_lr_step: 10000
+  # n_steps: 10100
+  # lr_warmup_steps: 100
+  # logging_interval_heavy: 200
+  # logging_interval_loss: 50
 
-  ^ff_mode: [identity]
+  ^ff_mode: [mlp_kan_norelu]
   use_torch_bmm: true
   softmax_over: experts
 
