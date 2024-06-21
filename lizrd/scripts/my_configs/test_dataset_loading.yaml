@@ -1,0 +1,25 @@
+parent: research/conditional/train/configs/baselines/gpt/dense/mini.yaml
+md5_parent_hash: 549895edc027ef23656e1f8b7e2ffaab
+# cuda_visible: "2"
+# interactive_debug: true
+time: "1:00:00"
+hf_datasets_cache: "/raid/NFS_SHARE/home/kamil.ciebiera/datasets/datasets"
+
+# LOCAL:
+n_gpus: 1
+
+params:
+
+  name: "test_dataset_loading"
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+
+  ^dataset_type: [c4, wikibook]
+  n_steps: 100
+  learning_rate: 5e-4
+  decoding_interval: 0
+  logging_interval_heavy: 500
+  # eval_interval: 1000
+  init_type: truncated_normal
+  init_scale: 0.1
