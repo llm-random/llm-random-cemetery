@@ -149,7 +149,12 @@ def create_grid(params: dict) -> List[dict]:
         for func_name, func in functions:
             out_dict[func_name] = func(out_dict)
         out_params.append(out_dict)
-
+    for out_dict in out_params:
+        for k, v in out_dict.items():
+            if isinstance(v, dict):
+                print(f"Error: {k}={v}")
+                out_dict[k] = str(v)  # for sbatch
+                print(f"Fixed: {k}={out_dict[k]}")
     return out_params
 
 
