@@ -3,6 +3,11 @@ import json
 
 
 def load_dict_in_args(s: str):
+    print(s)
+    if s[0] == '"':
+        s = s[
+            1:-1
+        ]  # hack for local execution, we need this quotes in sbatch but not in local execution
     return json.loads(s.replace("'", '"'))
 
 
