@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_test_0_learning_rate_SI2SHUS2.yaml --git_branch=local_search_test_0_learning_rate_SI2SHUS2_2024-06-21_18-42-35 --skip_copy_code --skip_confirmation
