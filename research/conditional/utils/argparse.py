@@ -3,6 +3,7 @@ import json
 
 
 def load_dict_in_args(s: str):
+    print(s)
     return json.loads(s.replace("'", '"'))
 
 
