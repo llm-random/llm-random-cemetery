@@ -30,6 +30,6 @@ params:
 tune_config:
   iters: 10
   #param_change: [0.1, 0.5, 3, 10]
-  param_change: [0.1, 10]
+  param_change: [0.2, 5]
   tune_params:
     - "learning_rate"
