@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/token_reduction/configs/1024/medium_dropping_cutoff_1232.yaml --git_branch=baseline_medium_dropping_reduced_to_1024_2024-06-22_14-55-19 --skip_copy_code
