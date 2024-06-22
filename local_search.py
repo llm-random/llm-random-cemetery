@@ -67,7 +67,7 @@ class TrainRun:
         return self.get_run() is not None
 
     def is_finished(self):
-        return self.get_run()["status"] == "Inactive"
+        return self.get_run()["sys/state"] == "Inactive"
 
     def get_results(self):
         try:
@@ -137,8 +137,8 @@ class LocalSearch:
             for pid in pids:
                 if func(pid):
                     pids.remove(pid)
-                    trange.set_description(desc() + f" ({all-len(pids)}/{all})")
                     trange.update(1)
+            trange.set_description(desc() + f" ({all-len(pids)}/{all})")
             time.sleep(self.wait_time)
 
     def wait_for_runs_to_finish_and_get_best(self, pids, param):
@@ -150,10 +150,12 @@ class LocalSearch:
         self.wait_until_true(range, TrainRun.is_running, list(pids), lambda: "Exps queued, waiting for them to start")
         self.wait_until_true(range, TrainRun.is_in_neptune, list(pids), lambda: "Exps started, waiting for them to appear in Neptune")
         self.wait_until_true(range, TrainRun.is_finished, list(pids), lambda: f"Exps running for {param}: {get_results_str()}")
-
-        results =  [run.get_results() for run in pids]
-        trange.set_description(f"Results ({param}): {get_results_str()} ")
+        range.set_description(f"Results ({param}): {get_results_str()} ")
         range.close()
+
+        results = [run.get_results() for run in pids]
+        if any([result == "N/A" for result in results]):
+            raise Exception("Some runs did not finish properly")
         best_run = np.argmin(results)
         if self.last_score is None or results[best_run] < self.last_score:
             self.last_score = results[best_run]
