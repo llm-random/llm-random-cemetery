@@ -10,6 +10,7 @@ from pathlib import Path
 import argparse
 import time
 import subprocess
+import neptune
 
 
 def parse_config(config_path):
@@ -29,9 +30,9 @@ def run_command(command):
     return os.popen(command).read()
 
 
-def init_neptune_connection():
-    return None  # TODO
-    #raise Exception("Not implemented")
+def init_neptune_connection(project_name="pmtest/llm-random"):
+    api_token = os.environ["NEPTUNE_API_TOKEN"]
+    return neptune.init_project(api_token=api_token, project=project_name)
 
 
 class TrainRun:
@@ -42,6 +43,14 @@ class TrainRun:
         self.connection = search.connection
         self.server = search.server_name
         self.val = val
+        time.sleep(7)
+
+    def get_run(self):
+        runs = self.connection.fetch_runs_table(tag=self.pid).to_pandas()
+        if len(runs) == 0:
+            return None
+        assert len(runs) > 1  # There should be only one run with the same tag
+        return runs[0]
 
     def is_submitted(self):
         return self.process.poll() is not None
@@ -55,13 +64,13 @@ class TrainRun:
         return len(out) > 1
 
     def is_in_neptune(self):
-        raise Exception("Not implemented")
+        return self.get_run() is not None
 
     def is_finished(self):
-        raise Exception("Not implemented")
+        return self.get_run()["status"] == "Inactive"
 
     def get_results(self):
-        raise Exception("Not implemented")
+        return self.get_run()["loss_interval/100"]
 
 
 class LocalSearch:
@@ -111,7 +120,7 @@ class LocalSearch:
 
         # add tags
         tags = self.get_param_val('tags', [])
-        tags += ["local_search", f"search_{self.exp_name}", f"tuning_{param}", f"iter_{iter}"]
+        tags += ["local_search", name, f"orig_val_{self.get_param_val(param)}"]
         self.set_param_val(config, 'tags', tags)
 
         self.write_yaml(config_path, config)
