@@ -61,13 +61,17 @@ class TrainRun:
 
     def is_running(self):
         out = run_command(f"ssh -qt {self.server} 'squeue --states=R -o \"%.50j\"' | grep {self.pid} 2>/dev/null")
-        return len(out) > 1
+        return len(out) > 1 or self.is_in_neptune()
 
     def is_in_neptune(self):
         return self.get_run() is not None
 
     def is_finished(self):
-        return self.get_run()["status"] == "Inactive"
+        return self.get_run()["sys/state"] == "Inactive"
+
+    def add_sota_status(self):
+        run = self.get_run()
+        run["sys/tags"].add("local_sota")
 
     def get_results(self):
         try:
@@ -77,7 +81,7 @@ class TrainRun:
 
 
 class LocalSearch:
-    def __init__(self, server_name, base_config, iters, tune_params, wait_time=5, param_change=(0.1, 0.5, 3, 10), configs_directory="local_search_configs"):
+    def __init__(self, server_name, base_config, iters, tune_params, wait_time=5, param_change=(0.2, 2/3, 3/2, 5), configs_directory="local_search_configs"):
         self.iters = iters
         self.server_name = server_name
         self.current_config = base_config
@@ -137,8 +141,8 @@ class LocalSearch:
             for pid in pids:
                 if func(pid):
                     pids.remove(pid)
-                    trange.set_description(desc() + f" ({all-len(pids)}/{all})")
                     trange.update(1)
+            trange.set_description(desc() + f" ({all-len(pids)}/{all})")
             time.sleep(self.wait_time)
 
     def wait_for_runs_to_finish_and_get_best(self, pids, param):
@@ -150,10 +154,12 @@ class LocalSearch:
         self.wait_until_true(range, TrainRun.is_running, list(pids), lambda: "Exps queued, waiting for them to start")
         self.wait_until_true(range, TrainRun.is_in_neptune, list(pids), lambda: "Exps started, waiting for them to appear in Neptune")
         self.wait_until_true(range, TrainRun.is_finished, list(pids), lambda: f"Exps running for {param}: {get_results_str()}")
-
-        results =  [run.get_results() for run in pids]
-        trange.set_description(f"Results ({param}): {get_results_str()} ")
+        range.set_description(f"Results ({param}): {get_results_str()} ")
         range.close()
+
+        results = [run.get_results() for run in pids]
+        if any([result == "N/A" for result in results]):
+            raise Exception("Some runs did not finish properly")
         best_run = np.argmin(results)
         if self.last_score is None or results[best_run] < self.last_score:
             self.last_score = results[best_run]
@@ -174,7 +180,7 @@ class LocalSearch:
         return self.run_config_dict(self.current_config, param, val, iter=0)
 
     def run_iteration(self, i):
-        while (perm := np.random.permutation(self.tune_params))[0] == self.last_param: pass
+        while (perm := np.random.permutation(self.tune_params))[0] == self.last_param and len(self.tune_params) > 1: pass
         self.last_param = perm[-1]
         changed = False
         for param in perm:
@@ -182,6 +188,8 @@ class LocalSearch:
             if self.last_score is None:
                 pids.append(self.run_baseline_score(param))
             has_changed = self.wait_for_runs_to_finish_and_get_best(pids, param)
+            if len(pids) > len(self.param_change):
+                pids[-1].add_sota_status()
             changed = changed or has_changed
         return changed
 
@@ -205,6 +213,3 @@ if __name__ == "__main__":
 
     local_search = LocalSearch(server_name=args.server_name, **parse_config(args.config_path))
     local_search.run()
-
-
-
