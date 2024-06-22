@@ -42,6 +42,7 @@ class TrainRun:
         self.connection = search.connection
         self.server = search.server_name
         self.val = val
+        time.sleep(7)
 
     def is_submitted(self):
         return self.process.poll() is not None
