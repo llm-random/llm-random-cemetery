@@ -67,7 +67,7 @@ class TrainRun:
         return self.get_run() is not None
 
     def is_finished(self):
-        return self.get_run()["status"] == "Inactive"
+        return self.get_run()["sys/state"] == "Inactive"
 
     def get_results(self):
         try:
