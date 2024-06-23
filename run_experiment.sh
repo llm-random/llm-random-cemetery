@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m lizrd.grid --config_path=local_search_configs/local_relative_test_0_relative_lr_head_COHM2ZH6.yaml --git_branch=local_relative_test_0_relative_lr_head_COHM2ZH6_2024-06-23_15-37-47 --skip_copy_code --skip_confirmation
+python3 -m lizrd.grid --config_path=local_search_configs/local_relative_test_0_relative_lr_embedding_layer_TGT8AHFS.yaml --git_branch=local_relative_test_0_relative_lr_embedding_layer_TGT8AHFS_2024-06-23_17-13-58 --skip_copy_code --skip_confirmation
