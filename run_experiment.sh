@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/token_reduction/configs/1024/base_dropping_cutoff_1126.yaml --git_branch=base_dropping_scheduled_reduced_1126_to_1024_2024-06-23_12-03-32 --skip_copy_code
