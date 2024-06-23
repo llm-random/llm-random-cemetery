@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m lizrd.grid --config_path=local_search_configs/local_search_test_0_final_lr_fraction_4Q3KXLGU.yaml --git_branch=local_search_test_0_final_lr_fraction_4Q3KXLGU_2024-06-22_23-23-51 --skip_copy_code --skip_confirmation
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_test_1_final_lr_fraction_Y74S3F7S.yaml --git_branch=local_search_test_1_final_lr_fraction_Y74S3F7S_2024-06-23_08-18-03 --skip_copy_code --skip_confirmation
