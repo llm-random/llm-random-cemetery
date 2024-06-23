@@ -118,7 +118,7 @@ class LocalSearch:
                 raise Exception(f"Parameter {param} not found in config")
             else:
                 return default
-        return self.current_config["params"][param]
+        return copy.deepcopy(self.current_config["params"][param])
 
     def set_param_val(self, config, param, val):
         config["params"][param] = val
@@ -196,10 +196,10 @@ class LocalSearch:
         for param in perm:
             pids = self.run_param_tuning(param, i)
             if self.last_score is None:
-                pids.append(self.run_baseline_score(param))
+                pids = [self.run_baseline_score(param)] + pids
             has_changed = self.wait_for_runs_to_finish_and_get_best(pids, param)
             if len(pids) > len(self.param_change):
-                pids[-1].add_sota_status()
+                pids[0].add_sota_status()  # baseline is the first sota
             changed = changed or has_changed
         return changed
 
