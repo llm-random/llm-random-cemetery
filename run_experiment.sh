@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/token_reduction/configs/1024/medium_merging_cutoff_1126.yaml --git_branch=medium_merging_scheduled_reduced_1126_to_1024_2024-06-23_09-44-20 --skip_copy_code
