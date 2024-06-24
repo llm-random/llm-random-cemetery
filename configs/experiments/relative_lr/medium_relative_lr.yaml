@@ -27,4 +27,6 @@ params:
   relative_lr: 
     embedding_layer: 5
     head: 0.2
+    ^encoder.blocks.block_0: [0.2, 0.5, 2, 5]
+    ^encoder.blocks.block_7: [0.2, 0.5, 2, 5]
 
