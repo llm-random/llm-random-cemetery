@@ -605,6 +605,7 @@ def TokenEmbedding(
 
 
 class PositionalEmbedding(nn.Module):
+
     def __init__(
         self,
         max_length,
@@ -629,6 +630,65 @@ class PositionalEmbedding(nn.Module):
         positions = positions * torch.ones_like(x)
         embeddings = self.layer(positions)
         return embeddings
+
+
+class SubtokenEmbedding(nn.Module):
+
+    def __init__(
+        self,
+        embedding_dim: int,
+        max_n_bytes: int,
+        init_type: Literal["kaiming_uniform", "truncated_normal"],
+        init_scale: float,
+        lowrank_dim=16,
+    ):
+        super().__init__()
+        self.byte_embedding = nn.Embedding(256, lowrank_dim)
+        self.upscaler = torch.nn.Linear(lowrank_dim, embedding_dim)
+        self.positional_embedding = nn.Embedding(
+            max_n_bytes, (lowrank_dim * lowrank_dim)
+        )
+        # self.positional_embedding = torch.nn.Parameter(
+
+        # )
+        self.max_n_bytes = max_n_bytes
+        self.lowrank_dim = lowrank_dim
+
+        # self.layer = nn.Embedding(max_length, embedding_dim)
+        # default_weight = self.layer.weight.data
+        # self.layer.weight.data = get_init_weight(
+        #     shape=default_weight.shape,
+        #     fan_in=1,
+        #     init_type=init_type,
+        #     scale=init_scale,
+        #     dtype=default_weight.dtype,
+        # )
+        # TODO(jaszczur): add initialization as positional encoding
+
+    def forward(self, bytes_ids):
+        # positional_embeddings = [self.positional_embedding]
+        # for _ in range(self.max_n_bytes - 1):
+        #     positional_embeddings.append(
+        #         self.positional_embedding @ positional_embeddings[-1]
+        #     )
+        # positional_embeddings = torch.stack(positional_embeddings)
+
+        is_missing_byte = bytes_ids.eq(-1)
+        bytes_ids = bytes_ids.clone()
+        bytes_ids[is_missing_byte] = 0
+        bytes_embeddings = self.byte_embedding(bytes_ids)
+
+        positions = torch.arange(0, self.max_n_bytes, device=bytes_ids.device)
+        positional_embeddings = self.positional_embedding(positions).reshape(
+            1, self.max_n_bytes, self.lowrank_dim, self.lowrank_dim
+        )
+        embeddings = positional_embeddings @ bytes_embeddings
+        embeddings = embeddings * ~is_missing_byte.unsqueeze(-1)
+        embeddings = embeddings.sum(dim=-1)
+
+        # positions = positions * torch.ones_like(x)
+        # embeddings = self.layer(positions)
+        return self.upscaler(embeddings)
 
 
 class EmbeddingLayer(Aggregate):
