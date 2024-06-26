@@ -79,6 +79,7 @@ class MoeGating(LoggingLayer):
                     tokens,
                     self.expert_inner_function.lin1_weight,
                 )
+                gate_out = self.expert_inner_function.activation(gate_out)
 
                 gate_out = torch.softmax(gate_out, dim=0)
 
