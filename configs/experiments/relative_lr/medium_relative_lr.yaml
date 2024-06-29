@@ -18,7 +18,7 @@ params:
   scheduler: "cosine"
   decoding_interval: 0
   logging_interval_heavy: 1000
-  init_type: truncated_normal
+  init_type: kaiming_uniform
   init_scale: 0.1
   save_weights_interval: 0
   batch_size: 128
@@ -27,4 +27,7 @@ params:
   relative_lr: 
     embedding_layer: 5
     head: 0.2
-
+  relative_init_scale: 
+    ^embedding_layer: [0.2, 0.5, 1, 2, 5]
+    ^head: [0.2, 0.5, 1, 2, 5]
+  verbose_relative_init_scale: true
