@@ -5,9 +5,9 @@ runner: research.conditional.train.cc_train
 n_gpus: 1
 
 params:
-  name: "kan_"
+  name: "kan_fatboy"
   save_weights_interval: -1
-  tags: [kan, kanmoe_clean, kan_param_matched, kan_overparametrised]
+  tags: [kan, kanmoe_clean, kan_param_matched]
 
   logger_types: "neptune"
   project_name: pmtest/llm-random
@@ -49,23 +49,24 @@ params:
 
   # # mini size
   dmodel: 256
-  dff: 1024
-  n_blocks: 4
+  ^dff: [2048]
+  n_blocks: 2
   n_att_heads: 4
 
-  final_lr_step: 10000
-  n_steps: 10100
-  lr_warmup_steps: 100
-  logging_interval_heavy: 200
-  logging_interval_loss: 50
+  final_lr_step: 100000
+  n_steps: 101000
+  lr_warmup_steps: 1000
+  logging_interval_heavy: 2000
+  logging_interval_loss: 500
 
-  ^ff_mode: [vanilla]
+  # ^ff_mode: [vanilla, kan, mlp_kan]
+  ^ff_mode: [kan, mlp_kan, kan_latent]
   use_torch_bmm: true
   softmax_over: experts
 
   # init
   # ^kan_latent_factor: [1.1, 1.2, 1.3, 1.5]
-  kan_parameter_matched: 'true'
+  kan_parameter_matched: "true"
   init_scale: 0.1
   init_type: truncated_normal
   init_scale_base: 0.1
