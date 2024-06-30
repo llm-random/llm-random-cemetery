@@ -438,7 +438,7 @@ def KanFF(
                     (
                         "KAN",
                         KAN(
-                            layers_hidden=[dff, latent_factor * kan_bottlneck],
+                            layers_hidden=[kan_bottlneck, latent_factor * kan_bottlneck],
                             init_type=init_type,
                             scale_base=init_scale_base,
                             scale_spline=init_scale_spline,
