@@ -438,7 +438,7 @@ def KanFF(
                     (
                         "KAN",
                         KAN(
-                            layers_hidden=[dff, latent_factor * kan_bottlneck],
+                            layers_hidden=[kan_bottlneck, int(latent_factor * kan_bottlneck)],
                             init_type=init_type,
                             scale_base=init_scale_base,
                             scale_spline=init_scale_spline,
@@ -448,7 +448,7 @@ def KanFF(
                     (
                         "MLP_up",
                         Linear(
-                            latent_factor * kan_bottlneck,
+                            int(latent_factor * kan_bottlneck),
                             dmodel,
                             init_type=init_type,
                             init_scale=init_scale,
