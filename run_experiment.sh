@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_truncated_fixed_0_init_scale_C4KSJK5T.yaml --git_branch=local_search_medium_truncated_fixed_0_init_scale_C4KSJK5T_2024-07-01_22-04-59 --skip_copy_code --skip_confirmation
