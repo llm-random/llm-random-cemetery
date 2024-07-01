@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/local_search/optimize_dense_truncated.yaml --git_branch=local_search_medium_truncated_2024-07-01_19-26-54 --skip_copy_code --skip_confirmation
