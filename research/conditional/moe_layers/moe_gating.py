@@ -65,13 +65,13 @@ class MoeGating(LoggingLayer):
             with torch.no_grad():
                 assert x.shape == (batch_size, seq_len, self.dmodel)
 
-                gate_out = einsum(
-                    "batch_size seq_len dmodel, n_experts dmodel dff "
-                    "-> n_experts batch_size seq_len dff ",
-                    x,
-                    self.expert_inner_function.lin1_weight,
-                )
-                gate_out = self.expert_inner_function.activation(gate_out).sum(-1)
+            gate_out = einsum(
+                "batch_size seq_len dmodel, n_experts dmodel dff "
+                "-> n_experts batch_size seq_len dff ",
+                x,
+                self.expert_inner_function.lin1_weight,
+            )
+            gate_out = self.expert_inner_function.activation(gate_out).sum(-1)
         else:
             with measure_time(self, "expert_embedding"):
                 if self.use_torch_bmm:

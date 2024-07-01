@@ -5,7 +5,7 @@ runner: research.conditional.train.cc_train
 n_gpus: 1
 
 params:
-  name: "gt_weightless_ff"
+  name: "gt_weightless_ff_with_grad"
   save_weights_interval: -1
   tags: [weightless, ground_truth]
 
