@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_truncated_fixed_0_weight_decay_ZTT37EIT.yaml --git_branch=local_search_medium_truncated_fixed_0_weight_decay_ZTT37EIT_2024-07-02_00-38-52 --skip_copy_code --skip_confirmation
