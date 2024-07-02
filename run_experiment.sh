@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_relative_lr_0_init_scale_CU01GN5G.yaml --git_branch=local_search_medium_relative_lr_0_init_scale_CU01GN5G_2024-07-02_16-53-23 --skip_copy_code --skip_confirmation
