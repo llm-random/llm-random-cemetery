@@ -93,6 +93,7 @@ class MoeGating(LoggingLayer):
 
         # calculate z-loss
         zloss = 0
+        print(f'\nzloss_weight: {self.zloss_weight}\n')
         if self.zloss_weight > 0:
             with measure_time(self, "calculate zloss"):
                 zloss = calculate_z_loss(
