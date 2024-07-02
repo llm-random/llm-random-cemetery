@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_relative_lr_0_relative_init_scale_embedding_layer_89STADQ9.yaml --git_branch=local_search_medium_relative_lr_0_relative_init_scale_embedding_layer_89STADQ9_2024-07-03_01-18-18 --skip_copy_code --skip_confirmation
