@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_truncated_4_final_lr_fraction_R64YP4VW.yaml --git_branch=local_search_medium_truncated_4_final_lr_fraction_R64YP4VW_2024-07-02_16-25-26 --skip_copy_code --skip_confirmation
