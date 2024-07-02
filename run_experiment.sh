@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_relative_lr_0_relative_lr_embedding_layer_JDQ5RO6P.yaml --git_branch=local_search_medium_relative_lr_0_relative_lr_embedding_layer_JDQ5RO6P_2024-07-02_21-27-56 --skip_copy_code --skip_confirmation
