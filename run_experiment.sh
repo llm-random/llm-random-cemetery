@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_truncated_2_learning_rate_0F9JG6YA.yaml --git_branch=local_search_medium_truncated_2_learning_rate_0F9JG6YA_2024-07-02_09-05-26 --skip_copy_code --skip_confirmation
