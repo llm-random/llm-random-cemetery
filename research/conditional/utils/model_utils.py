@@ -628,6 +628,7 @@ def get_ff_layer(args):
         make_expert_inner_function = partial(
             make_expert_inner_function, use_topk_initialization=use_topk_initialization
         )
+        print(f"\ntoken_choice - zloss: {args.zloss_weight}")
         return_fn = lambda: TokenChoiceFF(
             dmodel=args.dmodel,
             n_experts=args.n_experts,
