@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_relative_lr_0_relative_lr_head_UPVCTSQS.yaml --git_branch=local_search_medium_relative_lr_0_relative_lr_head_UPVCTSQS_2024-07-02_17-33-06 --skip_copy_code --skip_confirmation
