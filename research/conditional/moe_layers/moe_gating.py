@@ -154,7 +154,9 @@ class MoeGating(LoggingLayer):
         elif get_router_values_from == "ground_truth_weightless":
             return (
                 None,
-                lambda: torch.mean(torch.tensor([6, 9])),
+                lambda: torch.mean(
+                    getattr(expert_inner_function, get_router_values_from), dim=-1
+                ).T,
             )
         else:
             print(
