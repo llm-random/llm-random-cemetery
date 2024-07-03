@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_medium_relative_lr_1_relative_lr_embedding_layer_CWMGROOT.yaml --git_branch=local_search_medium_relative_lr_1_relative_lr_embedding_layer_CWMGROOT_2024-07-03_03-51-33 --skip_copy_code --skip_confirmation
