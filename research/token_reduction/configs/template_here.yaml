@@ -1,0 +1,42 @@
+parent: configs/baselines/gpt/dense/base.yaml
+md5_parent_hash: 763f39978a58f704200275285162594c
+time: "2-00:00:00"
+runner: "research.token_reduction.utils.runner"
+n_gpus: 1
+
+params:
+  name: "base_vanilla"
+  tags: ["base", "vanilla", "token_reduction"]
+  wandb_project: "token_reduction"
+
+  ^cutoff: [1024]
+  ^batch_size: [256]
+  ^learning_rate: [1e-3]
+  gradient_accumulation_steps: 4
+
+  n_steps: 16_000
+  final_lr_step: 16_000
+  lr_warmup_steps: 160
+  final_lr_fraction: 0.1
+
+
+  # precision / distributed
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  flash_attention: true
+
+  # common
+  scheduler: cosine
+  init_type: truncated_normal
+  init_scale: 0.1
+  dataset_type: c4
+  weight_decay: 0.1
+  grad_clip: 1.0
+  logger_types: "neptune,wandb"
+
+  # intervals
+  decoding_interval: 0
+  logging_interval_heavy: 1000
+  logging_interval_light: 100
+  save_weights_interval: 0
+  eval_interval: 100
