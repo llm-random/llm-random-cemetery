@@ -12,9 +12,9 @@ params:
 
   tags: ["relative_lr"]
 
-  n_steps: 15000
+  n_steps: 1000
   learning_rate: 1e-3
-  lr_warmup_steps: 150
+  lr_warmup_steps: 50
   scheduler: "cosine"
   decoding_interval: 0
   logging_interval_heavy: 1000
@@ -28,3 +28,14 @@ params:
     embedding_layer: 5
     head: 0.2
 
+  relative_scheduler_fraction:
+    embedding_layer: 10
+    encoder: 10
+    head: 10
+
+  # debug
+  # logger_types: "stdout"
+  # use_dummy_dataset: true
+  # n_blocks: 1
+  # dmodel: 16
+  # n_att_heads: 1
