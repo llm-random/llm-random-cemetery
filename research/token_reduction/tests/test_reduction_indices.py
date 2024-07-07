@@ -5,6 +5,7 @@ from research.token_reduction.layers import (
     TokenDroppingLayer,
     TokenMergingLayer,
     choose_indeces_to_reduce,
+    make_available_ids,
 )
 
 
@@ -147,3 +148,80 @@ class TestTokenMerging(unittest.TestCase):
         merged_token = unchanged_input[reduced_index + 1] + transformed_reduced_token
 
         self.assertTrue(merged_token in output.view(-1, self.dm))
+
+
+class TestGettingAvailableIds(unittest.TestCase):
+
+    def setUp(self):
+        self.batch_size = 4
+        self.seq_len = 32
+        self.test_eot_id = 7
+        low, high = 0, 10
+        self.result_seq_len = 24
+        self.n_tokens_to_reduce = 3
+        self.token_inputs = torch.randint(low, high, (self.batch_size, self.seq_len))
+        self.available_ids, self.saved_ids = make_available_ids(
+            token_inputs=self.token_inputs,
+            result_seq_len=self.result_seq_len,
+            n_tokens_to_reduce=self.n_tokens_to_reduce,
+            eot_id=self.test_eot_id,
+        )
+
+    def test_correct_shapes(self):
+        self.assertEqual(len(self.available_ids), self.batch_size)
+        self.assertEqual(len(self.saved_ids), self.batch_size)
+
+    def test_no_eot_in_available_ids(self):
+        for ids_row, tokens in zip(self.available_ids, self.token_inputs):
+            non_eot_tokens = tokens[ids_row]
+            self.assertNotIn(self.test_eot_id, non_eot_tokens)
+
+    def test_only_eot_in_saved_ids(self):
+        for ids_row, tokens in zip(self.saved_ids, self.token_inputs):
+            eot_tokens = tokens[ids_row]
+            self.assertEqual([self.test_eot_id] * len(ids_row), list(eot_tokens))
+
+    def test_consistency_check(self):
+        for available_row, saved_row in zip(self.available_ids, self.saved_ids):
+            combined = torch.cat((saved_row, available_row))
+            self.assertTrue(
+                torch.equal(
+                    torch.sort(combined).values,
+                    torch.arange(self.result_seq_len + self.n_tokens_to_reduce),
+                )
+            )
+
+    def test_empty_input(self):
+        token_inputs = torch.tensor([])
+        result_seq_len, n_tokens_to_reduce, eot_id = 4, 2, 7
+        available_ids, saved_ids = make_available_ids(
+            token_inputs=token_inputs,
+            result_seq_len=result_seq_len,
+            n_tokens_to_reduce=n_tokens_to_reduce,
+            eot_id=eot_id,
+        )
+        self.assertEqual(available_ids, [])
+        self.assertEqual(saved_ids, [])
+
+    def test_all_eot_ids(self):
+        token_inputs = [torch.tensor(6 * [self.test_eot_id])]
+        result_seq_len, n_tokens_to_reduce, eot_id = 4, 2, self.test_eot_id
+        available_ids, saved_ids = make_available_ids(
+            token_inputs=token_inputs,
+            result_seq_len=result_seq_len,
+            n_tokens_to_reduce=n_tokens_to_reduce,
+            eot_id=eot_id,
+        )
+        self.assertEqual(available_ids[0].tolist(), [])
+        self.assertEqual(saved_ids[0].tolist(), [0, 1, 2, 3, 4, 5])
+
+    def test_raise_not_enough_tokens_to_drop(self):
+        result_seq_len, n_tokens_to_reduce = 10, 23
+        available_ids, saved_ids = make_available_ids(
+            token_inputs=self.token_inputs,
+            result_seq_len=result_seq_len,
+            n_tokens_to_reduce=n_tokens_to_reduce,
+            eot_id=self.test_eot_id,
+        )
+        self.assertEqual(available_ids[0].tolist(), [])
+        # self.assertEqual(saved_ids[0].tolist(), [0, 1, 2, 3, 4, 5])
