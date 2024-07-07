@@ -104,11 +104,21 @@ class CosineScheduler(AbstractLRScheduler):
             return self.lr * self.final_lr_fraction
 
     def set_lr(self, optimizer: Optimizer, step: int):
-        new_lr = self.get_lr(step)
-        for param_group, ratio in zip(
-            optimizer.param_groups,
-            self.ratios_lr,
-            self.scheduler_fractions,
-            strict=True,
-        ):
-            param_group["lr"] = new_lr * ratio
+        if self.scheduler_fractions is None:
+            super.set_lr(optimizer, step)
+        else:
+            new_lr = self.get_lr(step)
+            for param_group, ratio, fraction in zip(
+                optimizer.param_groups,
+                self.ratios_lr,
+                self.scheduler_fractions,
+                strict=True,
+            ):
+                if step < self.lr_warmup_steps:
+                    relative_lr = new_lr  * ratio
+                elif step < self.final_lr_step:
+                    relative_lr = (new_lr - self.lr) * (1 - self.final_lr_fraction * fraction) / (1 - self.final_lr_fraction) + self.lr
+                    relative_lr = relative_lr * ratio
+                else:
+                    relative_lr = new_lr * fraction * ratio
+                param_group["lr"] = relative_lr
