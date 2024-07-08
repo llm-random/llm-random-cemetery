@@ -1,0 +1,47 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+time: "9:00:00"
+
+params:
+  # tokenizer: gpt
+
+  name: "relative_lr_medium_scheduler_cos-like-const"
+  grad_clip: 1.0
+  flash_attention: false
+  mixed_precision: false
+
+  tags: ["relative_lr", "relative_lr_fraction"]
+
+  n_steps: 5000
+  learning_rate: 2e-3
+  lr_warmup_steps: 50
+  final_lr_step: 5050
+  decoding_interval: 0
+  logging_interval_heavy: 1000
+  init_type: truncated_normal
+  init_scale: 0.1
+  save_weights_interval: 0
+  batch_size: 128
+  dataset_type: c4
+  print_parameter_names: true
+
+  # scheduler: "constant"
+  scheduler: "cosine"
+
+  final_lr_fraction: 0.1
+
+  relative_lr: 
+    embedding_layer: 5
+    head: 0.2
+
+  relative_scheduler_fraction:
+    embedding_layer: 10
+    encoder: 10
+    head: 10
+
+  # debug
+  # logger_types: "stdout"
+  # use_dummy_dataset: true
+  # n_blocks: 1
+  # dmodel: 16
+  # n_att_heads: 1
