@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_0_relative_lr_head_NFCP5DM2.yaml --git_branch=local_search_relative_moe_short_0_relative_lr_head_NFCP5DM2_2024-07-08_20-31-00 --skip_copy_code --skip_confirmation
