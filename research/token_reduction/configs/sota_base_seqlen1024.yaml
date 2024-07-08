@@ -33,7 +33,7 @@ params:
   init_scale: 0.1
   dataset_type: c4
   weight_decay: 0.1
-  grad_clip: 1.0
+  grad_clip: 0.1
   logger_types: "neptune,wandb"
 
   # intervals
