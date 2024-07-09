@@ -145,6 +145,10 @@ def get_embedding_layer(
         reduction_layer = lambda: layers.TokenDroppingLayer(
             reference_seq_len, scheduler
         )
+    elif reduction_layer_type == "rnn_merging":
+        reduction_layer = lambda: layers.TokenRnnMergingLayer(
+            reference_seq_len, dm, scheduler
+        )
 
     return (
         layers.TokenReductionEmbedding(embedding_layer, reduction_layer()).to(device),
