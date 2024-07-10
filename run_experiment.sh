@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_0_relative_lr_gating_CXFI90ET.yaml --git_branch=local_search_relative_moe_short_0_relative_lr_gating_CXFI90ET_2024-07-10_05-16-43 --skip_copy_code --skip_confirmation
