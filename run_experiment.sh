@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_1_relative_scheduler_fraction_gating_WC9HX1SI.yaml --git_branch=local_search_relative_moe_short_1_relative_scheduler_fraction_gating_WC9HX1SI_2024-07-10_19-06-59 --skip_copy_code --skip_confirmation
