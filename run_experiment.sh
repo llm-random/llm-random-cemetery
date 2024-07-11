@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_1_relative_scheduler_fraction_embedding_layer_0L363NZ7.yaml --git_branch=local_search_relative_moe_short_1_relative_scheduler_fraction_embedding_layer_0L363NZ7_2024-07-11_01-37-35 --skip_copy_code --skip_confirmation
