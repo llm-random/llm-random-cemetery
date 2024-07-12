@@ -200,8 +200,8 @@ class GPTPacker(
         document_lengths: List[int] = []
 
         while True:
-            document = self.dataset.get_document()
-            tokens = self.tokenizer.text_to_ids(document)
+            document = self.dataset.get_document() #dev can load 53k doc
+            tokens = self.tokenizer.text_to_ids(document) 
             buffer.extend(tokens + [eot_id])
 
             document_lengths.append(len(tokens) + 1)

@@ -1,5 +1,6 @@
 from collections import defaultdict
 import copy
+from time import time
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 
@@ -12,12 +13,8 @@ from lizrd.support.logging import AbstractLogger
 from lizrd.support.misc import get_ith_chunk
 from lizrd.text.data import LLMBatch
 from lizrd.train.scheduler import AbstractLRScheduler
-from research.tokenizex.model.input_wise_attention import ManagerMaskSetter
-from research.tokenizex.model.input_wise_pe import ManagerPESetter
-from research.tokenizex.model.tokenizer import TokenizexTokenizer
-from research.tokenizex.utils.data import TokenizexBatch
-from research.tokenizex.utils.layer_manager import LayerManager
-from research.tokenizex.utils.model_utils import (
+from research.tokenizex_comp.utils.layer_manager import LayerManager
+from research.tokenizex_comp.utils.model_utils import (
     make_loss_and_gradient_function,
     update_model_fit_gpu_info,
 )
@@ -28,12 +25,12 @@ from lizrd.train.load_and_save_model import load_scaler_state, save_checkpoint
 
 
 @define(slots=False)
-class TokenizexTrainer:
+class TemplateTrainer:
     model: torch.nn.Module
     optimizer: torch.optim.Optimizer
     train_dataloader: DataloaderWrapper
     eval_dataloader: DataloaderWrapper
-    # vocab_size: int #dev ?
+    vocab_size: int
     mixed_precision: bool
     mixed_precision_dtype: torch.dtype
     logger: Optional[AbstractLogger]
@@ -47,8 +44,8 @@ class TokenizexTrainer:
     max_sequence_length: int
     batch_size: int
     lr_scheduler: AbstractLRScheduler
-    # _calculate_loss_and_gradient: Optional[Callable] = None #dev ?
-    # mask_percent: Optional[float] = None #dev ?
+    _calculate_loss_and_gradient: Optional[Callable] = None
+    mask_percent: Optional[float] = None
     scaler: Optional[torch.cuda.amp.GradScaler] = None
     layer_manager: Optional[LayerManager] = None
     loss_accumulator: Optional[float] = None
@@ -86,13 +83,29 @@ class TokenizexTrainer:
             f"loss_interval/{i}": SN(acc=0.0, interval=i)
             for i in self.loss_log_intervals
         }
-        self.deftok_loss = {
-            f"deftok_loss_interval/{i}": SN(acc=0.0, interval=i)
-            for i in self.loss_log_intervals
-        }
         self.loss_accumulators["loss"] = SN(
             acc=0.0, interval=self.logging_interval_loss
         )
+
+        self.byttok_loss = {
+            f"comp/interval/byttok_loss/{i}": SN(acc=0.0, interval=i)
+            for i in self.loss_log_intervals
+        }
+        self.deftok_loss = {
+            f"comp/interval/deftok_loss/{i}": SN(acc=0.0, interval=i)
+            for i in self.loss_log_intervals
+        }
+        self.fb_time_deftok_loss = {
+            f"comp/interval/time/fb/deftok_loss/{i}": SN(acc=0.0, interval=i, last_time=0.0, last_step=0)
+            for i in self.loss_log_intervals
+        }
+        self.fb_time_byttok_loss = {
+            f"comp/interval/time/fb/byttok_loss/{i}": SN(acc=0.0, interval=i, last_time=0.0, last_step=0)
+            for i in self.loss_log_intervals
+        }
+        self.fb_time_acc = 0
+        self.ts_start_training = None
+
         self.correct_tokens_accumulator = 0.0
         self.total_tokens_accumulator = 0.0
         self.auxiliary_losses_accumulator = dict()
@@ -110,22 +123,22 @@ class TokenizexTrainer:
         self._check_config()
 
     def _before_train_operations(self):
-        propagate_forward_pass_cache(self.model) #dev ? 
-        update_model_fit_gpu_info( #dev ? 
+        propagate_forward_pass_cache(self.model)
+        update_model_fit_gpu_info(
             self.model_fit_gpu_info_database_path,
             self.model_fit_gpu_info_params,
             "failure",
         )
 
     def _after_train_operations(self):
-        update_model_fit_gpu_info( #dev ? 
+        update_model_fit_gpu_info(
             self.model_fit_gpu_info_database_path,
             self.model_fit_gpu_info_params,
             "success",
         )
 
     def _after_step_operations(self, step):
-        self.model.forward_pass_cache.clear() #dev ? 
+        self.model.forward_pass_cache.clear()
         self.layer_manager.manage_learnable_temperature(step)
 
     def train(self, n_steps: int):
@@ -136,6 +149,7 @@ class TokenizexTrainer:
         if self.scaler is not None and self.checkpoint is not None:
             load_scaler_state(self.scaler, self.checkpoint)
 
+        self.ts_start_training = time()
         with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             schedule=self.profiler_schedule,
@@ -182,10 +196,15 @@ class TokenizexTrainer:
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
+        self.fb_time_acc += aux_info["fb_time"]
+
         self._apply_gradient()
         if self.is_logging_process:
             self._log_train_stats(loss, step)
-            self._log_acc_stats(self.deftok_loss, aux_info["deftok_loss"], step)
+            self._log_acc_stats(self.byttok_loss, aux_info["byttok_loss"], step)
+            self._log_acc_stats(self.deftok_loss, loss, step)
+            self._log_acc_time_stats(self.fb_time_byttok_loss, aux_info["byttok_loss"], step, int(self.fb_time_acc))
+            self._log_acc_time_stats(self.fb_time_deftok_loss, loss, step, int(self.fb_time_acc))
             self._log_accuracy(aux_info, step)
             self.layer_manager.log(step)
             self._log_weights_and_gradients(step)
@@ -209,6 +228,7 @@ class TokenizexTrainer:
                     tensor.data, self.gradient_accumulation_steps, i
                 )
 
+            ts_start_fb = time()
             cross_entropy_loss, aux_info = self._calculate_loss_and_gradient(
                 batch=batch_copy,
                 model=self.model,
@@ -217,6 +237,7 @@ class TokenizexTrainer:
                 num_checkpoint_accumulation_steps=self.gradient_accumulation_steps,
                 scaler=self.scaler,
             )
+            fb_time = time() - ts_start_fb
 
             total_cross_entropy_loss += cross_entropy_loss
             correct_tokens_value += aux_info["correct_tokens"]
@@ -229,7 +250,8 @@ class TokenizexTrainer:
             "correct_tokens": correct_tokens_value,
             "total_masked_tokens": total_masked_tokens_value,
             "losses": losses,
-            "deftok_loss": aux_info["deftok_loss"],
+            "byttok_loss": aux_info["byttok_loss"],
+            "fb_time": fb_time
         }
 
     def _apply_gradient(self):
@@ -258,7 +280,7 @@ class TokenizexTrainer:
         )
 
     def _eval_single_variant(
-        self, batches: Iterable[TokenizexBatch], step: int, variant_name: str
+        self, batches: Iterable[LLMBatch], step: int, variant_name: str
     ):
         self.model.eval()
         total_loss = 0.0
@@ -291,52 +313,23 @@ class TokenizexTrainer:
                     iteration=step,
                 )
 
-    @staticmethod
-    def decode_single_example(
-        model: torch.nn.Module,
-        max_sequence_length: int,
-        input_tokens_ids: torch.Tensor,
-        input_tokens_pos: torch.Tensor,
-        input_tokens_masks: torch.Tensor,
-        end_token_id: int,
-    ) -> torch.Tensor:
-        output_tokens_ids = torch.nn.functional.pad(
-            input_tokens_ids, (0, max_sequence_length - len(input_tokens_ids))
-        )
-        output_length = len(input_tokens_ids)
-        with model.eval(), torch.no_grad(), ManagerMaskSetter(model, input_tokens_masks), ManagerPESetter(model, input_tokens_pos):
-            while True:
-                predictions = model(output_tokens_ids)
-                next_token_id = torch.argmax(predictions, dim=-1)[output_length - 1].item()
-                output_tokens_ids[output_length] = next_token_id
-                output_length += 1
-                if output_length == max_sequence_length or next_token_id == end_token_id:
-                    break
-        return output_tokens_ids[:output_length]
-
-
     def _decode_samples(self, step):
-        raise NotImplementedError("TODO")
         examples = [
             "1, 2, 3, 4, 5",
             "Our Father, who art in heaven,",
             "Warsaw -> Poland Paris -> France Berlin ->",
             "Speech at a funeral of a fly: ",
         ]
-        tokenizer = TokenizexTokenizer()
+        tokenizer = GPT2Tokenizer.from_pretrained("gpt2")
         for example in examples:
-            tokens, pos, masks = tokenizer.text_to_ids_pos_mask(example)
-            tokens = torch.tensor(tokens).to(self.train_dataloader.device)
-            pos = torch.tensor(pos).to(self.train_dataloader.device)
-            masks = torch.tensor(masks).to(self.train_dataloader.device)
-
-            output_tokens = TokenizexTrainer.decode_single_example(
+            tokens = torch.tensor(
+                tokenizer.convert_tokens_to_ids(tokenizer.tokenize(example))
+            ).to(self.train_dataloader.device)
+            output_tokens = decode_single_example(
                 self.model,
                 self.max_sequence_length,
                 tokens,
-                pos,
-                masks,
-                tokenizer.eot_id_target,
+                tokenizer._convert_token_to_id("<|endoftext|>"),
             )
             decoded_output = tokenizer.decode(output_tokens)
             print(f"{example}: {decoded_output}")
@@ -355,17 +348,6 @@ class TokenizexTrainer:
             self._log_fraction_dataset_processed(step)
         for name, stats in self.loss_accumulators.items():
             stats.acc += loss_value
-            if stats.interval > 0 and step > 0 and step % stats.interval == 0:
-                self.logger.report_scalar(
-                    title=name,
-                    value=stats.acc / stats.interval,
-                    iteration=step,
-                )
-                stats.acc = 0.0
-
-    def _log_acc_stats(self, stat_accumulator, stat_value, step):
-        for name, stats in stat_accumulator.items():
-            stats.acc += stat_value
             if stats.interval > 0 and step > 0 and step % stats.interval == 0:
                 self.logger.report_scalar(
                     title=name,
@@ -433,6 +415,31 @@ class TokenizexTrainer:
                     iteration=step,
                 )
             self.auxiliary_losses_accumulator.clear()
+
+    
+    def _log_acc_stats(self, stat_accumulator, stat_value, step):
+        for name, stats in stat_accumulator.items():
+            stats.acc += stat_value
+            if stats.interval > 0 and step > 0 and step % stats.interval == 0:
+                self.logger.report_scalar(
+                    title=name,
+                    value=stats.acc / stats.interval,
+                    iteration=step,
+                )
+                stats.acc = 0.0
+
+    def _log_acc_time_stats(self, stat_accumulator, stat_value, step, time_passed):
+        for name, stats in stat_accumulator.items():
+            stats.acc += stat_value
+            if stats.interval > 0 and time_passed > 0 and (time_passed-stats.last_time) > stats.interval:
+                self.logger.report_scalar(
+                    title=name,
+                    value=stats.acc / (step-stats.last_step),
+                    iteration=time_passed,
+                )
+                stats.last_time = time_passed
+                stats.last_step = step
+                stats.acc = 0.0
 
     def _save_weights(self, step):
         if (

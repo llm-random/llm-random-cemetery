@@ -32,7 +32,6 @@ from research.template.utils.model_utils import (
     get_attention_layer,
     get_mixed_precision_ignored_classes,
     get_residual_layer,
-    get_classes_from_module_names,
     update_model_fit_gpu_info,
 )
 from lizrd.train.load_and_save_model import (
