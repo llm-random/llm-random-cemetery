@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_2_relative_lr_embedding_layer_AZKQGBIQ.yaml --git_branch=local_search_relative_moe_short_2_relative_lr_embedding_layer_AZKQGBIQ_2024-07-18_06-47-52 --skip_copy_code --skip_confirmation
