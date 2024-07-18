@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_3_relative_lr_expert_inner_function_C4OMZ4I1.yaml --git_branch=local_search_relative_moe_short_3_relative_lr_expert_inner_function_C4OMZ4I1_2024-07-18_20-38-32 --skip_copy_code --skip_confirmation
