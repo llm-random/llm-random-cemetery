@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_2_learning_rate_GWLX7MPB.yaml --git_branch=local_search_relative_moe_short_2_learning_rate_GWLX7MPB_2024-07-18_05-58-50 --skip_copy_code --skip_confirmation
