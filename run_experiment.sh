@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_3_relative_lr_head_6KTG9GGV.yaml --git_branch=local_search_relative_moe_short_3_relative_lr_head_6KTG9GGV_2024-07-18_19-48-51 --skip_copy_code --skip_confirmation
