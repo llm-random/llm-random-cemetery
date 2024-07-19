@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_4_final_lr_fraction_WRJAYHZ4.yaml --git_branch=local_search_relative_moe_short_4_final_lr_fraction_WRJAYHZ4_2024-07-19_02-20-25 --skip_copy_code --skip_confirmation
