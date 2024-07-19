@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_moe_short_5_relative_scheduler_fraction_expert_inner_function_VUYVO779.yaml --git_branch=local_search_relative_moe_short_5_relative_scheduler_fraction_expert_inner_function_VUYVO779_2024-07-19_10-29-08 --skip_copy_code --skip_confirmation
