@@ -241,4 +241,5 @@ def setup_experiments(configs: dict):
             single_exp_training_args_grid, infra_config["runs_multiplier"]
         )
         grid.append((infra_config, multiplied_grid))
+    raise Exception() #dev 
     return grid
