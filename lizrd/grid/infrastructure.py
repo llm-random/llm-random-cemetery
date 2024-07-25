@@ -302,7 +302,7 @@ COMMON_DEFAULT_INFRASTRUCTURE_ARGS = {
     "gres": "gpu:1",
     "time": "1-00:00:00",
     "n_gpus": 1,
-    "cpus_per_gpu": 8,
+    "cpus_per_gpu": 32,
     "mem_per_gpu": 125,
     "nodelist": None,
     "hf_datasets_cache": f"~/.cache/huggingface/datasets",
