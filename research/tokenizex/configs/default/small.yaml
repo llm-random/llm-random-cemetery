@@ -40,5 +40,3 @@ params:
   grad_clip: 0.5
   dataset_type: wikibook
   batch_size: 256
-
-  load_weights_path: "default_model_ckpt/rev_default.pt"
