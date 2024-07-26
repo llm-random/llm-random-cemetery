@@ -1,5 +1,6 @@
 runner: "research.tokenizex_comp.train.train"
 n_gpus: 1
+cpus_per_gpu: 4
 interactive_debug: false
 time: "0-02:00:00"
 cuda_visible: "7"
