@@ -42,4 +42,4 @@ params:
   dataset_type: wikibook
   batch_size: 512
   gradient_accumulation_steps: 4
-  
+  num_workers: 16
