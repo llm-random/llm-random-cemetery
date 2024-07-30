@@ -1,6 +1,6 @@
 runner: "research.tokenizex.train.train"
 n_gpus: 1
-cpus_per_gpu: 32
+cpus_per_gpu: 16
 interactive_debug: false
 time: "0-08:00:00"
 cuda_visible: "7"
@@ -41,6 +41,7 @@ params:
   dataset_type: wikibook
   batch_size: 512
   gradient_accumulation_steps: 4
+  num_workers: 16
 
   # tokenizex
   input_wise_positional_embedding: True  
