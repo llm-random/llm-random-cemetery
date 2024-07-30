@@ -41,6 +41,7 @@ params:
   dataset_type: wikibook
   batch_size: 512
   gradient_accumulation_steps: 4
+  num_workers: 32
 
   # tokenizex
   input_wise_positional_embedding: True  
