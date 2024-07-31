@@ -429,11 +429,19 @@ class ConditionalTrainer:
             self.auxiliary_losses_accumulator.clear()
 
     def _save_weights(self, step):
+        print("TUTAJ SPRAWDZAM CZY ZAPISUJE")
+        print("SV path", self.save_weights_path)
+        print("interval", self.save_weights_interval)
+        print("step", step)
+        print("bool1", self.save_weights_interval > 0)
+        if step > 0:
+            print("bool2", step % self.save_weights_interval)
         if (
             self.save_weights_path is not None
             and self.save_weights_interval > 0
             and step % self.save_weights_interval == 0
         ):
+            print("ZAPISUJE!")
             save_checkpoint(
                 self.model,
                 self.optimizer,
