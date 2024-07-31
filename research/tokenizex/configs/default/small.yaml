@@ -1,7 +1,6 @@
-# TODO - not configured for full training eg. steps, total time, lr
 runner: "research.tokenizex_comp.train.train"
 n_gpus: 1
-cpus_per_gpu: 4
+cpus_per_gpu: 1
 interactive_debug: false
 time: "0-02:00:00"
 cuda_visible: "7"
@@ -9,7 +8,7 @@ cuda_visible: "7"
 
 params:
   name: "tokenizex_baseline"
-  tags: ["ms", "tokenizex", "baseline", "default"]
+  tags: ["ms", "tokenizex", "baseline", "small", "1_cpu", "2h_speed_test"]
 
   model_type: gpt
   
@@ -20,7 +19,7 @@ params:
   logging_interval_loss: 1000
   save_weights_path: "default_model_ckpt"
   save_weights_interval: 25_000
-  decoding_interval: 25000
+  decoding_interval: 5000
   
   # model
   dmodel: 512
@@ -41,4 +40,4 @@ params:
   final_lr_fraction: 0.1
   grad_clip: 0.5
   dataset_type: wikibook
-  batch_size: 64
+  batch_size: 32
