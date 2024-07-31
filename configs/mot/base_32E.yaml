@@ -6,6 +6,9 @@ time: "40:00:00"
 
 params:
 
+    save_weights_path: "/home/ubuntu/mot_checkpoints/base_32E"
+    save_weights_interval: 10000
+
     general_ff_layer_config: "vanilla,vanilla,vanilla,vanilla,vanilla,vanilla,cont_moe,cont_moe,cont_moe,cont_moe,cont_moe,cont_moe"
 
     #name
@@ -41,7 +44,6 @@ params:
     decoding_interval: 0
     logging_interval_heavy: 1000
     eval_interval: 1000
-    save_weights_interval: 0
 
 
     #fsdp
