@@ -6,6 +6,10 @@ time: "40:00:00"
 
 params:
 
+    save_weights_path: "/home/ubuntu/mot_checkpoints/tutajtest"
+    save_weights_interval: 100
+    n_steps: 500
+
     general_ff_layer_config: "vanilla,vanilla,vanilla,vanilla,vanilla,vanilla,cont_moe,cont_moe,cont_moe,cont_moe,cont_moe,cont_moe"
 
     #name
@@ -30,7 +34,7 @@ params:
 
 
     #data
-    n_steps: 150_000
+    # n_steps: 150_000
     final_lr_step: 150_000
     batch_size: 256
     dataset_type: c4
