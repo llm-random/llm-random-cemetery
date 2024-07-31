@@ -33,7 +33,7 @@ params:
   init_type: kaiming_uniform
   init_scale: 1.0
 
-  learning_rate: 1e-4
+  learning_rate: 1e-3
   final_lr_step: 50_000
   lr_warmup_steps: 2500
   scheduler: cosine
