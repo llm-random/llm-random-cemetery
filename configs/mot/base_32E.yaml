@@ -1,10 +1,13 @@
 parent: configs/baselines/gpt/dense/base.yaml
 md5_parent_hash: 763f39978a58f704200275285162594c
 interactive_debug: false
-n_gpus: 2
-time: "40:00:00"
+n_gpus: 1
+time: "3-20:00:00"
 
 params:
+
+    save_weights_path: "/home/ubuntu/mot_checkpoints/test"
+    save_weights_interval: 10
 
     general_ff_layer_config: "vanilla,vanilla,vanilla,vanilla,vanilla,vanilla,cont_moe,cont_moe,cont_moe,cont_moe,cont_moe,cont_moe"
 
@@ -41,13 +44,13 @@ params:
     decoding_interval: 0
     logging_interval_heavy: 1000
     eval_interval: 1000
-    save_weights_interval: 0
 
 
     #fsdp
     fsdp_enabled: true
-    fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
-    fsdp_selective_precision_modules: "AttentionMechanism"
+    fsdp_min_num_params: 10000
+    # fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+    # fsdp_selective_precision_modules: "AttentionMechanism"
 
 
     #throughput
