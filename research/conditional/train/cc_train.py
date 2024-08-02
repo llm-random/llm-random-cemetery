@@ -293,14 +293,14 @@ def main(
             task_manager=task_manager,
             limit=harness_limit,
         )
+        # breakpoint()
+        # for benchmark_name in results['results'].keys():
         logger.report_text(
             title="harness_results",
             value=str(results),
             iteration=0,
         )
         exit(0)
-
-    print(f"Harness finished, exiting")
 
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
