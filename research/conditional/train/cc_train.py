@@ -259,7 +259,7 @@ def main(
 
     if args.harness_tasks is not None:
         assert args.n_gpus <= 1, "For now, at most 1 GPU is supported for harness"
-        logger = get_logger(args, model, VOCAB_SIZE)
+        logger = get_logger(-args, model, VOCAB_SIZE)
 
         harness_wrapper = HarnessLM(
             model,
@@ -293,14 +293,21 @@ def main(
             task_manager=task_manager,
             limit=harness_limit,
         )
-        logger.report_text(
-            title="harness_results",
-            value=str(results),
-            iteration=0,
-        )
+        breakpoint()
+        # for benchmark_name in results['results'].keys():
+        for benchmark_name in results["results"].keys():
+            for key in results["results"][benchmark_name].keys():
+                logger.report_generic_info(
+                    title=f"harness_results/{benchmark_name}/{key}",
+                    iteration=0,
+                    data=results["results"][benchmark_name][key],
+                )
+        # logger.report_text(
+        #     title="harness_results",
+        #     value=str(results),
+        #     iteration=0,
+        # )
         exit(0)
-
-    print(f"Harness finished, exiting")
 
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
