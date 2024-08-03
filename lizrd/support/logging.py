@@ -136,9 +136,9 @@ class AbstractLogger(ABC):
                 metric_x_flop_logarithmic = self.get_log_x_scale_metric(
                     metric_x_flop["value"], metric_x_flop["iteration"]
                 )
-                auxiliary_metrics[
-                    f"{title}_(x_flop_logarithmic)"
-                ] = metric_x_flop_logarithmic
+                auxiliary_metrics[f"{title}_(x_flop_logarithmic)"] = (
+                    metric_x_flop_logarithmic
+                )
 
             metric_logarithmic = self.get_log_x_scale_metric(value, iteration)
             auxiliary_metrics[f"{title}_(x_logarithmic)"] = metric_logarithmic
@@ -185,7 +185,9 @@ class NeptuneLogger(AbstractLogger):
                     )
             else:
                 raise NotImplementedError()
-        else:
+        elif isinstance(data, str):
+            self.report_text(title=title, value=data, iteration=iteration)
+        else:  # assume it's a scalar
             self.report_scalar(title=title, value=data, iteration=iteration)
 
     def report_scalar(
