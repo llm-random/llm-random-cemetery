@@ -70,8 +70,9 @@ class HarnessLM(TemplateLM):
             #   automatic adaptive batches much much easier to implement
             # - any OOMs will happen right away rather than near the end
 
-            toks = req[1] + req[2]
-            return -len(toks), tuple(toks)
+            # toks = req[1] + req[2]
+            # return -len(toks), tuple(toks)
+            return id(req)
 
         def _lookup_one_token_cont(req: Tuple[Tuple[str, str], List[int], List[int]]):
             """Defines the key to group and lookup one-token continuations"""
