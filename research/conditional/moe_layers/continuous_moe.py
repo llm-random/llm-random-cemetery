@@ -118,6 +118,13 @@ class ContinuousMoeBaseClass(LoggingLayer):
         :param emit_weights: weights for emitting tokens within a group, shape (free_dimension, split_dimension // group_size, group_size, n_experts)
         :return: tensor of token updates of shape (free_dimension, split_dimension // group_size, group_size, dmodel)
         """
+        gating = einops.einsum("b gi gs d, e d i -> b gi gs e i", x, self.gating_down)
+        gating = torch.relu_(gating)
+        gating = einops.einsum(
+            "b gi gs e i, e i j -> b gi gs e j", gating, self.gating_up
+        )
+        gating = gating.view(-1, self.n_experts, self.dm).transpose(0, 1)
+
         x = torch.matmul(
             merge_weights.transpose(-1, -2),
             x,
@@ -128,6 +135,8 @@ class ContinuousMoeBaseClass(LoggingLayer):
         # x shape is (n_experts, free_dimension * aggr_dimension // group_size, expert_size) ||| lin2 shape is (n_experts, expert_size, dmodel)
         x = torch.bmm(x, self.lin2)
         # x shape is (n_experts, free_dimension * aggr_dimension // group_size, dmodel)
+        assert x.shape == gating.shape
+        x = x * gating
 
         # merge_weights shape is (free_dimension, aggr_dimension // group_size, group_size, n_experts)
         # view x to be (n_experts, free_dimension, aggr_dimension // group_size, dmodel)
@@ -167,6 +176,23 @@ class ContinuousMoeBaseClass(LoggingLayer):
                 scale=self.init_scale,
             )
         )
+        self.gating_down = nn.Parameter(
+            misc.get_init_weight(
+                (self.n_experts, self.dm, self.dm // self.n_experts),
+                fan_in=self.dm,
+                init_type=self.init_type,
+                scale=self.init_scale,
+            )
+        )
+        self.gating_up = nn.Parameter(
+            misc.get_init_weight(
+                (self.n_experts, self.dm // self.n_experts, self.dm),
+                fan_in=self.dm // self.n_experts,
+                init_type=self.init_type,
+                scale=self.init_scale,
+            )
+        )
+
         # controller: send a token of size dmodel to n_experts scalars
         self.controller = nn.Parameter(
             misc.get_init_weight(
