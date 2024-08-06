@@ -261,12 +261,30 @@ def main(
         assert args.n_gpus <= 1, "For now, at most 1 GPU is supported for harness"
         logger = get_logger(args, model, VOCAB_SIZE)
 
+        common_dataloaders_kwargs = {
+            "sequence_length": args.cutoff,
+            "device": DEVICE,
+            "num_workers": args.num_workers,
+            "batch_size": args.batch_size,
+            "seed": args.data_seed if data_seeds is None else data_seeds[rank],
+            "model_type": args.model_type,
+            "dataset_type": args.dataset_type,
+            "use_dummy_dataset": args.use_dummy_dataset,
+        }
+
+        train_dataloader = get_processed_dataset(
+            **common_dataloaders_kwargs,
+            dataset_split="train",
+            dataset_path=args.train_dataset_path,
+        )
+
         harness_wrapper = HarnessLM(
             model,
             batch_size=args.batch_size,
             tokenizer=tokenizers.GPTTokenizer(),
             max_length=args.cutoff,
             device=DEVICE,
+            dataset=train_dataloader,
         )
         import lm_eval
 
