@@ -118,10 +118,18 @@ class ContinuousMoeBaseClass(LoggingLayer):
         :param emit_weights: weights for emitting tokens within a group, shape (free_dimension, split_dimension // group_size, group_size, n_experts)
         :return: tensor of token updates of shape (free_dimension, split_dimension // group_size, group_size, dmodel)
         """
+        # breakpoint()
+        gating = torch.einsum("b x y d, e d i -> b x y e i", x, self.gating_down)
+        gating = torch.relu_(gating)
+        gating: torch.Tensor = torch.einsum(
+            "b x y e i, e i j -> b x y e j", gating, self.gating_up
+        )
+        # gating = gating.view(-1, self.n_experts, self.dm).transpose(0, 1)
+
         x = torch.matmul(
             merge_weights.transpose(-1, -2),
             x,
-        )
+        )  # torch.Size([256, 1, 32, 64])
         # x shape is (free_dimension, split_dimension // group_size, n_experts, dmodel) ||| lin1 shape is (n_experts, dmodel, expert_size)
         x = torch.bmm(x.view(-1, self.n_experts, self.dm).transpose(0, 1), self.lin1)
         x = torch.relu_(x)
@@ -132,10 +140,31 @@ class ContinuousMoeBaseClass(LoggingLayer):
         # merge_weights shape is (free_dimension, aggr_dimension // group_size, group_size, n_experts)
         # view x to be (n_experts, free_dimension, aggr_dimension // group_size, dmodel)
         # permute it to be (free_dimension, aggr_dimension // group_size, n_experts, dmodel)
-        x = torch.matmul(
-            emit_weights,
-            x.view(x.size(0), emit_weights.size(0), -1, self.dm).permute(1, 2, 0, 3),
-        )
+        # breakpoint()
+        # x.shape torch.Size([8, 256, 64])
+        # emit_weights.shape torch.Size([256, 1, 32, 8])
+        # gating.shape torch.Size([256, 1, 32, 8, 64])
+        # we want gating to be torch.Size([256, 1, 32, 8, 64])
+        # emit_weights.unsqueeze(-1) * gating => torch.Size([256, 1, 32, 8, 64])
+        # xy = x.view(x.size(0), emit_weights.size(0), -1, self.dm).permute(1, 2, 0, 3)
+        # xy.shape torch.Size([256, 1, 8, 64])
+        # emit_weights = torch.matmul(emit_weights.unsqueeze(-2), gating).squeeze(-2)
+        emit_weights = emit_weights.unsqueeze(-1) * gating
+
+        x = (
+            einops.repeat(
+                x.view(x.size(0), emit_weights.size(0), -1, self.dm).permute(
+                    1, 2, 0, 3
+                ),
+                "a b c d -> a b k c d",
+                k=self.group_size,
+            )
+            * emit_weights
+        ).sum(dim=-2)
+        # x = torch.matmul(
+        #     emit_weights,
+        #     x.view(x.size(0), emit_weights.size(0), -1, self.dm).permute(1, 2, 0, 3),
+        # )
 
         return x
 
@@ -167,6 +196,23 @@ class ContinuousMoeBaseClass(LoggingLayer):
                 scale=self.init_scale,
             )
         )
+        self.gating_down = nn.Parameter(
+            misc.get_init_weight(
+                (self.n_experts, self.dm, self.dm // self.n_experts),
+                fan_in=self.dm,
+                init_type=self.init_type,
+                scale=self.init_scale,
+            )
+        )
+        self.gating_up = nn.Parameter(
+            misc.get_init_weight(
+                (self.n_experts, self.dm // self.n_experts, self.dm),
+                fan_in=self.dm // self.n_experts,
+                init_type=self.init_type,
+                scale=self.init_scale,
+            )
+        )
+
         # controller: send a token of size dmodel to n_experts scalars
         self.controller = nn.Parameter(
             misc.get_init_weight(
