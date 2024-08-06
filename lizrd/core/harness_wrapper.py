@@ -208,12 +208,14 @@ class HarnessLM(TemplateLM):
                 random_idx = random.randint(0, self.batch_size - 1)
                 shortened_batch[random_idx, :] = inp
                 batch_logits = self.model(shortened_batch, **call_kwargs)
-                multi_logits.append(batch_logits[random_idx])
+
+                multi_logits.append(F.log_softmax(batch_logits[random_idx], dim=-1))
+
                 # replace one with the current input
                 # run model on that
                 # snap the logits of the test sequence
             multi_logits = torch.stack(multi_logits)
-            multi_logits = F.log_softmax(multi_logits, dim=-1)
+            # multi_logits = F.log_softmax(multi_logits, dim=-1)
             # self._model_call(batched_inps, **call_kwargs), dim=-1
             # multi_logits =
             # # create encoder attn mask and batched conts, if seq2seq
