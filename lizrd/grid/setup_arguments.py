@@ -30,6 +30,7 @@ def make_singularity_env_arguments(
     hf_datasets_cache_path: Optional[str],
     neptune_key: Optional[str],
     wandb_key: Optional[str],
+    cuda_visible: Optional[str],
 ) -> List[str]:
     variables_and_values = {}
 
@@ -41,6 +42,9 @@ def make_singularity_env_arguments(
 
     if wandb_key is not None:
         variables_and_values["WANDB_API_KEY"] = wandb_key
+
+    if cuda_visible is not None:
+        variables_and_values["CUDA_VISIBLE_DEVICES"] = cuda_visible
 
     return (
         ["--env", ",".join([f"{k}={v}" for k, v in variables_and_values.items()])]
