@@ -81,6 +81,9 @@ def create_subprocess_args(
                 wandb_key=wandb_key,
             )
 
+            cuda_visible = setup_args.get("cuda_visible")
+            print("CUDA", cuda_visible)
+
             runner_params = translate_to_argparse(training_args)
             if isinstance(CLUSTER, LocalBackend):
                 runner_main_function = get_train_main_function(setup_args["runner"])
@@ -96,5 +99,5 @@ def create_subprocess_args(
                 runner_params=runner_params,
             )
 
-            experiments.append((subprocess_args, training_args["name"]))
+            experiments.append((subprocess_args, training_args["name"], cuda_visible))
     return experiments, interactive_debug_session
