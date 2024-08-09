@@ -79,6 +79,7 @@ def create_subprocess_args(
                 hf_datasets_cache_path=setup_args["hf_datasets_cache"],
                 neptune_key=neptune_key,
                 wandb_key=wandb_key,
+                cuda_devices=setup_args.get("cuda_devices"),
             )
 
             runner_params = translate_to_argparse(training_args)
