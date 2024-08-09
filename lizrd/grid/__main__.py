@@ -41,6 +41,12 @@ if __name__ == "__main__":
         for i, experiment in enumerate(experiments):
             subprocess_args, job_name = experiment
             print(f"running experiment {i} from {job_name}...")
+            # env = os.environ.copy()
+            # if cuda_visible is not None:
+            #     print("DDDFDSFFDF")
+            #     env.update(
+            #         {"SINGULARITYENV_CUDA_VISIBLE_DEVICES": args["cuda_visible"]}
+            #     )
             PROCESS_CALL_FUNCTION(subprocess_args)
             sleep(5)
             if interactive_debug_session:
