@@ -75,11 +75,15 @@ def create_subprocess_args(
                 yaml.dump({**training_args, **setup_args}, f)
             training_args["all_config_paths"] += f",{full_config_path}"
 
+            # print("CUDA", setup_args.get("cuda_devices"))
             singularity_env_arguments = make_singularity_env_arguments(
                 hf_datasets_cache_path=setup_args["hf_datasets_cache"],
                 neptune_key=neptune_key,
                 wandb_key=wandb_key,
+                # cuda_devices=setup_args.get("cuda_devices"),
             )
+
+            cuda_visible = setup_args.get("cuda_devices")
 
             runner_params = translate_to_argparse(training_args)
             if isinstance(CLUSTER, LocalBackend):
@@ -96,5 +100,5 @@ def create_subprocess_args(
                 runner_params=runner_params,
             )
 
-            experiments.append((subprocess_args, training_args["name"]))
+            experiments.append((subprocess_args, training_args["name"], cuda_visible))
     return experiments, interactive_debug_session
