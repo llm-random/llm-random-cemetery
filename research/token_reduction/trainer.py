@@ -182,8 +182,9 @@ def calculate_llm_loss_and_gradient(
         layer = (
             model.embedding_layer
             if not isinstance(model, FSDP)
-            else model._fsdp_wrapped_module.embedding_layer
+            else model._fsdp_wrapped_module.embedding_layer._fsdp_wrapped_module
         )
+
         if isinstance(layer, TokenReductionEmbedding) and model.training:
             indices_to_keep, _ = layer.save_reduce_split
             indices_to_keep = indices_to_keep.to(mask.device)
