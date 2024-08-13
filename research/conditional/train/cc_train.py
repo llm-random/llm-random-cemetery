@@ -419,10 +419,19 @@ if __name__ == "__main__":
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.bind(("", 0))
             port = str(s.getsockname()[1])
-        mp.spawn(
-            main,
-            args=[data_seeds, port, args],
-            nprocs=args.n_gpus,
-        )
+        # mp.spawn(
+        #     main,
+        #     args=[data_seeds, port, args],
+        #     nprocs=args.n_gpus,
+        # )
+        world_size = args.n_gpus
+        children = []
+        for i in range(world_size):
+            subproc = mp.Process(target=main, args=[data_seeds, port, args])
+            children.append(subproc)
+            subproc.start()
+
+        for i in range(world_size):
+            children[i].join()
     else:
         main(None, args=args)
