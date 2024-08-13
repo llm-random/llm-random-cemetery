@@ -1,3 +1,6 @@
+import sys
+sys.path.append('/home/jan.malasnicki/Documents/llm-random')
+
 from collections import OrderedDict
 from typing import Literal, Callable, Optional
 from functools import partial
@@ -395,6 +398,7 @@ class Attention(LoggingLayer):
         init_scale: float,
         dhead=None,
         flash=False,
+        qk_ov=False,
     ):
         super(Attention, self).__init__()
         if dhead is None:
@@ -413,6 +417,7 @@ class Attention(LoggingLayer):
             init_type=init_type,
             init_scale=init_scale,
         )
+        print(f'in_proj shape: {self.input_projection.weight.shape}')
         self.output_projection = Linear(
             heads * dhead,
             dmodel,
@@ -420,7 +425,15 @@ class Attention(LoggingLayer):
             init_type=init_type,
             init_scale=init_scale,
         )
-        self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
+        in_by_head = self.input_projection.weight.view(3 * dhead, heads, dmodel)
+        print(f'in_by_head: {in_by_head.shape}')
+        self.Q, self.K, self.V = torch.split(in_by_head, dhead, dim=0)
+        self.O = self.output_projection.weight.view(dhead, heads, dmodel)
+        print(f'Q: {self.Q.shape}')
+        print(f'K: {self.K.shape}')
+        print(f'V: {self.V.shape}')
+        print(f'O: {self.O.shape}')
+        # self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
 
     def forward(self, x):
         projected = self.input_projection(x)
@@ -668,3 +681,22 @@ class LLM(nn.Module):
         x = self.encoder(x)
         x = self.head(x)
         return x
+
+
+if __name__ == '__main__':
+
+    dmodel = 128
+    heads = 4
+    causal = True
+    init_type = 'truncated_normal'
+    init_scale = 0.1
+    qk_ov = False
+
+    attn = Attention(
+        dmodel=dmodel,
+        heads=heads,
+        causal=causal,
+        init_type=init_type,
+        init_scale=init_scale,
+        qk_ov=qk_ov,
+    )
