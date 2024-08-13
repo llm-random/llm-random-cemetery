@@ -404,7 +404,7 @@ def main(
 
 
 if __name__ == "__main__":
-    misc.print_available_gpus()
+    # misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
     args = parser.parse_args()
@@ -424,5 +424,14 @@ if __name__ == "__main__":
             args=[data_seeds, port, args],
             nprocs=args.n_gpus,
         )
+        # world_size = args.n_gpus
+        # children = []
+        # for i in range(world_size):
+        #     subproc = mp.Process(target=main, args=(i, data_seeds, port, args))
+        #     children.append(subproc)
+        #     subproc.start()
+
+        # for i in range(world_size):
+        #     children[i].join()
     else:
         main(None, args=args)
