@@ -2,6 +2,7 @@ import argparse
 from collections import defaultdict
 import os
 import random
+import traceback
 from typing import Callable, Optional
 import socket
 
@@ -109,7 +110,17 @@ def rescale_params_after_init(args, model):
                 break
         param.data *= scale
 
+def traceback_decoratator(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            raise e
+    return wrapper
 
+@traceback_decoratator
 def main(
     rank: Optional[int],
     data_seeds: Optional[list[int]] = None,
@@ -327,33 +338,37 @@ def main(
         dataset_path=args.validation_dataset_path,
     )
 
+    print('will create logger', flush=True)
+
     if is_logging_process:
         logger = get_logger(args, model, VOCAB_SIZE)
     else:
         logger = None
 
-    if args.model_type == "gpt" and is_logging_process:
-        log_batch(
-            train_dataloader,
-            tokenizer_maker=(
-                tokenizers.GPTTokenizer
-                if args.model_type == "gpt"
-                else tokenizers.BertTokenizer
-            ),
-        )
+    # if args.model_type == "gpt" and is_logging_process:
+    #     log_batch(
+    #         train_dataloader,
+    #         tokenizer_maker=(
+    #             tokenizers.GPTTokenizer
+    #             if args.model_type == "gpt"
+    #             else tokenizers.BertTokenizer
+    #         ),
+    #     )
+    print('will create profiler schedule', flush=True)
 
-    profiler_schedule = (
-        torch.profiler.schedule(
-            wait=args.profiler_schedule_wait,
-            warmup=args.profiler_schedule_warmup,
-            active=args.profiler_schedule_active,
-            repeat=args.profiler_schedule_repeat,
-            skip_first=args.profiler_schedule_skip_first,
-        )
-        if args.profiler_enabled
-        else disable_profile_schedule_fn
-    )
+    # profiler_schedule = (
+    #     torch.profiler.schedule(
+    #         wait=args.profiler_schedule_wait,
+    #         warmup=args.profiler_schedule_warmup,
+    #         active=args.profiler_schedule_active,
+    #         repeat=args.profiler_schedule_repeat,
+    #         skip_first=args.profiler_schedule_skip_first,
+    #     )
+    #     if args.profiler_enabled
+    #     else disable_profile_schedule_fn
+    # )
 
+    print('will create trainer', flush=True)
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
@@ -392,11 +407,12 @@ def main(
         model_fit_gpu_info_params=model_fit_gpu_info_params,
         profiler_enabled=args.profiler_enabled,
         profiler_trace_path=args.profiler_trace_path,
-        profiler_schedule=profiler_schedule,
+        profiler_schedule=None,
         rank=rank,
         start_step=checkpoint["step"] + 1 if checkpoint is not None else 0,
         checkpoint=checkpoint,
     )
+    print('will enter train', flush=True)
     trainer.train(args.n_steps)
 
     if rank is not None:
@@ -404,7 +420,7 @@ def main(
 
 
 if __name__ == "__main__":
-    misc.print_available_gpus()
+    # misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
     args = parser.parse_args()
@@ -424,5 +440,14 @@ if __name__ == "__main__":
             args=[data_seeds, port, args],
             nprocs=args.n_gpus,
         )
+        # world_size = args.n_gpus
+        # children = []
+        # for i in range(world_size):
+        #     subproc = mp.Process(target=main, args=(i, data_seeds, port, args))
+        #     children.append(subproc)
+        #     subproc.start()
+
+        # for i in range(world_size):
+        #     children[i].join()
     else:
         main(None, args=args)
