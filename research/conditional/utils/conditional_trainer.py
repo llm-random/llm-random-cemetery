@@ -128,44 +128,45 @@ class ConditionalTrainer:
         """
         Train the model for n_steps steps.
         """
+        print('entered train')
         self._before_train_operations()
         if self.scaler is not None and self.checkpoint is not None:
             load_scaler_state(self.scaler, self.checkpoint)
 
-        with profile(
-            activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-            schedule=self.profiler_schedule,
-            on_trace_ready=torch.profiler.tensorboard_trace_handler(
-                self.profiler_trace_path
-            ),
-            record_shapes=True,
-            profile_memory=True,
-            with_stack=True,
-            with_flops=True,
-            with_modules=True,
-        ) as p:
-            for step in range(self.start_step, n_steps + 1):
-                self._train_step(step)
-                if self.profiler_enabled:
-                    p.step()
+        # with profile(
+        #     activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
+        #     schedule=self.profiler_schedule,
+        #     on_trace_ready=torch.profiler.tensorboard_trace_handler(
+        #         self.profiler_trace_path
+        #     ),
+        #     record_shapes=True,
+        #     profile_memory=True,
+        #     with_stack=True,
+        #     with_flops=True,
+        #     with_modules=True,
+        # ) as p:
+        for step in range(self.start_step, n_steps + 1):
+            self._train_step(step)
+            # if self.profiler_enabled:
+            #     p.step()
 
-                if (
-                    step > 0
-                    and self.eval_interval > 0
-                    and step % self.eval_interval == 0
-                ):
-                    self._eval_step(step)
-                if (
-                    self.model_type == "gpt"
-                    and self.decoding_interval > 0
-                    and step % self.decoding_interval == 0
-                    and self.is_logging_process
-                ):
-                    try:
-                        self._decode_samples(step)
-                    except:
-                        print("Decoding failed, skipping...")
-                self._after_step_operations(step)
+            if (
+                step > 0
+                and self.eval_interval > 0
+                and step % self.eval_interval == 0
+            ):
+                self._eval_step(step)
+            if (
+                self.model_type == "gpt"
+                and self.decoding_interval > 0
+                and step % self.decoding_interval == 0
+                and self.is_logging_process
+            ):
+                try:
+                    self._decode_samples(step)
+                except:
+                    print("Decoding failed, skipping...")
+            self._after_step_operations(step)
 
     def _train_step(
         self,
