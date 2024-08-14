@@ -327,33 +327,37 @@ def main(
         dataset_path=args.validation_dataset_path,
     )
 
+    print('will create logger', flush=True)
+
     if is_logging_process:
         logger = get_logger(args, model, VOCAB_SIZE)
     else:
         logger = None
 
-    if args.model_type == "gpt" and is_logging_process:
-        log_batch(
-            train_dataloader,
-            tokenizer_maker=(
-                tokenizers.GPTTokenizer
-                if args.model_type == "gpt"
-                else tokenizers.BertTokenizer
-            ),
-        )
+    # if args.model_type == "gpt" and is_logging_process:
+    #     log_batch(
+    #         train_dataloader,
+    #         tokenizer_maker=(
+    #             tokenizers.GPTTokenizer
+    #             if args.model_type == "gpt"
+    #             else tokenizers.BertTokenizer
+    #         ),
+    #     )
+    print('will create profiler schedule', flush=True)
 
-    profiler_schedule = (
-        torch.profiler.schedule(
-            wait=args.profiler_schedule_wait,
-            warmup=args.profiler_schedule_warmup,
-            active=args.profiler_schedule_active,
-            repeat=args.profiler_schedule_repeat,
-            skip_first=args.profiler_schedule_skip_first,
-        )
-        if args.profiler_enabled
-        else disable_profile_schedule_fn
-    )
+    # profiler_schedule = (
+    #     torch.profiler.schedule(
+    #         wait=args.profiler_schedule_wait,
+    #         warmup=args.profiler_schedule_warmup,
+    #         active=args.profiler_schedule_active,
+    #         repeat=args.profiler_schedule_repeat,
+    #         skip_first=args.profiler_schedule_skip_first,
+    #     )
+    #     if args.profiler_enabled
+    #     else disable_profile_schedule_fn
+    # )
 
+    print('will create trainer', flush=True)
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
@@ -374,8 +378,7 @@ def main(
         eval_interval=args.eval_interval,
         n_eval_batches=args.n_eval_batches,
         n_gpus=args.n_gpus,
-        save_weights_path=save_weights_path,
-        save_weights_interval=args.save_weights_interval,
+        save_weights_path=save_weights_path,        save_weights_interval=args.save_weights_interval,
         gradient_clipping=args.grad_clip,
         loss_checkpoint_chungs=args.loss_checkpoint_chungs,
         gradient_accumulation_steps=args.gradient_accumulation_steps,
@@ -397,6 +400,7 @@ def main(
         start_step=checkpoint["step"] + 1 if checkpoint is not None else 0,
         checkpoint=checkpoint,
     )
+    print('will enter traine')
     trainer.train(args.n_steps)
 
     if rank is not None:
@@ -404,7 +408,7 @@ def main(
 
 
 if __name__ == "__main__":
-    misc.print_available_gpus()
+    # misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
     args = parser.parse_args()
@@ -424,5 +428,14 @@ if __name__ == "__main__":
             args=[data_seeds, port, args],
             nprocs=args.n_gpus,
         )
+        # world_size = args.n_gpus
+        # children = []
+        # for i in range(world_size):
+        #     subproc = mp.Process(target=main, args=(i, data_seeds, port, args))
+        #     children.append(subproc)
+        #     subproc.start()
+
+        # for i in range(world_size):
+        #     children[i].join()
     else:
         main(None, args=args)
