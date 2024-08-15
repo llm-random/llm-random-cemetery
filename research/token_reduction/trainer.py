@@ -182,9 +182,14 @@ def calculate_llm_loss_and_gradient(
         layer = (
             model.embedding_layer
             if not isinstance(model, FSDP)
-            else model._fsdp_wrapped_module.embedding_layer
+            else model._fsdp_wrapped_module.embedding_layer._fsdp_wrapped_module
         )
+
+        print(f"is instance={isinstance(model, FSDP)}")
+        print(layer)
+
         if isinstance(layer, TokenReductionEmbedding) and model.training:
+            assert False
             indices_to_keep, _ = layer.save_reduce_split
             indices_to_keep = indices_to_keep.to(mask.device)
             mask = keep_given_indeces(mask, indices_to_keep)
@@ -193,6 +198,9 @@ def calculate_llm_loss_and_gradient(
         # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
         gt_tokens = gt_tokens.to(model_output.device)
         mask = mask.to(model_output.device)
+
+        print(model_output.flatten(0, -2).shape)
+        print(gt_tokens.reshape(-1).long().shape)
 
         mask_loss = F.cross_entropy(
             model_output.flatten(0, -2),
