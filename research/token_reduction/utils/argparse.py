@@ -311,12 +311,7 @@ def introduce_parser_arguments(
     parser.add_argument(
         "--rnn_type",
         type=str,
-        choices=[
-            "manual",
-            "rnn",
-            "lstm",
-            "cnn"
-        ],
+        choices=["manual", "rnn", "lstm", "cnn"],
         default="lstm",
         required=False,
     )
