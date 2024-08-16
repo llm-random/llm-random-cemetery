@@ -7,7 +7,7 @@ n_gpus: 8
 
 params:
   name: "base_extrapolation"
-  tags: ["large_extrapolation"]
+  tags: ["large_extrapolation", "relative_params_from_medium"]
   ff_mode: token_choice
   capacity_factor: 1.0
 
@@ -22,7 +22,8 @@ params:
   n_blocks: 24
   n_att_heads: 12
 
-  batch_size: 1365
+  # batch_size: 1365, 1536 works
+  batch_size: 2048
   cutoff: 256
 
   n_steps: 41_250
@@ -46,22 +47,22 @@ params:
   activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
-  print_parameter_names: true
-  relative_lr:
-    embedding_layer: 3.333
-    head: 0.666
-    gating: 0.666
-    expert_inner_function: 0.3
+  # relative_lr:
+  #   embedding_layer: 3.333
+  #   head: 0.666
+  #   gating: 0.666
+  #   expert_inner_function: 0.3
+  #   projection: 2.5
 
-  relative_init_scale:
-    embedding_layer: 0.2
-    head: 1.
-    gating: 0.2
-    expert_inner_function: 1.
+  # relative_init_scale:
+  #   embedding_layer: 1.
+  #   head: 1.
+  #   gating: 1.
+  #   expert_inner_function: 1.
 
-  relative_scheduler_fraction:
-    embedding_layer: 0.666
-    head: 0.666
-    gating: 1.
-    expert_inner_function: 1.125
-
+  # relative_scheduler_fraction:
+  #   embedding_layer: 0.666
+  #   head: 0.666
+  #   gating: 1.
+  #   expert_inner_function: 1.125
+  #   projection: 1.
