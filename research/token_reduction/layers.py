@@ -176,6 +176,7 @@ class TokenMergingLayer(LoggingLayer):
             "reduced_tokens": self.logging_cache["reduced_tokens"],
         }
 
+
 class TokenRnnMergingLayer(LoggingLayer):
     """
     This function randomly selects a `result_seq_len` subset of tokens from the input
@@ -198,7 +199,9 @@ class TokenRnnMergingLayer(LoggingLayer):
 
     def init_rnn(self, rnn_type, dm, init_scale, init_type):
         if rnn_type == "manual":
-            return Linear(dm, dm, init_type=init_type, init_scale=init_scale, bias=False)
+            return Linear(
+                dm, dm, init_type=init_type, init_scale=init_scale, bias=False
+            )
         elif rnn_type == "rnn":
             return nn.RNN(dm, dm, batch_first=True)
         elif rnn_type == "lstm":
@@ -219,7 +222,9 @@ class TokenRnnMergingLayer(LoggingLayer):
                 hidden[:, i, :] = state = torch.tanh(self.rnn(state)) + x[:, i, :]
             return hidden
         elif self.rnn_type == "cnn":
-            return x + self.rnn(nn.functional.pad(x.permute(0, 2, 1), (2,0))).permute(0, 2, 1)
+            return x + self.rnn(nn.functional.pad(x.permute(0, 2, 1), (2, 0))).permute(
+                0, 2, 1
+            )
         elif self.rnn_type in ["rnn", "lstm"]:
             return self.rnn(x)[0] + x
         else:
@@ -238,7 +243,7 @@ class TokenRnnMergingLayer(LoggingLayer):
         )
         self.update_cache_for_logging("reduced_tokens", n_tokens_to_reduce)
 
-        #assert n_tokens_to_reduce + self.result_seq_len == seq_len
+        # assert n_tokens_to_reduce + self.result_seq_len == seq_len
         indices_to_keep, _ = choose_indeces_to_reduce(
             batch_size, seq_len, self.result_seq_len, n_tokens_to_reduce
         )

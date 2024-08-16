@@ -148,7 +148,10 @@ def get_embedding_layer(
         )
     elif reduction_layer_type == "rnn_merging":
         reduction_layer = lambda: layers.TokenRnnMergingLayer(
-            reference_seq_len, dm, scheduler, rnn_type=rnn_type,
+            reference_seq_len,
+            dm,
+            scheduler,
+            rnn_type=rnn_type,
         )
 
     return (

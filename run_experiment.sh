@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relative_lr/jm_cfg_rel.yaml --git_branch=relative_medium_baseline_vs_best_4cmptopt_2024-08-16_16-15-25 --skip_copy_code --skip_confirmation
