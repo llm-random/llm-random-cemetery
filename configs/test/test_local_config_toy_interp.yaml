@@ -1,6 +1,6 @@
 parent: configs/baselines/gpt/dense/common.yaml
 md5_parent_hash: 1b1451abcd3779c5960c78b2f48aecbc
-time: 0-16:00:00
+time: 0-20:00:00
 # cuda_visible: "2"
 interactive_debug: true
 
@@ -33,7 +33,7 @@ params:
   n_steps: 1_500_000
   learning_rate: 1e-3
   decoding_interval: 0
-  logging_interval_heavy: 100_000
+  logging_interval_heavy: 5_000
   # eval_interval: 1000
   init_type: truncated_normal
   init_scale: 0.1
@@ -62,4 +62,4 @@ params:
 
   use_dummy_dataset: true
   num_workers: 0
-  save_weights_interval: 250_000
+  save_weights_interval: 10_000
