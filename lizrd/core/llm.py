@@ -223,11 +223,6 @@ def attention_mechanism(
                 torch.tril(torch.ones_like(a)) == 0, float("-inf")
             )  # mask out future tokens
         a = torch.softmax(a, dim=-1)
-        b = a.squeeze(0)
-        print(b.shape)
-        for i in range(b.shape[0]):
-            plt.imshow(b[i].detach().cpu().numpy())
-            plt.show()
         output = torch.einsum("... h l L, ... L h d -> ... l h d", a, value)
         output = output.transpose(1, 2)
 
