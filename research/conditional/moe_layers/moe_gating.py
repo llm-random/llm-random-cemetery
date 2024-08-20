@@ -380,7 +380,10 @@ class TokenGating(MoeGating):
         )
 
     def log_light(self):
-        if "dropped_tokens_ratio" not in self.logging_cache or "load_balancing_loss" not in self.logging_cache:
+        if (
+            "dropped_tokens_ratio" not in self.logging_cache
+            or "load_balancing_loss" not in self.logging_cache
+        ):
             return {}
         return {
             "dropped_tokens_ratio": self.logging_cache["dropped_tokens_ratio"],
@@ -389,7 +392,10 @@ class TokenGating(MoeGating):
         }
 
     def log_heavy(self):
-        if "gate_softmax_values" not in self.logging_cache or "tokens_per_expert_counts" not in self.logging_cache:
+        if (
+            "gate_softmax_values" not in self.logging_cache
+            or "tokens_per_expert_counts" not in self.logging_cache
+        ):
             return {}
         return {
             "gate_softmax_all_values": make_histogram(
