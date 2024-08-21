@@ -24,7 +24,7 @@ def parse_config(config_path):
 
 
 def get_random_UUID(length=8):
-    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=length))
+    return "".join(random.choices(string.ascii_uppercase + string.digits, k=length))
 
 
 def run_command(command):
@@ -44,7 +44,9 @@ def init_run(run_id, project_name="pmtest/llm-random"):
 class TrainRun:
     def __init__(self, search, command, pid, val):
         self.command = command
-        self.process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.process = subprocess.Popen(
+            command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
         self.pid = pid
         self.connection = search.connection
         self.server = search.server_name
@@ -62,11 +64,15 @@ class TrainRun:
         return self.process.poll() is not None
 
     def is_queued(self):
-        out = run_command(f"ssh -qt {self.server} 'squeue --start -o \"%.50j\"' | grep {self.pid} 2>/dev/null")
+        out = run_command(
+            f"ssh -qt {self.server} 'squeue --start -o \"%.50j\"' | grep {self.pid} 2>/dev/null"
+        )
         return len(out) > 1 or self.is_running()
 
     def is_running(self):
-        out = run_command(f"ssh -qt {self.server} 'squeue --states=R -o \"%.50j\"' | grep {self.pid} 2>/dev/null")
+        out = run_command(
+            f"ssh -qt {self.server} 'squeue --states=R -o \"%.50j\"' | grep {self.pid} 2>/dev/null"
+        )
         return len(out) > 1 or self.is_in_neptune()
 
     def is_in_neptune(self):
@@ -89,7 +95,16 @@ class TrainRun:
 
 
 class LocalSearch:
-    def __init__(self, server_name, base_config, iters, tune_params, wait_time=5, param_change=(0.2, 2/3, 3/2, 5), configs_directory="local_search_configs"):
+    def __init__(
+        self,
+        server_name,
+        base_config,
+        iters,
+        tune_params,
+        wait_time=5,
+        param_change=(0.2, 2 / 3, 3 / 2, 5),
+        configs_directory="local_search_configs",
+    ):
         self.iters = iters
         self.server_name = server_name
         self.current_config = base_config
@@ -100,7 +115,7 @@ class LocalSearch:
         self.last_score = None
         self.wait_time = wait_time
         self.last_param = ""
-        self.exp_name = self.get_param_val('name')
+        self.exp_name = self.get_param_val("name")
         Path(self.configs_directory).mkdir(parents=True, exist_ok=True)
         logging.getLogger("neptune").setLevel(logging.CRITICAL)
         assert not self.current_config["interactive_debug_session"]
@@ -139,12 +154,17 @@ class LocalSearch:
         uuid = get_random_UUID()
         name = f"{self.exp_name}_{iter}_{param.replace(':', '_')}_{uuid}"
         config_path = f"{self.configs_directory}/{name}.yaml"
-        self.set_param_val(config, 'name', name)
+        self.set_param_val(config, "name", name)
 
         # add tags
-        tags = self.get_param_val('tags', [])
-        tags += ["local_search", name, f"orig_val_{self.get_param_val(param)}", self.exp_name]
-        self.set_param_val(config, 'tags', tags)
+        tags = self.get_param_val("tags", [])
+        tags += [
+            "local_search",
+            name,
+            f"orig_val_{self.get_param_val(param)}",
+            self.exp_name,
+        ]
+        self.set_param_val(config, "tags", tags)
 
         self.write_yaml(config_path, config)
         command = self.get_run_command(config_path)
@@ -162,14 +182,38 @@ class LocalSearch:
             time.sleep(self.wait_time)
 
     def wait_for_runs_to_finish_and_get_best(self, pids, param):
-        get_results_str = lambda: ", ".join([f"{run.val}: {run.get_results()}" for run in pids])
+        get_results_str = lambda: ", ".join(
+            [f"{run.val}: {run.get_results()}" for run in pids]
+        )
 
-        range = trange(5*len(pids), desc="Starting..", leave=True)
-        self.wait_until_true(range, TrainRun.is_submitted, list(pids), lambda: "Submitting exps..")
-        self.wait_until_true(range, TrainRun.is_queued, list(pids), lambda: "Exps submitted, waiting for them to queue..")
-        self.wait_until_true(range, TrainRun.is_running, list(pids), lambda: "Exps queued, waiting for them to start")
-        self.wait_until_true(range, TrainRun.is_in_neptune, list(pids), lambda: "Exps started, waiting for them to appear in Neptune")
-        self.wait_until_true(range, TrainRun.is_finished, list(pids), lambda: f"Exps running for {param}: {get_results_str()}")
+        range = trange(5 * len(pids), desc="Starting..", leave=True)
+        self.wait_until_true(
+            range, TrainRun.is_submitted, list(pids), lambda: "Submitting exps.."
+        )
+        self.wait_until_true(
+            range,
+            TrainRun.is_queued,
+            list(pids),
+            lambda: "Exps submitted, waiting for them to queue..",
+        )
+        self.wait_until_true(
+            range,
+            TrainRun.is_running,
+            list(pids),
+            lambda: "Exps queued, waiting for them to start",
+        )
+        self.wait_until_true(
+            range,
+            TrainRun.is_in_neptune,
+            list(pids),
+            lambda: "Exps started, waiting for them to appear in Neptune",
+        )
+        self.wait_until_true(
+            range,
+            TrainRun.is_finished,
+            list(pids),
+            lambda: f"Exps running for {param}: {get_results_str()}",
+        )
         range.set_description(f"Results ({param}): {get_results_str()} ")
         range.close()
 
@@ -181,15 +225,23 @@ class LocalSearch:
             self.last_score = results[best_run]
             self.set_param_val(self.current_config, param, pids[best_run].val)
             pids[best_run].add_sota_status()
-            print(f"New best value [{param}] = {pids[best_run].val} with loss {results[best_run]}")
+            print(
+                f"New best value [{param}] = {pids[best_run].val} with loss {results[best_run]}"
+            )
             return True
         return False
 
     def run_param_tuning(self, param, i):
         val = self.get_param_val(param)
-        new_vals = [val*change for change in self.param_change]
-        test_configs = [(self.set_param_val(self.get_new_config(), param, new_val), new_val) for new_val in new_vals]
-        pids = [self.run_config_dict(config, param, new_val, i) for config, new_val in test_configs]
+        new_vals = [val * change for change in self.param_change]
+        test_configs = [
+            (self.set_param_val(self.get_new_config(), param, new_val), new_val)
+            for new_val in new_vals
+        ]
+        pids = [
+            self.run_config_dict(config, param, new_val, i)
+            for config, new_val in test_configs
+        ]
         return pids
 
     def run_baseline_score(self, param):
@@ -197,7 +249,10 @@ class LocalSearch:
         return self.run_config_dict(self.current_config, param, val, iter=0)
 
     def run_iteration(self, i):
-        while (perm := np.random.permutation(self.tune_params))[0] == self.last_param and len(self.tune_params) > 1: pass
+        while (perm := np.random.permutation(self.tune_params))[
+            0
+        ] == self.last_param and len(self.tune_params) > 1:
+            pass
         self.last_param = perm[-1]
         changed = False
         for param in perm:
@@ -218,7 +273,7 @@ class LocalSearch:
 
         name = f"{self.exp_name}_best_config"
         config_path = f"{self.configs_directory}/{name}.yaml"
-        self.set_param_val(self.current_config, 'name', name)
+        self.set_param_val(self.current_config, "name", name)
         self.write_yaml(config_path, self.current_config)
         print(f"Best config saved to {config_path}: \n{self.current_config}")
 
@@ -230,5 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("--config_path", type=str, required=True)
     args = parser.parse_args()
 
-    local_search = LocalSearch(server_name=args.server_name, **parse_config(args.config_path))
+    local_search = LocalSearch(
+        server_name=args.server_name, **parse_config(args.config_path)
+    )
     local_search.run()
