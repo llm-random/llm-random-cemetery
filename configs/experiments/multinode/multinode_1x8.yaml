@@ -1,5 +1,5 @@
-parent: configs/baselines/gpt/dense/base.yaml
-md5_parent_hash: 763f39978a58f704200275285162594c
+parent: configs/baselines/gpt/dense/large.yaml
+md5_parent_hash: 66aa609ebcff1d88f0bb900b0a0966fb
 time: 0-2:00:00
 # cuda_visible: "2"
 interactive_debug: true
