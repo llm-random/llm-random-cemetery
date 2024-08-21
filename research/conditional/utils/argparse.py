@@ -426,19 +426,19 @@ def introduce_parser_arguments(
         "--chimera_change_after_percent",
         type=float,
         default=0.1,
-        help="Change the training model after this percent of training schedule"
+        help="Change the training model after this percent of training schedule",
     )
 
     parser.add_argument(
         "--lr_restart_on_chimera",
         action="store_true",
-        help="Restart LR on chimera change"
+        help="Restart LR on chimera change",
     )
 
     parser.add_argument(
         "--lr_restart_first_full",
         action="store_true",
-        help="First LR schedule on chimera is on full length, and interrupted in the middle (as opposed to two full small schedules)"
+        help="First LR schedule on chimera is on full length, and interrupted in the middle (as opposed to two full small schedules)",
     )
 
     parser.add_argument(
