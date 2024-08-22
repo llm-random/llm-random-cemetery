@@ -1,0 +1,15 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+
+params:
+  name: "zloss"
+  tags: [zloss]
+  mixed_precision_dtype: bfloat16
+
+  learning_rate: 2e-3
+  n_blocks: 8
+  ^zloss: [0, 0.001]
+
+  # init
+  init_scale: 0.1
+  init_type: truncated_normal
