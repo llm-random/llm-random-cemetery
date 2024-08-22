@@ -4,9 +4,7 @@ from functools import partial
 import torch.nn as nn
 from typing import Literal
 
-ValidInitType = Literal[
-    "kaiming_uniform", "truncated_normal", "truncated_normal_fixed"
-]
+ValidInitType = Literal["kaiming_uniform", "truncated_normal", "truncated_normal_fixed"]
 
 
 def get_init_weight(
