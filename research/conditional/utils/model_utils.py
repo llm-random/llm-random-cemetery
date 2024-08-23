@@ -895,14 +895,15 @@ def get_classes_from_module_names(
 
 
 def get_mixed_precision_ignored_classes(args) -> list[Type[torch.nn.Module]]:
-    ignored_classes = [
-        ExpertGatingOld,
-        ExpertGating,
-        LayerNorm,
-        _BatchNorm,
-        TokenChoiceRouterOld,
-        TokenGating,
-    ]
+    # ignored_classes = [
+    #     ExpertGatingOld,
+    #     ExpertGating,
+    #     LayerNorm,
+    #     _BatchNorm,
+    #     TokenChoiceRouterOld,
+    #     TokenGating,
+    # ]
+    return []
 
     selective_precision_modules = get_classes_from_module_names(
         args.fsdp_selective_precision_modules
