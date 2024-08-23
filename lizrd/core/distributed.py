@@ -8,7 +8,6 @@ import torch.nn as nn
 import torch
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.fsdp.wrap import ModuleWrapPolicy
 
 
 def wrap_in_ddp(
@@ -16,6 +15,32 @@ def wrap_in_ddp(
     rank: int,
 ):
     return DDP(module=module.to(f"cuda:{rank}"), device_ids=[rank])
+
+
+def module_whitelist_wrap_policy(
+    module: torch.nn.Module,
+    recurse: bool,
+    nonwrapped_numel: int,
+    # Additional custom arguments
+    modules_to_wrap: tuple[Type[nn.Module]],
+) -> bool:
+    if recurse:
+        print("Returning True, because we are recursing")
+    elif isinstance(module, modules_to_wrap):
+        print("Returning True, because module is in the whitelist")
+    else:
+        print("Returning False, because module is not in the whitelist")
+    return recurse or isinstance(module, modules_to_wrap)
+
+
+def module_size_based_wrap_policy(
+    module: torch.nn.Module,
+    recurse: bool,
+    nonwrapped_numel: int,
+    # Additional custom arguments
+    min_num_params: int,
+) -> bool:
+    return nonwrapped_numel >= min_num_params
 
 
 def wrap_in_fsdp(
@@ -30,17 +55,18 @@ def wrap_in_fsdp(
     modules_to_wrap: tuple[Type[nn.Module]],
     is_logging_process: bool,
 ):
-    assert (modules_to_wrap is None and min_num_params is not None) or (
-        modules_to_wrap is not None and min_num_params is None
-    ), "The FSDP arguments `modules_to_wrap` and `min_num_params` are mutually exclusive. Either supply one, or the other."
+    # assert (modules_to_wrap is None and min_num_params is not None) or (
+    #     modules_to_wrap is not None and min_num_params is None
+    # ), "The FSDP arguments `modules_to_wrap` and `min_num_params` are mutually exclusive. Either supply one, or the other."
 
+    print("modules_to_wrap:", modules_to_wrap)
     if modules_to_wrap is not None:
-        wrap_policy = ModuleWrapPolicy(modules_to_wrap)
+        wrap_policy = partial(
+            module_whitelist_wrap_policy, modules_to_wrap=modules_to_wrap
+        )
     else:
-        wrap_policy = (
-            partial(size_based_auto_wrap_policy, min_num_params=min_num_params)
-            if min_num_params is not None
-            else size_based_auto_wrap_policy
+        wrap_policy = partial(
+            module_size_based_wrap_policy, min_num_params=min_num_params
         )
 
     wrapped = FSDP(
