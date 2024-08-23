@@ -73,7 +73,7 @@ def save_checkpoint(
     if isinstance(model, FSDP):
         save_policy = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
         with FSDP.state_dict_type(model, StateDictType.FULL_STATE_DICT, save_policy):
-            model_state_dict = model.state_dict()
+            model_state_dict = model.named_modules()
         optimizer_state_dict = FSDP.full_optim_state_dict(model, optimizer)
     else:
         model_state_dict = model.state_dict()
