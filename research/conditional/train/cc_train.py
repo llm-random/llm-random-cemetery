@@ -254,6 +254,9 @@ def main(
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
     )
+    with torch.no_grad():
+        # run a single forward pass to initialize the model
+        model(torch.randint(low=0, high=100, size=(1, args.cutoff), device=DEVICE))
 
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
