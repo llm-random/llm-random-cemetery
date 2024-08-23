@@ -178,7 +178,7 @@ class ConditionalTrainer:
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
-        self._apply_gradient()
+        self._apply_gradient(step=step)
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
@@ -226,8 +226,20 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _apply_gradient(self):
+    def maybe_report_gradient_norm(self, step: int):
+        if self.logging_interval_light > 0 and step % self.logging_interval_light == 0:
+            for name, value in self.model.named_parameters():
+                if value.grad is not None:
+                    norm = torch.linalg.norm(value.grad)
+                    self.logger.report_scalar(
+                        title=f"gradient_norm/{name.replace('.', '/')}",
+                        value=norm,
+                        iteration=self.step,
+                    )
+
+    def _apply_gradient(self, step: int):
         if self.scaler is None:
+            self.maybe_report_gradient_norm(step)
             if self.gradient_clipping is not None:
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
@@ -236,6 +248,7 @@ class ConditionalTrainer:
         else:
             if self.gradient_clipping is not None:
                 self.scaler.unscale_(self.optimizer)
+                self.maybe_report_gradient_norm(step)
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
                 )
@@ -268,9 +281,7 @@ class ConditionalTrainer:
                 self.eval_min_group_size_logfactor,
                 self.eval_max_group_size_logfactor + 1,
             ):
-                current_group_size = int(
-                    2**log_group_size_factor * original_group_size
-                )
+                current_group_size = int(2**log_group_size_factor * original_group_size)
                 if (
                     current_group_size
                     <= self.batch_size // self.gradient_accumulation_steps
