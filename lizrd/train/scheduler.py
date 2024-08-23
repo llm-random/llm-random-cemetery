@@ -21,7 +21,11 @@ def get_scheduler(
             lr=args.learning_rate,
             ratios_lr=ratios_lr_in_group_order,
         )
-    elif args.scheduler == "cosine" and "lr_restart_on_chimera" in args and args.lr_restart_on_chimera:
+    elif (
+        args.scheduler == "cosine"
+        and "lr_restart_on_chimera" in args
+        and args.lr_restart_on_chimera
+    ):
         if args.final_lr_step is None:
             args.final_lr_step = args.n_steps
         restart_time = int(args.chimera_change_after_percent * args.final_lr_step)
@@ -58,9 +62,7 @@ class AbstractLRScheduler(ABC):
 
     def set_lr(self, optimizer: Optimizer, step: int):
         new_lr = self.get_lr(step)
-        for param_group, ratio_lr in zip(
-            optimizer.param_groups, self.ratios_lr
-        ):
+        for param_group, ratio_lr in zip(optimizer.param_groups, self.ratios_lr):
             param_group["lr"] = new_lr * ratio_lr
 
 
@@ -149,7 +151,7 @@ class CosineScheduler(AbstractLRScheduler):
             return start_lr * (step + 1) / self.lr_warmup_steps
         # cosine schedule that ends at final_lr_fraction * lr, then constant
         elif step < self.final_lr_step:
-            return end_lr + 0.5 * (1 - end_lr/start_lr) * start_lr * (
+            return end_lr + 0.5 * (1 - end_lr / start_lr) * start_lr * (
                 1
                 + math.cos(
                     math.pi
