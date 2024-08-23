@@ -5,6 +5,8 @@ from typing import Callable, Iterable, Optional, Literal
 
 import torch
 from torch.profiler import profile, ProfilerActivity
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
 from attr import define
 from lizrd.core.misc import propagate_forward_pass_cache
 from lizrd.support.decoding import decode_single_example
@@ -178,7 +180,7 @@ class ConditionalTrainer:
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
-        self._apply_gradient()
+        self._apply_gradient(step=step)
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
@@ -226,8 +228,24 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _apply_gradient(self):
+    def maybe_report_gradient_norm(self, step: int):
+        if (
+            self.is_logging_process
+            and self.logging_interval_light > 0
+            and step % self.logging_interval_light == 0
+        ):
+            for name, value in self.model.named_parameters():
+                if value.grad is not None:
+                    norm = torch.linalg.norm(value.grad)
+                    self.logger.report_scalar(
+                        title=f"gradient_norm/{name.replace('.', '/')}",
+                        value=norm,
+                        iteration=step,
+                    )
+
+    def _apply_gradient(self, step: int):
         if self.scaler is None:
+            # self.maybe_report_gradient_norm(step)
             if self.gradient_clipping is not None:
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
@@ -236,6 +254,7 @@ class ConditionalTrainer:
         else:
             if self.gradient_clipping is not None:
                 self.scaler.unscale_(self.optimizer)
+                # self.maybe_report_gradient_norm(step)
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
                 )
@@ -268,9 +287,7 @@ class ConditionalTrainer:
                 self.eval_min_group_size_logfactor,
                 self.eval_max_group_size_logfactor + 1,
             ):
-                current_group_size = int(
-                    2**log_group_size_factor * original_group_size
-                )
+                current_group_size = int(2**log_group_size_factor * original_group_size)
                 if (
                     current_group_size
                     <= self.batch_size // self.gradient_accumulation_steps
@@ -430,11 +447,27 @@ class ConditionalTrainer:
             self.auxiliary_losses_accumulator.clear()
 
     def _save_weights(self, step):
-        if (
+        should_save = should_save = (
             self.save_weights_path is not None
             and self.save_weights_interval > 0
             and step % self.save_weights_interval == 0
-        ):
+        )
+
+        # if isinstance(self.model, FSDP):
+        #     if should_save and step == 0:
+        #         should_save = False
+        #     elif (
+        #         step == 1
+        #         and self.save_weights_path is not None
+        #         and self.save_weights_interval > 0
+        #     ):
+        #         should_save = True
+
+        if should_save:
+            self.model.train()
+            with torch.no_grad():
+                _ = self.model(torch.randint(0, 10, (self.batch_size, 256)))
+
             save_checkpoint(
                 self.model,
                 self.optimizer,
