@@ -32,3 +32,14 @@ params:
     embedding_layer: 5
     head: 2
 
+  relative_scheduler_fraction:
+    embedding_layer: 0.666
+
+
+
+# debug
+logger_types: "stdout"
+use_dummy_dataset: true
+n_blocks: 1
+dmodel: 16
+n_att_heads: 1
