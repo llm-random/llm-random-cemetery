@@ -1,13 +1,13 @@
 parent: configs/baselines/gpt/expert_choice/granularity/4/base.yaml
 md5_parent_hash: 6cd6b241d09b039d86d8c51b5f0b4a01
-time: "90:00:00"
+time: "4:00:00"
 interactive_debug_session: false
 interactive_debug: false
 n_gpus: 8
 
 params:
-  name: "base_extrapolation"
-  tags: ["large_extrapolation"]
+  name: "large_extrapolation_new_code_debug"
+  tags: ["baseline", "compute_opt", "large_extrapolation", "lr_tune", "seq_len_1024", "new_code_debug"]
   ff_mode: token_choice
   capacity_factor: 1.0
 
@@ -32,7 +32,7 @@ params:
 
   final_lr_fraction: 0.066666
   init_scale: 0.333
-  learning_rate: 0.0001
+  learning_rate: 0.0002
   weight_decay: 0.15
   grad_clip: 0.1
 
@@ -49,22 +49,16 @@ params:
 
   print_parameter_names: true
   
-  relative_lr:
-    embedding_layer: 3.333
-    head: 0.666
-    gating: 0.666
-    expert_inner_function: 0.3
-    # projection: 2.5
+  # relative_lr:
+  #   embedding_layer: 3.333
+  #   head: 0.666
+  #   gating: 0.666
+  #   expert_inner_function: 0.3
+  #   # projection: 2.5
 
-  # relative_init_scale:
-  #   embedding_layer: 0.2
-  #   head: 1.
-  #   gating: 0.2
-  #   expert_inner_function: 1.
-
-  relative_scheduler_fraction:
-    embedding_layer: 0.666
-    head: 0.666
-    gating: 1.
-    expert_inner_function: 1.125
+  # relative_scheduler_fraction:
+  #   embedding_layer: 0.666
+  #   head: 0.666
+  #   gating: 1.
+  #   expert_inner_function: 1.125
 
