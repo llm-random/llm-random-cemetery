@@ -181,7 +181,7 @@ class ConditionalTrainer:
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
-        self._apply_gradient()
+        self._apply_gradient(step=step)
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
@@ -229,8 +229,25 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _apply_gradient(self):
+    def maybe_report_gradient_norm(self, step: int):
+        if (
+            self.is_logging_process
+            and self.logging_interval_light > 0
+            and step % self.logging_interval_light == 0
+        ):
+            with FSDP.summon_full_params(self.model, with_grads=True):
+                for name, value in self.model.named_parameters():
+                    if value.grad is not None:
+                        norm = torch.linalg.norm(value.grad)
+                        self.logger.report_scalar(
+                            title=f"gradient_norm/{name.replace('.', '/')}",
+                            value=norm,
+                            iteration=step,
+                        )
+
+    def _apply_gradient(self, step: int):
         if self.scaler is None:
+            self.maybe_report_gradient_norm(step)
             if self.gradient_clipping is not None:
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
@@ -239,6 +256,7 @@ class ConditionalTrainer:
         else:
             if self.gradient_clipping is not None:
                 self.scaler.unscale_(self.optimizer)
+                self.maybe_report_gradient_norm(step)
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
                 )
