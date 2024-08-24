@@ -60,7 +60,6 @@ def submit_experiment(
         cluster = get_machine_backend(node, connection)
 
         cemetery_dir = cluster.get_cemetery_directory()
-        connection.run(f"mkdir -p {cemetery_dir}")
         experiment_directory = f"{cemetery_dir}/{experiment_branch_name}"
 
         if "NEPTUNE_API_TOKEN" in os.environ:
@@ -73,18 +72,39 @@ def submit_experiment(
                 "WANDB_API_KEY"
             ]
 
-        if connection.run(f"test -d {experiment_directory}", warn=True).failed:
-            print(f"Cloning {experiment_branch_name} to {experiment_directory}...")
-            connection.run(
-                f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}"
-            )
-            print(f"Cloned.")
+        print(cluster)
+        # print(cluster.type)
+        print(type(cluster))
+        if cluster == "AWSSlurmBackend":
+            for aws_host in ["node0", "node4"]:
+                with ConnectWithPassphrase(aws_host) as aws_connection:
+                    print(f"Setup on {aws_host}...")
+                    aws_connection.run(f"mkdir -p {cemetery_dir}")
+                    if connection.run(f"test -d {experiment_directory}", warn=True).failed:
+                        print(f"Cloning {experiment_branch_name} to {experiment_directory}...")
+                        connection.run(
+                            f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}"
+                        )
+                        print(f"Cloned.")
+                    else:
+                        print(
+                            f"Experiment {experiment_branch_name} already exists on {node}. Skipping."
+                        )
+                    aws_connection.run(f"chmod +x {experiment_directory}/run_experiment.sh")
         else:
-            print(
-                f"Experiment {experiment_branch_name} already exists on {node}. Skipping."
-            )
+            connection.run(f"mkdir -p {cemetery_dir}")
+            if connection.run(f"test -d {experiment_directory}", warn=True).failed:
+                print(f"Cloning {experiment_branch_name} to {experiment_directory}...")
+                connection.run(
+                    f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}"
+                )
+                print(f"Cloned.")
+            else:
+                print(
+                    f"Experiment {experiment_branch_name} already exists on {node}. Skipping."
+                )
+            connection.run(f"chmod +x {experiment_directory}/run_experiment.sh")
 
-        connection.run(f"chmod +x {experiment_directory}/run_experiment.sh")
         if not clone_only:
             connection.run(f"cd {experiment_directory} && ./run_experiment.sh")
 
