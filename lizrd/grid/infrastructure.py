@@ -165,6 +165,7 @@ class IdeasBackend(MachineBackend):
             f"--time={setup_args['time']}",
             f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
             setup_args["nodelist"],
+            # f"--nodelist=login01",
             f"{setup_args['grid_entrypoint']}",
             "singularity",
             "run",
