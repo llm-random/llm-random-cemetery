@@ -54,11 +54,11 @@ params:
     head: 0.666
     gating: 0.666
     expert_inner_function: 0.3
-    # projection: 2.5
+    projection: 1.
 
   relative_scheduler_fraction:
     embedding_layer: 0.666
     head: 0.666
     gating: 1.
     expert_inner_function: 1.125
-
+    projection: 1.
