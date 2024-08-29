@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_dense_2_relative_scheduler_fraction_embedding_layer_4FLMW4XE.yaml --git_branch=local_search_relative_medium_dense_2_relative_scheduler_fraction_embedding_layer_4FLMW4XE_2024-08-29_18-16-13 --skip_copy_code --skip_confirmation
