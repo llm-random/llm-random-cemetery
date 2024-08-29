@@ -1,0 +1,49 @@
+cpus_per_gpu: 16
+gpus: 1
+interactive_debug: false
+interactive_debug_session: false
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+params:
+  batch_size: 256
+  cutoff: 256
+  ff_mode: swi_glu
+  final_lr_fraction: 0.06666
+  final_lr_step: 10240
+  init_scale: 0.333
+  init_type: truncated_normal
+  learning_rate: 0.01
+  loss_checkpoint_chungs: 8
+  lr_warmup_steps: 102
+  mixed_precision: true
+  mixed_precision_dtype: bfloat16
+  n_steps: 10240
+  name: local_search_relative_medium_dense_2_learning_rate_6S68ET87
+  print_parameter_names: true
+  relative_lr:
+    embedding_layer: 5.0
+    head: 1.0
+    layer.feedforward: 1.0
+    projection: 1.0
+  relative_scheduler_fraction:
+    embedding_layer: 0.6666666666666666
+    head: 0.4444444444444444
+    layer.feedforward: 0.6666666666666666
+    projection: 0.2
+  save_weights_interval: 0
+  scheduler: cosine
+  tags:
+  - relative_lr
+  - dense
+  - local_search
+  - relative
+  - local_search
+  - local_search_relative_medium_dense_0_learning_rate_428FTI5A
+  - orig_val_0.002
+  - local_search_relative_medium_dense
+  - local_search
+  - local_search_relative_medium_dense_2_learning_rate_6S68ET87
+  - orig_val_0.002
+  - local_search_relative_medium_dense
+  weight_decay: 0.15
+parent: configs/baselines/gpt/dense/medium.yaml
+time: 05:00:00
