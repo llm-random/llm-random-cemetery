@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_dense_2_relative_lr_layer_feedforward_BDPI7UYR.yaml --git_branch=local_search_relative_medium_dense_2_relative_lr_layer_feedforward_BDPI7UYR_2024-08-29_17-17-51 --skip_copy_code --skip_confirmation
