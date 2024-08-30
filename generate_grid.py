@@ -3,6 +3,7 @@ import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Set, Tuple
+from lizrd.grid.prepare_configs import get_yaml_md5
 
 import yaml
 
@@ -29,7 +30,8 @@ NAME_PREFIX = "grad_norm_formulas"
 def main():
     with open(BASELINE_INPUT, "r") as f:
         baseline = yaml.safe_load(f)
-        parent_md5_hash = "04709a070794b1108adf921b25da8a8c"
+    
+    parent_md5_hash = get_yaml_md5(BASELINE_INPUT)
 
     for i, ((grad_placement, tag1), (layer_type, tag2)) in enumerate(
         itertools.product(GRAD_MODIF_PLACEMENT_COMBINATIONS, STD_NORM_LAYER_TYPES)
@@ -37,6 +39,7 @@ def main():
         config_fname = f"exp_{i}_{tag1}_{tag2}.yaml"
 
         config = deepcopy(baseline)
+        config['parent'] = BASELINE_INPUT
         config["md5_parent_hash"] = parent_md5_hash
         config["params"]["grad_modif_placement"] = list(grad_placement)
         config["params"]["grad_modif_params"].append(layer_type)

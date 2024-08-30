@@ -4,8 +4,8 @@ params:
   - c=1.0
   - layer_type=v1
   grad_modif_placement:
-  - post_ff
   - post_attn
+  - post_ff
   grad_modif_type:
   - std_norm
   name: grad_norm_formulas_exp_3_post_attn_and_ff_v1.yaml
@@ -15,4 +15,4 @@ params:
   - std_norm
   - post_attn_and_ff
   - v1
-parent: configs/baselines/gpt/grad_norm/medium.yaml
+parent: configs/experiments/grad_norm/medium.yaml

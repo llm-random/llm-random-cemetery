@@ -15,4 +15,4 @@ params:
   - std_norm
   - post_add
   - v3
-parent: configs/baselines/gpt/grad_norm/medium.yaml
+parent: configs/experiments/grad_norm/medium.yaml
