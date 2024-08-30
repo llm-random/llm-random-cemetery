@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_dense_3_relative_scheduler_fraction_head_9Y99VD04.yaml --git_branch=local_search_relative_medium_dense_3_relative_scheduler_fraction_head_9Y99VD04_2024-08-30_06-58-41 --skip_copy_code --skip_confirmation
