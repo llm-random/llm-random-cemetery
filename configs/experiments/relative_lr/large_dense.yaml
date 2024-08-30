@@ -1,4 +1,4 @@
-parent: configs/baselines/gpt/expert_choice/granularity/4/base.yaml
+parent: configs/baselines/gpt/dense/base.yaml
 md5_parent_hash: 6cd6b241d09b039d86d8c51b5f0b4a01
 time: "90:00:00"
 interactive_debug_session: false
@@ -6,21 +6,12 @@ interactive_debug: false
 n_gpus: 8
 
 params:
-  name: "large_extrapolation_relative_tune"
-  tags: ["relative", "compute_opt", "large_extrapolation", "tune_relative", "seq_len_1024"]
-  ff_mode: token_choice
-  capacity_factor: 1.0
-
-  activation_type: silu
-  moe_inner_expert: ff_gated
-  expansion_rate: 8
-  granularity: 1
-  get_router_values_from: weights
-  layer_norm_in_expert_choice: False
+  name: "dense_large"
+  tags: ["relative", "compute_opt", "large_extrapolation", "dense", "seq_len_1024"]
+  ff_mode: swi_glu
 
   dmodel: 1536
   n_blocks: 24
-  n_att_heads: 12
 
   batch_size: 384
   cutoff: 1024
@@ -31,8 +22,9 @@ params:
   scheduler: cosine
 
   final_lr_fraction: 0.066666
+  init_type: truncated_normal
   init_scale: 0.333
-  learning_rate: 0.0001
+  learning_rate: 2e-4
   weight_decay: 0.15
   grad_clip: 0.1
 
@@ -45,20 +37,19 @@ params:
   fsdp_enabled: true
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
   activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+  fsdp_selective_precision_modules: "AttentionMechanism"
 
   print_parameter_names: true
   
   relative_lr:
-    embedding_layer: 3.333
-    head: 0.666
-    gating: 0.666
-    expert_inner_function: 0.3
+    embedding_layer: 5.
+    head: 1.
+    layer.feedforward: 1.
     projection: 1.
 
   relative_scheduler_fraction:
-    embedding_layer: 0.666
-    head: 0.666
-    gating: 1.
-    expert_inner_function: 1.125
-    projection: 1.
+    embedding_layer: 0.6666
+    head: 0.6666  # last sota was 0.4444, but differences are almost invisible, so to not give someone bad ideas for explanations i leave it at 0.6666
+    layer.feedforward: 0.6666
+    projection: 0.2
+
