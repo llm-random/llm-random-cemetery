@@ -3,7 +3,9 @@ md5_parent_hash: 96d5ed8357df47ec7715e7438b24f8f5
 time: "30:00:00"
 # here configure GPUs & time for a given cluster for it to fit
 params:
-  tags: ["constrained_scaling_grid", "3M", "E=1"]
+  # tags: ["constrained_scaling_grid", "3M", "E=1"]
+  name: "neptune_is_stupiiid"
+  tags: ["constrained_scaling_grid", "3M", "step3"]
   expansion_rate: 1
-  ^n_steps: [1907, 3814, 7628, 15256, 30512]
-
+  # ^n_steps: [1907, 3814, 7628, 15256, 30512]
+  n_steps: 3
