@@ -49,6 +49,32 @@ class SwiGLUFeedForward(LoggingLayer):
         return self.w2(activation * gate)
 
 
+class SAEFeedForward(LoggingLayer):
+    def __init__(
+        self,
+        dmodel,
+        dff,
+        init_type: ValidInitType,
+        init_scale: float,
+    ):
+        super().__init__()
+        self.pre_bias = nn.Parameter(torch.zeros(dff))
+        self.w_enc = Linear(
+            dmodel, dff, init_type=init_type, init_scale=init_scale, bias=True
+        )
+        self.w_dec = Linear(
+            dff, dmodel, init_type=init_type, init_scale=init_scale, bias=False
+        )
+
+    def forward(self, x):
+        x -= self.pre_bias
+        x = self.w_enc(x)
+        x = F.relu(x)
+        x = self.w_dec(x)
+        x += self.pre_bias
+        return x
+
+
 def FeedForward(
     dmodel,
     dff,
@@ -538,8 +564,6 @@ class TransformerTower(nn.Module):
         device: torch.device = None,
         model_fragmentation: Optional[list[int]] = None,
         residual_fn: Optional[Callable] = None,
-        universal: bool = False,
-        n_repeats: int = 1,
     ):
         super().__init__()
         if type(layer_or_block_definition) is dict:
@@ -585,14 +609,6 @@ class TransformerTower(nn.Module):
                 block,
             )
             self.blocks.append(name_and_block)
-
-        if universal:
-            self.blocks = self.blocks * n_repeats
-            old_blocks = self.blocks
-            self.blocks = []
-            for i, (name, block) in enumerate(old_blocks):
-                block = block.to(device)
-                self.blocks.append((f"block_{i}", block))
 
         self.blocks = nn.Sequential(OrderedDict(self.blocks))
 
