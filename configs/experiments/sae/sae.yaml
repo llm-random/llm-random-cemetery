@@ -1,25 +1,28 @@
 parent: configs/baselines/gpt/dense/medium.yaml
 md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
-time: 0-0:30:00
+runner: "research.sae.train.train"
+time: 0-2:00:00
 # cuda_visible: "2"
 interactive_debug: true
 
+
 # LOCAL:
-n_gpus: 1
+n_gpus: 4
 
 params:
   # tokenizer: gpt
 
   # blanx args
-  name: "multinode_1x1"
-  mixed_precision: true
+  name: "sae"
+  mixed_precision: false
   mixed_precision_dtype: bfloat16
   flash_attention: false
+  residual_mode: "no_norm"
 #  logger_types: ["stdout"]
   # use_neptune: false
   # grad_clip: 1.0
 
-  tags: ["multinode 1x1"]
+  tags: ["sae"]
 
   n_steps: 1_500_000
   learning_rate: 1e-3

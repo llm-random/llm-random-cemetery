@@ -22,12 +22,12 @@ from lizrd.support.misc import (
 # )
 from lizrd.text import tokenizers
 from lizrd.train.train_utils import get_model
-from research.template.utils.check_args import check_args
+from research.sae.utils.check_args import check_args
 from research.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
-from research.template.utils.trainer import TemplateTrainer
-from research.template.utils.argparse import introduce_parser_arguments
-from research.template.utils.model_utils import (
+from research.sae.utils.trainer import SAETrainer
+from research.sae.utils.argparse import introduce_parser_arguments
+from research.sae.utils.model_utils import (
     disable_profile_schedule_fn,
     # get_classes_from_module_names,
     get_ff_layer,
@@ -144,7 +144,7 @@ def main(
     )
 
     args.ff_mode = "sae"
-    block_modules = {get_ff_layer(args)}
+    block_modules = {"feedforward": get_ff_layer(args)}
 
     if args.parallel_blocks:
         modules = block_modules.items()
@@ -158,7 +158,10 @@ def main(
         else None
     )
 
+    print(block_modules)
+
     model = get_model(
+        vocab_size=0,
         max_length=args.cutoff,
         block_modules=block_modules,
         dm=args.dmodel,
@@ -177,7 +180,7 @@ def main(
         fsdp_modules_to_wrap=fsdp_modules_to_wrap,
         activation_checkpointing_modules=activation_checkpointing_modules,
         model_fragmentation=args.model_parallelism_fragmentation,
-        residual_fn="no_norm",
+        residual_fn=residual_fn,
         is_logging_process=is_logging_process,
         rank=rank,
         include_positional_embedding=False,
@@ -246,7 +249,7 @@ def main(
     )
 
     if is_logging_process:
-        logger = get_logger(args, model)
+        logger = get_logger(args, model, VOCAB_SIZE=0)
     else:
         logger = None
 
@@ -272,12 +275,12 @@ def main(
         else disable_profile_schedule_fn
     )
 
-    trainer = TemplateTrainer(
+    trainer = SAETrainer(
         model=model,
         optimizer=optimizer,
         train_dataloader=train_dataloader,
         eval_dataloader=eval_dataloader,
-        vocab_size=VOCAB_SIZE,
+        vocab_size=0,
         mask_percent=args.mask_percent,
         mixed_precision=False if args.fsdp_enabled else args.mixed_precision,
         mixed_precision_dtype=args.mixed_precision_dtype,

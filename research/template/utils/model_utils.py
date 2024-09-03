@@ -19,7 +19,8 @@ def make_loss_and_gradient_function(
     if loss_checkpoint_chungs == 0:
         return calculate_llm_loss_and_gradient
     else:
-        return partial(chungized_llm_loss_and_gradient, n_chungs=loss_checkpoint_chungs)
+        raise NotImplementedError("Chungized loss not implemented")
+        # return partial(chungized_llm_loss_and_gradient, n_chungs=loss_checkpoint_chungs)
 
 
 def calculate_single_chung_loss(
@@ -140,35 +141,26 @@ def calculate_llm_loss_and_gradient(
     def hack_for_python_garbage_collection():
         """we want to have no reference to model output while backpropagating to allow torch to free memory,
         so we wrap loss calculation in a function"""
-        input_tokens = batch.input_ids
-        gt_tokens = batch.target_ids
-        mask = batch.should_calculate_loss
+        input_activations = batch.input_ids
 
         with torch.autocast(
             device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
         ):
-            model_output = model(input_tokens)
+            model_output = model(input_activations)
+
 
         # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
-        gt_tokens = gt_tokens.to(model_output.device)
-        mask = mask.to(model_output.device)
+        input_activations = input_activations.to(model_output.device)
 
-        mask_loss = F.cross_entropy(
-            model_output.flatten(0, -2),
-            gt_tokens.reshape(-1).long(),
-            reduction="none",
+        reconstruction_mse_loss = F.mse_loss(
+            model_output, input_activations, reduction="none"
         )
-        mask_loss = mask_loss[mask.reshape(-1) == 1]
-        loss = mask_loss.mean() / num_checkpoint_accumulation_steps
 
-        correct_tokens = gt_tokens.long() == model_output.argmax(dim=-1)
-        correct_tokens = correct_tokens.long().reshape(-1) * mask.reshape(-1)
-        correct_tokens = correct_tokens.sum()
-        total_masked_tokens = mask.sum()
+        # get intermediate activations for the loss
+
+        loss = reconstruction_mse_loss / num_checkpoint_accumulation_steps #TODO why
 
         aux_info = {
-            "correct_tokens": correct_tokens,
-            "total_masked_tokens": total_masked_tokens,
             "losses": retrieve_additional_losses(model),
         }
         return loss, aux_info

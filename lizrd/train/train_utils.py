@@ -85,6 +85,7 @@ def get_model(
     )
 
     model = llm.LLM(embedding_layer, encoder_tower, head)
+    print(model)
 
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
