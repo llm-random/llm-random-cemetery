@@ -22,9 +22,9 @@ params:
   batch_size: 256
   cutoff: 1024
 
-  n_steps: 60_000
-  final_lr_step: 60_000
-  lr_warmup_steps: 350
+  n_steps: 10_000
+  final_lr_step: 10_000
+  lr_warmup_steps: 100
   scheduler: cosine
 
   final_lr_fraction: 0.066666
@@ -47,7 +47,7 @@ params:
   print_parameter_names: true
   
   relative_lr:
-    embedding_layer: 3.333
+    ^embedding_layer: [0.83, 1.67, 2.36, 4.71, 6.67, 13.33, 1.0]
     head: 0.666
     gating: 0.666
     expert_inner_function: 0.3
