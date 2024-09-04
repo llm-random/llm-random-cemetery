@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relative_lr/base_local_minimum/start_embedding_layer.yaml --git_branch=base_extrapolation_4cpmt_opt_2024-09-04_17-07-33 --skip_copy_code
