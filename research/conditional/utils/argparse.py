@@ -169,7 +169,7 @@ def introduce_parser_arguments(
     # model versioning
 
     parser.add_argument("--save_weights_path", type=str, default="./model_ckpt")
-    parser.add_argument("--save_weights_interval", type=int, default=-1)
+    parser.add_argument("--save_weights_interval", type=int, default=-1, help="save checkpoint every save_weights_interval steps")
     parser.add_argument("--load_weights_path", type=str, default=None)
 
     # paremeters for specific experiments
