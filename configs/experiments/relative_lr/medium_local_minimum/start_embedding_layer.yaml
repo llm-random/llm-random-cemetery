@@ -1,0 +1,9 @@
+parent: configs/experiments/relative_lr/medium_relative.yaml
+md5_parent_hash: 8646669a3f509f35de2a31165d530fee
+
+params:
+  name: "medium_extrapolation_local_min"
+  tags: ["relative_lr", "medium", "local_minimum", "start", "embedding_layer"]
+
+  relative_lr:
+    embedding_layer: 69.
