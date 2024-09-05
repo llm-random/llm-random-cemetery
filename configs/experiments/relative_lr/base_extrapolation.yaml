@@ -1,14 +1,14 @@
 parent: configs/baselines/gpt/expert_choice/granularity/4/base.yaml
 md5_parent_hash: 6cd6b241d09b039d86d8c51b5f0b4a01
-time: "48:00:00"
+time: "24:00:00"
 interactive_debug_session: false
 interactive_debug: false
-n_gpus: 1
+n_gpus: 2
 cpus_per_gpu: 16
 
 params:
   name: "base_extrapolation_local_min"
-  tags: ["relative_lr", "base_extrapolation", "local_minimum", "embedding_layer"]
+  tags: ["relative_lr", "base_extrapolation", "local_minimum", "baseline"]
   ff_mode: token_choice
   capacity_factor: 1.0
 
@@ -45,7 +45,7 @@ params:
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
   print_parameter_names: true
-  
+
   relative_lr:
     embedding_layer: 3.333
     head: 0.666
@@ -59,4 +59,3 @@ params:
     gating: 1.
     expert_inner_function: 1.125
     projection: 1.
-
