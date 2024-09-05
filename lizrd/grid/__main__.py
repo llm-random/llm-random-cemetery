@@ -8,10 +8,8 @@ import os
 from time import sleep
 from lizrd.grid.grid import create_subprocess_args
 
-from lizrd.core import misc
 from lizrd.grid.infrastructure import LocalBackend, get_machine_backend
 import subprocess
-
 
 import random
 import socket
@@ -66,7 +64,6 @@ if __name__ == "__main__":
         runner_main_function, runner_params = experiments[0]
         # We run the experiment directly, not through a grid entrypoint script
         # because we want to be able to debug it
-        misc.print_available_gpus()
         parser = argparse.ArgumentParser()
         introduce_parser_arguments(parser)
         args = parser.parse_args(runner_params)
