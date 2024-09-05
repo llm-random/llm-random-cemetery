@@ -1,9 +1,9 @@
 parent: configs/baselines/gpt/expert_choice/granularity/4/base.yaml
 md5_parent_hash: 6cd6b241d09b039d86d8c51b5f0b4a01
-time: "48:00:00"
+time: "24:00:00"
 interactive_debug_session: false
 interactive_debug: false
-n_gpus: 1
+n_gpus: 2
 cpus_per_gpu: 16
 
 params:
@@ -51,7 +51,7 @@ params:
     embedding_layer: 3.333
     head: 0.666
     gating: 0.666
-    ^expert_inner_function: [0.08, 0.15, 0.21, 0.42, 0.6, 1.2, 1.0]
+    ^expert_inner_function: [0.08, 0.15, 0.6, 1.2, 1.0]
     projection: 1.
 
   relative_scheduler_fraction:
