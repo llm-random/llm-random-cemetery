@@ -8,7 +8,7 @@ cpus_per_gpu: 16
 
 params:
   name: "base_extrapolation_local_min"
-  tags: ["relative_lr", "base_extrapolation", "local_minimum", "end", "baseline"]
+  tags: ["relative_lr", "base_extrapolation", "local_minimum", "end", "expert_inner_function"]
   ff_mode: token_choice
   capacity_factor: 1.0
 
@@ -57,5 +57,5 @@ params:
     embedding_layer: 0.666
     head: 0.666
     gating: 1.
-    expert_inner_function: 1.125
+    ^expert_inner_function: [0.28, 0.56, 2.25, 4.5, 1.0]
     projection: 1.
