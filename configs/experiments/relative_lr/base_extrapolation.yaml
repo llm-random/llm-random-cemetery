@@ -8,7 +8,7 @@ cpus_per_gpu: 16
 
 params:
   name: "base_extrapolation_local_min"
-  tags: ["relative_lr", "base_extrapolation", "local_minimum", "embedding_layer"]
+  tags: ["relative_lr", "base_extrapolation", "local_minimum", "baseline"]
   ff_mode: token_choice
   capacity_factor: 1.0
 
@@ -19,7 +19,8 @@ params:
   get_router_values_from: weights
   layer_norm_in_expert_choice: False
 
-  batch_size: 256
+  gradient_accumulation_steps: 2
+  batch_size: 128
   cutoff: 1024
 
   n_steps: 10_000
@@ -45,7 +46,7 @@ params:
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
   print_parameter_names: true
-  
+
   relative_lr:
     embedding_layer: 3.333
     head: 0.666
@@ -59,4 +60,3 @@ params:
     gating: 1.
     expert_inner_function: 1.125
     projection: 1.
-
