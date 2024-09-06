@@ -7,8 +7,8 @@ n_gpus: 2
 cpus_per_gpu: 16
 
 params:
-  name: "base_extrapolation_local_min"
-  tags: ["relative_lr", "base_extrapolation", "local_minimum", "end", "baseline"]
+  ^name: ["relative_base_rel_vs_baseline", "relative_base_rel_vs_baseline_2", "relative_base_rel_vs_baseline_3"]
+  tags: ["base", "relative_lr", "relative_vs_baseline"]
   ff_mode: token_choice
   capacity_factor: 1.0
 
