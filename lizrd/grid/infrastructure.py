@@ -104,8 +104,13 @@ class AthenaBackend(MachineBackend):
         singularity_env_arguments,
         runner_params,
     ):
+        if "num_consecutive" in setup_args:
+            slurm_array_size=setup_args["num_consecutive"]
+        else:
+            slurm_array_size=1
         return [
             slurm_command,
+            f"--array=0-{slurm_array_size-1}%1",
             f"--gres=gpu:{setup_args['n_gpus']}",
             "--partition=plgrid-gpu-a100",
             f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",

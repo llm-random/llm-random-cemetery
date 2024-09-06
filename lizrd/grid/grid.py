@@ -36,7 +36,7 @@ def create_subprocess_args(
     skip_confirmation=False,
     skip_copy_code=False,
 ):
-    configs = prepare_configs(config_path, git_branch, CLUSTER)
+    configs = prepare_configs(config_path, git_branch, CLUSTER)t
     grid = setup_experiments(configs)
     check_for_argparse_correctness(grid)
     interactive_debug_session = grid[0][0]["interactive_debug_session"]
