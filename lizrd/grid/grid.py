@@ -13,6 +13,8 @@ from lizrd.grid.utils import (
 )
 from lizrd.grid.utils import setup_experiments
 from lizrd.support.code_copying import copy_code
+from lizrd.support.misc import generate_random_string
+import os
 import yaml
 
 
@@ -70,6 +72,13 @@ def create_subprocess_args(
     experiments = []
     for setup_args, trainings_args in grid:
         for i, training_args in enumerate(trainings_args):
+            random_string = generate_random_string(10)
+            setup_args["save_weights_path"] = os.path.join(
+                setup_args["save_weights_path"], random_string
+            )
+            setup_args["load_weights_path"] = os.path.join(
+                setup_args["load_weights_path"], random_string
+            )
             full_config_path = f"full_config{i}.yaml"
             with open(full_config_path, "w") as f:
                 yaml.dump({**training_args, **setup_args}, f)
