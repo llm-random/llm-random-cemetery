@@ -1,0 +1,17 @@
+parent: configs/experiments/constrained_scaling_laws/25M/model.yaml
+md5_parent_hash: a9b662ebf6564ac49b9836c0e7dbc100
+time: "00:05:00"
+n_gpus: 2
+cpus_per_gpu: 16
+# here configure GPUs & time for a given cluster for it to fit
+params:
+  name: "test_checkpoint_saving"
+  tags: ["test_checkpoint_saving"]
+  expansion_rate: 8
+  n_steps: 2000
+
+  loss_checkpoint_chungs: 1
+
+  save_weights_path: "./test_saving"
+  save_weights_interval: 100
+  load_weights_path: "/net/pr2/projects/plgrid/plggllmeffi/plgj321m/llm_random_cemetery/test_checkpoint_saving_2024-09-06_13-38-24/test_saving"
