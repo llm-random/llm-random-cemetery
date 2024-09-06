@@ -1,15 +1,17 @@
 parent: configs/baselines/gpt/expert_choice/granularity/4/medium.yaml
 md5_parent_hash: 25eb0c53963eb1c7d96c91bb327c2a20
-time: "05:00:00"
+time: "00:05:00"
 interactive_debug_session: false
 interactive_debug: false
-gpus: 1
+gpus: 2
 cpus_per_gpu: 16
 
 params:
-  name: "relative_medium_rel_vs_baseline_2"
-  tags: ["medium", "relative_lr", "relative_vs_baseline"]
-  ff_mode: token_choice
+  name: "relative_medium_ablations"
+  tags: ["relative_lr", "ablations", "attention_stability"]
+  # ff_mode: token_choice
+  ff_mode: vanilla
+  dff: 2048
   capacity_factor: 1.0
 
   activation_type: silu
@@ -22,9 +24,9 @@ params:
   batch_size: 128
   cutoff: 512
 
-  n_steps: 11_000
-  final_lr_step: 11_000
-  lr_warmup_steps: 110
+  n_steps: 10_240
+  final_lr_step: 10_240
+  lr_warmup_steps: 102
   scheduler: cosine
 
   final_lr_fraction: 0.066666
@@ -32,9 +34,14 @@ params:
   learning_rate: 3e-3
   weight_decay: 0.15
 
-  save_weights_interval: 0
   mixed_precision: True
-  loss_checkpoint_chungs: 8
+  mixed_precision_dtype: bfloat16
+  # loss_checkpoint_chungs: 8
+
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
   # relative_lr:
   #   embedding_layer: 3.333
@@ -50,16 +57,6 @@ params:
   #   expert_inner_function: 1.125
   #   projection: 1.
 
-  relative_lr:
-    embedding_layer: 1.
-    head: 1.
-    gating: 1.
-    expert_inner_function: 1.
-    projection: 1.
-
-  relative_scheduler_fraction:
-    embedding_layer: 1.
-    head: 1.
-    gating: 1.
-    expert_inner_function: 1.
-    projection: 1.
+  save_weights_path: "./test_model_chkpt"
+  save_weights_interval: 100
+  # load_weights_path:
