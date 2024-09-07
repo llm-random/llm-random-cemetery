@@ -41,7 +41,7 @@ params:
   init_scale: 0.1
   dataset_type: c4
   weight_decay: 0.1
-  ^grad_clip: [0.1]
+  ^grad_clip: [0.5]
   logger_types: "neptune"
 
   # intervals
