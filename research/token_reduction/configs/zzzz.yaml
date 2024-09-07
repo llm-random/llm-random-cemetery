@@ -6,7 +6,7 @@ n_gpus: 2
 
 params:
   name: "large"
-  tags: ["large", "merging", "scheduled", "1.2", "token_reduction"]
+  tags: ["large", "merging", "scheduled", "1.1", "token_reduction"]
   wandb_project: "token_reduction"
 
   reduction_layer_type: "merging"
@@ -15,13 +15,13 @@ params:
   ^learning_rate: [5e-4] 
   gradient_accumulation_steps: 2
   ^tr_schedule: 
-    # - "90_cos_1.2-1;10_const_1"
-    - "100_cos_1.2-1"
-    # - "90_lin_1.2-1;10_const_1"
-    # - "100_lin_1.2-1"
-    # - "45_const_1.2;45_lin_1.2-1;10_const_1"
-    # - "45_const_1.2;45_cos_1.2-1;10_const_1"
-    - "100_const_1.2"
+    # - "90_cos_1.1-1;10_const_1"
+    - "100_cos_1.1-1"
+    # - "90_lin_1.1-1;10_const_1"
+    # - "100_lin_1.1-1"
+    # - "45_const_1.1;45_lin_1.1-1;10_const_1"
+    # - "45_const_1.1;45_cos_1.1-1;10_const_1"
+    - "100_const_1.1"
 
 
   n_steps: 26400
@@ -41,7 +41,7 @@ params:
   init_scale: 0.1
   dataset_type: c4
   weight_decay: 0.1
-  ^grad_clip: [0.1]
+  ^grad_clip: [0.5]
   logger_types: "neptune"
 
   # intervals
