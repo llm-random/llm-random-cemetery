@@ -1,4 +1,4 @@
-md5_parent_hash: 940280d71281288b90cfd0755e299f80
+md5_parent_hash: 761d004db5c36719a3d134d7508aba5b
 params:
   grad_modif_params:
   - c=1.0
@@ -14,6 +14,7 @@ params:
   - medium
   - grad_norm
   - std_norm
+  - all
   - post_add
   - v1
 parent: configs/experiments/grad_norm/medium.yaml
