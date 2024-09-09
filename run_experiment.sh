@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/constrained_scaling_laws/25M/test_saving.yaml --git_branch=test_checkpoint_saving_4gpu_bs1024_fixed_2024-09-09_13-37-27 --skip_copy_code
