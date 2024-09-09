@@ -1,0 +1,19 @@
+parent: configs/experiments/constrained_scaling_laws/25M/model.yaml
+md5_parent_hash: 3067b2550c57a4b87c0c6a1287e6d902
+time: "00:05:00"
+n_gpus: 2
+cpus_per_gpu: 16
+# here configure GPUs & time for a given cluster for it to fit
+params:
+  name: "jk_ckpt_save"
+  tags: ["test_checkpoint_saving"]
+  expansion_rate: 8
+  ^learning_rate: [1e-4, 2e-4, 5e-4]
+  n_steps: 1000
+
+  # ^loss_checkpoint_chungs: [0, 0, 0]
+  loss_checkpoint_chungs: 0
+
+  save_weights_path: "./test_saving"
+  save_weights_interval: 100
+  # load_weights_path: "/home/ubuntu/llm-random-group/llm-random-cemetery/test_checkpoint_saving_4gpu_bs1024_fixed_2024-09-09_13-37-27/test_saving/simthsyife/200.pt"
