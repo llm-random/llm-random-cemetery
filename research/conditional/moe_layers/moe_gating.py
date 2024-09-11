@@ -142,10 +142,17 @@ class MoeGating(LoggingLayer):
         init_type,
     ):
         if get_router_values_from == "weights":
-            init = get_init_fun(init_type=init_type, init_scale=init_scale)
-            gate = init((self.dmodel, self.n_experts), self.dmodel)
-            gate = gate.requires_grad_(False) if self.detach_gate else gate
-            return gate, lambda: self.gate
+            e_2_special = False
+            if e_2_special:
+                init = get_init_fun(init_type=init_type, init_scale=init_scale)
+                gate = init((self.dmodel, 1), self.dmodel)
+                gate = gate.requires_grad_(False) if self.detach_gate else gate
+                return gate, lambda: torch.cat([self.gate, -self.gate], dim=1)
+            else:
+                init = get_init_fun(init_type=init_type, init_scale=init_scale)
+                gate = init((self.dmodel, self.n_experts), self.dmodel)
+                gate = gate.requires_grad_(False) if self.detach_gate else gate
+                return gate, lambda: self.gate
         elif get_router_values_from in ["gate_weight", "lin1_weight"] and hasattr(
             expert_inner_function, get_router_values_from
         ):
