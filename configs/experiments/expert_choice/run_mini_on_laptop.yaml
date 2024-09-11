@@ -6,7 +6,8 @@ params:
   name: "laptop_check"
   ff_mode: token_choice
   cutoff: 16
-  granularity: 4
+  granularity: 1
+  expansion_rate: 2
   dataset_type: wikibook
   final_lr_step: -1
   lr_warmup_percent: 0.01
