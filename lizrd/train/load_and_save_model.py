@@ -1,3 +1,4 @@
+import pathlib
 from typing import Union, Optional
 import os
 
@@ -11,10 +12,20 @@ from torch.distributed.fsdp import (
 from lizrd.support.misc import generate_random_string
 
 
-def get_checkpoint_from_path(load_weights_path: str) -> str:
+def get_checkpoint_from_path(load_weights_path: str, repeater_mode: bool) -> str:
     assert os.path.exists(load_weights_path), f"Path {load_weights_path} does not exist"
+    if repeater_mode:
+        load_weights_path = pathlib.Path(load_weights_path)
+
+        if load_weights_path.is_dir():
+            load_weights_path = load_weights_path/"repeater_save.pt"
+
+        if load_weights_path.exists():
+            print(f"Repeater file ({load_weights_path}) does not exist, starting new training.")
+            return None
+
     print(f"Loading checkpoint from {load_weights_path}...")
-    checkpoint = torch.load(load_weights_path)
+    checkpoint = torch.load(str(load_weights_path))
     print(f"Checkpoint loaded")
     return checkpoint
 

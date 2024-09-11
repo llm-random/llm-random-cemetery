@@ -25,7 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--skip_copy_code", action="store_true")
     args = parser.parse_args()
     CLUSTER = get_machine_backend()
-    experiments, interactive_debug_session = create_subprocess_args(
+    experiments, interactive_debug_session = create_subprocess_args( #dev interactive_debug_session?
         args.config_path,
         args.git_branch,
         args.neptune_key,
