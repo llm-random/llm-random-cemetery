@@ -75,3 +75,14 @@ def test_grad_modified_pre_norm_block_ff(gn_placement: LayerGradModifPlacement):
         gn_placement.post_add
     )
     assert gn_layer_factory.call_count + log_layer_factory.call_count == 3
+
+
+def test_logging():
+    pre_norm = GradMofiedPreNormBlock(
+        dmodel=4,
+        layer=TorchIdModule(),
+        name="test_layer",
+        gn_placement=LayerGradModifPlacement(post_norm=True, post_layer=True, post_add=True),
+        gn_layer=lambda: TorchIdModule(),
+        log_layer=lambda: TorchIdModule(),
+    )
