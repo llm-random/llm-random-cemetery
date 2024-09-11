@@ -1,0 +1,13 @@
+md5_parent_hash: 8646669a3f509f35de2a31165d530fee
+params:
+  name: relativity_component_ablations
+  relative_lr:
+    embedding_layer: 1.0
+  relative_scheduler_fraction:
+    embedding_layer: 1.0
+  tags:
+  - relative_lr
+  - medium
+  - component_ablations
+  - embedding_layer
+parent: configs/experiments/relative_lr/medium_relative.yaml
