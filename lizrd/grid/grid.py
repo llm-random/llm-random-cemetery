@@ -33,7 +33,7 @@ def create_subprocess_args(
     neptune_key,
     wandb_key,
     CLUSTER,
-    skip_confirmation=False,
+    skip_confirmation=True,
     skip_copy_code=False,
 ):
     configs = prepare_configs(config_path, git_branch, CLUSTER)
