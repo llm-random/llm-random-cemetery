@@ -41,6 +41,8 @@ def create_subprocess_args(
     check_for_argparse_correctness(grid)
     interactive_debug_session = grid[0][0]["interactive_debug_session"]
 
+    skip_confirmation = True    #WARNING
+
     if not isinstance(CLUSTER, LocalBackend) and not skip_confirmation:
         if not interactive_debug_session:
             total_minutes, total_n_experiments = calculate_experiments_info(grid)
