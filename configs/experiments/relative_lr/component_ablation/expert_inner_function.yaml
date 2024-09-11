@@ -1,0 +1,13 @@
+md5_parent_hash: 8646669a3f509f35de2a31165d530fee
+params:
+  name: relativity_component_ablations
+  relative_lr:
+    expert_inner_function: 1.0
+  relative_scheduler_fraction:
+    expert_inner_function: 1.0
+  tags:
+  - relative_lr
+  - medium
+  - component_ablations
+  - expert_inner_function
+parent: configs/experiments/relative_lr/medium_relative.yaml
