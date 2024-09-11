@@ -1,4 +1,6 @@
 import datetime
+import subprocess
+from time import sleep
 from lizrd.grid.infrastructure import LocalBackend
 from lizrd.grid.prepare_configs import prepare_configs
 from lizrd.grid.setup_arguments import (
@@ -41,6 +43,9 @@ def create_subprocess_args(
     check_for_argparse_correctness(grid)
     interactive_debug_session = grid[0][0]["interactive_debug_session"]
 
+    print("grid-------------------------------------------")
+    print(grid)
+
     if not isinstance(CLUSTER, LocalBackend) and not skip_confirmation:
         if not interactive_debug_session:
             total_minutes, total_n_experiments = calculate_experiments_info(grid)
@@ -55,6 +60,13 @@ def create_subprocess_args(
         if user_input.lower() not in ("", "y", "Y"):
             print("Aborting...")
             exit(1)
+            
+    sleep(10) #dev
+    print("after sleep time 10") #dev
+    result = subprocess.run(
+        ['echo', '"after sleep time 10 dddd"'],
+        capture_output=True, text=True, check=True
+    )
 
     if not isinstance(CLUSTER, LocalBackend) and (not skip_copy_code):
         _, first_exp_trainings_args = grid[0]
@@ -88,7 +100,7 @@ def create_subprocess_args(
                     (runner_main_function, runner_params)
                 ], interactive_debug_session
 
-            subprocess_args = CLUSTER.get_subprocess_args(
+            subprocess_args = CLUSTER.get_subprocess_args( # dev mod
                 slurm_command=slurm_command,
                 setup_args=setup_args,
                 training_args=training_args,
