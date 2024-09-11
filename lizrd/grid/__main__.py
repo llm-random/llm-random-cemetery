@@ -22,7 +22,7 @@ if __name__ == "__main__":
         "--wandb_key", type=str, default=os.environ.get("WANDB_API_KEY")
     )
     parser.add_argument("--skip_confirmation", action="store_true")
-    parser.add_argument("--skip_copy_code", action="store_true")
+    parser.add_argument("--skip_copy_code", action="store_true") #dev from inside cluster script execution set to true - does not copy
     args = parser.parse_args()
     CLUSTER = get_machine_backend()
     experiments, interactive_debug_session = create_subprocess_args(
