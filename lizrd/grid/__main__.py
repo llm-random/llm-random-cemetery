@@ -5,6 +5,7 @@ $ python3 -m lizrd.grid --git_branch name_of_branch --config_path path/to/config
 
 import argparse
 import os
+import re
 from time import sleep
 from lizrd.grid.grid import create_subprocess_args
 
@@ -22,7 +23,7 @@ if __name__ == "__main__":
         "--wandb_key", type=str, default=os.environ.get("WANDB_API_KEY")
     )
     parser.add_argument("--skip_confirmation", action="store_true")
-    parser.add_argument("--skip_copy_code", action="store_true")
+    parser.add_argument("--skip_copy_code", action="store_true") #dev from inside cluster script execution set to true - do not copy
     args = parser.parse_args()
     CLUSTER = get_machine_backend()
     experiments, interactive_debug_session = create_subprocess_args(
@@ -44,7 +45,28 @@ if __name__ == "__main__":
             env = os.environ.copy()
             if cuda_visible is not None:
                 env.update({"SINGULARITYENV_CUDA_VISIBLE_DEVICES": cuda_visible})
-            PROCESS_CALL_FUNCTION(subprocess_args, env)
+
+            # repeater_last_job_id = None
+            # for ii in range(N):
+            #     if not repeater_last_job_id:
+            #         subprocess_args = add_last_job_id(subprocess_args, repeater_last_job_id)
+            #     repeater_last_job_id = PROCESS_CALL_FUNCTION(subprocess_args, env)
+            #     sleep(5)
+
+            res = subprocess.run(
+                [str(arg) for arg in subprocess_args if arg is not None], env=env,
+                capture_output=True,
+                text = True
+            ) #dev
+            # print(res) #dev
+            # print(vars(res)) #dev
+            # print(type(res)) #dev
+
+            j_id = re.findall(r'\d+', res.stdout)
+            assert len(j_id) == 1
+            j_id = j_id[0]
+            print(f"Extracted job id: {j_id}")
+            
             sleep(5)
             if interactive_debug_session:
                 print("Ran only the first experiment in interactive mode. Aborting...")
