@@ -76,7 +76,7 @@ def submit_experiment(
         if connection.run(f"test -d {experiment_directory}", warn=True).failed:
             print(f"Cloning {experiment_branch_name} to {experiment_directory}...")
             connection.run(
-                f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}"
+                f"git clone --depth 1 -b {experiment_branch_name} git+ssh://{CEMETERY_REPO_URL} {experiment_directory}"
             )
             print(f"Cloned.")
         else:
