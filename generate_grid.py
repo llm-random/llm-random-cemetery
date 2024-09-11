@@ -9,7 +9,7 @@ import yaml
 from lizrd.grid.prepare_configs import get_yaml_md5
 
 GRID_OUTPUT = "configs/experiments/grad_norm/scale_norm_grid"
-BASELINE_INPUT = "configs/experiments/grad_norm/medium.yaml"
+BASELINE_INPUT = "configs/experiments/grad_norm/std_norm_grid/exp_9_post_add_v1.yaml"
 
 
 GRAD_MODIF_PLACEMENT_COMBINATIONS: List[Tuple[List[str], str]] = [
