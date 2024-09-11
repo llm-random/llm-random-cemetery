@@ -1,4 +1,6 @@
 import datetime
+import subprocess
+from time import sleep
 from lizrd.grid.infrastructure import LocalBackend
 from lizrd.grid.prepare_configs import prepare_configs
 from lizrd.grid.setup_arguments import (
@@ -88,7 +90,7 @@ def create_subprocess_args(
                     (runner_main_function, runner_params)
                 ], interactive_debug_session
 
-            subprocess_args = CLUSTER.get_subprocess_args(
+            subprocess_args = CLUSTER.get_subprocess_args( # dev mod
                 slurm_command=slurm_command,
                 setup_args=setup_args,
                 training_args=training_args,
