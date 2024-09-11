@@ -87,7 +87,7 @@ def submit_experiment(
         connection.run(f"chmod +x {experiment_directory}/run_experiment.sh")
         if not clone_only:
             connection.run(f"cd {experiment_directory} && ./run_experiment.sh")
-
+        
         if save_branch_and_dir:
             with open(BRANCH_FILENAME, "w") as f:
                 f.write(f"{experiment_branch_name}")
