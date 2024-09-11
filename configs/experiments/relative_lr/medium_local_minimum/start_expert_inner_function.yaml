@@ -1,12 +1,17 @@
-md5_parent_hash: 8646669a3f509f35de2a31165d530fee
+md5_parent_hash: 6659b9f101669afbc69a2ebeb5cf2d33
 params:
-  name: medium_local_min
+  name: medium_local_min_std
   relative_lr:
     ^expert_inner_function:
     - 0.08
     - 0.15
     - 0.6
     - 1.2
+    - 0.08
+    - 0.15
+    - 0.6
+    - 1.2
+    - 1.0
     - 1.0
   tags:
   - relative_lr
