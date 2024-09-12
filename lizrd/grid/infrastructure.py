@@ -2,6 +2,7 @@ import abc
 import os
 import platform
 import hashlib
+from typing import Optional
 
 
 from lizrd.grid.setup_arguments import make_singularity_mount_paths
@@ -32,6 +33,7 @@ class MachineBackend(abc.ABC):
         training_args,
         singularity_env_arguments,
         runner_params,
+        n_consecutive:Optional[int]=None
     ):
         pass
 
