@@ -76,6 +76,7 @@ def create_subprocess_args(
                 if setup_args["repeater_mode"]: #dev check
                     training_args["save_weights_path"] = str(pathlib.Path(training_args["save_weights_path"])/f"{i}")
                     training_args["load_weights_path"] = str(pathlib.Path(training_args["load_weights_path"])/f"{i}")
+                print(training_args) #dev
                 yaml.dump({**training_args, **setup_args}, f)
             training_args["all_config_paths"] += f",{full_config_path}"
 
