@@ -66,16 +66,20 @@ def temp_modify_attr(
 
 def get_termination_time_slurm() -> datetime:
     try:
+        print("1+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")#dev
         env=os.environ.copy()
         result = subprocess.run(
             ['scontrol', 'show', 'job', env['SLURM_JOBID']],
             capture_output=True, text=True, check=True, 
         )
+        print("2+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++")#dev
+        print(result)#dev
     except Exception as e:
         print(f"Error executing scontrol: {e}")
         raise e
 
     stdout = result.stdout
+    print(stdout)#dev
     param_k = "EndTime="
     for param in [e for e in stdout.replace('\n', ' ').split(' ') if e!='']:
         if param_k in param:
