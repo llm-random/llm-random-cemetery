@@ -1,22 +1,16 @@
 md5_parent_hash: 6659b9f101669afbc69a2ebeb5cf2d33
 params:
-  name: medium_local_min_std
+  name: relativity_component_ablations
   relative_lr:
-    ^head:
-    - 0.17
-    - 0.33
-    - 1.33
-    - 2.66
-    - 0.17
-    - 0.33
-    - 1.33
-    - 2.66
+    ^expert_inner_function:
     - 1.0
     - 1.0
+    - 1.0
+  relative_scheduler_fraction:
+    expert_inner_function: 1.0
   tags:
   - relative_lr
   - medium
-  - local_minimum
-  - start
-  - head
+  - component_ablations
+  - expert_inner_function
 parent: configs/experiments/relative_lr/medium_relative.yaml

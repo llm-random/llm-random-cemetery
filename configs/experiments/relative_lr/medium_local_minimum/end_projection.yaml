@@ -1,8 +1,16 @@
-md5_parent_hash: 8646669a3f509f35de2a31165d530fee
+md5_parent_hash: 6659b9f101669afbc69a2ebeb5cf2d33
 params:
-  name: medium_local_min
-  relative_lr:
+  name: medium_local_min_std
+  relative_scheduler_fraction:
     ^projection:
+    - 0.25
+    - 0.5
+    - 2.0
+    - 4.0
+    - 0.25
+    - 0.5
+    - 2.0
+    - 4.0
     - 0.25
     - 0.5
     - 2.0
