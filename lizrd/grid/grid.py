@@ -1,4 +1,6 @@
 import datetime
+import subprocess
+from time import sleep
 from lizrd.grid.infrastructure import LocalBackend
 from lizrd.grid.prepare_configs import prepare_configs
 from lizrd.grid.setup_arguments import (
@@ -72,6 +74,10 @@ def create_subprocess_args(
         for i, training_args in enumerate(trainings_args):
             full_config_path = f"full_config{i}.yaml"
             with open(full_config_path, "w") as f:
+                print("------------------------------------------------------") #dev
+                print(training_args) #dev
+                print(setup_args) #dev
+                raise
                 yaml.dump({**training_args, **setup_args}, f)
             training_args["all_config_paths"] += f",{full_config_path}"
 
@@ -88,7 +94,7 @@ def create_subprocess_args(
                     (runner_main_function, runner_params)
                 ], interactive_debug_session
 
-            subprocess_args = CLUSTER.get_subprocess_args(
+            subprocess_args = CLUSTER.get_subprocess_args( # dev mod
                 slurm_command=slurm_command,
                 setup_args=setup_args,
                 training_args=training_args,
