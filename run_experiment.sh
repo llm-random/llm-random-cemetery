@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/grad_norm/std_norm_grid/c_grid/post_attn_and_ff_v1/exp_0_c_0_8.yaml --git_branch=gn_c_grid_exp_0_post_attn_and_ff_v1_c_0_8_2024-09-12_14-50-31 --skip_copy_code
