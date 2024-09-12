@@ -51,6 +51,7 @@ class ConditionalTrainer:
     batch_size: int
     cutoff: int
     lr_scheduler: AbstractLRScheduler
+    repeater_job_end_time: datetime
     _calculate_loss_and_gradient: Optional[Callable] = None
     mask_percent: Optional[float] = None
     scaler: Optional[torch.cuda.amp.GradScaler] = None
@@ -75,14 +76,13 @@ class ConditionalTrainer:
     eval_dynamic_groupsize: bool = False
     steps_until_start_temperature_learn: int = -1
     model_fit_gpu_info_database_path: str = None
-    model_fit_gpu_info_params: [str] = None
+    model_fit_gpu_info_params: Optional[str] = None
     profiler_enabled: bool = False
     profiler_trace_path: str = None
     profiler_schedule: None = None
     rank: Optional[int] = None
     start_step: int = 0
     checkpoint: Optional[dict[str, torch.Tensor]] = None
-    repeater_job_end_time: datetime
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
