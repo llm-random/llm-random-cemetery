@@ -20,7 +20,7 @@ def get_checkpoint_from_path(load_weights_path: str, repeater_mode: bool) -> str
         if load_weights_path.is_dir():
             load_weights_path = load_weights_path/"repeater_save.pt" #dev highest number TODO
 
-        if load_weights_path.exists():
+        if not load_weights_path.exists():
             print(f"Repeater file ({load_weights_path}) does not exist, starting new training.")
             return None
 
