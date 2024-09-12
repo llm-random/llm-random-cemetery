@@ -75,7 +75,7 @@ class ConditionalTrainer:
     eval_dynamic_groupsize: bool = False
     steps_until_start_temperature_learn: int = -1
     model_fit_gpu_info_database_path: str = None
-    model_fit_gpu_info_params: [str] = None
+    model_fit_gpu_info_params: Optional[str] = None
     profiler_enabled: bool = False
     profiler_trace_path: str = None
     profiler_schedule: None = None
