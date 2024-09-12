@@ -413,7 +413,7 @@ if __name__ == "__main__":
     if args.data_seed < 0:
         args.data_seed = random.randint(0, 10000000)
 
-    unique_save_weights_path = prepare_save_weights_path(args.save_weights_path)
+    unique_save_weights_path = prepare_save_weights_path(args.save_weights_path, args.repeater_mode)
 
     if args.ddp_enabled or args.fsdp_enabled:
         random.seed(args.data_seed)
