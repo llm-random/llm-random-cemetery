@@ -44,7 +44,28 @@ if __name__ == "__main__":
             env = os.environ.copy()
             if cuda_visible is not None:
                 env.update({"SINGULARITYENV_CUDA_VISIBLE_DEVICES": cuda_visible})
-            PROCESS_CALL_FUNCTION(subprocess_args, env)
+
+            print("----------------------------------------------------------------")
+            print(subprocess_args)
+            raise SystemExit
+
+            # arg_time_to_replace = None
+            # arg_time_to_replace_with = None
+            # total_exp_time = None
+            # for arg in subprocess_args:
+            #     if "--time=" in arg:
+            #         max_exp_time = arg.replace("--time=", "")
+            #         hours, minutes, seconds = map(int, max_exp_time.split(':'))
+            #         total_exp_time = hours*60*60 + minutes*60 + seconds
+            #         arg_time_to_replace = arg
+            #         break
+            # if CLUSTER.max_exp_time < total_exp_time:
+            #     pass
+                    
+
+
+            # PROCESS_CALL_FUNCTION(subprocess_args, env)
+
             sleep(5)
             if interactive_debug_session:
                 print("Ran only the first experiment in interactive mode. Aborting...")

@@ -100,5 +100,6 @@ def create_subprocess_args(
                 runner_params=runner_params,
             )
             cuda_visible = setup_args.get("cuda_visible")
-            experiments.append((subprocess_args, training_args["name"], cuda_visible))
+            repeater_mode = setup_args.get("repeater_mode")#dev
+            experiments.append((subprocess_args, training_args["name"], cuda_visible, repeater_mode))
     return experiments, interactive_debug_session
