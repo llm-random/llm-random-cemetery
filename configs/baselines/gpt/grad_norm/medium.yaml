@@ -2,8 +2,10 @@ parent: configs/baselines/gpt/grad_norm/common.yaml
 md5_parent_hash: 23ddca6ab48496a38bf21b6f8cb15663
 time: 0-12:00:00
 
+cpus_per_gpu: 16
 params:
-  name: "grad_norm_medium_baseline"
+  batch_size: 128
+  name: "grad_norm_medium_baseline_reduced_bs"
 
   # model architecture
   dmodel: 512
@@ -24,6 +26,7 @@ params:
     - "medium"
     - "grad_norm"
     - "baseline"
+    - "reduce_bs"
 
   # logging etc.
   logging_interval_heavy: 160
