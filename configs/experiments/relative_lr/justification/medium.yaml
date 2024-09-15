@@ -1,0 +1,69 @@
+parent: configs/baselines/gpt/expert_choice/granularity/4/medium.yaml
+md5_parent_hash: 25eb0c53963eb1c7d96c91bb327c2a20
+time: "12:00:00"
+interactive_debug_session: false
+interactive_debug: false
+cpus_per_gpu: 16
+n_gpus: 2
+params:
+    name: "athena_debug_test"
+    tags: ["debug"]
+    ff_mode: token_choice
+    # ff_mode: vanilla
+    capacity_factor: 1.0
+    activation_type: silu
+    moe_inner_expert: ff_gated
+    expansion_rate: 8
+    granularity: 1
+    get_router_values_from: weights
+    layer_norm_in_expert_choice: False
+
+    batch_size: 128
+    cutoff: 256
+    n_steps: 15_000
+    final_lr_step: 15_000
+    save_weights_interval: 1000
+    
+    lr_warmup_steps: 150
+    scheduler: cosine
+    final_lr_fraction: 0.066666
+    init_scale: 0.333
+    learning_rate: 0.001
+    weight_decay: 0.15
+    mixed_precision: True
+    # flash_attention: True
+    flash_attention: False
+    # loss_checkpoint_chungs: 8
+    loss_checkpoint_chungs: 0
+
+    fsdp_enabled: True
+    fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+    logging_interval_heavy: 500
+    should_log_update_norm: True
+
+
+    # fsdp_enabled: False
+    # n_blocks: 1
+    # batch_size: 4
+    # use_dummy_dataset: True
+    # dff: 2048
+    # load_weights_path: /raid/NFS_SHARE/home/maciej.pioro/llm_random_cemetery/athena_debug_test_2024-08-23_19-09-20/model_ckpt/vuwtrjluyx/14000.pt
+
+    # relative_lr:
+    #   embedding_layer: 3.333
+    #   head: 0.666
+    #   gating: 0.666
+    #   expert_inner_function: 0.3
+    #   projection: 2.5
+
+    # relative_init_scale:
+    #   embedding_layer: 1.
+    #   head: 1.
+    #   gating: 1.
+    #   expert_inner_function: 1.
+    # relative_scheduler_fraction:
+    #   embedding_layer: 0.666
+    #   head: 0.666
+    #   gating: 1.
+    #   expert_inner_function: 1.125
+    #   projection: 1.
