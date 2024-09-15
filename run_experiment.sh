@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/grad_norm/activation_norm_grid/reduced_bs/exp_2_all_norm_dims_2.yaml --git_branch=grad_act_norm_exp_2_all_norm_dims_2_2024-09-15_23-48-16 --skip_copy_code
