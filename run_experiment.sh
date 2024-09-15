@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/grad_norm/scale_norm_grid/reduced_bs/exp_3_post_add_k_auto.yaml --git_branch=grad_scale_norm_exp_3_post_add_k_auto_2024-09-15_15-24-14 --skip_copy_code
