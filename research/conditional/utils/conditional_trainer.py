@@ -1,5 +1,6 @@
 from collections import defaultdict
 import copy
+from re import I
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 
@@ -190,9 +191,11 @@ class ConditionalTrainer:
             with FSDP.summon_full_params(
                 self.model,
                 with_grads=False,
+                rank0_only=True,
             ):
-                for name, value in self.model.named_parameters():
-                    self.model_checkpoint[name] = value.clone().detach()
+                if self.is_logging_process:
+                    for name, value in self.model.named_parameters():
+                        self.model_checkpoint[name] = value.clone().detach()
 
     def _train_step(
         self,
@@ -257,13 +260,14 @@ class ConditionalTrainer:
 
     def maybe_report_gradient_norm(self, step: int):
         if self.logging_interval_heavy > 0 and step % self.logging_interval_heavy == 0:
-            with FSDP.summon_full_params(self.model, with_grads=True):
-                for name, value in self.model.named_parameters():
-                    if value.grad is not None:
-                        eps = 1e-5
-                        grad_norm = torch.linalg.norm(value.grad)
-                        param_norm = torch.linalg.norm(self.model_checkpoint[name])
-                        if self.is_logging_process:
+            with FSDP.summon_full_params(self.model, with_grads=True, rank0_only=True):
+                if self.is_logging_process:
+                    for name, value in self.model.named_parameters():
+                        if value.grad is not None:
+                            eps = 1e-5
+                            grad_norm = torch.linalg.norm(value.grad)
+                            param_norm = torch.linalg.norm(self.model_checkpoint[name])
+                            # if self.is_logging_process:
                             self.logger.report_scalar(
                                 title=f"gradient_norm/{name.replace('.', '/')}",
                                 value=grad_norm,
@@ -285,14 +289,14 @@ class ConditionalTrainer:
 
     def maybe_report_update_norm(self, step: int):
         if self.will_report_update_norm(step):
-            with FSDP.summon_full_params(self.model, with_grads=False):
-                for name, value in self.model.named_parameters():
-                    eps = 1e-5
-                    update_norm = torch.linalg.norm(
-                        value.detach() - self.model_checkpoint[name]
-                    )
-                    param_norm = torch.linalg.norm(self.model_checkpoint[name])
-                    if self.is_logging_process:
+            with FSDP.summon_full_params(self.model, with_grads=False, rank0_only=True):
+                if self.is_logging_process:
+                    for name, value in self.model.named_parameters():
+                        eps = 1e-5
+                        update_norm = torch.linalg.norm(
+                            value.detach() - self.model_checkpoint[name]
+                        )
+                        param_norm = torch.linalg.norm(self.model_checkpoint[name])
                         self.logger.report_scalar(
                             title=f"update_norm/{name.replace('.', '/')}",
                             value=update_norm,
