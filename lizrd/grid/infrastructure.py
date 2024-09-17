@@ -242,7 +242,8 @@ class EntropyBackend(MachineBackend):
 
 
 class WriterBackend(MachineBackend):
-    max_exp_time = 7 * 24 * 60 * 60
+    # max_exp_time = 7 * 24 * 60 * 60
+    max_exp_time = 5 * 60
 
     def get_common_directory(self) -> str:
         return "/home/ubuntu/llm-random-group"
