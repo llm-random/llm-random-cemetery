@@ -197,6 +197,15 @@ def test_get_grad_modif_fn_scale_norm(args_mock, expected_layer_type, expected_k
         (
             {
                 "grad_modif_type": "activation_norm",
+                "grad_modif_params": ["norm_dims=(0,1,2)", "eps=1e-8"],
+            },
+            GradientActivationNormLayer,
+            (0, 1, 2),
+            1e-8,
+        ),
+        (
+            {
+                "grad_modif_type": "activation_norm",
                 "grad_modif_params": ["eps=1e-8", "norm_dims=(0, 1, 2)"],
             },
             GradientActivationNormLayer,

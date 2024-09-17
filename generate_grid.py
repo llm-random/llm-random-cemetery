@@ -8,8 +8,8 @@ import yaml
 
 from lizrd.grid.prepare_configs import get_yaml_md5
 
-GRID_OUTPUT = "configs/experiments/grad_norm/scale_norm_grid"
-BASELINE_INPUT = "configs/experiments/grad_norm/medium.yaml"
+GRID_OUTPUT = "configs/experiments/grad_norm/activation_norm_grid/reduced_bs"
+BASELINE_INPUT = "configs/experiments/grad_norm/medium_reduced_bs.yaml"
 
 
 GRAD_MODIF_PLACEMENT_COMBINATIONS: List[Tuple[List[str], str]] = [
@@ -20,10 +20,12 @@ GRAD_MODIF_PLACEMENT_COMBINATIONS: List[Tuple[List[str], str]] = [
 ]
 
 STD_NORM_MODIF_PARAMS: List[Tuple[List[str], str]] = [
-    (["k=auto", "eps=1e-6"], "k_auto"),
+    (["norm_dims=(0,1,2)", "eps=1e-8"], "norm_dims_1_2_3"),
+    (["norm_dims=(1,2)", "eps=1e-8"], "norm_dims_1_2"),
+    (["norm_dims=(2,)", "eps=1e-8"], "norm_dims_2"),
 ]
 
-NAME_PREFIX = "grad_scale_norm"
+NAME_PREFIX = "grad_act_norm"
 
 
 def main():
@@ -44,9 +46,9 @@ def main():
         config["params"]["grad_modif_params"].extend(layer_type)
         config["params"]["tags"].append(tag1)
         config["params"]["tags"].append(tag2)
-        config["params"]["tags"].append("scale_norm")
+        config["params"]["tags"].append("activation_norm")
         config["params"]["name"] = f"{NAME_PREFIX}_{config_name}"
-        config["params"]["grad_modif_type"] = "scale_norm"
+        config["params"]["grad_modif_type"] = "activation_norm"
 
         output_file = (Path(GRID_OUTPUT) / config_name).with_suffix(".yaml")
         with open(output_file, "w") as f:
