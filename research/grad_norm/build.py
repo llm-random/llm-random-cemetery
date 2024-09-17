@@ -54,7 +54,7 @@ def get_grad_modif_fn(args) -> Optional[Callable[[], torch.nn.Module]]:
     for param in grad_modif_params:
         t = tuple(map(str.strip, param.split("=")))
         if len(t) != 2:
-            raise ValueError(f"Invalid grad_modif_params value {param}")
+            raise ValueError(f"Invalid grad_modif_params entry '{param}', value: '{t}'")
         param_dict[t[0]] = t[1]
 
     if grad_modif_type == "std_norm":
