@@ -454,7 +454,7 @@ class ConditionalTrainer:
             )
 
     def _repeater_rerun(
-        self, step, repeater_job_end_time: Optional[int], buffer=15 * 60
+        self, step, repeater_job_end_time: Optional[int], buffer=4 * 60
     ) -> bool:
         if repeater_job_end_time and ((repeater_job_end_time - time())) < buffer:
             save_checkpoint(
