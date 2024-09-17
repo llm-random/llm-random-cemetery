@@ -303,6 +303,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
     args = parser.parse_args()
+    print(args)
     if args.data_seed < 0:
         args.data_seed = random.randint(0, 10000000)
 

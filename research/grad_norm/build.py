@@ -46,6 +46,7 @@ def verify_mandatory_params(args: Dict[str, Any], mandatory_params: list[str], g
 def get_grad_modif_fn(args) -> Optional[Callable[[], torch.nn.Module]]:
     grad_modif_type = getattr(args, "grad_modif_type", None)
     grad_modif_params = getattr(args, "grad_modif_params", [])
+    print(grad_modif_params)
 
     if grad_modif_type is None:
         return None
@@ -54,7 +55,7 @@ def get_grad_modif_fn(args) -> Optional[Callable[[], torch.nn.Module]]:
     for param in grad_modif_params:
         t = tuple(map(str.strip, param.split("=")))
         if len(t) != 2:
-            raise ValueError(f"Invalid grad_modif_params value {param}")
+            raise ValueError(f"Invalid grad_modif_params entry '{param}', value: '{t}'")
         param_dict[t[0]] = t[1]
 
     if grad_modif_type == "std_norm":
