@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relative_lr/base_local_minimum/end_embedding_layer.yaml --git_branch=base_extrapolation_local_min_2024-09-17_17-49-10 --skip_copy_code
