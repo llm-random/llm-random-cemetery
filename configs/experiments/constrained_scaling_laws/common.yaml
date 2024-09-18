@@ -7,7 +7,7 @@ n_gpus: 1
 
 params:
   name: constrained_scaling_grid_fixed
-  tags: ["constrained_scaling_grid"]
+  tags: ["constrained_scaling_grid", "test_ms"]
   ff_mode: token_choice
   capacity_factor: 1.0
   activation_type: silu
@@ -47,3 +47,7 @@ params:
   activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
+  save_weights_path: "./checkpoints"
+  load_weights_path: "./checkpoints"
+  repeater_mode: True
+  save_weights_interval: 20_000
