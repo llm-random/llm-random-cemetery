@@ -1,8 +1,8 @@
 parent: configs/experiments/constrained_scaling_laws/25M/model.yaml
 md5_parent_hash: 3067b2550c57a4b87c0c6a1287e6d902
 time: "00:20:00"
-n_gpus: 1
-# n_gpus: 4
+# n_gpus: 1
+n_gpus: 4
 cpus_per_gpu: 8
 # here configure GPUs & time for a given cluster for it to fit
 params:
