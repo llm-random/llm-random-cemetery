@@ -131,12 +131,12 @@ def save_checkpoint(
         l
         for l in joint_loggers.loggers
         if isinstance(l, NeptuneLogger)  # dev TODO do it for other loggers
-    ]
+    ] if joint_loggers else []
     if len(neptune_logger) == 1:
         neptune_logger = neptune_logger[0].instance_logger
         logger_metadata = {"run_id": neptune_logger._sys_id}
     else:
-        print(f"No Neptune logger, no saving.")
+        print(f"No Neptune logger, no continous logger id saved.")
         logger_metadata = None
 
     if rank == 0 or rank is None:

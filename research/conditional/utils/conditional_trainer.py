@@ -441,17 +441,19 @@ class ConditionalTrainer:
             and self.save_weights_interval > 0
             and step % self.save_weights_interval == 0
         ):
-            save_checkpoint(
-                self.model,
-                self.optimizer,
-                self.scaler,
-                self.save_weights_path,
-                self.rank,
-                step,
-                self.batch_size,
-                self.cutoff,
-                self.logger,
-            )
+            if step != 0:
+                print(f"Saving on step {step}")
+                save_checkpoint(
+                    self.model,
+                    self.optimizer,
+                    self.scaler,
+                    self.save_weights_path,
+                    self.rank,
+                    step,
+                    self.batch_size,
+                    self.cutoff,
+                    self.logger,
+                )
 
     def _repeater_rerun(
         self, step, repeater_job_end_time: Optional[int], buffer=15 * 60
