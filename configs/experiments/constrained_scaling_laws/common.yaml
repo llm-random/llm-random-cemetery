@@ -47,3 +47,7 @@ params:
   activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
+  save_weights_path: "./checkpoints"
+  load_weights_path: "./checkpoints"
+  repeater_mode: True
+  save_weights_interval: 20_000
