@@ -49,7 +49,7 @@ params:
   relative_lr:
     embedding_layer: 3.333
     head: 0.666
-    ^gating: [1.33, 2.66, 1.0]
+    ^gating: [0.17, 0.33]
     expert_inner_function: 0.3
     projection: 1.
 
