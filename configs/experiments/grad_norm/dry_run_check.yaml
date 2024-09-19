@@ -13,8 +13,8 @@ params:
   name: "grad_norm/dry_run_check"
   mixed_precision: false
   tags:
-    - "test"
     - "dry_run"
+    - "debug"
   logger_types: "stdout"
   n_steps: 2
   dmodel: 8
@@ -31,7 +31,7 @@ params:
   lr_warmup_steps: 0
   n_att_heads: 1
   learning_rate: 0.0001
-  dataset_type: wikibook
+  dataset_type: c4
   use_dummy_dataset: true
   init_type: kaiming_uniform
   init_scale: 1.0
@@ -39,6 +39,59 @@ params:
     - "std_norm"
   grad_modif_params:
     - "c=1.0"
+    - "eps=1e-6"
+    - layer_type=v1
+  grad_modif_placement:
+    - "post_attn"
+    - "post_attn_norm"
+    - "post_attn_add"
+    - "post_ff"
+    - "post_ff_norm"
+    - "post_ff_add"
+---
+# grid args
+runner: "research.grad_norm.runner"
+time: "5"  # 1 minute
+n_gpus: 0
+cuda_visible: ""
+
+# train params
+params:
+  # model
+  batch_size: 4
+  cutoff: 16
+  project_name: "pmtest/llm-random"
+  name: "grad_norm/dry_run_check"
+  mixed_precision: false
+  tags:
+    - "dry_run"
+    - "debug"
+  logger_types: "stdout"
+  n_steps: 2
+  dmodel: 8
+  dff: 16
+  n_blocks: 2
+  model_type:
+    - "gpt"
+  ff_mode:
+    - "vanilla"
+  logging_interval_heavy: 1
+  logging_interval_loss: 1
+  grad_clip: 0.5
+  scheduler: constant
+  lr_warmup_steps: 0
+  n_att_heads: 1
+  learning_rate: 0.0001
+  dataset_type: c4
+  use_dummy_dataset: true
+  init_type: kaiming_uniform
+  init_scale: 1.0
+  grad_modif_type:
+    - "std_norm"
+  grad_modif_params:
+    - "c=1.0"
+    - "eps=1e-6"
+    - layer_type=v1
   grad_modif_placement:
     - "post_attn"
     - "post_attn_norm"
