@@ -9,7 +9,7 @@ set -e
 branch_filename="__branch__name__.txt"
 experiment_dir_filename="__experiment__dir__.txt"
 
-source venv/bin/activate
+#source venv/bin/activate
 python3 -m lizrd.support.sync_code --host $1
 
 run_grid_remotely() {
