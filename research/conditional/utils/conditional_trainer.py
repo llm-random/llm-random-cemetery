@@ -290,12 +290,15 @@ class ConditionalTrainer:
         )
 
     def maybe_report_update_norm(self, step: int):
+        from pprint import pprint
         if self.will_report_update_norm(step):
             with FSDP.summon_full_params(
                 self.model, with_grads=False, rank0_only=True, writeback=False
             ):
                 if self.is_logging_process:
                     for name, value in self.model.named_parameters():
+                        pprint(self.optimizer.param_groups)
+                        exit()
                         eps = 1e-5
                         update_norm = torch.linalg.norm(
                             value.detach() - self.model_checkpoint[name]
