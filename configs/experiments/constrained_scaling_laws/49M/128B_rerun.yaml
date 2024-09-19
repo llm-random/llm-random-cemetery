@@ -10,4 +10,4 @@ params:
   n_steps: 488300
 
   logging_interval_heavy: 50000
-  logging_interval_heavy: 4000
+  logging_interval_loss: 4000
