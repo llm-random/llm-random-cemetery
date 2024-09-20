@@ -1,12 +1,13 @@
 parent: configs/experiments/constrained_scaling_laws/49M/model.yaml
 md5_parent_hash: a7ff996f507aefb5c7ef945045d642a8
-time: "02:00:00"
+time: "08:00:00"
 n_gpus: 2
 cpus_per_gpu: 8
 params:
-  tags: ["debug_moe", "load_balancing", "finer_logging_3"]
+  tags: ["debug_moe", "load_balancing", "finer_logging"]
   ^expansion_rate: [8]
-  ^load_balancing_loss_weight: [0, 0.01, 0.1, 1, 2, 50, 100, 500, 1000]
+  ^load_balancing_loss_weight: [0, 0.01, 0.1, 1, 2, 4, 8, 16, 32, 64, 128]
   n_steps: 7_628
   data_seed: 42
-  logging_interval_light: 50
+  capacity_factor: 2.0
+  logging_interval_light: 100
