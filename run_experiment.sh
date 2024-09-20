@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_tuning_0_weight_decay_GB1UQVIR.yaml --git_branch=local_search_relative_medium_tuning_0_weight_decay_GB1UQVIR_2024-09-20_21-47-02 --skip_copy_code --skip_confirmation
