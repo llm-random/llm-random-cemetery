@@ -8,7 +8,7 @@ params:
   name: "local_search_relative_medium"
   tags: ["relative", "compute_opt", "local_search_medium_new"]
   ff_mode: token_choice
-  capacity_factor: 1.0
+  ^capacity_factor: [1.0, 1.25, 2]
   data_seed: 42
 
   activation_type: silu

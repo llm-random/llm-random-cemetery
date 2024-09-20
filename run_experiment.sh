@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/local_search/new_local_search_baseline.yaml --git_branch=check_moe_grid_aux_loss_2024-09-20_20-03-25 --skip_copy_code --skip_confirmation
