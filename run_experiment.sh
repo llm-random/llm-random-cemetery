@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_0_final_lr_fraction_510AHKMW.yaml --git_branch=local_search_relative_medium_0_final_lr_fraction_510AHKMW_2024-09-21_16-40-33 --skip_copy_code --skip_confirmation
