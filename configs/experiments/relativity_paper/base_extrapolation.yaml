@@ -1,0 +1,20 @@
+parent: configs/experiments/relativity_paper/local_search_relative.yaml
+md5_parent_hash: 821451323671accfce9b96de29efcfb3
+time: "40:00:00"
+interactive_debug_session: false
+interactive_debug: false
+n_gpus: 2
+
+params:
+  name: "base_extrapolation"
+  tags: ["base_extrapolation", "relativity_paper", "relative"]
+
+  batch_size: 256
+  cutoff: 512
+
+  n_steps: 12_000
+  final_lr_step: 12_000
+  lr_warmup_steps: 120
+
+  learning_rate: 0.001
+
