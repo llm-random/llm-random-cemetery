@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_0_learning_rate_MU95D1IN.yaml --git_branch=local_search_relative_medium_0_learning_rate_MU95D1IN_2024-09-21_21-14-55 --skip_copy_code --skip_confirmation
