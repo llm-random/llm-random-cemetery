@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_1_load_balancing_loss_weight_W2MJUCFE.yaml --git_branch=local_search_relative_medium_1_load_balancing_loss_weight_W2MJUCFE_2024-09-21_09-14-53 --skip_copy_code --skip_confirmation
