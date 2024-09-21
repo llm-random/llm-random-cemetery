@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_0_load_balancing_loss_weight_WV2S942I.yaml --git_branch=local_search_relative_medium_0_load_balancing_loss_weight_WV2S942I_2024-09-21_00-57-28 --skip_copy_code --skip_confirmation
