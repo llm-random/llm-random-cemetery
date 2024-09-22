@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_2_learning_rate_VTI7V2HZ.yaml --git_branch=local_search_relative_medium_2_learning_rate_VTI7V2HZ_2024-09-22_11-43-59 --skip_copy_code --skip_confirmation
