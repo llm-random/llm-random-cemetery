@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_tuning_0_relative_lr_expert_inner_function_MEV67KZ1.yaml --git_branch=local_search_relative_medium_tuning_0_relative_lr_expert_inner_function_MEV67KZ1_2024-09-22_21-42-11 --skip_copy_code --skip_confirmation
