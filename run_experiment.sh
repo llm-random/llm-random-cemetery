@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_1_final_lr_fraction_EPGO236P.yaml --git_branch=local_search_relative_medium_1_final_lr_fraction_EPGO236P_2024-09-22_03-27-20 --skip_copy_code --skip_confirmation
