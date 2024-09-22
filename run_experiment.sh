@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_2_learning_rate_QFWB62NS.yaml --git_branch=local_search_relative_medium_2_learning_rate_QFWB62NS_2024-09-22_11-44-05 --skip_copy_code --skip_confirmation
