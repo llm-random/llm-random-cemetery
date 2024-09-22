@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_tuning_0_relative_scheduler_fraction_head_8MKQTPXA.yaml --git_branch=local_search_relative_medium_tuning_0_relative_scheduler_fraction_head_8MKQTPXA_2024-09-22_02-59-35 --skip_copy_code --skip_confirmation
