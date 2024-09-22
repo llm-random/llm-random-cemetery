@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_1_weight_decay_GEBQOLI3.yaml --git_branch=local_search_relative_medium_1_weight_decay_GEBQOLI3_2024-09-22_07-35-38 --skip_copy_code --skip_confirmation
