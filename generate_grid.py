@@ -6,7 +6,7 @@ import yaml
 
 from lizrd.grid.prepare_configs import get_yaml_md5
 
-OUTPUT_FILE = "configs/experiments/grad_norm/std_norm_grid/small_c_lr_tune_grid_reduced_bn.yaml"
+OUTPUT_FILE = "configs/experiments/grad_norm/std_norm_grid/small_c_lr_tune_grid_reduced_bn_extra_baselines.yaml"
 BASELINE_INPUT = "configs/experiments/grad_norm/medium_reduced_bs.yaml"
 
 
@@ -44,24 +44,22 @@ def main():
     parent_md5_hash = get_yaml_md5(BASELINE_INPUT)
     configs = []
 
-    grad_configs = itertools.chain(
-        itertools.product(GRAD_MODIF_PLACEMENT_COMBINATIONS, STD_NORM_MODIF_PARAMS_1),
-        ((BASELINE_GRAD_MODIF_PLACEMENT, BASELINE_STD_NORM_MODIF_PARAMS),),
-    )
+    #grad_configs = itertools.chain(
+    #    #itertools.product(GRAD_MODIF_PLACEMENT_COMBINATIONS, STD_NORM_MODIF_PARAMS_1),
+    #    ((BASELINE_GRAD_MODIF_PLACEMENT, BASELINE_STD_NORM_MODIF_PARAMS),),
+    #)
 
-    for i, (((grad_placement, tag1), (layer_type, tag2)), (lr_multiplier, lr_tag)) in enumerate(
-        itertools.product(grad_configs, LR_MULTIPLIERS)
-    ):
-        config_name = f"exp_{i}_{tag1}_{tag2}_lr_{lr_tag}"
+    for i, (lr_multiplier, lr_tag) in enumerate(LR_MULTIPLIERS, 49):
+        config_name = f"exp_{i}_true_baseline_lr_{lr_tag}"
 
         config = {
             "parent": BASELINE_INPUT,
             "time": "0-04:00:00",
             "md5_parent_hash": parent_md5_hash,
             "params": {
-                "grad_modif_placement": grad_placement,
-                "grad_modif_params": layer_type,
-                "tags": [tag1, tag2, f"lr_{lr_tag}", "std_norm", "small_c_lr_tune", "grad_norm"],
+                "grad_modif_placement": [],
+                "grad_modif_params": ["layer_type=v1", "c=99", "eps=99"],
+                "tags": [f"lr_{lr_tag}", "std_norm", "small_c_lr_tune", "grad_norm", "true_baseline"],
                 "name": f"{NAME_PREFIX}_{config_name}",
                 "grad_modif_type": "std_norm",
                 "learning_rate": 1e-4 * lr_multiplier,

@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/grad_norm/std_norm_grid/small_c_lr_tune_grid_reduced_bn_extra_baselines.yaml --git_branch=small_c_lr_tune_exp_49_true_baseline_lr_div100_2024-09-23_14-07-57 --skip_copy_code
