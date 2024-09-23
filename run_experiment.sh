@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=local_search_configs/local_search_relative_medium_tuning_0_relative_lr_projection_HET19N8V.yaml --git_branch=local_search_relative_medium_tuning_0_relative_lr_projection_HET19N8V_2024-09-23_08-01-13 --skip_copy_code --skip_confirmation
