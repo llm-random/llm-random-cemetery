@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relative_lr/sensitivity/medium_relative.yaml --git_branch=relative_medium_sensitivity_2024-09-24_18-54-38 --skip_copy_code --skip_confirmation
