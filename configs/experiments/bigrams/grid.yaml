@@ -1,0 +1,17 @@
+parent: configs/experiments/constrained_scaling_laws/3M/model.yaml
+md5_parent_hash: 96d5ed8357df47ec7715e7438b24f8f5
+time: "2:00:00"
+# here configure GPUs & time for a given cluster for it to fit
+params:
+  tags: ["bigrams_print_correct"]
+  n_blocks: 0
+  # ^dmodel: [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192]
+  ^dmodel: [2]
+  # ^dmodel: [1]
+  batch_size: 32
+  learning_rate: 1e-4
+  weight_decay: 0.00
+  data_seed: 42
+  n_steps: 100000
+  loss_checkpoint_chungs: 0
+

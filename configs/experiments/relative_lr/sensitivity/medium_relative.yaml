@@ -1,0 +1,30 @@
+parent: configs/experiments/relativity_paper/local_search/baseline.yaml
+md5_parent_hash: 42dae6a1cff21ed7cd7a38c1a5119d2e
+time: "05:00:00"
+interactive_debug_session: false
+interactive_debug: false
+gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "relative_medium_sensitivity"
+  tags: ["medium", "relative_lr", "sensitivity_grid"]
+
+  ^learning_rate: [1e-4, 3e-4, 1e-3, 3e-3, 1e-2, 3e-2, 1e-1, 3e-1]
+
+  data_seed: 10342
+
+  print_parameter_names: true
+  relative_lr:
+    embedding_layer: 5.0
+    head: 0.666
+    gating: 0.666
+    expert_inner_function: 0.3
+    projection: 1.
+
+  relative_scheduler_fraction:
+    embedding_layer: 0.666
+    head: 0.444
+    gating: 1.
+    expert_inner_function: 1.125
+    projection: 1.
