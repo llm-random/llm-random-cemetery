@@ -1,6 +1,6 @@
-md5_parent_hash: cf716cd94ed53b2b0f0dfb3676862472
+md5_parent_hash: 8f6c92132664f5f46bdf646a51937c6d
 params:
-  name: base_uplot_embedding_end
+  name: medium_uplot_embedding_end
   relative_scheduler_fraction:
     ^embedding_layer:
     - 0.111
@@ -10,7 +10,7 @@ params:
     - 2.664
     - 3.996
   tags:
-  - base_model
+  - medium_model_model
   - uplot
   - relativity_paper
   - embedding_layer
