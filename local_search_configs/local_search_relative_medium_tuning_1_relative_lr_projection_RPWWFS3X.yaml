@@ -1,0 +1,37 @@
+interactive_debug: false
+interactive_debug_session: false
+md5_parent_hash: 9fc58de9ec98826b3c9cf299f58b4e4e
+params:
+  final_lr_fraction: 0.02962933333333333
+  init_scale: 0.22499999999999998
+  learning_rate: 0.003
+  name: local_search_relative_medium_tuning_1_relative_lr_projection_RPWWFS3X
+  print_parameter_names: true
+  relative_lr:
+    embedding_layer: 5.0
+    expert_inner_function: 0.3
+    gating: 0.666
+    head: 0.666
+    projection: 0.6666666666666666
+  relative_scheduler_fraction:
+    embedding_layer: 0.666
+    expert_inner_function: 1.125
+    gating: 1.0
+    head: 0.444
+    projection: 1.0
+  tags:
+  - relative
+  - compute_opt
+  - local_search_medium_new
+  - rel_tuning
+  - local_search
+  - local_search_relative_medium_tuning_0_final_lr_fraction_TW44QROG
+  - orig_val_0.044444
+  - local_search_relative_medium_tuning
+  - local_search
+  - local_search_relative_medium_tuning_1_relative_lr_projection_RPWWFS3X
+  - orig_val_1.0
+  - local_search_relative_medium_tuning
+  weight_decay: 0.1
+parent: configs/experiments/relativity_paper/local_search_baseline.yaml
+time: 0-10:00:00
