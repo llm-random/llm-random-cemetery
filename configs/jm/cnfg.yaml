@@ -1,0 +1,23 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+
+params:
+  name: "phase_change_tune"
+  tags: [phase_change, tune]
+  mixed_precision_dtype: bfloat16
+
+  learning_rate: 2e-3
+  ^dmodel: [768, 1024]
+  ^n_blocks: [1]
+  block_modules: [attention]
+
+  # init
+  init_scale: 0.1
+  init_type: truncated_normal
+
+  cutoff: 256
+  batch_size: 256
+  n_steps: 50000
+  final_lr_step: 50100
+  scheduler: constant
+  lr_warmup_steps: 100
