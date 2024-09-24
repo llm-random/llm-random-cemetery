@@ -6,10 +6,11 @@ cpus_per_gpu: 8
 params:
   tags: ["debug_moe", "load_balancing", "finer_logging", "chungization"]
   ^expansion_rate: [8]
-  ^load_balancing_loss_weight: [0, 0.001, 0.01, 0.1, 1, 2, 4] #[-1, -0.01, 0, 0.001, 0.01, 0.1, 1, 2, 4, 8]
+  ^load_balancing_loss_weight: [0.001] # [0, 0.001, 0.01, 0.1, 1, 2, 4] # [-1, -0.01, 0, 0.001, 0.01, 0.1, 1, 2, 4, 8]
   n_steps: 15_256
   data_seed: 42
   logging_interval_light: 100
 
+  gradient_accumulation_steps: 8
   loss_checkpoint_chungs: 0
   # capacity_factor: 2.0
