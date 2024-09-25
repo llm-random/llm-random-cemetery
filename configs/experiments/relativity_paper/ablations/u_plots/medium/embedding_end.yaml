@@ -10,7 +10,7 @@ params:
     - 2.664
     - 3.996
   tags:
-  - medium_model_model
+  - medium_model
   - uplot
   - relativity_paper
   - embedding_layer
