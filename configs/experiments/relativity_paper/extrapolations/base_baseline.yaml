@@ -7,8 +7,8 @@ n_gpus: 2
 cpus_per_gpu: 16
 
 params:
-  name: "base_extrapolation_baseline"
-  tags: ["base_extrapolation", "relativity_paper", "baseline"]
+  name: "test_athena"
+  tags: ["remove", "test_athena"]
 
   batch_size: 256
   cutoff: 512
@@ -17,6 +17,6 @@ params:
   n_blocks: 12
   n_att_heads: 12
 
-  n_steps: 12_000
+  n_steps: 300
   final_lr_step: 12_000
   lr_warmup_steps: 120
