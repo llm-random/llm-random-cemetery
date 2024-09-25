@@ -1,14 +1,10 @@
-md5_parent_hash: 079f9b3c3427d9f131e601d61fca9d61
+md5_parent_hash: e4a8ef81ed29f9800c58c599055ddb59
 params:
   name: base_uplot_embedding_start
   relative_lr:
     ^embedding_layer:
-    - 0.0833
-    - 0.125
-    - 0.25
-    - 1.0
-    - 2.0
-    - 3.0
+    - 0.0625
+    - 4.0
   tags:
   - base_model
   - uplot
