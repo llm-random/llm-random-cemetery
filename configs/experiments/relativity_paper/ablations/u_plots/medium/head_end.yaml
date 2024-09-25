@@ -3,12 +3,14 @@ params:
   name: medium_uplot_head_end
   relative_scheduler_fraction:
     ^head:
+    - 0.0555
     - 0.074
     - 0.111
     - 0.222
     - 0.888
     - 1.776
     - 2.664
+    - 3.552
   tags:
   - medium_model
   - uplot

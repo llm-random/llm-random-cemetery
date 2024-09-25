@@ -3,12 +3,14 @@ params:
   name: medium_uplot_projection_start
   relative_lr:
     ^projection:
+    - 0.125
     - 0.1667
     - 0.25
     - 0.5
     - 2
     - 4
     - 6
+    - 8
   tags:
   - medium_model
   - uplot
