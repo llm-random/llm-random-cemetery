@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/contribute/base/embedding.yaml --git_branch=base_contribution_embedding_2024-09-25_21-16-10 --skip_copy_code --skip_confirmation
