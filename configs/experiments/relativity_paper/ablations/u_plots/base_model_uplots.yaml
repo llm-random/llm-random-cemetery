@@ -1,10 +1,10 @@
 parent: configs/experiments/relativity_paper/extrapolations/base.yaml
-md5_parent_hash: e1c81da62c513a338ed5a144153776eb
+md5_parent_hash: 3fcf0baa1ffaca954396ed9d69507545
 time: 0-10:00:00
 interactive_debug_session: false
 interactive_debug: false
 n_gpus: 2
-cpus_per_gpu: 8
+cpus_per_gpu: 16
 
 params:
   name: "base_uplot"
