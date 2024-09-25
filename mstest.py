@@ -1,0 +1,10 @@
+LICENSE             full_config13.yaml  full_config22.yaml       lizrd                   slurm-944632.out  slurm-944643.out  slurm-944653.out
+README.md           full_config14.yaml  full_config23.yaml       local_search.py         slurm-944633.out  slurm-944644.out  slurm-944654.out
+__init__.py         full_config15.yaml  full_config3.yaml        model_ckpt              slurm-944634.out  slurm-944645.out  slurm-944655.out
+build_image.sh      full_config16.yaml  full_config4.yaml        mstest.py               slurm-944635.out  slurm-944646.out  slurm-944656.out
+configs             full_config17.yaml  full_config5.yaml        mstet.ipynb             slurm-944636.out  slurm-944647.out  sparsity-base.def
+full_config0.yaml   full_config18.yaml  full_config6.yaml        requirements.txt        slurm-944637.out  slurm-944648.out  sparsity-head.def
+full_config1.yaml   full_config19.yaml  full_config7.yaml        requirements_mamba.txt  slurm-944638.out  slurm-944649.out  sparsity-new-lib.def
+full_config10.yaml  full_config2.yaml   full_config8.yaml        research                slurm-944639.out  slurm-944650.out  start-dev.sh
+full_config11.yaml  full_config20.yaml  full_config9.yaml        run_experiment.sh       slurm-944640.out  slurm-944651.out  submit_experiment.py
+full_config12.yaml  full_config21.yaml  install_requirements.sh  scripts                 slurm-944642.out  slurm-944652.out  tmp_plots
