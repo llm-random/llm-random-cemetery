@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/contribute/medium/expert_if.yaml --git_branch=medium_contribution_expertif_2024-09-25_20-37-44 --skip_copy_code --skip_confirmation
