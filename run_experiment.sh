@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/removal/medium/head.yaml --git_branch=medium_removal_head_2024-09-25_20-13-33 --skip_copy_code --skip_confirmation
