@@ -1,9 +1,9 @@
 parent: configs/experiments/relativity_paper/local_search/baseline.yaml
-md5_parent_hash: be0cd3b70a50fbc609d1c0a17a124803
+md5_parent_hash: 4fda4b171eebc93e549c6b6954340db0
 
 params:
-  name: "relativity_relative"
-  tags: ["relativity_paper"]
+  name: "relativity_medium_relative"
+  tags: ["relativity_paper", "medium_model", "relative"]
 
   print_parameter_names: true
   relative_lr:
@@ -19,6 +19,7 @@ params:
     gating: 1.
     expert_inner_function: 1.125
     projection: 1.
+  ^data_seed: [44,45,46]  # dev
 
 
 # tune_config: # TODO move down

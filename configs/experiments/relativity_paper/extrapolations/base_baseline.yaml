@@ -1,14 +1,14 @@
 parent: configs/experiments/relativity_paper/local_search/baseline.yaml
-md5_parent_hash: be0cd3b70a50fbc609d1c0a17a124803
+md5_parent_hash: 4fda4b171eebc93e549c6b6954340db0
 time: "40:00:00"
 interactive_debug_session: false
 interactive_debug: false
 n_gpus: 2
-cpus_per_gpu: 8
+cpus_per_gpu: 16
 
 params:
   name: "base_extrapolation_baseline"
-  tags: ["base_extrapolation", "relativity_paper", "baseline"]
+  tags: ["relativity_paper", "base_model", "baseline"]
 
   batch_size: 256
   cutoff: 512
@@ -21,4 +21,4 @@ params:
   final_lr_step: 19_000
   lr_warmup_steps: 190
 
-  learning_rate: 0.001 #dev
+  learning_rate: 0.001
