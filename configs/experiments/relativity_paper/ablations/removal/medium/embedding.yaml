@@ -10,4 +10,6 @@ params:
   - relativity_paper
   - embedding_layer
   - removal
+  - rerun
+^data_seed: [44]  # vary this in reruns
 parent: configs/experiments/relativity_paper/ablations/u_plots/medium_model_uplots.yaml
