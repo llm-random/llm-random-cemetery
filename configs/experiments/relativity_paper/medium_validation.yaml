@@ -7,4 +7,4 @@ interactive_debug: false
 params:
   name: "medium_validation"
   tags: ["medium_validation", "relativity_paper", "relative"]
-  data_seed: 43
+  data_seed: 63
