@@ -3,10 +3,7 @@ params:
   name: base_uplot_expertif_end
   relative_scheduler_fraction:
     ^expert_inner_function:
-    - 0.2812
-    - 0.5625
-    - 2.25
-    - 4.5
+    - 1.0
   tags:
   - base_model
   - uplot
