@@ -14,3 +14,4 @@ params:
   - projection
   - end
 parent: configs/experiments/relativity_paper/ablations/u_plots/base_model_uplots.yaml
+cpus_per_gpu: 8
