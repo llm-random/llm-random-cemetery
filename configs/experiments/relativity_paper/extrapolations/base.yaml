@@ -8,7 +8,7 @@ cpus_per_gpu: 16
 
 params:
   name: "base_extrapolation"
-  tags: ["base_extrapolation", "relativity_paper", "relative"]
+  tags: ["relativity_paper", "base_model", "relative"]
 
   batch_size: 256
   cutoff: 512
@@ -22,3 +22,4 @@ params:
   lr_warmup_steps: 190
 
   learning_rate: 0.001 #dev
+  ^data_seed: [44,45,46]  # dev
