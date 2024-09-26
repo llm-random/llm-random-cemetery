@@ -1,6 +1,6 @@
 parent: configs/experiments/relativity_paper/local_search/relative.yaml
 md5_parent_hash: fe4d097f946efc92326162defb894820
-time: "160:00:00"
+time: "3-00:00:00"
 interactive_debug_session: false
 interactive_debug: false
 n_gpus: 8
