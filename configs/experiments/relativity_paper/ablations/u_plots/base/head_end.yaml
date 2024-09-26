@@ -3,10 +3,7 @@ params:
   name: base_uplot_head_end
   relative_scheduler_fraction:
     ^head:
-    - 0.111
-    - 0.222
-    - 0.888
-    - 1.776
+    - 1.0
   tags:
   - base_model
   - uplot
