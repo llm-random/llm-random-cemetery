@@ -10,4 +10,6 @@ params:
   - relativity_paper
   - expert_inner_function
   - removal
+  - rerun
+^data_seed: [45]  # vary this in reruns
 parent: configs/experiments/relativity_paper/ablations/u_plots/medium_model_uplots.yaml
