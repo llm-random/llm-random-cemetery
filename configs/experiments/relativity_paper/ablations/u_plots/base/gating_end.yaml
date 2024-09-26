@@ -3,10 +3,7 @@ params:
   name: base_uplot_gating_end
   relative_scheduler_fraction:
     ^gating:
-    - 0.25
-    - 0.5
-    - 2.0
-    - 4.0
+    - 1.0
   tags:
   - base_model
   - uplot
