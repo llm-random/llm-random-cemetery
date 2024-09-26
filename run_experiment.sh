@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/local_search/relative.yaml --git_branch=relativity_relative_2024-09-26_14-09-57 --skip_copy_code --skip_confirmation
