@@ -3,10 +3,10 @@ params:
   name: base_uplot_projection_start
   relative_lr:
     ^projection:
-    - 0.25
-    - 0.5
-    - 2
-    - 4
+    - 0.125
+    - 0.1667
+    - 6
+    - 8
   tags:
   - base_model
   - uplot
