@@ -3,10 +3,10 @@ params:
   name: base_uplot_projection_end
   relative_scheduler_fraction:
     ^projection:
-    - 0.25
-    - 0.5
-    - 2.0
-    - 4.0
+    - 0.125
+    - 0.1667
+    - 6.0
+    - 8.0
   tags:
   - base_model
   - uplot
