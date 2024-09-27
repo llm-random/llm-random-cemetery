@@ -3,10 +3,10 @@ params:
   name: base_uplot_embedding_start
   relative_lr:
     ^embedding_layer:
-    - 1.25
-    - 2.5
-    - 10.0
-    - 20.0
+    - 0.625
+    - 0.8333
+    - 30.0
+    - 40.0
   tags:
   - base_model
   - uplot
