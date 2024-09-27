@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/extrapolations/base_long.yaml --git_branch=base_extrapolation_2024-09-27_17-37-21 --skip_copy_code --skip_confirmation
