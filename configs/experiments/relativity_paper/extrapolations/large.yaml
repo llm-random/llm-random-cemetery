@@ -1,13 +1,14 @@
 parent: configs/experiments/relativity_paper/local_search/relative.yaml
 md5_parent_hash: fe4d097f946efc92326162defb894820
-time: "160:00:00"
+time: "4-00:00:00"
 interactive_debug_session: false
 interactive_debug: false
 n_gpus: 8
+cpus_per_gpu: 16
 
 params:
   name: "large_extrapolation"
-  tags: ["large_extrapolation", "relativity_paper", "baseline"]
+  tags: ["large_extrapolation", "relativity_paper", "baseline", "repeater"]
 
   dmodel: 1536
   n_blocks: 24
@@ -16,10 +17,15 @@ params:
   batch_size: 384
   cutoff: 1024
 
-  n_steps: 50_000
-  final_lr_step: 50_000
-  lr_warmup_steps: 500
+  n_steps: 100_000
+  final_lr_step: 100_000
+  lr_warmup_steps: 1000
 
-  loss_checkpoint_chungs: 8
+  gradient_accumulation_steps: 2
+  loss_checkpoint_chungs: 0
 
+  learning_rate: 0.0002
+  ^data_seed: [711]
 
+  repeater_mode: True
+  save_weights_interval: 10000
