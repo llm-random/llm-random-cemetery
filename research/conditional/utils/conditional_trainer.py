@@ -1,10 +1,14 @@
 from collections import defaultdict
 import copy
+from time import time
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 
 import torch
 from torch.profiler import profile, ProfilerActivity
+from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+
+
 from attr import define
 from lizrd.core.misc import propagate_forward_pass_cache
 from lizrd.support.decoding import decode_single_example
@@ -42,11 +46,14 @@ class ConditionalTrainer:
     logging_interval_loss: int
     logging_interval_light: int
     logging_interval_heavy: int
+    should_log_update_norm: bool
     eval_interval: int
     n_eval_batches: int
     max_sequence_length: int
     batch_size: int
+    cutoff: int
     lr_scheduler: AbstractLRScheduler
+    repeater_job_end_time: int = None
     _calculate_loss_and_gradient: Optional[Callable] = None
     mask_percent: Optional[float] = None
     scaler: Optional[torch.cuda.amp.GradScaler] = None
@@ -71,7 +78,7 @@ class ConditionalTrainer:
     eval_dynamic_groupsize: bool = False
     steps_until_start_temperature_learn: int = -1
     model_fit_gpu_info_database_path: str = None
-    model_fit_gpu_info_params: [str] = None
+    model_fit_gpu_info_params: Optional[str] = None
     profiler_enabled: bool = False
     profiler_trace_path: str = None
     profiler_schedule: None = None
@@ -104,6 +111,8 @@ class ConditionalTrainer:
         # if temp training is delayed, turn if off for now
         self.layer_manager.manage_learnable_temperature(0)
         self._check_config()
+        # model checkpoint for diff inspection
+        self.model_checkpoint = {}
 
     def _before_train_operations(self):
         propagate_forward_pass_cache(self.model)
@@ -112,6 +121,7 @@ class ConditionalTrainer:
             self.model_fit_gpu_info_params,
             "failure",
         )
+        self._initialize_fsdp_model()
 
     def _after_train_operations(self):
         update_model_fit_gpu_info(
@@ -146,6 +156,8 @@ class ConditionalTrainer:
         ) as p:
             for step in range(self.start_step, n_steps + 1):
                 self._train_step(step)
+                if self._repeater_rerun(step, self.repeater_job_end_time):
+                    break
                 if self.profiler_enabled:
                     p.step()
 
@@ -167,10 +179,34 @@ class ConditionalTrainer:
                         print("Decoding failed, skipping...")
                 self._after_step_operations(step)
 
+    def _initialize_fsdp_model(self):
+        if isinstance(self.model, FSDP):
+            # for some reason, setting the model to training mode and
+            # running a forward pass is necessary to be able to save it
+            # in FSDP. God help us.
+            self.model.train()
+            with torch.no_grad():
+                _ = self.model(
+                    torch.zeros((self.batch_size, self.cutoff), dtype=torch.int)
+                )
+
+    def maybe_save_weights_for_diff_inspection(self, step):
+        if self.will_report_update_norm(step):
+            with FSDP.summon_full_params(
+                self.model,
+                with_grads=False,
+                rank0_only=True,
+                writeback=False,
+            ):
+                if self.is_logging_process:
+                    for name, value in self.model.named_parameters():
+                        self.model_checkpoint[name] = value.clone().detach()
+
     def _train_step(
         self,
         step,
     ):
+        self.maybe_save_weights_for_diff_inspection(step)
         self.model.train()
         if self.is_logging_process:
             self.layer_manager.prepare_for_logging(step)
@@ -178,7 +214,8 @@ class ConditionalTrainer:
 
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
-        self._apply_gradient()
+        self._apply_gradient(step=step)
+        self.maybe_report_update_norm(step)
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
@@ -226,8 +263,76 @@ class ConditionalTrainer:
             "losses": losses,
         }
 
-    def _apply_gradient(self):
+    def will_report_update_norm(self, step: int):
+        # update != gradient
+        # update is the gradient after being processed by the optimizer
+        return (
+            self.should_log_update_norm
+            and (self.logging_interval_heavy > 0)
+            and (step % self.logging_interval_heavy == 0)
+            and isinstance(self.model, FSDP)
+        )
+
+    def will_report_gradient_norm(self, step: int):
+        return (
+            (self.logging_interval_heavy > 0)
+            and (step % self.logging_interval_heavy == 0)
+            and isinstance(self.model, FSDP)
+        )
+
+    def maybe_report_gradient_norm(self, step: int):
+        if not self.will_report_gradient_norm(step):
+            return
+
+        with FSDP.summon_full_params(
+            self.model, with_grads=True, rank0_only=True, writeback=False
+        ):
+            if self.is_logging_process:
+                for name, value in self.model.named_parameters():
+                    if value.grad is not None:
+                        eps = 1e-5
+                        grad_norm = torch.linalg.norm(value.grad)
+                        param_norm = torch.linalg.norm(self.model_checkpoint[name])
+                        # if self.is_logging_process:
+                        self.logger.report_scalar(
+                            title=f"gradient_norm/{name.replace('.', '/')}",
+                            value=grad_norm,
+                            iteration=step,
+                        )
+                        self.logger.report_scalar(
+                            title=f"scaled_gradient_norm/{name.replace('.', '/')}",
+                            value=grad_norm / (param_norm + eps),
+                            iteration=step,
+                        )
+
+    def maybe_report_update_norm(self, step: int):
+        if not self.will_report_update_norm(step):
+            return
+
+        with FSDP.summon_full_params(
+            self.model, with_grads=False, rank0_only=True, writeback=False
+        ):
+            if self.is_logging_process:
+                for name, value in self.model.named_parameters():
+                    eps = 1e-5
+                    update_norm = torch.linalg.norm(
+                        value.detach() - self.model_checkpoint[name]
+                    )
+                    param_norm = torch.linalg.norm(self.model_checkpoint[name])
+                    self.logger.report_scalar(
+                        title=f"update_norm/{name.replace('.', '/')}",
+                        value=update_norm,
+                        iteration=step,
+                    )
+                    self.logger.report_scalar(
+                        title=f"scaled_update_norm/{name.replace('.', '/')}",
+                        value=update_norm / (param_norm + eps),
+                        iteration=step,
+                    )
+
+    def _apply_gradient(self, step: int):
         if self.scaler is None:
+            self.maybe_report_gradient_norm(step)
             if self.gradient_clipping is not None:
                 torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
@@ -268,9 +373,12 @@ class ConditionalTrainer:
                 self.eval_min_group_size_logfactor,
                 self.eval_max_group_size_logfactor + 1,
             ):
+                # sorry, different versions of black / python have different formatting for the next line. fmt: off / fmt: on turn black off and on
+                # fmt: off
                 current_group_size = int(
                     2**log_group_size_factor * original_group_size
                 )
+                # fmt: on
                 if (
                     current_group_size
                     <= self.batch_size // self.gradient_accumulation_steps
@@ -442,7 +550,30 @@ class ConditionalTrainer:
                 self.save_weights_path,
                 self.rank,
                 step,
+                self.batch_size,
+                self.cutoff,
+                self.logger,
             )
+
+    def _repeater_rerun(
+        self, step, repeater_job_end_time: Optional[int], buffer=15 * 60
+    ) -> bool:
+        if repeater_job_end_time and ((repeater_job_end_time - time())) < buffer:
+            save_checkpoint(
+                self.model,
+                self.optimizer,
+                self.scaler,
+                self.save_weights_path,
+                self.rank,
+                step,
+                self.batch_size,
+                self.cutoff,
+                self.logger,
+            )
+
+            return True
+        else:
+            return False
 
     def _check_config(self):
         if self.eval_dynamic_groupsize:
