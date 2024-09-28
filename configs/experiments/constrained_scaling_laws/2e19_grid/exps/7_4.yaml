@@ -1,0 +1,9 @@
+
+parent: configs/experiments/constrained_scaling_laws/2e19_grid/4/common.yaml
+md5_parent_hash: 7e6de536d391d899c7273240bf133d4d
+n_gpus: 4
+params:
+  dmodel: 704
+  n_blocks: 11
+  n_att_heads: 11
+  n_steps: 80484
