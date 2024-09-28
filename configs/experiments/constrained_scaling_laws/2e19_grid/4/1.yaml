@@ -1,0 +1,10 @@
+parent: configs/experiments/constrained_scaling_laws/2e19_grid/4/common.yaml
+md5_parent_hash: 4a8f9e83ac7d8b89791c1927ef537512
+# here configure GPUs & time for a given cluster for it to fit
+n_gpus: 4
+params:
+  dmodel: 256 
+  n_blocks: 4
+  n_att_heads: 4
+
+  n_steps: 99
