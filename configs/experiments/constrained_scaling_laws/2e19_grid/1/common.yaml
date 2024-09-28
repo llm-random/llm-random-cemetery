@@ -1,0 +1,6 @@
+parent: configs/experiments/constrained_scaling_laws/2e19_grid/common.yaml
+md5_parent_hash: 384bfc7494e4410bc6a4a22838fbd6d9
+cpus_per_gpu: 16
+params:
+  expansion_rate: 1
+
