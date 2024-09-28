@@ -279,6 +279,7 @@ class ConditionalTrainer:
         )
 
     def will_report_gradient_norm(self, step: int):
+        return False
         return (
             (self.logging_interval_heavy > 0)
             and (step % self.logging_interval_heavy == 0)
