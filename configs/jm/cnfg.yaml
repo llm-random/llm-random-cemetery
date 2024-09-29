@@ -1,0 +1,39 @@
+parent: configs/experiments/relativity_paper/local_search/baseline.yaml
+md5_parent_hash: be0cd3b70a50fbc609d1c0a17a124803
+
+params:
+  name: "relativity_relative"
+  tags: ["relativity_paper"]
+
+  fsdp_enabled: false
+
+  loss_checkpoint_chungs: 0
+  save_weights_path: "model_new_ckpt"
+  save_weights_interval: 1
+
+  print_parameter_names: true
+  relative_lr:
+    embedding_layer: 5.0
+    head: 0.666
+    gating: 0.666
+    expert_inner_function: 0.3
+    projection: 1.
+
+  relative_scheduler_fraction:
+    embedding_layer: 0.666
+    head: 0.444
+    gating: 1.
+    expert_inner_function: 1.125
+    projection: 1.
+
+
+  # debug
+  logger_types: "stdout"
+  use_dummy_dataset: true
+  n_blocks: 2
+  dmodel: 16
+  n_att_heads: 2
+  n_steps: 50
+
+  batch_size: 2
+  cutoff: 16

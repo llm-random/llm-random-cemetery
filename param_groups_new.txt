@@ -1,0 +1,13 @@
+------------printitn param groups--------------
+name: ['embedding_layer.layers.0.weight', 'embedding_layer.layers.1.layer.weight']
+start: 2.0, end: 7.0
+name: ['encoder.blocks.block_0.block.residual_attention.layer.pre_norm.weight', 'encoder.blocks.block_0.block.residual_attention.layer.pre_norm.bias', 'encoder.blocks.block_0.block.residual_feedforward.layer.pre_norm.weight', 'encoder.blocks.block_0.block.residual_feedforward.layer.pre_norm.bias']
+start: 1.0, end: 1.0
+name: ['encoder.blocks.block_0.block.residual_attention.layer.attention.input_projection.weight', 'encoder.blocks.block_0.block.residual_attention.layer.attention.output_projection.weight']
+start: 6.0, end: 10.0
+name: ['encoder.blocks.block_0.block.residual_feedforward.layer.feedforward.expert_inner_function.lin1_weight', 'encoder.blocks.block_0.block.residual_feedforward.layer.feedforward.expert_inner_function.lin2_weight', 'encoder.blocks.block_0.block.residual_feedforward.layer.feedforward.expert_inner_function.gate_weight']
+start: 5.0, end: 9.0
+name: ['encoder.blocks.block_0.block.residual_feedforward.layer.feedforward.gating.gate']
+start: 4.0, end: 1.0
+name: ['head.weight']
+start: 3.0, end: 8.0
