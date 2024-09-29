@@ -1,6 +1,6 @@
 parent: configs/experiments/relativity_paper/extrapolations/base.yaml
 md5_parent_hash: 3fcf0baa1ffaca954396ed9d69507545
-time: "40:00:00"
+time: "48:00:00"
 interactive_debug_session: false
 interactive_debug: false
 n_gpus: 4
@@ -10,9 +10,10 @@ params:
   name: "base_extrapolation"
   tags: ["base_extrapolation", "long", "relativity_paper", "relative"]
 
-  n_steps: 28_000
-  final_lr_step: 28_000
-  lr_warmup_steps: 280
+  n_steps: 110_000
+  final_lr_step: 110_000
+  lr_warmup_steps: 1100
 
   learning_rate: 0.001 #dev
 
+  ^data_seed: [777, 712, 183]
