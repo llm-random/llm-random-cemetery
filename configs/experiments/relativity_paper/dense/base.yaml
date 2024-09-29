@@ -1,0 +1,24 @@
+parent: configs/experiments/relativity_paper/dense/base_baseline.yaml
+md5_parent_hash: c369dedbbefb1953cdff52ae52133858
+time: "12:00:00"
+interactive_debug_session: false
+interactive_debug: false
+gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "base_dense"
+  tags: ["base_model", "dense", "relativity_paper", "relative"]
+  ff_mode: swi_glu
+
+  relative_lr:
+    embedding_layer: 5.
+    head: 1.
+    layer.feedforward: 1.
+    projection: 1.
+
+  relative_scheduler_fraction:
+    embedding_layer: 0.6666
+    head: 0.4444  # last sota was 0.4444, but differences are almost invisible, so to not give someone bad ideas for explanations i leave it at 0.6666
+    layer.feedforward: 0.6666
+    projection: 0.2
