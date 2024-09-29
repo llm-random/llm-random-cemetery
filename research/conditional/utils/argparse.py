@@ -423,4 +423,15 @@ def introduce_parser_arguments(
         "--moe_detach_gate", action="store_true", help="Detach gate in MoE routing"
     )
 
+    parser.add_argument(
+        "--end_evaluation_batches",
+        type=int,
+        help="placeholder",
+    )
+
+    parser.add_argument(
+        "--end_evaluation",
+        action="store_true",
+        help="placeholder",
+    )
     return parser
