@@ -1,0 +1,37 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+time: "05:00:00"
+interactive_debug_session: false
+interactive_debug: false
+n_gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "medium_dense_baseline"
+  tags: ["medium_model", "dense", "relativity_paper", "baseline"]
+  ff_mode: swi_glu
+
+  ^data_seed: [44,45,46]  # vary this in reruns
+
+  batch_size: 256
+  cutoff: 512
+
+  n_steps: 10_240
+  final_lr_step: 10_240
+  lr_warmup_steps: 102
+
+  final_lr_fraction: 0.06666
+  init_type: truncated_normal
+  init_scale: 0.15
+  learning_rate: 2e-3
+  weight_decay: 0.1
+
+  save_weights_interval: 0
+  mixed_precision: True
+  mixed_precision_dtype: "bfloat16"
+  loss_checkpoint_chungs: 8
+
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,RoPE"

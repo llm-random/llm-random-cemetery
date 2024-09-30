@@ -1,5 +1,5 @@
 parent: configs/experiments/relativity_paper/local_search/baseline.yaml
-md5_parent_hash: be0cd3b70a50fbc609d1c0a17a124803
+md5_parent_hash: 8469e718599bf5f02fd75f006586b5ba
 time: "40:00:00"
 interactive_debug_session: false
 interactive_debug: false
@@ -21,4 +21,6 @@ params:
   final_lr_step: 19_000
   lr_warmup_steps: 190
 
-  learning_rate: 0.001 #dev
+  learning_rate: 0.002 #dev
+
+  ^data_seed: [44, 45, 46]
