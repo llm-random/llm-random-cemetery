@@ -14,6 +14,6 @@ params:
   final_lr_step: 110_000
   lr_warmup_steps: 1100
 
-  learning_rate: 0.001 #dev
+  learning_rate: 0.002 #dev
 
   ^data_seed: [777, 712, 183]
