@@ -1,0 +1,25 @@
+parent: configs/experiments/relativity_paper/dense/medium_baseline.yaml
+md5_parent_hash: b0743405d6651195a5e147577e7e44b2
+time: "12:00:00"
+interactive_debug_session: false
+interactive_debug: false
+n_gpus: 2
+cpus_per_gpu: 16
+
+params:
+  name: "base_dense_baseline"
+  tags: ["base_model", "dense", "relativity_paper", "baseline"]
+  ff_mode: swi_glu
+
+  batch_size: 256
+  cutoff: 512
+
+  dmodel: 768
+  n_blocks: 12
+  n_att_heads: 12
+
+  n_steps: 19_000
+  final_lr_step: 19_000
+  lr_warmup_steps: 190
+
+  learning_rate: 0.001 #dev
