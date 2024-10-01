@@ -1,0 +1,4 @@
+,ID,time_running,time_left (hours),%finished,step,host,args/n_steps,args/model_n_active,args/expansion_rate,sys/state,time_left (d)
+0,LLMRANDOM-16074,79905.495,82874.604005867,49.088,24544.0,164-152-24-115,50000,679,8,Active,3453.11
+1,LLMRANDOM-16073,132897.652,26131.703734252344,83.568,41784.0,login01,50000,679,8,Active,1088.82
+2,LLMRANDOM-16028,206926.89,8129.1170671378095,96.22,48110.0,4124gs0,50000,679,8,Active,338.71
