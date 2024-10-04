@@ -68,6 +68,5 @@ def get_termination_timestamp_slurm() -> int:
     return int(env["SLURM_JOB_END_TIME"])
 
 
-def get_logger_run_id_neptune():
-    env = os.environ.copy()
-    return int(env["SLURM_JOB_END_TIME"])
+def get_slurm_job_id():
+    ... #dev 

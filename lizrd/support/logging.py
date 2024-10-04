@@ -3,7 +3,7 @@ import os
 import secrets
 from abc import ABC, abstractmethod
 from argparse import Namespace
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import neptune
 import numpy as np
@@ -21,7 +21,7 @@ from lizrd.support.misc import (
     count_tokens_per_step,
 )
 
-_CURRENT_LOGGER = None
+_CURRENT_LOGGER: Optional["AbstractLogger"] = None
 
 
 def set_current_logger(logger: "AbstractLogger"):
@@ -34,6 +34,10 @@ def get_current_logger() -> Optional["AbstractLogger"]:
 
 
 class AbstractLogger(ABC):
+    TITLE_JOB_STATE = "job_state"
+    STATE_JOB_RUNNING = "RUNNING"
+    STATE_JOB_FINISHED = "FINISHED"
+
     def __init__(self, logger, args: Namespace):
         self.instance_logger = logger
         self.args = vars(args)
@@ -170,6 +174,16 @@ class AbstractLogger(ABC):
             auxiliary_metrics[f"{title}_(x_logarithmic)"] = metric_logarithmic
 
         return auxiliary_metrics
+    
+    # dev
+    # def init_job_metadata(self, trining_step:int):
+    #     slurm_id: Optional[str] = 
+    #     self.report_text(self.JOB_STATE_TITLE, self.STATE_JOB_RUNNING, trining_step)
+    #     self.report_text("slurm_id", slurm_id, trining_step)
+
+    # def exit_job_metadata(self, trining_step:int):
+    #     self.report_text(self.JOB_STATE_TITLE, self.STATE_JOB_FINISHED, trining_step)
+        
 
 
 class ClearMLLogger(AbstractLogger):
@@ -548,3 +562,26 @@ def make_histogram(tensor, **kwargs):
     return px.histogram(
         prepare_tensor_for_logging(tensor, with_replacement=False), **kwargs
     )
+
+
+# class LoggerUtils:
+#     def __init__(self):
+#         assert _CURRENT_LOGGER is not None, "current logger is not set"
+
+#     def __get_slurm_id(self) -> Union[int, None]:
+        
+#         return self._slurm_id
+    
+#     def init_exp_logs(self):
+#         """ Logs:
+#         - slurm id
+#         - 
+#         """    
+
+#     def end_exp_logs(self):
+#         """ Logs:
+#         - exp end-state
+#         - MFU
+#         - 
+#         """
+#         ...
