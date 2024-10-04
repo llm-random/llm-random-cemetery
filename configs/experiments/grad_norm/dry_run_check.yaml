@@ -15,7 +15,7 @@ params:
   tags:
     - "test"
     - "dry_run"
-  logger_types: "stdout"
+  logger_types: "neptune"
   n_steps: 2
   dmodel: 8
   dff: 16
@@ -38,7 +38,9 @@ params:
   grad_modif_type:
     - "std_norm"
   grad_modif_params:
+    - "eps=1e-8"
     - "c=1.0"
+    - "layer_type=v1"
   grad_modif_placement:
     - "post_attn"
     - "post_attn_norm"
