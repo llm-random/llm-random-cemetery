@@ -115,6 +115,7 @@ class ConditionalTrainer:
         self.model_checkpoint = {}
 
     def _before_train_operations(self):
+        self.logger.init_job_metadata(self.start_step)
         propagate_forward_pass_cache(self.model)
         update_model_fit_gpu_info(
             self.model_fit_gpu_info_database_path,
