@@ -115,6 +115,7 @@ class ConditionalTrainer:
         self.model_checkpoint = {}
 
     def _before_train_operations(self):
+        self.logger.start_job_metadata(self.start_step)
         propagate_forward_pass_cache(self.model)
         update_model_fit_gpu_info(
             self.model_fit_gpu_info_database_path,
@@ -129,6 +130,7 @@ class ConditionalTrainer:
             self.model_fit_gpu_info_params,
             "success",
         )
+        self.logger.exit_job_metadata(self.start_step)
 
     def _after_step_operations(self, step):
         self.model.forward_pass_cache.clear()
