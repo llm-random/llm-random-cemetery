@@ -360,6 +360,12 @@ def main(
         else disable_profile_schedule_fn
     )
 
+    #dev 
+    env = os.environ.copy()
+    print(env) 
+    # raise Exception()
+    #dev 
+
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
