@@ -5,7 +5,7 @@ echo "Will run the following command:"
 echo "$@"
 echo "==============================="
 # conda activate /scratch/project_465001227/llm-random-group/env
-. "/users/ludzieje/miniconda3/etc/profile.d/conda.sh"
+source /users/pioromac/miniconda3/etc/profile.d/conda.sh
 conda activate /scratch/project_465001227/llm-random-group/conda3.11
 export TORCH_CPP_LOG_LEVEL=INFO
 export TORCH_DISTRIBUTED_DEBUG=DETAIL
