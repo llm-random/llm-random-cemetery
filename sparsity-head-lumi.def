@@ -1,0 +1,7 @@
+Bootstrap: localimage
+From: sparsity-base.sif
+
+%runscript
+    cd /llm-random
+    . /opt/venv/bin/activate
+    $@
