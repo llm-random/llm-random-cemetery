@@ -69,7 +69,15 @@ class MachineBackend(abc.ABC):
 
     def get_runner_command(self, runner, runner_params):
         # return ["python3", "-m", runner, *runner_params]
-        return ["research/conditional/train/cc_train.py", *runner_params]
+        # return ["research/conditional/train/cc_train.py", *runner_params]
+        return [
+            "torchrun",
+            "--standalone",
+            "--nnodes=1",
+            "--nproc-per-node=2",
+            "research/conditional/train/cc_train.py",
+            *runner_params,
+        ]
         # return ["python3", "-m", "pdb", "-c", "continue", "-m", runner, *runner_params]
 
 
@@ -329,16 +337,17 @@ class LumiBackend(MachineBackend):
             f"--time={setup_args['time']}",
             "--account=project_465001227",
             f"{setup_args['grid_entrypoint']}",
-            # "singularity",
-            # "run",
-            # *singularity_env_arguments,
-            # make_singularity_mount_paths(setup_args, training_args),
+            "singularity",
+            "run",
+            *singularity_env_arguments,
+            make_singularity_mount_paths(setup_args, training_args),
             # "--nv",
-            # "--rocm",
+            "--rocm",
             # setup_args["singularity_image"],
             # setup_args["singularity_image"],
-            # "/pfs/lustrep4/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_08.34.21.sif"
+            # "/scratch/project_465001227/llm-random-group/images/sparsity_2024.10.07_14.22.17.sif",
             # "/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_10.23.58.sif",
+            "/scratch/project_465001227/llm-random-group/images/sparsity_2024.10.07_14.22.17.sif",
             *self.get_runner_command(setup_args["runner"], runner_params),
         ]
 
