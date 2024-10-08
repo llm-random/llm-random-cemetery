@@ -1,7 +1,7 @@
 parent: configs/baselines/gpt/dense/base.yaml
 md5_parent_hash: 763f39978a58f704200275285162594c
 interactive_debug: false
-n_gpus: 2
+n_gpus: 8
 time: "00:15:00"
 
 params:
@@ -34,7 +34,7 @@ params:
     #data
     n_steps: 150_000
     final_lr_step: 150_000
-    batch_size: 32
+    batch_size: 256
     dataset_type: c4
 
 

@@ -305,16 +305,20 @@ class LumiBackend(MachineBackend):
     ):
         if setup_args["n_gpus"] % 8 == 0:
             partition = "standard-g"
+            mem_and_cpu_reqs = []
         else:
             partition = "small-g"
+            mem_and_cpu_reqs = [
+                f"--mem={setup_args['mem_per_gpu']*setup_args['n_gpus']}G",
+                f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+            ]
 
         return [
             slurm_command,
             f"--gres=gpu:{setup_args['n_gpus']}",
             f"--partition={partition}",
             "--account=project_465001227",
-            f"--mem={setup_args['mem_per_gpu']*setup_args['n_gpus']}G",
-            f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+            *mem_and_cpu_reqs,
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
             f"{setup_args['grid_entrypoint']}",
