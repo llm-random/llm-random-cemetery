@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/grad_norm/std_norm_grid/c_lr_placement_dims_grid_scale_norm_short.yaml --git_branch=scale_norm_c_lr_dims_grid_placement_short_exp_0_lr_div10_c_0_2024-10-08_16-05-24 --skip_copy_code
