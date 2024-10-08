@@ -68,9 +68,7 @@ class MachineBackend(abc.ABC):
         return infrastructure_params_dict
 
     def get_runner_command(self, runner, runner_params):
-        # return ["python3", "-m", runner, *runner_params]
-        return ["research/conditional/train/cc_train.py", *runner_params]
-        # return ["python3", "-m", "pdb", "-c", "continue", "-m", runner, *runner_params]
+        return ["python3", "-m", runner, *runner_params]
 
 
 class AthenaBackend(MachineBackend):
@@ -283,9 +281,16 @@ class LumiBackend(MachineBackend):
     def get_cache_path(self) -> str:
         return "/scratch/project_465001227/llm-random-group/.cache"
 
+    def get_cluster_default_params(self, dataset_type) -> dict:
+        return {
+            **super().get_cluster_default_params(dataset_type),
+            "mem_per_gpu": "64G",
+            "cpus_per_gpu": "8",
+            "singularity_image": "/scratch/project_465001227/llm-random-group/images/sparsity_2024.10.08_13.00.45.sif",
+        }
+
     def get_grid_entrypoint(self) -> str:
         return "lizrd/grid/grid_entrypoint_lumi.sh"
-        # return "lizrd/grid/grid_entrypoint.sh"
 
     # def get_default_train_dataset_path(self, dataset_type: str):
     #     if dataset_type == "c4":
@@ -317,70 +322,90 @@ class LumiBackend(MachineBackend):
             slurm_command,
             f"--gres=gpu:{setup_args['n_gpus']}",
             f"--partition={partition}",
-            # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
-            # f"--cpus-per-gpu=1",
-            f"--cpus-per-task=1",
-            # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
-            # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
-            # f"--mem={48*setup_args['n_gpus']}G",
-            f"--mem=16G",
-            # f"--mem=100G",
+            "--account=project_465001227",
+            f"--mem={setup_args['mem_per_gpu']*setup_args['n_gpus']}G",
+            f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
-            "--account=project_465001227",
             f"{setup_args['grid_entrypoint']}",
-            # "singularity",
-            # "run",
-            # *singularity_env_arguments,
-            # make_singularity_mount_paths(setup_args, training_args),
-            # "--nv",
-            # "--rocm",
-            # setup_args["singularity_image"],
-            # setup_args["singularity_image"],
-            # "/pfs/lustrep4/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_08.34.21.sif"
-            # "/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_10.23.58.sif",
+            "singularity",
+            "run",
+            *singularity_env_arguments,
+            make_singularity_mount_paths(setup_args, training_args),
+            setup_args["singularity_image"],
             *self.get_runner_command(setup_args["runner"], runner_params),
         ]
 
-    # def get_subprocess_args(
-    #     self,
+    # return [
     #     slurm_command,
-    #     setup_args,
-    #     training_args,
-    #     singularity_env_arguments,
-    #     runner_params,
-    # ):
-    #     if setup_args['n_gpus'] % 8 == 0:
-    #         partition = 'standard-g'
-    #     else:
-    #         partition = 'small-g'
+    #     f"--gres=gpu:{setup_args['n_gpus']}",
+    #     f"--partition={partition}",
+    #     # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+    #     # f"--cpus-per-gpu=1",
+    #     f"--cpus-per-task=1",
+    #     # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
+    #     # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
+    #     # f"--mem={48*setup_args['n_gpus']}G",
+    #     f"--mem=16G",
+    #     # f"--mem=100G",
+    #     f"--job-name={training_args['name']}",
+    #     f"--time={setup_args['time']}",
+    #     "--account=project_465001227",
+    #     f"{setup_args['grid_entrypoint']}",
+    #     "singularity",
+    #     "run",
+    #     *singularity_env_arguments,
+    #     make_singularity_mount_paths(setup_args, training_args),
+    #     # "--nv",
+    #     "--rocm",
+    #     # setup_args["singularity_image"],
+    #     # setup_args["singularity_image"],
+    #     # "/scratch/project_465001227/llm-random-group/images/sparsity_2024.10.07_14.22.17.sif",
+    #     # "/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_10.23.58.sif",
+    #     "/scratch/project_465001227/llm-random-group/images/sparsity_2024.10.07_14.22.17.sif",
+    #     *self.get_runner_command(setup_args["runner"], runner_params),
+    # ]
 
-    #     return [
-    #         slurm_command,
-    #         f"--gres=gpu:{setup_args['n_gpus']}",
-    #         f'--partition={partition}',
-    #         # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
-    #         f"--cpus-per-gpu=8",
-    #         # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
-    #         # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
-    #         # f"--mem={10*setup_args['n_gpus']}G",
-    #         f"--mem=100G",
-    #         f"--job-name={training_args['name']}",
-    #         f"--time={setup_args['time']}",
-    #         '--account=project_465001227',
-    #         f"{setup_args['grid_entrypoint']}",
-    #         "singularity",
-    #         "run",
-    #         *singularity_env_arguments,
-    #         make_singularity_mount_paths(setup_args, training_args),
-    #         # "--nv",
-    #         "--rocm",
-    #         # setup_args["singularity_image"],
-    #         # setup_args["singularity_image"],
-    #         # "/pfs/lustrep4/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_08.34.21.sif"
-    #         "/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_10.23.58.sif",
-    #         *self.get_runner_command(setup_args["runner"], runner_params),
-    #     ]
+
+# def get_subprocess_args(
+#     self,
+#     slurm_command,
+#     setup_args,
+#     training_args,
+#     singularity_env_arguments,
+#     runner_params,
+# ):
+#     if setup_args['n_gpus'] % 8 == 0:
+#         partition = 'standard-g'
+#     else:
+#         partition = 'small-g'
+
+#     return [
+#         slurm_command,
+#         f"--gres=gpu:{setup_args['n_gpus']}",
+#         f'--partition={partition}',
+#         # f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+#         f"--cpus-per-gpu=8",
+#         # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
+#         # f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
+#         # f"--mem={10*setup_args['n_gpus']}G",
+#         f"--mem=100G",
+#         f"--job-name={training_args['name']}",
+#         f"--time={setup_args['time']}",
+#         '--account=project_465001227',
+#         f"{setup_args['grid_entrypoint']}",
+#         "singularity",
+#         "run",
+#         *singularity_env_arguments,
+#         make_singularity_mount_paths(setup_args, training_args),
+#         # "--nv",
+#         "--rocm",
+#         # setup_args["singularity_image"],
+#         # setup_args["singularity_image"],
+#         # "/pfs/lustrep4/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_08.34.21.sif"
+#         "/scratch/project_465001227/llm-random-group/sparsity_2024.08.13_10.23.58.sif",
+#         *self.get_runner_command(setup_args["runner"], runner_params),
+#     ]
 
 
 class LocalBackend(MachineBackend):
