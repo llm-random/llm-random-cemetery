@@ -142,12 +142,10 @@ def main(
         save_weights_path = prepare_save_weights_path(args.save_weights_path)
 
         if rank is not None:
-            # os.environ["MASTER_ADDR"] = "localhost"
-            # os.environ["MASTER_PORT"] = port
+            os.environ["MASTER_ADDR"] = "localhost"
+            os.environ["MASTER_PORT"] = port
 
-            init_process_group(
-                "nccl", init_method="env://", rank=rank, timeout=timedelta(seconds=10)
-            )
+            init_process_group("nccl", rank=rank, world_size=args.n_gpus)
             torch.cuda.set_device(rank)
 
         if args.deterministic_experiment:
@@ -347,8 +345,6 @@ def main(
             dataset_path=args.validation_dataset_path,
         )
 
-        print("will create logger", flush=True)
-
         if is_logging_process:
             logger = get_logger(args, model, VOCAB_SIZE)
         else:
@@ -363,7 +359,6 @@ def main(
         #             else tokenizers.BertTokenizer
         #         ),
         #     )
-        print("will create profiler schedule", flush=True)
 
         # profiler_schedule = (
         #     torch.profiler.schedule(
@@ -377,7 +372,6 @@ def main(
         #     else disable_profile_schedule_fn
         # )
 
-        print("will create trainer", flush=True)
         trainer = ConditionalTrainer(
             model=model,
             optimizer=optimizer,
@@ -421,7 +415,6 @@ def main(
             start_step=checkpoint["step"] + 1 if checkpoint is not None else 0,
             checkpoint=checkpoint,
         )
-        print("will enter train", flush=True)
         trainer.train(args.n_steps)
 
         if rank is not None:
