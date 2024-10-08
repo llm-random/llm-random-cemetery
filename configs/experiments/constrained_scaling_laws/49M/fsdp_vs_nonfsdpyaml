@@ -1,0 +1,15 @@
+parent: configs/experiments/constrained_scaling_laws/49M/model.yaml
+md5_parent_hash: 5b5523900cb9395e03eeca7f56c8cb50
+time: "4-00:00:00"
+
+params:
+  name: "fsdp_check"
+  tags: ["csl_checks", "fsdp_check", "25M", "8B"]
+  ^expansion_rate: [1, 8]
+  n_steps: 30512
+  ^data_seed: [77, 78]
+  # ^data_seed: [79, 80]
+  zloss_weight: 0.001
+  ^load_balancing_loss_weight: [0.01]
+
+  ^fsdp_enabled: [true, false]
