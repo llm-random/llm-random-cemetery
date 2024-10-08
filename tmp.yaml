@@ -1,0 +1,25 @@
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - k=1
+  - c=0
+  - eps=0
+  - norm_dims=(0,1,2)
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: scale_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: scale_norm_c_lr_dims_grid_placement_short_exp_2_lr_div10_c_0
+  tags:
+  - debug
+  use_dummy_dataset: true
+  n_steps: 2
+  dmodel: 8
+  dff: 16
+  n_blocks: 2
+  batch_size: 4
+  cutoff: 16
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-04:00:00
