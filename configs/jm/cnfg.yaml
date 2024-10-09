@@ -1,0 +1,21 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+time: "4-00:00:00"
+
+params:
+  name: "aux_loss_fix"
+  tags: ["aux_loss_fix", "old_implementation"]
+  # tags: ["aux_loss_fix", "new_implementation"]
+  mixed_precision_dtype: bfloat16
+
+  learning_rate: 2e-3
+  n_steps: 10000
+  batch_size: 256
+  cutoff: 512
+  ^load_balancing_loss_weight: [0.01]
+  ^zloss_weight: [0.001]
+  ^data_seed: [1, 2, 3]
+
+  # init
+  init_scale: 0.1
+  init_type: truncated_normal
