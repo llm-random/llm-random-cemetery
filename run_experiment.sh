@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/removal/base/expert_if.yaml --git_branch=base_removal_expertif_2024-10-09_14-19-06 --skip_copy_code --skip_confirmation
