@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/contribute/base/gating.yaml --git_branch=base_contribution_gating_2024-10-09_14-21-42 --skip_copy_code --skip_confirmation
