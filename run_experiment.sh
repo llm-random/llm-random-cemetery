@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/u_plots/medium/projection_end.yaml --git_branch=medium_uplot_projection_end_2024-10-10_15-10-55 --skip_copy_code --skip_confirmation
