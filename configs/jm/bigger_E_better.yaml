@@ -1,0 +1,20 @@
+parent: configs/baselines/gpt/dense/medium.yaml
+md5_parent_hash: 1706dd43c527be74a6282b0319e9c31e
+time: "4-00:00:00"
+
+params:
+  name: "bigger_E_better"
+  # tags: ["aux_loss_fix", "old_implementation"]
+  tags: ["bigger_E_better", "new_implementation"]
+
+  # training
+  n_steps: 70000
+  final_lr_step: 70000
+  lr_warmup_steps: 700
+  batch_size: 256
+  cutoff: 256
+
+  # model
+  dmodel: 768
+  n_att_heads: 12
+  n_blocks: 12
