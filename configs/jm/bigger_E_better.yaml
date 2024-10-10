@@ -1,0 +1,28 @@
+parent: configs/jm/cnfg.yaml
+md5_parent_hash: aeaff8a5ff59379f93fdba5229f4a73d
+time: "2-00:00:00"
+
+params:
+  name: "bigger_E_better"
+  tags: ["bigger_E_better", "6B", "200_tok_to_param"]
+
+  # training
+  n_steps: 100000
+  final_lr_step: 100000
+  lr_warmup_steps: 1000
+  batch_size: 256
+  cutoff: 256
+
+  # model
+  dmodel: 512
+  n_att_heads: 8
+  n_blocks: 8
+  effective_dff_x: 3
+  ^expansion_rate: [1, 2, 4, 8, 16, 32]
+  granularity: 1
+
+  # aux losses
+  ^load_balancing_loss_weight: [0.1, 0.04, 0.01, 0.004, 0.001]
+  zloss_weight: 0.001
+
+  ^data_seed: [169, 131, 200]
