@@ -1,5 +1,5 @@
 parent: configs/experiments/relativity_paper/extrapolations/large.yaml
-md5_parent_hash: d8ae0aa61c456141e689af102679e062
+md5_parent_hash: 96845376c5f2fdd7ef2f9f29f5bc685c
 
 params:
   name: "large_lr_grid"
