@@ -20,7 +20,6 @@ params:
     expert_inner_function: 1.125
     projection: 1.
 
-
 # tune_config: # TODO move down
 #   iters: 20
 #   tune_params:
