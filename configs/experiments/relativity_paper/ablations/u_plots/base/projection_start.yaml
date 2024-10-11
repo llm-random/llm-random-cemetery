@@ -1,12 +1,16 @@
-md5_parent_hash: 231ec4dabd36c05e6587bff5584d6e28
+md5_parent_hash: cacc0dfb8da20ae5ef160a31fbeb5c0b
 params:
   name: base_uplot_projection_start
   relative_lr:
     ^projection:
+    - 0.125
+    - 0.1667
     - 0.25
     - 0.5
     - 2
     - 4
+    - 6
+    - 8
   tags:
   - base_model
   - uplot
