@@ -3,7 +3,10 @@ md5_parent_hash: e6c64a758460d50c9e7c944c428a88f0
 time: "30:00:00"
 # here configure GPUs & time for a given cluster for it to fit
 params:
-  tags: ["constrained_scaling_grid", "3M", "E=4"]
-  expansion_rate: 4
-  ^n_steps: [1907, 3814, 7628, 15256, 30512]
+  name: "constrained_lr_grid"
+  tags: ["3M", "E=1"]
+  expansion_rate: 1
+  ^n_steps: [1907, 7628]
+  ^gradient_accumulation_steps: [1, 2]
+  ^learning_rate: [0.0001, 0.0002, 0.0005, 0.001, 0.002]
 
