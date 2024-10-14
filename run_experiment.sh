@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/u_plots/base/head_start.yaml --git_branch=base_uplot_head_start_2024-10-15_00-06-59 --skip_copy_code --skip_confirmation
