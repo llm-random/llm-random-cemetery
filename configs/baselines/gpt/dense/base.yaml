@@ -6,3 +6,6 @@ params:
   dff: 3072
   n_blocks: 12
   n_att_heads: 12
+  learning_rate: 1e-4
+  init_type: kaiming_uniform
+  init_scale: 1.0
