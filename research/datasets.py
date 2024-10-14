@@ -6,6 +6,8 @@ from torch.utils.data import DataLoader
 
 from lizrd.text import datasets, packers, data, tokenizers
 
+# from datasets.distributed import split_dataset_by_node
+
 
 class DataloaderWrapper:
     def __init__(self, dataloader: DataLoader, device: torch.device):
@@ -28,6 +30,8 @@ def get_processed_dataset(
     batch_size: int,
     sequence_length: int,
     device: torch.device,
+    rank: int,
+    world_size: int,
     num_workers: int,
     seed: int,
     model_type: Literal["bert", "gpt"] = "bert",
@@ -48,6 +52,8 @@ def get_processed_dataset(
             use_dummy_dataset=use_dummy_dataset,
             split=dataset_split,
             dataset_path=dataset_path,
+            rank=rank,
+            world_size=world_size,
         )
     else:
         raise ValueError(f"Unknown dataset type: {dataset_type}")
@@ -69,7 +75,8 @@ def get_processed_dataset(
 
     dataloader = DataLoader(
         packer,
-        num_workers=num_workers,
+        # num_workers=num_workers,
+        num_workers=0,
         batch_size=batch_size,
         collate_fn=data.LLMBatch,
         worker_init_fn=partial(worker_init_fn, seed),
