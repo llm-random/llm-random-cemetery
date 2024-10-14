@@ -1,9 +1,9 @@
 parent: configs/experiments/relativity_paper/local_search/baseline.yaml
-md5_parent_hash: 4b7ddb5b3fcfe3c8af524e3fb12040d5
+md5_parent_hash: c0217a623d9c144848639cf670ca8eeb
 
 params:
   name: "relativity_relative"
-  tags: ["relativity_paper"]
+  tags: ["relativity_paper", "medium_model"]
 
   print_parameter_names: true
   relative_lr:
