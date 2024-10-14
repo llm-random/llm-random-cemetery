@@ -4,6 +4,7 @@ from typing import Optional
 
 from datasets import load_dataset, load_from_disk
 import numpy as np
+from datasets.distributed import split_dataset_by_node
 
 
 class AbstractDataset:
@@ -81,6 +82,8 @@ class C4Dataset(AbstractDataset):
 
     def __init__(
         self,
+        rank: int,
+        world_size: int,
         seed: Optional[int] = None,
         split: str = "train",
         use_dummy_dataset: bool = False,
@@ -99,5 +102,17 @@ class C4Dataset(AbstractDataset):
         else:
             self.dataset = load_dataset("c4", "en", split=split)
 
+        self.dataset = split_dataset_by_node(
+            self.dataset, rank=rank, world_size=world_size
+        )
+        self.dataset_iterator = self.dataset.iter(1)
+
     def get_document(self) -> str:
-        return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]["text"]
+        # return self.dataset[self.py_rng.randint(0, len(self.dataset) - 1)]["text"]
+        # for doc in :
+        #     return doc["text"][0]
+        try:
+            return next(self.dataset_iterator)["text"][0]
+        except StopIteration:
+            self.dataset_iterator = self.dataset.iter(1)
+            return next(self.dataset_iterator)["text"][0]
