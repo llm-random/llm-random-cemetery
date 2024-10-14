@@ -1,16 +1,14 @@
-md5_parent_hash: 231ec4dabd36c05e6587bff5584d6e28
+md5_parent_hash: 41843f768dbf61d7682a64109e08fe86
 params:
   name: base_uplot_head_end
   relative_scheduler_fraction:
     ^head:
-    - 0.111
-    - 0.222
-    - 0.888
-    - 1.776
+    - 1.0
   tags:
   - base_model
   - uplot
   - relativity_paper
   - head
   - end
+  ^data_seed: [50, 52]
 parent: configs/experiments/relativity_paper/ablations/u_plots/base_model_uplots.yaml

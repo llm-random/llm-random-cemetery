@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/ablations/u_plots/base/gating_start.yaml --git_branch=base_uplot_gating_start_2024-10-15_00-09-25 --skip_copy_code --skip_confirmation
