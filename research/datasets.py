@@ -26,6 +26,14 @@ def worker_init_fn(seed, worker_id):
     packer.set_rng(seed + worker_id)
 
 
+def fast_dataset_worker_init_fn(seed, rank, world_size, worker_id, dataset_type):
+    worker_info = torch.utils.data.get_worker_info()
+    packer: packers.AbstractPacker = (
+        worker_info.dataset
+    )  # the dataset copy in this worker process
+    packer.set_rng(seed + worker_id)
+
+
 def get_processed_dataset(
     batch_size: int,
     sequence_length: int,
@@ -82,6 +90,7 @@ def get_processed_dataset(
                 dataset_maker=dataset,
                 tokenizer_maker=tokenizers.GPTTokenizer,
             )
+            _ = packer.dataset
     else:
         raise ValueError(f"Unknown model type: {model_type}")
 
@@ -102,7 +111,7 @@ def get_processed_dataset(
             )
         dataloader = DataLoader(
             packer,
-            num_workers=0,
+            num_workers=num_workers,
             batch_size=batch_size,
             collate_fn=data.LLMBatch,
             worker_init_fn=partial(worker_init_fn, seed),
