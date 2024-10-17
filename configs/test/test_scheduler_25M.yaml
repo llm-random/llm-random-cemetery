@@ -1,0 +1,21 @@
+parent: configs/experiments/constrained_scaling_laws/25M/model.yaml
+md5_parent_hash: 3067b2550c57a4b87c0c6a1287e6d902
+time: "10:00:00"
+n_gpus: 1
+params:
+  # tags: ["mstest", "25M", "trapezoidal_scheduler", "grid_2"]
+  # ^expansion_rate: [8]
+  # ^lr_rate: [0.0005, 0.001, 0.002, 0.004]
+  # ^n_steps: [2600, 5200, 13000]
+  # ^scheduler: [trapezoidal, cosine]
+  # lr_warmup_percent: 0.05
+  # data_seed: 44
+  tags: ["mstest", "25M", "trapezoidal_scheduler", "test"]
+  expansion_rate: 8
+  n_steps: 200
+  lr_warmup_percent: 0.01
+  lr_slide_ratio: [1, 5, 10, 50]
+  scheduler: trapezoidal
+  fsdp_enabled: false
+
+
