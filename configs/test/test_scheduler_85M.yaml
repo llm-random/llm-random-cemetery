@@ -1,0 +1,16 @@
+parent: configs/experiments/constrained_scaling_laws/85M/model.yaml
+md5_parent_hash: 52d0f6016467edd4cdf9c2813489c88e
+time: "48:00:00"
+n_gpus: 4
+params:
+  tags: ["mstest", "85M", "trapezoidal_scheduler", "grid_2"]
+  ^expansion_rate: [8]
+  ^lr_rate: []
+  ^n_steps: [8700, 17400, 43500]
+  ^scheduler: [trapezoidal, cosine]
+
+  # expansion_rate: 1
+  # n_steps: 2600
+  # scheduler: cosine
+
+
