@@ -119,7 +119,9 @@ class C4Dataset(AbstractDataset):
         super().__init__(seed=seed)
         assert split in ["train", "validation"]
         if dataset_path is not None:
-            self.dataset = load_from_disk(dataset_path)
+            self.dataset = load_dataset(
+                "parquet", data_files=dataset_path, streaming=True
+            )["train"]
         elif use_dummy_dataset:
             if split != "train":
                 raise NameError(
