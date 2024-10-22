@@ -1,0 +1,34 @@
+parent: configs/jm/cnfg.yaml
+md5_parent_hash: aeaff8a5ff59379f93fdba5229f4a73d
+time: "0-05:00:00"
+
+n_gpus: 2
+cpus_per_gpu: 16
+
+params:
+  name: "fsdp_vs_nonfsdp"
+  # tags: ["aux_loss_fix", "old_implementation"]
+  # tags: ["fsdp_vs_nonfsdp", "6B", "200_tok_to_param", "medium", "fsdp"]
+  tags: ['remove']
+
+  # training
+  n_steps: 100000
+  final_lr_step: 100000
+  lr_warmup_steps: 1000
+  batch_size: 256
+  cutoff: 256
+
+  # model
+  dmodel: 512
+  n_att_heads: 8
+  n_blocks: 8
+  effective_dff_x: 3
+  expansion_rate: 8
+  granularity: 1
+
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+  data_seed: 77
