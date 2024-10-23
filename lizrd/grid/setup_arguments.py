@@ -10,7 +10,7 @@ def make_singularity_mount_paths(setup_args: dict, training_args: dict) -> str:
     )
     singularity_mount_paths += (
         f",{setup_args['hf_datasets_cache']}:{setup_args['hf_datasets_cache']}"
-        if is_hf_datasets_cache_needed
+        if True
         else ""
     )
     singularity_mount_paths += (
