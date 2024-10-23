@@ -1,7 +1,8 @@
-time: "5-00:00:00"
+time: "2-00:00:00"
 interactive_debug_session: false
 interactive_debug: false
-n_gpus: 4
+n_gpus: 8
+mem_per_gpu: 100
 cpus_per_gpu: 16
 
 params:
@@ -9,8 +10,8 @@ params:
   tags: ["relativity_paper", "large_model", "dense", "baseline", "std"]
 
   # grid
-  # ^data_seed: [2167]
-  ^data_seed: [2170, 10065]
+  data_seed: [2167]
+  # ^data_seed: [2170, 10065]
 
   # training
   n_steps: 50000

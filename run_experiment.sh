@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/dense/large_baseline.yaml --git_branch=large_dense_baseline_2024-10-23_16-53-08 --skip_copy_code --skip_confirmation
