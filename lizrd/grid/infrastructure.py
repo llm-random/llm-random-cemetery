@@ -299,7 +299,7 @@ class LumiBackend(MachineBackend):
         return "/scratch/project_465001227/llm-random-group"
 
     def get_cache_path(self) -> str:
-        return "/scratch/project_465001227/llm-random-group/.cache"
+        return "/scratch/project_465001227/llm-random-group/.cache2"
 
     def get_cluster_default_params(self, dataset_type) -> dict:
         return {
@@ -314,12 +314,14 @@ class LumiBackend(MachineBackend):
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
-            return "/flash/project_465001227/llm-random-group/datasets/c4/train/"
+            # return "/flash/project_465001227/llm-random-group/datasets/c4/train/"
+            return "/flash/project_465001227/llm-random-group/datasets/c4_parquet/train.parquet"
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_default_validation_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
-            return "/flash/project_465001227/llm-random-group/datasets/c4/validation/"
+            # return "/flash/project_465001227/llm-random-group/datasets/c4/validation/"
+            return "/flash/project_465001227/llm-random-group/datasets/c4_parquet/validation"
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_cemetery_directory(self):
