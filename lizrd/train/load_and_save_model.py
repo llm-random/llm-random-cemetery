@@ -40,6 +40,8 @@ def get_checkpoint_from_path(load_weights_path: str) -> str:
 
 def load_model_weights(model: torch.nn.Module, checkpoint: dict[str, torch.Tensor]):
     print(f"Loading model weights...")
+    print("---------------------------------------------------------------------------------")#dev
+    print(checkpoint)#dev
     model.load_state_dict(checkpoint["model"], strict=False)
     print(f"Loaded model weights")
 
@@ -115,6 +117,12 @@ def save_checkpoint(
             for l in joint_loggers.loggers
             if isinstance(l, NeptuneLogger)  # dev TODO do it for other loggers
         ]
+        # if len(neptune_logger) >= 1: #dev
+        #     ids = []
+        #     for e in neptune_logger:
+        #         neptune_logger = e.instance_logger
+        #         ids.append(neptune_logger._sys_id)
+        #     logger_metadata = {"run_id": ids}
         if len(neptune_logger) == 1:
             neptune_logger = neptune_logger[0].instance_logger
             logger_metadata = {"run_id": neptune_logger._sys_id}
@@ -122,6 +130,10 @@ def save_checkpoint(
             print(f"No Neptune logger, no saving.")
             logger_metadata = None
 
+        print("---------------------------------------------------------------------------------")#dev
+        print(step) #dev
+        print(logger_metadata) #dev
+        print("---------------------------------------------------------------------------------")#dev
         full_path = os.path.join(path, f"{step}.pt")
         checkpoint = {
             "model": model_state_dict,
