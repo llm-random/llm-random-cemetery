@@ -333,7 +333,7 @@ def main(
     )
 
     if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
-        logger_run_id = checkpoint["logger"]["run_id"]
+        logger_run_id = checkpoint["logger"]["run_id"] #dev
     else:
         logger_run_id = None
 
