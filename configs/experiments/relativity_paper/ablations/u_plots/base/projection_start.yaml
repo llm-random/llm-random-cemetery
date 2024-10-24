@@ -3,14 +3,15 @@ params:
   name: base_uplot_projection_start
   relative_lr:
     ^projection:
-    - 0.25
-    - 0.5
-    - 2
-    - 4
+    - 2.0
+    - 4.0
+    - 6.0
+    - 8.0
   tags:
   - base_model
   - uplot
   - relativity_paper
   - projection
   - start
+  ^data_seed: [44, 45, 46, 47, 48, 49, 50, 51, 52, 53]
 parent: configs/experiments/relativity_paper/ablations/u_plots/base_model_uplots.yaml
