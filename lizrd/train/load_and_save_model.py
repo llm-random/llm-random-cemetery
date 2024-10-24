@@ -115,6 +115,12 @@ def save_checkpoint(
             for l in joint_loggers.loggers
             if isinstance(l, NeptuneLogger)  # dev TODO do it for other loggers
         ]
+        # if len(neptune_logger) >= 1: #dev
+        #     ids = []
+        #     for e in neptune_logger:
+        #         neptune_logger = e.instance_logger
+        #         ids.append(neptune_logger._sys_id)
+        #     logger_metadata = {"run_id": ids}
         if len(neptune_logger) == 1:
             neptune_logger = neptune_logger[0].instance_logger
             logger_metadata = {"run_id": neptune_logger._sys_id}

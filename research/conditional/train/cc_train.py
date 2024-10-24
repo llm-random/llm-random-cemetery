@@ -333,12 +333,12 @@ def main(
     )
 
     if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
-        logger_run_id = checkpoint["logger"]["run_id"]
+        logger_runs_ids = checkpoint["logger"]["run_id"]
     else:
-        logger_run_id = None
+        logger_runs_ids = None
 
     if is_logging_process:
-        logger = get_logger(args, model, VOCAB_SIZE, logger_run_id)
+        logger = get_logger(args, model, VOCAB_SIZE, logger_runs_ids)
     else:
         logger = None
 

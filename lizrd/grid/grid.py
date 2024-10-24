@@ -104,7 +104,7 @@ def create_subprocess_args(
                 if CLUSTER.max_exp_time < total_exp_time:
                     n_job_repetitions = ceil(total_exp_time / CLUSTER.max_exp_time)
                     setup_args["time"] = seconds_to_timestr(CLUSTER.max_exp_time)
-
+            print(f"{n_job_repetitions} ----------------------------------------------------") #dev
             subprocess_args = CLUSTER.get_subprocess_args(
                 slurm_command=slurm_command,
                 setup_args=setup_args,
