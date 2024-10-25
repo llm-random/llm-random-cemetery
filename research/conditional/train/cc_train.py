@@ -336,7 +336,12 @@ def main(
     if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
         logger_runs_ids = checkpoint["logger"]["run_id"]
     else:
-        logger_runs_ids = None
+        if args.scheduler_trapezoidal_slides:
+            logger_runs_ids = []
+            for _ in range(len(args.scheduler_trapezoidal_slides)):
+                logger_runs_ids.append(None)
+        else:
+            logger_runs_ids = None
 
     if is_logging_process:
         logger = get_logger(args, model, VOCAB_SIZE, logger_runs_ids)

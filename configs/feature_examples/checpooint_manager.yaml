@@ -7,7 +7,7 @@ cpus_per_gpu: 8
 # here configure GPUs & time for a given cluster for it to fit
 params:
   name: "ms_repeater"
-  tags: ["ms", "test", "repeater_refactor", "checkpoint_manager"]
+  tags: ["ms", "test", "test_dev", "checkpoint_manager"]
   expansion_rate: 4
   n_steps: 2600
   batch_size: 100
@@ -16,4 +16,5 @@ params:
   save_weights_path: "./test_saving"
   checkpoint_manager: True
   logger_types: Null
+  scheduler_trapezoidal_slides: [{"step":1000},{"step":3000}]
   # save_weights_interval: 100
