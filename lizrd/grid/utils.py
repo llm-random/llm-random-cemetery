@@ -11,6 +11,8 @@ def split_params(params: dict) -> Tuple[list, list, list]:
     grids = []
     normals = []
     for k, v in params.items():
+        if isinstance(k, float):
+            normals.append((k, v))
         if k[0] == "^":
             grids.append((k[1:], v))
         elif k[0] == "*":
@@ -130,6 +132,8 @@ def seconds_to_timestr(seconds: int) -> str:
 
 def create_grid(params: dict) -> List[dict]:
     grids, functions, normals = split_params(params)
+    print("---------------")
+    print(params)
     base_params = {k: v for k, v in normals}
     out_params = []
     grids_keys = [k for k, v in grids]
