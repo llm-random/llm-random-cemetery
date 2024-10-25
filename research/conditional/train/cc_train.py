@@ -360,6 +360,11 @@ def main(
         else disable_profile_schedule_fn
     )
 
+    if args.batch_size_rampup_steps is not None:
+        args.batch_size_rampup_dict = {}
+        for i, s in enumerate(args.batch_size_rampup_steps):
+            args.batch_size_rampup_dict[s] = args.batch_size_rampup_sizes[i]
+
     trainer = ConditionalTrainer(
         model=model,
         optimizer=optimizer,
