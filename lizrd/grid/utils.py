@@ -130,6 +130,8 @@ def seconds_to_timestr(seconds: int) -> str:
 
 def create_grid(params: dict) -> List[dict]:
     grids, functions, normals = split_params(params)
+    print("---------------")
+    print(params)
     base_params = {k: v for k, v in normals}
     out_params = []
     grids_keys = [k for k, v in grids]
