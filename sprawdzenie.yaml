@@ -1,0 +1,16 @@
+parent: configs/experiments/constrained_scaling_laws/25M/model.yaml
+md5_parent_hash: 3067b2550c57a4b87c0c6a1287e6d902
+time: "48:00:00"
+n_gpus: 2
+params:
+  tags: ["test"]
+  expansion_rate: 8
+  ^learning_rate: [1e-4]
+  # ^n_steps: [2600, 5200, 13000]
+  # ^scheduler: [trapezoidal, cosine]
+  scheduler: cosine
+  lr_warmup_percent: 0.01
+
+  n_steps: 10
+
+  loss_checkpoint_chungs: 0
