@@ -513,19 +513,33 @@ def add_logger_active_metrics(args):
     )
 
 
-def get_logger(args, model, VOCAB_SIZE, run_id=None):  # dev TODO generalize run_id
+def get_logger(args, model, VOCAB_SIZE, run_ids:list[int]=None):  # dev TODO generalize run_id
     timestamp = make_concise_datetime()
     unique_timestamp = f"{timestamp}{secrets.token_urlsafe(1)}"
-    if args.logger_types == "":
-        logger_types = []
+    logger_types = []
+    if args.checkpoint_manager:
+        print("args.logger_types --------------------------------------------------------------------") #dev
+        print(args.logger_types) #dev
+        print("args.logger_types --------------------------------------------------------------------") #dev
+        assert args.logger_types == None #dev can i set none in config? 
+        n_neptune_loggers = len(run_ids) if run_ids else 1
+        for _ in range(n_neptune_loggers):
+            logger_types.append("neptune")
     else:
         logger_types = args.logger_types.split(",")
         assert len(logger_types) == len(set(logger_types)), "Duplicate logger types."
     initialized_loggers = []
     add_logger_active_metrics(args)
-
-    for logger_type in logger_types:
-        if logger_type == "neptune":
+    if not run_ids:
+        run_ids = []
+        for _ in logger_types:
+            run_ids.append(None)
+    print("create loggers 4 checkpooint manager --------------------------------------------------------------------") #dev
+    print(logger_types, run_ids) #dev
+    print(list(zip(logger_types, run_ids))) #dev
+    print("create loggers 4 checkpooint manager --------------------------------------------------------------------") #dev
+    for logger_type, run_id in zip(logger_types, run_ids):
+        if logger_type == "neptune":    
             run = neptune.init_run(
                 project=args.project_name,
                 tags=args.tags,
@@ -560,6 +574,55 @@ def get_logger(args, model, VOCAB_SIZE, run_id=None):  # dev TODO generalize run
                 f"Logger of type '{logger_type}' is not implemented."
             )
     return JointLogger(initialized_loggers)
+
+
+# def get_logger(args, model, VOCAB_SIZE, run_id=None):  # dev TODO generalize run_id
+#     timestamp = make_concise_datetime()
+#     unique_timestamp = f"{timestamp}{secrets.token_urlsafe(1)}"
+#     if args.logger_types == "":
+#         logger_types = []
+#     else:
+#         logger_types = args.logger_types.split(",")
+#         assert len(logger_types) == len(set(logger_types)), "Duplicate logger types."
+#     initialized_loggers = []
+#     add_logger_active_metrics(args)
+
+#     for logger_type in logger_types:
+#         if logger_type == "neptune":
+#             run = neptune.init_run(
+#                 project=args.project_name,
+#                 tags=args.tags,
+#                 name=f"{args.name} {tags_to_name(args.tags)} {unique_timestamp}",
+#                 with_id=run_id,
+#             )
+#             run["args"] = vars(args)
+#             run["working_directory"] = os.getcwd()
+#             run["config"].upload(args.path_to_entry_config)
+#             all_config_paths = args.all_config_paths.split(",")
+#             run["all_configs"].upload_files(all_config_paths)
+
+#             args.model_n_params = count_parameters(model, args, VOCAB_SIZE)
+#             initialized_loggers.append(NeptuneLogger(run, args))
+#         elif logger_type == "wandb":
+#             wandb.init(
+#                 entity=args.wandb_entity,
+#                 project=args.wandb_project,
+#                 name=f"{args.name} {tags_to_name(args.tags)} {unique_timestamp}",
+#                 tags=args.tags,
+#                 config=vars(args),
+#             )
+#             # define our custom x axis metric
+#             wandb.define_metric("train/step")
+#             # set all other train/ metrics to use this step
+#             wandb.define_metric("*", step_metric="train/step")
+#             initialized_loggers.append(WandbLogger(wandb, args))
+#         elif logger_type == "stdout":
+#             initialized_loggers.append(StdoutLogger(None, args))
+#         else:
+#             raise NotImplementedError(
+#                 f"Logger of type '{logger_type}' is not implemented."
+#             )
+#     return JointLogger(initialized_loggers)
 
 
 def prepare_tensor_for_logging(
