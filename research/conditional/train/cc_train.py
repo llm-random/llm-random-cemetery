@@ -287,6 +287,7 @@ def main(
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
         betas=(args.adam_beta1, args.adam_beta2),
+        fused=True,
     )
 
     if checkpoint is not None:
