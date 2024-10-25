@@ -83,7 +83,7 @@ class ConditionalTrainer:
     profiler_schedule: None = None
     rank: Optional[int] = None
     start_step: int = 0
-    batch_size_rampup_dict: Optional[dict[float, int]]
+    batch_size_rampup_dict: Optional[dict[float, int]] = None
     checkpoint: Optional[dict[str, torch.Tensor]] = None
 
     def __attrs_post_init__(self):
@@ -195,7 +195,7 @@ class ConditionalTrainer:
         current_bs = calculate_current_bs_from_rampup(
             num_processed_tokens, self.batch_size_rampup_dict
         )
-        num_bs_chunks_from_rampup = self.batch_size / current_bs
+        num_bs_chunks_from_rampup = self.batch_size // current_bs
 
         for i in range(num_bs_chunks_from_rampup):
             # TODO: make a way to avoid copying the whole batch just to get a slice
