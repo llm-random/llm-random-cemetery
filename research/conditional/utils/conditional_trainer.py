@@ -85,6 +85,7 @@ class ConditionalTrainer:
     rank: Optional[int] = None
     start_step: int = 0
     checkpoint: Optional[dict[str, torch.Tensor]] = None
+    scheduler_trapezoidal_slides:dict = None
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
@@ -175,8 +176,7 @@ class ConditionalTrainer:
             for step in range(self.start_step, n_steps + 1):
                 self.current_step = step
                 self._train_step(step)
-                if self._repeater_rerun(step, self.repeater_job_end_time):
-                    break
+
                 if self.profiler_enabled:
                     p.step()
 
@@ -197,6 +197,14 @@ class ConditionalTrainer:
                     except:
                         print("Decoding failed, skipping...")
                 self._after_step_operations(step)
+                if self.scheduler_trapezoidal_slides:
+                    for e in self.scheduler_trapezoidal_slides:
+                        if step == e["step"]:
+                            #def delete splited, one of neptune loggers
+                            #def save model and add to checkpoint
+                            break
+                if self._repeater_rerun(step, self.repeater_job_end_time):
+                    break
         self._after_train_operations(n_steps)
 
     def _train_step(
@@ -481,7 +489,7 @@ class ConditionalTrainer:
                 step,
                 self.batch_size,
                 self.cutoff,
-                self.logger,
+                self.logger.loggers,
             )
 
     def _repeater_rerun(
@@ -491,6 +499,7 @@ class ConditionalTrainer:
             job_id = get_slurm_job_id()
             job_out_of_time_checkpoint(
                 job_id,
+                self.is_logging_process:
                 self.model,
                 self.optimizer,
                 self.scaler,
