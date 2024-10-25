@@ -80,6 +80,10 @@ def introduce_parser_arguments(
     parser.add_argument("--train_dataset_path", type=str, default=None)
     parser.add_argument("--validation_dataset_path", type=str, default=None)
 
+    parser.add_argument("--final_eval_seed", type=int, default=1912)
+    parser.add_argument("--final_eval_dataloader_batch_size", type=int, default=64)
+    parser.add_argument("--n_rows_final_eval", type=str, default=8*512)
+
     # training tricks for memory and speed
     parser.add_argument(
         "--activation_checkpointing_modules",
