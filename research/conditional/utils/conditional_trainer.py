@@ -83,7 +83,7 @@ class ConditionalTrainer:
     profiler_schedule: None = None
     rank: Optional[int] = None
     start_step: int = 0
-    batch_size_rampup_dict: Optional[dict[float, int]]
+    batch_size_rampup_dict: Optional[dict[float, int]] = None
     checkpoint: Optional[dict[str, torch.Tensor]] = None
 
     def __attrs_post_init__(self):
