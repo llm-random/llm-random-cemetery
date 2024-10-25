@@ -519,7 +519,7 @@ def get_logger(args, model, VOCAB_SIZE, run_ids:list[int]=None):  # dev TODO gen
     logger_types = []
     if args.checkpoint_manager:
         assert args.logger_types == None
-        n_neptune_loggers = len(run_ids) if run_ids else 1
+        n_neptune_loggers = len(run_ids) if run_ids else 10 #dev testing 2 sumoltanious neptune loggers
         for _ in range(n_neptune_loggers):
             logger_types.append("neptune")
     else:
