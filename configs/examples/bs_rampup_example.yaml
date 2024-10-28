@@ -4,8 +4,8 @@ n_gpus: 2
 time: "1-10:00:00"
 skip_copy_code: true
 params:
-    batch_size_rampup_transition_points: [0.5, 1.0]
-    batch_size_rampup_sizes: [128, 256]
+    # batch_size_rampup_transition_points: [0.5, 1.0]
+    # batch_size_rampup_sizes: [128, 256]
     batch_size: 512
     cutoff: 512
     fsdp_enabled: true
