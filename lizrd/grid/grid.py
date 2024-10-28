@@ -1,3 +1,4 @@
+from ast import literal_eval
 import datetime
 from math import ceil
 import pathlib
@@ -103,6 +104,14 @@ def create_subprocess_args(
                 total_exp_time = timestr_to_minutes(setup_args["time"]) * 60
                 if CLUSTER.max_exp_time < total_exp_time:
                     n_job_repetitions = ceil(total_exp_time / CLUSTER.max_exp_time)
+                    if "scheduler_trapezoidal_slides" in training_args and training_args["scheduler_trapezoidal_slides"]:
+                        print("-----------------------------------------------------------------------------------------------------------------------------------")
+                        print(len(literal_eval(training_args["scheduler_trapezoidal_slides"]))) #dev
+                        print(n_job_repetitions) #dev
+                        n_job_repetitions = n_job_repetitions + len(literal_eval(training_args["scheduler_trapezoidal_slides"]))
+                        print(n_job_repetitions) #dev
+                        print("-----------------------------------------------------------------------------------------------------------------------------------")
+    
                     setup_args["time"] = seconds_to_timestr(CLUSTER.max_exp_time)
 
             subprocess_args = CLUSTER.get_subprocess_args(
