@@ -18,7 +18,7 @@ def get_scheduler(
     if args.final_lr_step == -1 or args.final_lr_step is None:
         args.final_lr_step = (
             args.n_steps
-        )  # dev - 1 seems proper, may cause problems, idk
+        ) 
 
     if args.scheduler == "constant":
         return ConstantScheduler(
