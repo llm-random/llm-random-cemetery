@@ -223,7 +223,6 @@ def main(
             for ff_fun in ff_layer_funs
         ]
 
-    checkpoint_metadata = None
     if not args.checkpoint_manager:
         checkpoint = (
             get_checkpoint_from_path(args.load_weights_path)
@@ -232,8 +231,8 @@ def main(
         )
     else:
         checkpoint_path, checkpoint_metadata = start_job_manager_assesment(get_slurm_job_id(), is_logging_process)
-        if checkpoint_metadata == SLIDE_METADATA:
-            args.scheduler_trapezoidal_slides = None
+        # if checkpoint_metadata == SLIDE_METADATA: #dev
+        #     args.scheduler_trapezoidal_slides = None
         checkpoint = get_checkpoint_from_path(checkpoint_path) if checkpoint_path else None
 
     model = get_model(
@@ -263,6 +262,36 @@ def main(
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
     )
+
+    if is_logging_process:
+        if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
+            logger_runs_ids = checkpoint["logger"]["run_id"]
+        else:
+            if args.scheduler_trapezoidal_slides:
+                logger_runs_ids = []
+                for _ in range(len(args.scheduler_trapezoidal_slides) + 1):
+                    logger_runs_ids.append(None)
+            else:
+                logger_runs_ids = None
+        logger = get_logger(args, model, VOCAB_SIZE, logger_runs_ids)
+    else:
+        logger = None
+
+    new_args = None
+    if "new_args" in checkpoint and checkpoint["new_args"]:
+        new_args = checkpoint["new_args"]
+        for key, value in new_args.items():
+            if hasattr(args, key):
+                setattr(args, key, value)
+        print("-----------------------------------------------------------------------------------------------------------------------")
+        print(new_args)    #dev    
+        print("-----------------------------------------------------------------------------------------------------------------------")
+        logger.report_text(
+            title=f"args/args_overload", #dev atomize logging to per arg update log in args/{name of arg}
+            value=str(new_args),
+            iteration=checkpoint["step"],
+        )
+
 
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
@@ -335,21 +364,6 @@ def main(
         dataset_split=eval_split,
         dataset_path=args.validation_dataset_path,
     )
-
-    if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
-        logger_runs_ids = checkpoint["logger"]["run_id"]
-    else:
-        if args.scheduler_trapezoidal_slides:
-            logger_runs_ids = []
-            for _ in range(len(args.scheduler_trapezoidal_slides)):
-                logger_runs_ids.append(None)
-        else:
-            logger_runs_ids = None
-
-    if is_logging_process:
-        logger = get_logger(args, model, VOCAB_SIZE, logger_runs_ids)
-    else:
-        logger = None
 
     if args.model_type == "gpt" and is_logging_process:
         log_batch(

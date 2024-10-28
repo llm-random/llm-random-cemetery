@@ -545,7 +545,7 @@ def get_logger(args, model, VOCAB_SIZE, run_ids:list[int]=None):  # dev TODO gen
             all_config_paths = args.all_config_paths.split(",")
             run["all_configs"].upload_files(all_config_paths)
 
-            args.model_n_params = count_parameters(model, args, VOCAB_SIZE)
+            args.model_n_params = count_parameters(model, args, VOCAB_SIZE) #TODO move out of get_logger function
             initialized_loggers.append(NeptuneLogger(run, args))
         elif logger_type == "wandb":
             wandb.init(
