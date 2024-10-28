@@ -14,7 +14,6 @@ from lizrd.support.logging import AbstractLogger, JointLogger
 EXPERIMENT_CHECKPOINT_MANAGER = "checkpoint_manager.json"
 
 CHECKPOINTS_TAG = "checkpoints"
-START_NEW_TAG = "START"
 
 CHECKPOINT_STATUS = "status"
 CHECKPOINT_STATUS_RUNNING = "RUNNING"
