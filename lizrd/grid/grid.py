@@ -112,7 +112,12 @@ def create_subprocess_args(
                                 n_slide_jobs += e["n_jobs"]
                             else:
                                 n_slide_jobs += 1
+                        print("-------------------------------------------------------------------------------------------------------------------------------------------------")
+                        print(n_job_repetitions) #dev
+                        print(n_slide_jobs) #dev
                         n_job_repetitions = n_job_repetitions + n_slide_jobs
+                        print(n_job_repetitions) #dev
+                        print("-------------------------------------------------------------------------------------------------------------------------------------------------")
                     setup_args["time"] = seconds_to_timestr(CLUSTER.max_exp_time)
 
             subprocess_args = CLUSTER.get_subprocess_args(
