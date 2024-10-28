@@ -29,6 +29,7 @@ CHECKPOINT_STOP_TIMESTAMP = "stop_timestamp"
 FINAL_MODEL_CHECKPOINT = "final_model_checkpoint"
 CHECKPOINT_METADATA_TAG = "metadata"
 SLIDE_METADATA = "trapezoidal_slide"
+ARGS_TAG = "args"
 
 
 class Locker:
@@ -55,10 +56,11 @@ def manager_start_checkpoint(job_id, timestamp):
         CHECKPOINT_CREATE_TIMESTAMP:timestamp,
         CHECKPOINT_STOP_TIMESTAMP:None,
         FINAL_MODEL_CHECKPOINT:None,
+        ARGS_TAG:None,
         CHECKPOINT_METADATA_TAG:None
     }
 
-def crate_manager_checkpoint(model_checkpoint_path:str, job_id:str, timestamp:str, metadata:Optional[str]=None ):
+def crate_manager_checkpoint(model_checkpoint_path:str, job_id:str, timestamp:str, args:Optional[dict]=None , metadata:Optional[str]=None ):
     return {
         CHECKPOINT_STATUS:CHECKPOINT_STATUS_PENDING, 
         MODEL_CHECKPOINT:model_checkpoint_path,
@@ -68,6 +70,7 @@ def crate_manager_checkpoint(model_checkpoint_path:str, job_id:str, timestamp:st
         CHECKPOINT_CREATE_TIMESTAMP:timestamp,
         CHECKPOINT_STOP_TIMESTAMP:None,
         FINAL_MODEL_CHECKPOINT:None,
+        ARGS_TAG:args,
         CHECKPOINT_METADATA_TAG:metadata
     }
 
@@ -82,6 +85,7 @@ def run_manager_checkpoint(job_id:str, timestamp:str, checkpoint:dict):
         CHECKPOINT_CREATE_TIMESTAMP:checkpoint[CHECKPOINT_CREATE_TIMESTAMP],
         CHECKPOINT_STOP_TIMESTAMP:None,
         FINAL_MODEL_CHECKPOINT:None,
+        ARGS_TAG:checkpoint[ARGS_TAG],
         CHECKPOINT_METADATA_TAG:checkpoint[CHECKPOINT_METADATA_TAG]
     }
 
@@ -96,6 +100,7 @@ def finish_manager_checkpoint(model_checkpoint_path:str, timestamp:str, checkpoi
         CHECKPOINT_CREATE_TIMESTAMP:checkpoint[CHECKPOINT_CREATE_TIMESTAMP],
             CHECKPOINT_STOP_TIMESTAMP:timestamp,
             FINAL_MODEL_CHECKPOINT:model_checkpoint_path,
+        ARGS_TAG:checkpoint[ARGS_TAG],
             CHECKPOINT_METADATA_TAG:checkpoint[CHECKPOINT_METADATA_TAG]
     }
 
