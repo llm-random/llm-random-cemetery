@@ -4,9 +4,10 @@ n_gpus: 2
 time: "1-10:00:00"
 skip_copy_code: true
 params:
-    batch_size_rampup_transition_points: [0.5, 1.0]
-    batch_size_rampup_sizes: [128, 256]
-    batch_size: 512
+    # batch_size_rampup_transition_points: [0.5, 1.0]
+    # batch_size_rampup_sizes: [128, 256]
+    load_weights_path: "/net/pr2/projects/plgrid/plggllmeffi/plgjkrajewski/llm_random_cemetery/bs_rampup_2024-10-29_19-11-34/3000.pt"
+    batch_size: 256
     cutoff: 512
     fsdp_enabled: true
     mixed_precision: true
@@ -17,7 +18,9 @@ params:
     gradient_accumulation_steps: 2
     ff_mode: vanilla
     dataset_type: c4
-    n_steps: 7500
+    n_steps: 6000
+    lr_warmup_steps: 60
+    final_lr_step: 6000
     learning_rate: 5e-4
     name: bs_rampup
     tags: [bs_rampup_test]
