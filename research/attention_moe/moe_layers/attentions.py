@@ -2,6 +2,9 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import math
+from fancy_einsum import einsum
+
+from lizrd.core.misc import LoggingLayer
 
 
 class CausalSelfAttention(nn.Module):
@@ -132,12 +135,50 @@ class CausalMQA(nn.Module):
         return y
 
 
-class MoMQA(nn.Module):
-    def __init__(self, n_embd, n_head, block_size, bias=False):
+def calculate_load_balancing_loss(
+    alpha: float,
+    softmax_per_token: torch.Tensor,
+    n_tokens_in_each_expert: torch.Tensor,
+    use_einsum: bool = False,
+):
+    """
+    Calculates the load balancing loss for the token choice layer.
+
+    :param str alpha: aux loss weigth parameter
+    :param torch.Tensor softmax_per_token: tensor of shape (tokens, n_experts)
+    :param torch.Tensor tokens_in_each_expert: tensor of shape (n_experts)
+    """
+    n_tokens, n_experts = softmax_per_token.shape
+    assert n_experts == n_tokens_in_each_expert.shape[0]
+
+    per_expert_softmax_sum = torch.mean(softmax_per_token, dim=0)
+
+    if use_einsum:
+        dot_product = einsum("i, i ->", per_expert_softmax_sum, n_tokens_in_each_expert)
+    else:
+        dot_product = torch.dot(per_expert_softmax_sum, n_tokens_in_each_expert)
+    load_balancing_loss = alpha * n_experts * dot_product / n_tokens
+    return load_balancing_loss
+
+
+def calculate_z_loss(zloss_weight: float = 0, gate_logits: torch.Tensor = None):
+    zloss = torch.logsumexp(gate_logits, dim=0)
+    zloss = torch.square(zloss)
+    zloss = zloss.mean()
+    zloss = zloss_weight * zloss
+
+    return zloss
+
+
+class MoMQA(LoggingLayer):
+    def __init__(
+        self, n_embd, n_head, block_size, load_balancing_loss_weight: float, bias=False
+    ):
         super().__init__()
         assert n_embd % n_head == 0
         # key, query, value projections for all heads, but in a batch
         # self.c_attn = nn.Linear(n_embd, 3 * n_embd, bias=bias)
+        self.load_balancing_loss_weight = load_balancing_loss_weight
         head_dim = n_embd // n_head
         self.gating = nn.Linear(n_embd, n_head, bias=bias)
         self.c_attn = nn.Linear(n_embd, 3 * n_embd, bias=bias)
@@ -212,4 +253,13 @@ class MoMQA(nn.Module):
             y.transpose(1, 2).contiguous().view(B, T, C)
         )  # re-assemble all head outputs side by side
 
+        n_tokens_per_expert = indicator.reshape(B * T, self.n_head).sum(dim=0)
+        load_balancing_loss = calculate_load_balancing_loss(
+            self.load_balancing_loss_weight,
+            gating.reshape(B * T, C),
+            n_tokens_per_expert,
+        )
+        if "load_balancing_losses" not in self.forward_pass_cache:
+            self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
+        print(load_balancing_loss)
         return y
