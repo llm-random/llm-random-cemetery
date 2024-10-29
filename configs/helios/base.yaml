@@ -1,0 +1,72 @@
+runner: "research.conditional.train.cc_train"
+time: 0-03:00:00
+n_gpus: 4
+interactive_debug: false
+
+# train params
+params:
+  name: "baseline"
+
+  # base bass
+  mixed_precision: true
+  flash_attention: true
+
+  # logging etc.
+  logger_types: "neptune"
+  project_name: "pmtest/llm-random"
+  logging_interval_heavy: 2000
+  logging_interval_loss: 1000
+  save_weights_path: "model_ckpt"
+  save_weights_interval: 25_000
+
+
+  cutoff: 512
+  batch_size: 512
+  n_steps: 5_000
+  final_lr_step: 5_000
+  scheduler: cosine
+  lr_warmup_steps: 250
+  final_lr_fraction: 0.1
+
+  grad_clip: 1.0
+  model_type: gpt
+  dataset_type: c4
+  
+  # model
+  ^dmodel: [768]
+  dff: 3072
+  n_blocks: 12
+  n_att_heads: 16
+  learning_rate: 1e-4
+  init_type: kaiming_uniform
+  init_scale: 1.0
+  mixed_precision_dtype: bfloat16
+
+  # fsdp
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
+  # fsdp_modules_to_wrap: ","
+  fsdp_selective_precision_modules: "AttentionMechanism,ExpertGating,RoPE"
+  # ^use_legacy_datasets: [false]
+  use_dummy_dataset: false
+  # dataset_type: wikibook
+  ^num_workers: [8]
+  torch_compile: false
+  # use_dummy_dataset: True
+  # dataset_type: wikibook
+
+    # parser.add_argument("--profiler_enabled", action="store_true")
+    # parser.add_argument("--profiler_trace_path", type=str, default=None)
+    # parser.add_argument("--profiler_schedule_wait", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_warmup", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_active", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_repeat", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_skip_first", type=int, default=None)
+  
+  # profiler_enabled: true
+  # profiler_trace_path: "./profiler.trace"
+  # profiler_schedule_wait: 10
+  # profiler_schedule_warmup: 10
+  # profiler_schedule_active: 10
+  # profiler_schedule_repeat: 10
+  # profiler_schedule_skip_first: 10
