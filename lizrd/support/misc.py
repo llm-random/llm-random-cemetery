@@ -7,6 +7,9 @@ from typing import Any, Dict, Optional, List
 def tags_to_name(tags: Optional[List[str]]) -> str:
     return "_".join(tags) if tags else ""
 
+def list_to_str(args_list: list):
+    args_list = [str(elem) for elem in args_list]
+    return ", ".join(args_list)
 
 def make_concise_datetime() -> str:
     now = datetime.datetime.now()
