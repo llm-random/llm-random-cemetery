@@ -3,7 +3,7 @@ md5_parent_hash: 763f39978a58f704200275285162594c
 interactive_debug: true
 cuda_visible: "0,1"
 n_gpus: 2
-time: "26:00:00"
+time: "00:10:00"
 params:
     fsdp_enabled: true
     mixed_precision: true
@@ -16,12 +16,12 @@ params:
 
     ff_mode: vanilla
 
-    dataset_type: wikibook
+    dataset_type: c4
     n_steps: 50
     learning_rate: 5e-4
     batch_size: 512
     name: fsdp_complete_example
-    tags: [example]
+    tags: [tokens_test]
     decoding_interval: 0
     save_weights_interval: 0
     logging_interval_heavy: 1000

@@ -39,7 +39,9 @@ def check_args(args):
     if args.repeater_mode:
         assert args.relative_init_scale == None
 
-    if args.n_training_tokens_in_billions is not None:
-        assert (
-            args.n_steps is None
-        ), "Please use only one method of setting the training duration"
+    print(f"args.n_steps: {args.n_steps}")
+    print(f"args.n_training_tokens_in_billions: {args.n_training_tokens_in_billions}")
+
+    assert (args.n_steps is not None) ^ (
+        args.n_training_tokens_in_billions is not None
+    ), "Please use exactly one method of setting the training duration"
