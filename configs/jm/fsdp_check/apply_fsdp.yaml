@@ -1,0 +1,8 @@
+parent: configs/jm/fsdp_check/fsdp_check_baseconfig.yaml
+md5_parent_hash: d7cc15d1137771e4db0e32b2235117f6
+
+params:
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
