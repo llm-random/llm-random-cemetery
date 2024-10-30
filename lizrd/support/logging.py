@@ -194,7 +194,12 @@ class AbstractLogger(ABC):
         for ek in ENV_METADATA:
             text_logs[ek] = envs.get(ek, None)
 
-        for to_log in text_logs.items():
+        # for to_log in text_logs.items(): #dev
+        #     self.report_text(
+        #         title=f"job/{to_log[0]}", value=to_log[1], iteration=training_step
+        #     )
+        
+        for to_log in envs.items():
             self.report_text(
                 title=f"job/{to_log[0]}", value=to_log[1], iteration=training_step
             )
