@@ -281,7 +281,10 @@ def get_attention_layer(args):
         )
     elif args.attention_mode == "momqa":
         attention_layer_fun = lambda: MoMQA(
-            n_embd=args.dmodel, n_head=args.n_att_heads, block_size=args.cutoff
+            n_embd=args.dmodel,
+            n_head=args.n_att_heads,
+            block_size=args.cutoff,
+            load_balancing_loss_weight=args.load_balancing_loss_weight,
         )
     else:
         raise NotImplementedError(
