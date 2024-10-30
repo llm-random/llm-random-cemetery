@@ -109,6 +109,9 @@ def finish_manager_checkpoint(
         CHECKPOINT_METADATA_TAG: checkpoint[CHECKPOINT_METADATA_TAG],
     }
 
+def check_if_my_change_exists():
+    ...
+
 
 def release_checkpoint_manager(
     manager_content, job_id, model_checkpoint_path, timestamp
