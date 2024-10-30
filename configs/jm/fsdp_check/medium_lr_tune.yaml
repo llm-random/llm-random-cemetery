@@ -1,0 +1,10 @@
+parent: configs/jm/fsdp_check/fsdp_check_baseconfig.yaml
+md5_parent_hash: 8e95bd3baddcd2802d93557b22ad8c8d
+
+params:
+  name: "fsdp_check"
+  # tags: ["aux_loss_fix", "old_implementation"]
+  tags: ["fsdp_check", "medium_lr_grid"]
+
+  ^learning_rate: ['2**(-7.5)', '2**(-8)', '2**(-8.5)', '2**(-9)', '2**(-9.5)', '2**(-10)', '2**(-10.5)', '2**(-11)', '2**(11.5)', '2**(-12)']
+  ^data_seed: [68, 69, 70]
