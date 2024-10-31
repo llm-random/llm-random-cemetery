@@ -1,0 +1,16 @@
+parent: configs/jm/fsdp_check/fsdp_check_baseconfig.yaml
+md5_parent_hash: 4bfb9dc3e180eaadd6305e445028eb14
+
+n_gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "fsdp_check_fsdp"
+  tags: ["fsdp_check", "fsdp", "schizobranch"]
+
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+  ^data_seed: [68, 69, 70]
