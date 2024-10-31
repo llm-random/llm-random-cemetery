@@ -4,6 +4,7 @@ import os
 import random
 from typing import Callable, Optional
 import socket
+import subprocess
 
 import torch
 import torch.multiprocessing as mp
@@ -129,6 +130,17 @@ def main(
     """
     rank: int - the ID of the current process (usually also the GPU ID). Only relevant for multi-GPU training.
     """
+
+
+    print("--------------------------------------------------------------")
+    result = subprocess.run(['ls', '-l'], capture_output=True, text=True)
+    print(result)
+    # result = subprocess.run(['srun'], capture_output=True, text=True)
+    # print(result)
+    result = subprocess.run(['sbatch'], capture_output=True, text=True)
+    print(result)
+    print("--------------------------------------------------------------")
+    raise Exception("FINISHED______________________________")
     if runner_params is not None:
         parser = argparse.ArgumentParser()
         introduce_parser_arguments(parser)
