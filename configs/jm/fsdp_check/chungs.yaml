@@ -1,0 +1,8 @@
+parent: configs/jm/fsdp_check/apply_fsdp.yaml
+md5_parent_hash: 054a2c2a47e0a83c7a8dd5a4eb00880e
+
+params:
+  name: "fsdp_check_with_chungs"
+  tags: ["fsdp_check", "fsdp_with_chungs"]
+
+  loss_checkpoint_chungs: 8
