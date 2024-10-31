@@ -1,0 +1,26 @@
+parent: configs/jm/fsdp_check/fsdp_check_baseconfig.yaml
+md5_parent_hash: 1dc1bc063ad729c68558a9dfdc91ca15
+
+time: "0-20:00:00"
+
+params:
+  name: "fsdp_check_base_nofsdp"
+  tags: ["fsdp_check", "nofsdp", "base_model"]
+
+
+  # training
+  n_steps: 70000
+  final_lr_step: 70000
+  lr_warmup_steps: 700
+  batch_size: 256
+  cutoff: 256
+
+  # model
+  dmodel: 768
+  n_att_heads: 12
+  n_blocks: 12
+
+  # learning
+  ^learning_rate: ['2**(-10.5)', '2**(-11)', '2**(-11.5)', '2**(-12)', '2**(-12.5)']
+
+  ^data_seed: [68, 69, 70]
