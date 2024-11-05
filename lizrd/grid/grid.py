@@ -55,9 +55,9 @@ def create_subprocess_args(
             user_input = input(
                 "Will run an INTERACTIVE experiment, which will be the first one from the supplied configs. \nContinue? [Y/n]"
             )
-        if user_input.lower() not in ("", "y", "Y"):
-            print("Aborting...")
-            exit(1)
+        # if False or user_input.lower() not in ("", "y", "Y"):
+        #     print("Aborting...")
+        #     exit(1)
 
     if not isinstance(CLUSTER, LocalBackend) and (not skip_copy_code):
         _, first_exp_trainings_args = grid[0]
