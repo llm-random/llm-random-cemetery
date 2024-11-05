@@ -1,0 +1,53 @@
+parent: configs/jm/cnfg.yaml
+md5_parent_hash: 426ea4d7ef5b6a73e0676454e7c5a877
+time: "0-14:00:00"
+
+n_gpus: 2
+cpus_per_gpu: 16
+
+params:
+  name: "is_dense_equal_E1"
+  # tags: ["aux_loss_fix", "old_implementation"]
+  tags: ["base_model", "is_dense_equal_E1"]
+
+  # learning rate
+  scheduler: trapezoidal
+  learning_rate: '2**(-12)'
+
+  # training
+  n_steps: 16000
+  final_lr_step: 16000
+  lr_warmup_steps: 400
+  lr_trapezoidal_decay_fraction: 0.2
+  batch_size: 512
+  cutoff: 512
+
+  # # model MoE
+  # model_type: gpt
+  # dmodel: 768
+  # n_att_heads: 12
+  # n_blocks: 12
+  # effective_dff_x: 3  # went from 4 -> 3
+  # expansion_rate: 1
+  # granularity: 1
+  # ff_mode: token_choice
+  # moe_inner_expert: swi_glu
+  # use_torch_bmm: true
+  # softmax_over: experts
+  # group_granular_moe_by_batch: true
+  # granular_moe_one_hot_impl: true
+
+  # model dense
+  model_type: gpt
+  dmodel: 768
+  n_att_heads: 12
+  n_blocks: 12
+  dff: 2304
+  ff_mode: swi_glu
+
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+  ^data_seed: [21, 24, 27]
