@@ -1,0 +1,83 @@
+runner: "research.conditional.train.cc_train"
+time: 0-03:00:00
+n_gpus: 4
+interactive_debug: false
+
+# train params
+params:
+  name: "baseline"
+
+  # base bass
+  mixed_precision: true
+  flash_attention: true
+
+  # logging etc.
+  logger_types: "neptune"
+  project_name: "pmtest/llm-random"
+  logging_interval_heavy: 2000
+  logging_interval_loss: 1000
+  save_weights_path: "model_ckpt"
+  save_weights_interval: 25_000
+
+
+  cutoff: 512
+  batch_size: 512
+  n_steps: 5_000
+  final_lr_step: 5_000
+  scheduler: cosine
+  lr_warmup_steps: 250
+  final_lr_fraction: 0.1
+
+  grad_clip: 1.0
+  model_type: gpt
+  dataset_type: fw
+  
+  # model
+  ^dmodel: [768]
+  dff: 3072
+  n_blocks: 12
+  n_att_heads: 16
+  learning_rate: 1e-4
+  init_type: kaiming_uniform
+  init_scale: 1.0
+  mixed_precision_dtype: bfloat16
+
+  # moe
+  ff_mode: token_choice
+  capacity_factor: 1.0
+  activation_type: silu
+  moe_inner_expert: ff_gated
+  expansion_rate: 8
+  effective_dff_x: 3
+  granularity: 1
+  get_router_values_from: weights
+  layer_norm_in_expert_choice: False
+
+
+  # fsdp
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+
+  use_dummy_dataset: false
+  num_workers: 4
+  data_seed: 42
+
+
+    # parser.add_argument("--profiler_enabled", action="store_true")
+    # parser.add_argument("--profiler_trace_path", type=str, default=None)
+    # parser.add_argument("--profiler_schedule_wait", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_warmup", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_active", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_repeat", type=int, default=None)
+    # parser.add_argument("--profiler_schedule_skip_first", type=int, default=None)
+  
+  # profiler_enabled: true
+  # profiler_trace_path: "./profiler.trace"
+  # profiler_schedule_wait: 10
+  # profiler_schedule_warmup: 10
+  # profiler_schedule_active: 10
+  # profiler_schedule_repeat: 10
+  # profiler_schedule_skip_first: 10
