@@ -44,6 +44,7 @@ def create_subprocess_args(
     check_for_argparse_correctness(grid)
     interactive_debug_session = grid[0][0]["interactive_debug_session"]
 
+    skip_confirmation = True
     if not isinstance(CLUSTER, LocalBackend) and not skip_confirmation:
         if not interactive_debug_session:
             total_minutes, total_n_experiments = calculate_experiments_info(grid)
@@ -55,7 +56,7 @@ def create_subprocess_args(
             user_input = input(
                 "Will run an INTERACTIVE experiment, which will be the first one from the supplied configs. \nContinue? [Y/n]"
             )
-        if user_input.lower() not in ("", "y", "Y"):
+        if False or user_input.lower() not in ("", "y", "Y"):
             print("Aborting...")
             exit(1)
 
