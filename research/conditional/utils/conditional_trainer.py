@@ -29,6 +29,7 @@ from research.datasets import DataloaderWrapper
 from lizrd.text.datasets import C4Dataset
 from transformers import GPT2Tokenizer
 from lizrd.train.load_and_save_model import load_scaler_state, save_checkpoint
+import numpy as np
 
 
 @define(slots=False)
@@ -86,7 +87,7 @@ class ConditionalTrainer:
     checkpoint: Optional[dict[str, torch.Tensor]] = None
     final_eval_dataloader: Optional[DataloaderWrapper] = None
     final_eval_dataloader_batch_size: Optional[int] = None
-    n_sequences_final_eval: int = None
+    n_final_eval_batches: int = None
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
@@ -145,16 +146,43 @@ class ConditionalTrainer:
             batches = [
                 self.final_eval_dataloader.get_batch()
                 for _ in range(
-                    self.n_sequences_final_eval // self.final_eval_dataloader_batch_size
+                    self.n_final_eval_batches
                 )
             ]
 
-            self._eval_single_variant(
-                batches=batches,
-                step=self.current_step,
-                variant_name="end",
-                stage="final_eval",
-            )
+            if self.rank is None:
+                self.rank = "test"
+
+            with open(f"final_eval_{self.rank}.txt", "a") as f:
+                for batch in batches:
+                    np.savetxt(f, batch.input_ids.cpu().numpy().astype(int), fmt="%i")
+                    f.write("\n")
+                    np.savetxt(f, batch.target_ids.cpu().numpy().astype(int), fmt="%i")
+                    f.write("\n")
+
+            # self.model.eval()
+            # total_loss = 0.0
+
+            # for _ in range(self.n_final_eval_batches):
+            #     batch = self.final_eval_dataloader.get_batch()
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            #     print(f"final eval loss: {loss/self.n_final_eval_batches}")
+
+            # for _ in range(self.n_final_eval_batches):
+            #     batch = self.final_eval_dataloader.get_batch()
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            #     print(f"final eval loss: {loss/self.n_final_eval_batches}")
+
+            # if self.is_logging_process:
+            #     self.logger.report_scalar(
+            #         title="final_eval_loss",
+            #         value=total_loss / self.n_final_eval_batches,
+            #         iteration=n_steps,
+            #     )
 
     def train(self, n_steps: int):
         """
@@ -334,11 +362,7 @@ class ConditionalTrainer:
                 )
 
     def _eval_single_variant(
-        self,
-        batches: Iterable[LLMBatch],
-        step: int,
-        variant_name: str,
-        stage: str = "eval",
+        self, batches: Iterable[LLMBatch], step: int, variant_name: str
     ):
         self.model.eval()
         total_loss = 0.0
@@ -355,18 +379,18 @@ class ConditionalTrainer:
                 extra_losses[name] += loss_value
         if self.is_logging_process:
             self.logger.report_scalar(
-                title=f"{stage}/total_loss/{variant_name}",
+                title=f"eval/total_loss/{variant_name}",
                 value=total_loss / self.n_eval_batches,
                 iteration=step,
             )
             self.logger.report_scalar(
-                title=f"{stage}/accuracy/{variant_name}",
+                title=f"eval/accuracy/{variant_name}",
                 value=total_correct_tokens / total_masked_tokens,
                 iteration=step,
             )
             for name, loss_value in extra_losses.items():
                 self.logger.report_scalar(
-                    title=f"{stage}/{name}/{variant_name}",
+                    title=f"eval/{name}/{variant_name}",
                     value=loss_value / self.n_eval_batches,
                     iteration=step,
                 )
