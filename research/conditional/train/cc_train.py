@@ -328,7 +328,7 @@ def main(
         dataset_path=args.validation_dataset_path,
     )
 
-    common_dataloaders_kwargs["seed"] = args.final_eval_seed
+    common_dataloaders_kwargs["seed"] = args.final_eval_seed + rank
     common_dataloaders_kwargs["batch_size"] = args.final_eval_dataloader_batch_size
     final_eval_dataloader = get_processed_dataset(
         **common_dataloaders_kwargs,

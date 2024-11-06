@@ -141,6 +141,7 @@ class ConditionalTrainer:
     def _final_eval(
         self,
         n_steps: int,
+        n_gpus: int,
     ):
         if self.current_step == n_steps:
             self.model.eval()
@@ -149,8 +150,11 @@ class ConditionalTrainer:
             total_loss_div = 0.0
             total_loss_acc_4 = 0.0
             total_loss_acc_4_div = 0.0
-            for _ in range(self.n_final_eval_batches):
+            for i_chunk in range(self.n_final_eval_batches):
                 batch = self.final_eval_dataloader.get_batch()
+                if i_chunk % n_gpus != self.rank:
+                    continue
+
                 self.gradient_accumulation_steps = 1
                 with torch.no_grad():
                     loss, _ = self.calculate_loss_and_gradient(batch)
@@ -163,11 +167,21 @@ class ConditionalTrainer:
                 total_loss_acc_4 += loss
                 total_loss_acc_4_div += loss / self.n_final_eval_batches
 
-                with open(f"final_eval_{self.rank}.txt", "a") as f:
+                with open(f"final_eval_{self.rank}_{i_chunk}.txt", "a") as f:
                     np.savetxt(f, batch.input_ids.cpu().numpy().astype(int), fmt="%i")
                     f.write("\n")
                     np.savetxt(f, batch.target_ids.cpu().numpy().astype(int), fmt="%i")
                     f.write("\n")
+
+            # torch.distributed.reduce(total_loss, 0, op=dist.ReduceOp.SUM)
+
+            print(f"Przed {total_loss}")
+            loss_tensor = torch.tensor(
+                total_loss, device=f"cuda:{self.rank}", requires_grad=False
+            )
+            torch.distributed.reduce(loss_tensor, 0, op=dist.ReduceOp.SUM)
+            total_loss = loss_tensor.item()
+            print(f"Po {total_loss}")
 
             if self.is_logging_process:
                 self.logger.report_scalar(
@@ -239,7 +253,7 @@ class ConditionalTrainer:
                     except:
                         print("Decoding failed, skipping...")
                 self._after_step_operations(step)
-        self._final_eval(n_steps)
+        self._final_eval(n_steps, self.n_gpus)
         self._after_train_operations()
 
     def _train_step(
@@ -552,43 +566,3 @@ class ConditionalTrainer:
             assert (
                 self.eval_min_group_size_logfactor <= self.eval_max_group_size_logfactor
             )
-
-            #     for _ in range(self.n_final_eval_batches)
-            # ]
-
-            # self.model.eval()
-
-            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
-            # total_loss = 0.0
-            # for batch in batches:
-            #     with torch.no_grad():
-            #         loss, _ = self.calculate_loss_and_gradient(batch)
-            #     total_loss += loss
-            # print(
-            #     f"{self.rank}: final eval div after: {total_loss/self.n_final_eval_batches:.9}"
-            # )
-
-            # total_loss = 0.0
-            # for batch in batches:
-            #     with torch.no_grad():
-            #         loss, _ = self.calculate_loss_and_gradient(batch)
-            #     total_loss += loss / self.n_final_eval_batches
-            # print(f"{self.rank}: final eval div every: {total_loss:.9}")
-
-            # self.gradient_accumulation_steps = 4
-            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
-            # total_loss = 0.0
-            # for batch in batches:
-            #     with torch.no_grad():
-            #         loss, _ = self.calculate_loss_and_gradient(batch)
-            #     total_loss += loss
-            # print(
-            #     f"{self.rank}: final eval div after with acc 4: {total_loss/self.n_final_eval_batches:.9}"
-            # )
-
-            # total_loss = 0.0
-            # for batch in batches:
-            #     with torch.no_grad():
-            #         loss, _ = self.calculate_loss_and_gradient(batch)
-            #     total_loss += loss / self.n_final_eval_batches
-            # print(f"{self.rank}: final eval div every with acc 4: {total_loss:.9}")
