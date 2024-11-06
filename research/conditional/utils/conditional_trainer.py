@@ -170,19 +170,19 @@ class ConditionalTrainer:
             )
 
             self.logger.report_scalar(
-                title=f"total_loss_div",
+                title=f"final_eval_div",
                 value=total_loss_div,
                 iteration=n_steps,
             )
 
             self.logger.report_scalar(
-                title=f"total_loss_acc_4",
+                title=f"final_eval_acc_4",
                 value=total_loss_acc_4 / self.n_final_eval_batches,
                 iteration=n_steps,
             )
 
             self.logger.report_scalar(
-                title=f"total_loss_acc_4_div",
+                title=f"final_eval_acc_4_div",
                 value=total_loss_acc_4_div,
                 iteration=n_steps,
             )
