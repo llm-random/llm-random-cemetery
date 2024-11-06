@@ -20,7 +20,7 @@ from lizrd.support.misc import (
     get_argument_attributes,
     set_seed,
 )
-from lizrd.train.checkpoints_manager import start_job_manager_assessment
+from lizrd.train.checkpoints_manager import start_job_manager_assessment, CM_LOG_LOAD
 from lizrd.train.train_utils import (
     get_model,
 )
@@ -282,6 +282,12 @@ def main(
             else:
                 logger_runs_ids = None
         logger = get_logger(args, model, VOCAB_SIZE, logger_runs_ids)
+        if checkpoint_path:
+            logger.report_text(
+                title=f"job/{CM_LOG_LOAD}",
+                value=checkpoint_path,
+                iteration=checkpoint["step"],
+            )
     else:
         logger = None
 

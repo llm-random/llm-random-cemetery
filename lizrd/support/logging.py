@@ -210,6 +210,10 @@ class AbstractLogger(ABC):
             iteration=training_step,
         )
 
+    def stop_connection(self):
+        if isinstance(self.instance_logger, neptune.Run):
+            self.instance_logger.stop()
+
 
 class ClearMLLogger(AbstractLogger):
     pass
@@ -309,7 +313,6 @@ class NeptuneLogger(AbstractLogger):
         self.potentially_log_plotly_figure_scalars(
             figure=figure, title=title, series=series, iteration=iteration
         )
-
 
 class WandbLogger(AbstractLogger):
     def __init__(self, logger, args: Namespace):
