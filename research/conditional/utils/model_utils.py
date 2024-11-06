@@ -252,6 +252,7 @@ def calculate_llm_loss_and_gradient(
         run_backward(loss_to_optimize, mixed_precision_dtype, scaler)
 
     clear_additional_losses(model)
+    print(f"WEW {loss: .9f}")
     return loss.item(), aux_info
 
 

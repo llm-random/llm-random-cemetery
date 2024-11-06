@@ -149,7 +149,9 @@ class ConditionalTrainer:
                 batch = self.final_eval_dataloader.get_batch()
                 with torch.no_grad():
                     loss, _ = self.calculate_loss_and_gradient(batch)
+                    print(f"RANK {self.rank}:{loss:.9}")
                 total_loss += loss
+                print(f"TOTAL {self.rank}:{total_loss:.9}")
 
             if self.is_logging_process:
                 self.logger.report_scalar(
