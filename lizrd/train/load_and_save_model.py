@@ -13,6 +13,7 @@ from torch.distributed.fsdp import (
 
 from lizrd.support.logging import AbstractLogger, NeptuneLogger
 from lizrd.support.misc import generate_random_string
+from research.conditional.utils.misc_tools import get_slurm_job_id
 
 
 def get_latest_checkpoint(dir_path) -> pathlib.Path:
@@ -71,7 +72,11 @@ def load_scaler_state(
 
 def prepare_save_weights_path(path_to_dir: Optional[str]) -> Optional[str]:
     # we need a random dir because we can be running a whole grid from the same directory
-    random_dirname = f"{generate_random_string(10)}"
+    slurm_job_id = get_slurm_job_id()
+    if slurm_job_id:
+        random_dirname = slurm_job_id
+    else:
+        random_dirname = f"{generate_random_string(10)}"
     path_to_dir = os.path.join(path_to_dir, random_dirname)
     save_weights_path = os.path.abspath(path_to_dir)
     os.makedirs(save_weights_path, exist_ok=True)
