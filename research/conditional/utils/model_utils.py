@@ -240,6 +240,9 @@ def calculate_llm_loss_and_gradient(
             "total_masked_tokens": total_masked_tokens,
             "losses": retrieve_additional_losses(model),
         }
+
+        print(f"WEWWITHRANK:{torch.distributed.get_rank()} {loss: .9f}")
+
         return loss, aux_info
 
     loss, aux_info = hack_for_python_garbage_collection()
@@ -252,6 +255,7 @@ def calculate_llm_loss_and_gradient(
         run_backward(loss_to_optimize, mixed_precision_dtype, scaler)
 
     clear_additional_losses(model)
+    print(f"WEW {loss: .9f}")
     return loss.item(), aux_info
 
 

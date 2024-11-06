@@ -143,6 +143,7 @@ class ConditionalTrainer:
         n_steps: int,
         n_gpus: int,
     ):
+        print(f"!!!!!!RANK {self.rank}: FINAL EVAL!!!!!!")
         if self.current_step == n_steps:
             self.model.eval()
             self.gradient_accumulation_steps = 1
@@ -158,7 +159,9 @@ class ConditionalTrainer:
                 self.gradient_accumulation_steps = 1
                 with torch.no_grad():
                     loss, _ = self.calculate_loss_and_gradient(batch)
+                    print(f"RANK {self.rank}:{loss:.9}")
                 total_loss += loss
+                print(f"TOTAL {self.rank}:{loss:.9}")
                 total_loss_div += loss / self.n_final_eval_batches
 
                 self.gradient_accumulation_steps = 4
