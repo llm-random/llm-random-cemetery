@@ -13,6 +13,8 @@ from torch.distributed.fsdp import (
 
 from lizrd.support.logging import AbstractLogger, NeptuneLogger
 from lizrd.support.misc import generate_random_string
+from lizrd.train.checkpoints_manager import CM_LOG_SAVE
+from research.conditional.utils.misc_tools import get_slurm_job_id
 
 
 def get_latest_checkpoint(dir_path) -> pathlib.Path:
@@ -29,7 +31,7 @@ def get_latest_checkpoint(dir_path) -> pathlib.Path:
     return latest_checkpoint
 
 
-def get_checkpoint_from_path(load_weights_path: str) -> str:
+def get_checkpoint_from_path(load_weights_path: str, logger: Optional[AbstractLogger]) -> str:
     assert os.path.exists(load_weights_path), f"Path {load_weights_path} does not exist"
 
     print(f"Loading checkpoint from {load_weights_path}...")
@@ -71,7 +73,11 @@ def load_scaler_state(
 
 def prepare_save_weights_path(path_to_dir: Optional[str]) -> Optional[str]:
     # we need a random dir because we can be running a whole grid from the same directory
-    random_dirname = f"{generate_random_string(10)}"
+    slurm_job_id = get_slurm_job_id()
+    if slurm_job_id:
+        random_dirname = slurm_job_id
+    else:
+        random_dirname = f"{generate_random_string(10)}"
     path_to_dir = os.path.join(path_to_dir, random_dirname)
     save_weights_path = os.path.abspath(path_to_dir)
     os.makedirs(save_weights_path, exist_ok=True)
@@ -109,21 +115,26 @@ def save_checkpoint(
         optimizer_state_dict = optimizer.state_dict()
 
     if rank == 0 or rank is None:
-        neptune_logger: Run = [
+        full_path = os.path.join(path, f"{step}.pt")
+        neptune_loggers: Run = [
             l
             for l in loggers
             if isinstance(l, NeptuneLogger)  # dev TODO do it for other loggers
         ]
-        if len(neptune_logger) >= 1:
+        if len(neptune_loggers) >= 1:
             ids = []
-            for e in neptune_logger:
-                neptune_logger = e.instance_logger
-                ids.append(neptune_logger._sys_id)
+            for neptune_logger in neptune_loggers:
+                neptune_logger.report_text(
+                    title=f"job/{CM_LOG_SAVE}",
+                    value=str(full_path),
+                    iteration=checkpoint["step"],
+                )
+                neptune_loggers = neptune_logger.instance_logger
+                ids.append(neptune_loggers._sys_id)
             logger_metadata = {"run_id": ids}
         else:
             logger_metadata = {"run_id": None}
 
-        full_path = os.path.join(path, f"{step}.pt")
         checkpoint = {
             "model": model_state_dict,
             "optimizer": optimizer_state_dict,

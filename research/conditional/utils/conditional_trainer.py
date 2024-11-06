@@ -210,6 +210,7 @@ class ConditionalTrainer:
                             split_loggers = None
                             if self.is_logging_process:
                                 split_loggers = [self.logger.loggers[0]]
+                                self.logger.loggers[0].stop_connection()
                                 del self.logger.loggers[0]
                             create_slide_checkpoint(
                                 get_slurm_job_id(),
