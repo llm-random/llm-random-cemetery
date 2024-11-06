@@ -163,6 +163,12 @@ class ConditionalTrainer:
                 total_loss_acc_4 += loss
                 total_loss_acc_4_div += loss / self.n_final_eval_batches
 
+                with open(f"final_eval_{self.rank}.txt", "a") as f:
+                    np.savetxt(f, batch.input_ids.cpu().numpy().astype(int), fmt="%i")
+                    f.write("\n")
+                    np.savetxt(f, batch.target_ids.cpu().numpy().astype(int), fmt="%i")
+                    f.write("\n")
+
             if self.is_logging_process:
                 self.logger.report_scalar(
                     title=f"final_eval",
@@ -187,12 +193,6 @@ class ConditionalTrainer:
                     value=total_loss_acc_4_div,
                     iteration=n_steps,
                 )
-
-            with open(f"final_eval_{self.rank}.txt", "a") as f:
-                np.savetxt(f, batch.input_ids.cpu().numpy().astype(int), fmt="%i")
-                f.write("\n")
-                np.savetxt(f, batch.target_ids.cpu().numpy().astype(int), fmt="%i")
-                f.write("\n")
 
     def train(self, n_steps: int):
         """
