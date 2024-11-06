@@ -29,6 +29,7 @@ from research.datasets import DataloaderWrapper
 from lizrd.text.datasets import C4Dataset
 from transformers import GPT2Tokenizer
 from lizrd.train.load_and_save_model import load_scaler_state, save_checkpoint
+import numpy as np
 
 
 @define(slots=False)
@@ -145,19 +146,52 @@ class ConditionalTrainer:
             self.model.eval()
             self.gradient_accumulation_steps = 1
             total_loss = 0.0
+            total_loss_div = 0.0
+            total_loss_acc_4 = 0.0
+            total_loss_acc_4_div = 0.0
             for _ in range(self.n_final_eval_batches):
                 batch = self.final_eval_dataloader.get_batch()
+                self.gradient_accumulation_steps = 1
                 with torch.no_grad():
                     loss, _ = self.calculate_loss_and_gradient(batch)
                 total_loss += loss
+                total_loss_div += loss / self.n_final_eval_batches
 
-                self.gradient_accumulation_steps = 1
+                self.gradient_accumulation_steps = 4
+                with torch.no_grad():
+                    loss, _ = self.calculate_loss_and_gradient(batch)
+                total_loss_acc_4 += loss
+                total_loss_acc_4_div += loss / self.n_final_eval_batches
 
             self.logger.report_scalar(
                 title=f"final_eval",
                 value=total_loss / self.n_final_eval_batches,
                 iteration=n_steps,
             )
+
+            self.logger.report_scalar(
+                title=f"total_loss_div",
+                value=total_loss_div,
+                iteration=n_steps,
+            )
+
+            self.logger.report_scalar(
+                title=f"total_loss_acc_4",
+                value=total_loss_acc_4 / self.n_final_eval_batches,
+                iteration=n_steps,
+            )
+
+            self.logger.report_scalar(
+                title=f"total_loss_acc_4_div",
+                value=total_loss_acc_4_div,
+                iteration=n_steps,
+            )
+
+            with open(f"final_eval_{self.rank}.txt", "a") as f:
+                np.savetxt(f, batch.input_ids.cpu().numpy().astype(int), fmt="%i")
+                f.write("\n")
+                np.savetxt(f, batch.target_ids.cpu().numpy().astype(int), fmt="%i")
+                f.write("\n")
 
     def train(self, n_steps: int):
         """
@@ -517,3 +551,43 @@ class ConditionalTrainer:
             assert (
                 self.eval_min_group_size_logfactor <= self.eval_max_group_size_logfactor
             )
+
+            #     for _ in range(self.n_final_eval_batches)
+            # ]
+
+            # self.model.eval()
+
+            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            # print(
+            #     f"{self.rank}: final eval div after: {total_loss/self.n_final_eval_batches:.9}"
+            # )
+
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss / self.n_final_eval_batches
+            # print(f"{self.rank}: final eval div every: {total_loss:.9}")
+
+            # self.gradient_accumulation_steps = 4
+            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            # print(
+            #     f"{self.rank}: final eval div after with acc 4: {total_loss/self.n_final_eval_batches:.9}"
+            # )
+
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss / self.n_final_eval_batches
+            # print(f"{self.rank}: final eval div every with acc 4: {total_loss:.9}")
