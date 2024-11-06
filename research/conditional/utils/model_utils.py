@@ -228,6 +228,7 @@ def calculate_llm_loss_and_gradient(
             reduction="none",
         )
         mask_loss = mask_loss[mask.reshape(-1) == 1]
+        print(f"MSK_LOSS: {torch.distributed.get_rank()}  -> {mask_loss}")
         loss = mask_loss.mean() / num_checkpoint_accumulation_steps
 
         correct_tokens = gt_tokens.long() == model_output.argmax(dim=-1)
@@ -240,6 +241,9 @@ def calculate_llm_loss_and_gradient(
             "total_masked_tokens": total_masked_tokens,
             "losses": retrieve_additional_losses(model),
         }
+
+        print(f"WEWWITHRANK:{torch.distributed.get_rank()} {loss: .9f}")
+
         return loss, aux_info
 
     loss, aux_info = hack_for_python_garbage_collection()
@@ -252,6 +256,7 @@ def calculate_llm_loss_and_gradient(
         run_backward(loss_to_optimize, mixed_precision_dtype, scaler)
 
     clear_additional_losses(model)
+    print(f"WEW {loss: .9f}")
     return loss.item(), aux_info
 
 
