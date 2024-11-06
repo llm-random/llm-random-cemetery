@@ -3,7 +3,7 @@ md5_parent_hash: 96d5ed8357df47ec7715e7438b24f8f5
 time: "02:00:00"
 n_gpus: 4
 params:
-  tags: ["test", "diff_final_eval_size"]
+  tags: ["test", "distri"]
   expansion_rate: 8
   ^learning_rate: [1e-4]
 
@@ -13,5 +13,3 @@ params:
   n_steps: 10
 
   loss_checkpoint_chungs: 0
-  final_eval_dataloader_batch_size: 7
-  # n_final_eval_batches: 1000
