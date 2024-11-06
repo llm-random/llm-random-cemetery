@@ -210,6 +210,9 @@ class AbstractLogger(ABC):
             iteration=training_step,
         )
 
+    def close_connection(self):
+        self.instance_logger.close()
+
 
 class ClearMLLogger(AbstractLogger):
     pass
