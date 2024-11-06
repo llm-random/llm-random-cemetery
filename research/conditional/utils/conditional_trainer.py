@@ -149,6 +149,7 @@ class ConditionalTrainer:
                 batch = self.final_eval_dataloader.get_batch()
                 with torch.no_grad():
                     loss, _ = self.calculate_loss_and_gradient(batch)
+                    print(f"RANK {self.rank}:{loss:.9}")
                 total_loss += loss
 
             if self.is_logging_process:
@@ -312,7 +313,9 @@ class ConditionalTrainer:
                 self.eval_min_group_size_logfactor,
                 self.eval_max_group_size_logfactor + 1,
             ):
-                current_group_size = int(2**log_group_size_factor * original_group_size)
+                current_group_size = int(
+                    2**log_group_size_factor * original_group_size
+                )
                 if (
                     current_group_size
                     <= self.batch_size // self.gradient_accumulation_steps
