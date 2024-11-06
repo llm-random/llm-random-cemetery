@@ -29,6 +29,9 @@ FINAL_MODEL_CHECKPOINT = "final_model_checkpoint"
 CHECKPOINT_METADATA_TAG = "metadata"
 SLIDE_METADATA = "trapezoidal_slide"
 
+CM_LOG_LOAD = "loaded_checkpoint"
+CM_LOG_SAVE = "saved_checkpoint"
+
 
 class Locker:
     def __init__(self, filename, mode):
