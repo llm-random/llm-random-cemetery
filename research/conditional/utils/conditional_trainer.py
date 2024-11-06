@@ -143,6 +143,7 @@ class ConditionalTrainer:
         n_steps: int,
         n_gpus: int,
     ):
+        print(f"!!!!!!RANK {self.rank}: FINAL EVAL!!!!!!")
         if self.current_step == n_steps:
             self.model.eval()
             self.gradient_accumulation_steps = 1
@@ -151,6 +152,7 @@ class ConditionalTrainer:
             total_loss_acc_4 = 0.0
             total_loss_acc_4_div = 0.0
             for i_chunk in range(self.n_final_eval_batches):
+                print(f"RANK {self.rank}: ICHUNK: {i_chunk}")
                 batch = self.final_eval_dataloader.get_batch()
                 if i_chunk % n_gpus != self.rank:
                     continue
@@ -158,7 +160,9 @@ class ConditionalTrainer:
                 self.gradient_accumulation_steps = 1
                 with torch.no_grad():
                     loss, _ = self.calculate_loss_and_gradient(batch)
+                    print(f"RANK {self.rank}:{loss:.9}")
                 total_loss += loss
+                print(f"TOTAL {self.rank}:{total_loss:.9}")
                 total_loss_div += loss / self.n_final_eval_batches
 
                 self.gradient_accumulation_steps = 4
@@ -172,7 +176,7 @@ class ConditionalTrainer:
                     f.write("\n")
                     np.savetxt(f, batch.target_ids.cpu().numpy().astype(int), fmt="%i")
                     f.write("\n")
-  
+
             print(f"Before {total_loss}")
             loss_tensor = torch.tensor(
                 total_loss, device=f"cuda:{self.rank}", requires_grad=False
