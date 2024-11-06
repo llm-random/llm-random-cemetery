@@ -159,6 +159,45 @@ class ConditionalTrainer:
                 iteration=n_steps,
             )
 
+            # batches = [
+            #     self.final_eval_dataloader.get_batch()
+            #     for _ in range(self.n_final_eval_batches)
+            # ]
+            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         self.model.eval()
+            #     total_loss += loss
+            # print(
+            #     f"{self.rank}: final eval div after: {total_loss/self.n_final_eval_batches:.9}"
+            # )
+
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss / self.n_final_eval_batches
+            # print(f"{self.rank}: final eval div every: {total_loss:.9}")
+
+            # self.gradient_accumulation_steps = 4
+            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            # print(
+            #     f"{self.rank}: final eval div after with acc 4: {total_loss/self.n_final_eval_batches:.9}"
+            # )
+
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss / self.n_final_eval_batches
+            # print(f"{self.rank}: final eval div every with acc 4: {total_loss:.9}")
+
     def train(self, n_steps: int):
         """
         Train the model for n_steps steps.
@@ -517,3 +556,43 @@ class ConditionalTrainer:
             assert (
                 self.eval_min_group_size_logfactor <= self.eval_max_group_size_logfactor
             )
+
+            #     for _ in range(self.n_final_eval_batches)
+            # ]
+
+            # self.model.eval()
+
+            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            # print(
+            #     f"{self.rank}: final eval div after: {total_loss/self.n_final_eval_batches:.9}"
+            # )
+
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss / self.n_final_eval_batches
+            # print(f"{self.rank}: final eval div every: {total_loss:.9}")
+
+            # self.gradient_accumulation_steps = 4
+            # print(f"Gradient accumulation steps: {self.gradient_accumulation_steps}")
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss
+            # print(
+            #     f"{self.rank}: final eval div after with acc 4: {total_loss/self.n_final_eval_batches:.9}"
+            # )
+
+            # total_loss = 0.0
+            # for batch in batches:
+            #     with torch.no_grad():
+            #         loss, _ = self.calculate_loss_and_gradient(batch)
+            #     total_loss += loss / self.n_final_eval_batches
+            # print(f"{self.rank}: final eval div every with acc 4: {total_loss:.9}")
