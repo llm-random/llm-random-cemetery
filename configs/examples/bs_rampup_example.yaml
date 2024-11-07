@@ -17,10 +17,10 @@ params:
     gradient_accumulation_steps: 2
     ff_mode: vanilla
     dataset_type: c4
-    n_steps: 7500
+    n_steps: 100_000
     learning_rate: 5e-4
     name: bs_rampup
-    tags: [bs_rampup_test]
+    tags: [bs_rampup_test_tokens]
     decoding_interval: 0
     save_weights_interval: 0
     logging_interval_heavy: 1000
