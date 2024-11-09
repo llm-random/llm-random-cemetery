@@ -1,0 +1,14 @@
+parent: configs/experiments/relativity_paper/local_search/baseline.yaml
+md5_parent_hash: 4b7ddb5b3fcfe3c8af524e3fb12040d5
+
+time: 0-10:00:00
+
+n_gpus: 2
+cpus_per_gpu: 16
+
+params:
+  name: "check_relativity_pr_norelative"
+  tags: ["remove", "check_relativity_pr"]
+
+  ^data_seed: [11]
+  loss_checkpoint_chungs: 0
