@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/relativity_paper/extrapolations/jm_check_pr_norelative.yaml --git_branch=check_relativity_pr_norelative_2024-11-09_15-50-05 --skip_copy_code
