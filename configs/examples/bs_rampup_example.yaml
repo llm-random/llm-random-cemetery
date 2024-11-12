@@ -1,29 +1,66 @@
-parent: configs/baselines/gpt/dense/base.yaml
-md5_parent_hash: 763f39978a58f704200275285162594c
-n_gpus: 2
-time: "1-10:00:00"
-skip_copy_code: true
+runner: "research.conditional.train.cc_train"
+time: 0-03:00:00
+n_gpus: 4
+interactive_debug: false
+
+# train params
 params:
-    batch_size_rampup_transition_points: [0.5, 1.0]
-    batch_size_rampup_sizes: [128, 256]
-    batch_size: 512
-    cutoff: 512
-    fsdp_enabled: true
-    mixed_precision: true
-    mixed_precision_dtype: bfloat16
-    flash_attention: true
-    fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
-    activation_checkpointing_modules: "TransformerBlock,EmbeddingLayer,PredictionHead"
-    gradient_accumulation_steps: 2
-    ff_mode: vanilla
-    dataset_type: c4
-    n_steps: 7500
-    learning_rate: 5e-4
-    name: bs_rampup
-    tags: [bs_rampup_test]
-    decoding_interval: 0
-    save_weights_interval: 0
-    logging_interval_heavy: 1000
-    eval_interval: 1000
-    init_type: truncated_normal
-    init_scale: 1.0
+  name: "baseline"
+
+  # base bass
+  mixed_precision: true
+  flash_attention: true
+
+  # logging etc.
+  logger_types: "neptune"
+  project_name: "pmtest/llm-random"
+  logging_interval_heavy: 2000
+  logging_interval_loss: 1000
+  save_weights_path: "model_ckpt"
+  save_weights_interval: 25_000
+
+
+  cutoff: 512
+  batch_size: 512
+  n_steps: 5_000
+  final_lr_step: 5_000
+  scheduler: cosine
+  lr_warmup_steps: 250
+  final_lr_fraction: 0.1
+
+  grad_clip: 1.0
+  model_type: gpt
+  dataset_type: "c4"
+  
+  # model
+  ^dmodel: [768]
+  dff: 3072
+  n_blocks: 12
+  n_att_heads: 16
+  learning_rate: 1e-4
+  init_type: kaiming_uniform
+  init_scale: 1.0
+  mixed_precision_dtype: bfloat16
+
+  # moe
+  ff_mode: token_choice
+  capacity_factor: 1.0
+  activation_type: silu
+  moe_inner_expert: ff_gated
+  expansion_rate: 8
+  effective_dff_x: 3
+  granularity: 1
+  get_router_values_from: weights
+  layer_norm_in_expert_choice: False
+
+
+  # fsdp
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+
+  use_dummy_dataset: false
+  num_workers: 4
+  data_seed: 42
