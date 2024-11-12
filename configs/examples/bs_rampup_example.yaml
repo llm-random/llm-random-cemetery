@@ -1,11 +1,13 @@
-parent: configs/baselines/gpt/dense/base.yaml
-md5_parent_hash: 763f39978a58f704200275285162594c
-n_gpus: 2
-time: "1-10:00:00"
-skip_copy_code: true
+# parent: configs/baselines/gpt/dense/base.yaml
+runner: "research.conditional.train.cc_train"
+# md5_parent_hash: 763f39978a58f704200275285162594c
+n_gpus: 4
+time: "0-03:00:00"
+interactive_debug: false
+# skip_copy_code: true
 params:
-    batch_size_rampup_transition_points: [0.5, 1.0]
-    batch_size_rampup_sizes: [128, 256]
+    # batch_size_rampup_transition_points: [0.5, 1.0]
+    # batch_size_rampup_sizes: [128, 256]
     batch_size: 512
     cutoff: 512
     fsdp_enabled: true
@@ -20,7 +22,7 @@ params:
     n_steps: 7500
     learning_rate: 5e-4
     name: bs_rampup
-    tags: [bs_rampup_test]
+    tags: [helios_test]
     decoding_interval: 0
     save_weights_interval: 0
     logging_interval_heavy: 1000
