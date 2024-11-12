@@ -1,0 +1,83 @@
+time: "4-00:00:00"
+
+n_gpus: 2
+cpus_per_gpu: 16
+
+params:
+  # name: "test"
+  name: "relativity_pr_check_gpus_2"
+  # tags: ["aux_loss_fix", "old_implementation"]
+  tags: ["remove"]
+
+  # training
+  n_steps: 70000
+  final_lr_step: 70000
+  lr_warmup_steps: 700
+  batch_size: 256
+  cutoff: 256
+
+  # model
+  model_type: gpt
+  dmodel: 768
+  n_att_heads: 12
+  n_blocks: 12
+  effective_dff_x: 3  # went from 4 -> 3
+  expansion_rate: 8
+  granularity: 1
+  ff_mode: token_choice
+  moe_inner_expert: swi_glu
+  use_torch_bmm: true
+  softmax_over: experts
+  group_granular_moe_by_batch: true
+  granular_moe_one_hot_impl: true
+
+  # learning
+  scheduler: cosine
+  learning_rate: '2**(-12)'
+  final_lr_fraction: 0.1
+  grad_clip: 0.5
+  weight_decay: 0.01
+  init_scale: 0.1
+  init_type: truncated_normal
+  capacity_factor: 1.0
+
+  # aux losses
+  load_balancing_loss_weight: 0.01
+  zloss_weight: 0.001
+
+  # other
+  dataset_type: c4
+  mixed_precision: true
+  flash_attention: true
+  mixed_precision_dtype: bfloat16
+
+  # logging etc.
+  logger_types: "neptune"
+  project_name: "pmtest/llm-random"
+  logging_interval_heavy: 5000
+  logging_interval_loss: 1000
+  save_weights_interval: -1
+
+
+  # debug relativity
+
+  # FSDP
+  fsdp_enabled: true
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+  print_parameter_names: true
+  relative_lr:
+    embedding_layer: 5.0
+    head: 0.666
+    gating: 0.666
+    expert_inner_function: 0.3
+    projection: 1.
+
+  relative_scheduler_fraction:
+    embedding_layer: 0.666
+    head: 0.444
+    gating: 1.
+    expert_inner_function: 1.125
+    projection: 1.
