@@ -1,10 +1,9 @@
-parent: configs/baselines/gpt/dense/base.yaml
 runner: "research.conditional.train.cc_train"
-md5_parent_hash: 763f39978a58f704200275285162594c
+time: 0-03:00:00
 n_gpus: 4
-time: "0-03:00:00"
 interactive_debug: false
-# skip_copy_code: true
+
+# train params
 params:
   name: "baseline"
 
@@ -65,4 +64,3 @@ params:
   use_dummy_dataset: false
   num_workers: 4
   data_seed: 42
-
