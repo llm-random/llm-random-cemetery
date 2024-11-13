@@ -1,0 +1,15 @@
+parent: configs/experiments/constrained_scaling_laws/30M/model.yaml
+md5_parent_hash: f561415b71eaca175252470778d9cf71
+time: "10:00:00"
+n_gpus: 2
+params:
+  tags: ["test"]
+  scheduler: cosine
+  lr_warmup_percent: 0.01
+
+  name: "proba_final_loss_4gpu"
+
+  lr_warmup_steps: 0
+  n_steps: 100
+
+  loss_checkpoint_chungs: 0
