@@ -1,14 +1,14 @@
 parent: configs/experiments/constrained_scaling_laws/30M/model.yaml
 md5_parent_hash: f561415b71eaca175252470778d9cf71
 time: "01:12:00"
-n_gpus: 2
+n_gpus: 1
 cpus_per_gpu: 16
 params:
   name: "checkpoint_manager"
   tags: ["checkpoint_manager", "test"]
   expansion_rate: 4
   n_steps: 2600
-  batch_size: 512
+  batch_size: 100
   cutoff: 256
   loss_checkpoint_chungs: 0
   save_weights_path: "./model_saves"
