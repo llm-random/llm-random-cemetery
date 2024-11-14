@@ -57,6 +57,7 @@ from lizrd.train.load_and_save_model import (
     load_optimizer_state,
     prepare_save_weights_path,
 )
+import spacy #dev
 
 
 def log_batch(
@@ -145,6 +146,15 @@ def main(
             args.data_seed = random.randint(0, 10000000)
 
     check_args(args)
+
+    #dev 
+    nlp = spacy.load("en_core_web_sm")
+    doc = nlp("With balls, in his durag, he sags, fearin’ no man He stands, pen in his hand like Edward Scissorhands. Thatz sitz'z bassin")
+    print("------------------------------------------------------------------------------------")
+    for token in doc:
+        print(token.text, token.pos_, token.dep_)
+    print("------------------------------------------------------------------------------------")
+    #dev 
 
     if rank is not None:
         os.environ["MASTER_ADDR"] = "localhost"
