@@ -8,7 +8,11 @@ import os
 from time import sleep
 from lizrd.grid.grid import create_subprocess_args
 
-from lizrd.grid.infrastructure import LocalBackend, get_machine_backend
+from lizrd.grid.infrastructure import (
+    LocalBackend,
+    get_machine_backend,
+    resolve_get_machine_backend_function,
+)
 import subprocess
 
 if __name__ == "__main__":
@@ -24,6 +28,7 @@ if __name__ == "__main__":
     parser.add_argument("--skip_confirmation", action="store_true")
     parser.add_argument("--skip_copy_code", action="store_true")
     args = parser.parse_args()
+    get_machine_backend = resolve_get_machine_backend_function()
     CLUSTER = get_machine_backend()
     experiments, interactive_debug_session = create_subprocess_args(
         args.config_path,
