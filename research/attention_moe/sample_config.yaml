@@ -1,0 +1,14 @@
+runner: "research.conditional.train.cc_train"
+time: 0-12:00:00
+n_gpus: 2
+interactive_debug: false
+backends_module: research.attention_moe.infrastructure
+
+# train params
+params:
+  name: "rewrite_momqa"
+
+  # base bass
+  mixed_precision: true
+  flash_attention: true
+

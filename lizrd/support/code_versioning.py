@@ -1,7 +1,7 @@
 import argparse
 import datetime
 import os
-from typing import Optional
+from typing import Optional, Tuple
 from git import Repo
 
 from lizrd.grid.prepare_configs import load_with_inheritance
@@ -47,10 +47,14 @@ def delete_run_experiment_script(file_path):
         os.remove(file_path)
 
 
-def version_code(experiment_config_path: Optional[str] = None) -> str:
+def version_code(
+    experiment_config_path: Optional[str] = None,
+) -> Tuple[str, Optional[str]]:
     repo = Repo(".", search_parent_directories=True)
     configs, paths_to_all_configs = load_with_inheritance(experiment_config_path)
     job_name = configs[0]["params"]["name"]
+    custom_backends_module = configs[0].get("backends_module")
+    assert custom_backends_module is None or isinstance(custom_backends_module, str)
     experiment_branch_name = (
         f"{job_name}_{datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}"
     )
@@ -86,7 +90,7 @@ def version_code(experiment_config_path: Optional[str] = None) -> str:
         )
         if experiment_config_path is not None:
             delete_run_experiment_script(script_run_experiment_path)
-    return experiment_branch_name
+    return experiment_branch_name, custom_backends_module
 
 
 def reset_to_original_repo_state(
