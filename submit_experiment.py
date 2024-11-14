@@ -1,5 +1,7 @@
 import argparse
 import os
+import importlib
+
 from lizrd.grid.infrastructure import get_machine_backend
 from lizrd.support.code_versioning import version_code
 
@@ -11,6 +13,7 @@ from fabric import Connection
 import paramiko.ssh_exception
 
 from lizrd.support.code_versioning import version_code
+
 
 CEMETERY_REPO_URL = "git@github.com:llm-random/llm-random-cemetery.git"  # TODO(crewtool) move to constants
 BRANCH_FILENAME = "__branch__name__.txt"
@@ -50,14 +53,23 @@ def submit_experiment(
     experiment_config_path,
     clone_only,
     save_branch_and_dir,
+    custom_backend_module,
 ):
     if experiment_branch_name is None:
-        experiment_branch_name = version_code(experiment_config_path)
+        assert custom_backend_module is None
+        experiment_branch_name, custom_backend_module = version_code(
+            experiment_config_path
+        )
+
+    effective_get_machine_backend = get_machine_backend
+    if custom_backend_module is not None:
+        module = importlib.import_module(custom_backend_module)
+        effective_get_machine_backend = getattr(module, "get_machine_backend")
 
     with ConnectWithPassphrase(hostname) as connection:
         result = connection.run("uname -n", hide=True)
         node = result.stdout.strip()
-        cluster = get_machine_backend(node, connection)
+        cluster = effective_get_machine_backend(node, connection)
 
         cemetery_dir = cluster.get_cemetery_directory()
         connection.run(f"mkdir -p {cemetery_dir}")
@@ -124,6 +136,12 @@ if __name__ == "__main__":
         action="store_true",
         help="This flag will save the branch name and the directory to a file. This is only for `run_exp_remotely.sh` to use.",
     )
+    parser.add_argument(
+        "--custom_backend_file",
+        type=str,
+        default=None,
+        help="Allows you to define custom backend file, which should contain a function `get_machine_backend` that returns a `MachineBackend` object.",
+    )
 
     args = parser.parse_args()
     submit_experiment(
@@ -132,4 +150,5 @@ if __name__ == "__main__":
         args.config,
         args.clone_only,
         args.save_branch_and_dir,
+        args.custom_backend_file,
     )
