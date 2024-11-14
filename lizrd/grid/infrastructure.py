@@ -129,15 +129,29 @@ class AthenaBackend(MachineBackend):
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
             f"{setup_args['grid_entrypoint']}",
-            "singularity",
-            "run",
-            "--bind=/net:/net",
-            *singularity_env_arguments,
-            make_singularity_mount_paths(setup_args, training_args),
-            "--nv",
-            setup_args["singularity_image"],
+            # "singularity",
+            # "run",
+            # "--bind=/net:/net",
+            # *singularity_env_arguments,
+            # make_singularity_mount_paths(setup_args, training_args),
+            # "--nv",
+            # setup_args["singularity_image"],
             *self.get_runner_command(setup_args["runner"], runner_params),
         ]
+    
+    # return [
+    #         slurm_command,
+    #         # f"--gres=gpu:{setup_args['n_gpus']}",
+    #         # f"--array=0-{n_consecutive-1}%1",
+    #         # "--partition=plgrid-gpu-gh200",
+    #         # "--cpus-per-gpu=72",
+    #         # "--mem-per-gpu=100G",
+    #         # "--account=plgllmefficont-gpu-gh200",
+    #         # f"--job-name={training_args['name']}",
+    #         # f"--time={setup_args['time']}",
+    #         # f"{setup_args['grid_entrypoint']}",
+    #         *self.get_runner_command(setup_args["runner"], runner_params),
+    #     ]
 
 
 class HeliosBackend(MachineBackend):
