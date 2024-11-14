@@ -19,6 +19,7 @@ from lizrd.support.logging import (
 from lizrd.support.misc import (
     get_argument_attributes,
     set_seed,
+    convert_tokens_to_steps,
 )
 from lizrd.train.checkpoints_manager import start_job_manager_assessment
 from lizrd.train.train_utils import (
@@ -352,6 +353,13 @@ def main(
         )
         if args.batch_size_rampup_transition_points is not None
         else None
+    )
+
+    args.n_steps = convert_tokens_to_steps(
+        tokens=args.n_tokens,
+        seq_len=args.cutoff,
+        target_batch_size=args.batch_size,
+        rampup_config=batch_size_rampup_config,
     )
 
     common_dataloaders_kwargs = {
