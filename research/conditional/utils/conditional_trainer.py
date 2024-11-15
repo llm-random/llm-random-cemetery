@@ -97,7 +97,7 @@ class ConditionalTrainer:
     checkpoint: Optional[dict[str, torch.Tensor]] = None
     scheduler_trapezoidal_slides: Optional[list[dict]] = None
     args_override: Optional[dict] = None
-    final_eval_dataloader: Optional[DataloaderWrapper] = None
+    get_final_eval_dataloader: Optional[Callable[..., DataloaderWrapper]] = None
     final_eval_dataloader_batch_size: Optional[int] = None
     n_final_eval_batches: int = None
 
@@ -178,6 +178,9 @@ class ConditionalTrainer:
         self,
         n_steps: int,
     ):
+        del self.train_dataloader
+        del self.eval_dataloader
+        final_eval_dataloader = self.get_final_eval_dataloader()
         if self.current_step == n_steps and self.n_final_eval_batches > 0:
             self.model.eval()
             current_batch_size_per_gpu = self.batch_size // (
