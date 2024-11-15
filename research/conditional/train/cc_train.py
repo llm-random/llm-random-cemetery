@@ -1,5 +1,6 @@
 import argparse
 from collections import defaultdict
+import json
 import os
 import random
 from typing import Callable, Optional
@@ -24,7 +25,7 @@ from lizrd.train.checkpoints_manager import start_job_manager_assessment
 from lizrd.train.train_utils import (
     get_model,
 )
-from lizrd.text import tokenizers
+from lizrd.text import datasets, tokenizers
 from research.batch_size_rampup_config import BatchSizeRampupConfig
 from research.conditional.utils.check_args import check_args
 from research.conditional.utils.misc_tools import (
@@ -124,6 +125,36 @@ def rescale_params_after_init(args, model):
         param.data *= scale
 
 
+POS_TAG = "poss"
+LOGGING_INTERVAL = 10
+LOGS_FILE = "logs.json"
+N_STEPS = 1000000
+def pos_distribution(dataset, n_steps):
+    nlp = spacy.load("en_core_web_sm")
+    logs = {
+        "step": 0,
+        POS_TAG:None
+    }
+    pos_dist = {}
+    for step in range(n_steps):
+        if step % LOGGING_INTERVAL == 0:
+            print(step) #dev 
+            print(pos_dist) #dev 
+            with open(LOGS_FILE, "w") as f:
+                logs["step"] = step
+                logs[POS_TAG] = pos_dist
+                json.dump(logs, f)
+    text = dataset.get_document()
+    doc = nlp(text)
+    for token in doc:
+        if token.pos_ in pos_dist:
+            pos_dist[token.pos_] += 1
+        else:
+            pos_dist[token.pos_] = 1
+
+
+
+
 def main(
     rank: Optional[int],
     data_seeds: Optional[list[int]] = None,
@@ -135,6 +166,10 @@ def main(
     """
     rank: int - the ID of the current process (usually also the GPU ID). Only relevant for multi-GPU training.
     """
+    dataset = datasets.C4Dataset(use_dummy_dataset=args.use_dummy_dataset,split="train",dataset_path=args.train_dataset_path,)
+    pos_distribution(dataset, N_STEPS)
+
+    return
     if runner_params is not None:
         parser = argparse.ArgumentParser()
         introduce_parser_arguments(parser)
