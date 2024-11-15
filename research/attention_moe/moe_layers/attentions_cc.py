@@ -235,9 +235,9 @@ class MQA(LoggingLayer):
         # print("q", q.shape)
         # print("v", v.shape)
         y = torch.nn.functional.scaled_dot_product_attention(
-            q.transpose(1, 2),
-            k,
-            v,
+            q.transpose(1, 2).contiguous(),
+            k.contiguous(),
+            v.contiguous(),
             attn_mask=None,
             dropout_p=0.0,
             is_causal=True,
@@ -299,13 +299,13 @@ class VanillaAttention(LoggingLayer):
         # print("q", q.shape)
         # print("v", v.shape)
         y = torch.nn.functional.scaled_dot_product_attention(
-            q.transpose(1, 2),
-            k.transpose(1, 2),
-            v.transpose(1, 2),
+            q.transpose(1, 2).contiguous(),
+            k.transpose(1, 2).contiguous(),
+            v.transpose(1, 2).contiguous(),
             attn_mask=None,
             dropout_p=0.0,
             is_causal=True,
-            enable_gqa=True,
+            enable_gqa=False,
         ).transpose(1, 2)
         y = y.flatten(-2, -1)
         y = self.o_proj(y)
