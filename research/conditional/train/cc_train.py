@@ -1,9 +1,11 @@
 import argparse
 from collections import defaultdict
+import json
 import os
 import random
 from typing import Callable, Optional
 import socket
+import spacy 
 
 import torch
 import torch.multiprocessing as mp
@@ -24,7 +26,7 @@ from lizrd.train.checkpoints_manager import start_job_manager_assessment
 from lizrd.train.train_utils import (
     get_model,
 )
-from lizrd.text import tokenizers
+from lizrd.text import datasets, tokenizers
 from research.batch_size_rampup_config import BatchSizeRampupConfig
 from research.conditional.utils.check_args import check_args
 from research.conditional.utils.misc_tools import (
@@ -122,6 +124,35 @@ def rescale_params_after_init(args, model):
                 scale = relative_scale[possible_name]
                 break
         param.data *= scale
+
+
+POS_TAG = "poss"
+LOGGING_INTERVAL = 10
+LOGS_FILE = "logs.json"
+N_STEPS = 1_000_000
+def pos_distribution(dataset, n_steps):
+    nlp = spacy.load("en_core_web_sm")
+    logs = {
+        "step": 0,
+        POS_TAG:None
+    }
+    pos_dist = {}
+    for step in range(n_steps):
+        print(step) #dev 
+        if step % LOGGING_INTERVAL == 0:
+            print(step) #dev 
+            print(pos_dist) #dev 
+            with open(LOGS_FILE, "w") as f:
+                logs["step"] = step
+                logs[POS_TAG] = pos_dist
+                json.dump(logs, f)
+        text = dataset.get_document()
+        doc = nlp(text)
+        for token in doc:
+            if token.pos_ in pos_dist:
+                pos_dist[token.pos_] += 1
+            else:
+                pos_dist[token.pos_] = 1
 
 
 def main(
@@ -297,6 +328,14 @@ def main(
             )
     else:
         logger = None
+
+    dataset = datasets.C4Dataset(use_dummy_dataset=args.use_dummy_dataset,split="train",dataset_path=args.train_dataset_path,)
+    print("-============================================================================================-")
+    print("STARTING PROCESSING")
+    pos_distribution(dataset, N_STEPS)
+    print("FINISHED")
+
+    return
 
     args.args_override = None
     if checkpoint and "args_override" in checkpoint and checkpoint["args_override"]:
