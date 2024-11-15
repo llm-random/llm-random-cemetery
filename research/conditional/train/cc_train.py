@@ -385,6 +385,7 @@ def main(
         **common_dataloaders_kwargs,
         dataset_split=eval_split,
         dataset_path=args.validation_dataset_path,
+        num_workers=common_dataloaders_kwargs // 2,
     )
 
     if args.model_type == "gpt" and is_logging_process:
