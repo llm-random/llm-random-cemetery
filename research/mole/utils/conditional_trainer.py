@@ -18,7 +18,6 @@ from lizrd.support.misc import (
     calculate_n_processed_tokens,
     calculate_current_batch_size_from_rampup,
 )
-from lizrd.text.data import LLMBatch
 from lizrd.train.checkpoints_manager import (
     create_slide_checkpoint,
     end_training_checkpoint,
@@ -39,6 +38,7 @@ from research.datasets import DataloaderWrapper
 from lizrd.text.datasets import C4Dataset
 from transformers import GPT2Tokenizer
 from lizrd.train.load_and_save_model import load_scaler_state, save_checkpoint
+from research.mole.utils.data import LLMMetaBatch
 
 
 @define(slots=False)
@@ -329,7 +329,7 @@ class ConditionalTrainer:
         self._save_weights(step)
 
     def calculate_loss_and_gradient(
-        self, processed_batch: LLMBatch, current_batch_size_per_gpu: int
+        self, processed_batch: LLMMetaBatch, current_batch_size_per_gpu: int
     ):
         """gradient accumulation: slice the batch into minibatches, get gradients from each, then average and apply them
         NOTE: this function will not set the gradients for the model if model is in eval mode
@@ -445,7 +445,7 @@ class ConditionalTrainer:
                 )
 
     def _eval_single_variant(
-        self, batches: Iterable[LLMBatch], step: int, variant_name: str
+        self, batches: Iterable[LLMMetaBatch], step: int, variant_name: str
     ):
         self.model.eval()
         total_loss = 0.0

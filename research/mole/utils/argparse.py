@@ -287,6 +287,13 @@ def introduce_parser_arguments(
         help="Whether to use auxiliary loss in loss calculations",
     )
     parser.add_argument(
+        "--biased_balancing_loss_weight",
+        type=float,
+        default=0.01,
+        help="Whether to use auxiliary loss in loss calculations",
+    )
+    
+    parser.add_argument(
         "--zloss_weight",
         default=0.0,
         type=float,
