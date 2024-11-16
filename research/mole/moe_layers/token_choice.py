@@ -5,16 +5,17 @@ from lizrd.core.misc import (
     LoggingLayer,
     time_measured,
 )
-from research.conditional.moe_layers.moe_gating import TokenGating
+from research.mole.moe_layers.moe_gating import TokenGatingBiased
 
 
-class TokenChoiceFF(LoggingLayer):
+class TokenChoiceFFBiased(LoggingLayer):
     def __init__(
         self,
         dmodel: int,
         n_experts: int,
         capacity_factor: float,
         load_balancing_loss_weight: float,
+        biased_balancing_loss_weight: float,
         init_type: str,
         init_scale: float,
         expert_inner_function: LoggingLayer,
@@ -41,11 +42,12 @@ class TokenChoiceFF(LoggingLayer):
         self.n_experts = n_experts
         self.expert_inner_function = expert_inner_function
         self.doutput = self.expert_inner_function.doutput
-        self.gating = TokenGating(
+        self.gating = TokenGatingBiased(
             dmodel=dmodel,
             n_experts=n_experts,
             capacity_factor=capacity_factor,
             load_balancing_loss_weight=load_balancing_loss_weight,
+            biased_balancing_loss_weight=biased_balancing_loss_weight,
             init_type=init_type,
             init_scale=init_scale,
             routing_top_k=routing_top_k,
