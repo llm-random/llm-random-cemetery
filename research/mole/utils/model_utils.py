@@ -138,6 +138,7 @@ def chungized_llm_loss_and_gradient(
     num_checkpoint_accumulation_steps: int,
     scaler: Optional[torch.cuda.amp.GradScaler] = None,
 ) -> tuple[float, dict]:
+    raise NotImplementedError()
     input_tokens = batch.input_ids
     gt_tokens = batch.target_ids
     mask = batch.should_calculate_loss
