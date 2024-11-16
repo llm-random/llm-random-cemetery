@@ -1,5 +1,6 @@
 import argparse
 from collections import defaultdict
+from functools import partial
 import os
 import random
 from typing import Callable, Optional
@@ -381,7 +382,11 @@ def main(
 
     common_dataloaders_kwargs["seed"] = args.final_eval_seed
     common_dataloaders_kwargs["batch_size"] = args.final_eval_dataloader_batch_size
-    get_final_eval_dataloader = lambda: get_processed_dataset(
+    common_dataloaders_kwargs["num_workers"] = (
+        common_dataloaders_kwargs["num_workers"] // 2
+    )
+    get_final_eval_dataloader = partial(
+        get_processed_dataset,
         **common_dataloaders_kwargs,
         dataset_split=eval_split,
         dataset_path=args.validation_dataset_path,
