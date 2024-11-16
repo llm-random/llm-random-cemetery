@@ -1,4 +1,4 @@
-from typing import Union, Literal
+from typing import Any, Union, Literal
 import torch
 from fancy_einsum import einsum
 from plotly import express as px
@@ -7,265 +7,54 @@ from lizrd.support.logging import make_histogram
 from lizrd.train import checkpointing
 import torch.nn.functional as F
 
-from research.conditional.moe_layers.load_balancing_loss import (
-    calculate_load_balancing_loss,
-    calculate_z_loss,
-)
+from research.mole.moe_layers.load_balancing_loss import calculate_load_balancing_loss, calculate_biased_balancing_loss
 from lizrd.core.misc import LoggingLayer, measure_time
 from lizrd.core.initialization import get_init_fun
+from research.conditional.moe_layers.moe_gating import MoeGating
 
 
-class MoeGating(LoggingLayer):
-    def __init__(
-        self,
-        dmodel: int,
-        n_experts: int,
-        get_router_values_from,
-        init_scale,
-        init_type,
-        moe_values_exp=1.0,
-        detach_gate=False,
-        expert_inner_function=None,
-        group_by_batch: bool = False,
-        softmax_ungrouped: bool = False,
-        softmax_over: Literal["tokens", "experts"] = "tokens",
-        use_torch_bmm: bool = False,
-        zloss_weight: float = 0.0,
-        **kwargs,
-    ):
-        super().__init__()
-        self.dmodel = dmodel
-        self.n_experts = n_experts
-        self.group_by_batch = group_by_batch
-        self.softmax_ungrouped = softmax_ungrouped
-        self.softmax_over = softmax_over
-        self.use_torch_bmm = use_torch_bmm
-        self.detach_gate = detach_gate
-        self.zloss_weight = zloss_weight
-        self.gate, self.get_gate = self.init_gate(
-            expert_inner_function,
-            get_router_values_from,
-            init_scale,
-            init_type,
-        )
-        if self.detach_gate:
-            old_gate = self.get_gate
-            self.get_gate = lambda: old_gate().detach()
+class InputWiseRouterBias:
+    def __init__(self) -> None:
+        self.router_target_bias: torch.Tensor = None
 
-        self.moe_values_exp = (
-            moe_values_exp
-            if moe_values_exp is not None
-            else torch.nn.Parameter(torch.tensor(1.0))
-        )
-        self._checkpointed_topk_indices: Union[None, torch.Tensor] = None
-        assert softmax_over in ["tokens", "experts"]
-        assert not self.softmax_ungrouped or self.group_by_batch
+    def set_router_target_bias(self, router_target_bias: torch.Tensor):
+        self.router_target_bias = router_target_bias
 
-    def calculate_gate(self, x, batch_size, seq_len):
-        with measure_time(self, "expert_embedding"):
-            if self.use_torch_bmm:
-                gate = self.get_gate().unsqueeze(0).expand(batch_size, -1, -1)
-                gate_logits = torch.bmm(x, gate).permute(2, 0, 1)
-                assert gate_logits.shape == (self.n_experts, batch_size, seq_len)
-            else:
-                gate_logits = einsum(
-                    "batch_size seq_len dmodel, dmodel n_experts "
-                    "-> n_experts batch_size seq_len ",
-                    x,
-                    self.get_gate(),
-                )
-        # each expert chooses k within dimension 1
-        if not self.group_by_batch and not self.softmax_ungrouped:
-            gate_logits = gate_logits.reshape(self.n_experts, batch_size * seq_len)
-        # perform softmax either over tokens for each expert or over experts for each token
-        with measure_time(self, "softmax"):
-            if self.softmax_over == "tokens":
-                gate_out = torch.softmax(gate_logits, dim=1)
-            elif self.softmax_over == "experts":
-                gate_out = torch.softmax(gate_logits, dim=0)
-            else:
-                gate_out = gate_logits
-        if self.softmax_ungrouped:
-            gate_out = gate_out.reshape(self.n_experts, batch_size * seq_len)
-
-        if self.moe_values_exp != 1.0 or not isinstance(self.moe_values_exp, float):
-            gate_out = gate_out**self.moe_values_exp
-
-        # calculate z-loss
-        zloss = 0.0
-        if self.zloss_weight > 0:
-            with measure_time(self, "calculate zloss"):
-                zloss = calculate_z_loss(
-                    zloss_weight=self.zloss_weight, gate_logits=gate_logits
-                )
-            if "z_losses" not in self.forward_pass_cache:
-                self.forward_pass_cache["z_losses"] = [zloss]
-            else:
-                self.forward_pass_cache["z_losses"].append(zloss)
-
-        self.update_cache_for_logging("z_loss", zloss)
-        self.update_cache_for_logging("gate_softmax_all_values", gate_out)
-        return gate_out
-
-    def calculate_topk(self, gate_out, topk):
-        is_in_first = checkpointing.is_in_first_forward()
-        is_in_second = checkpointing.is_in_second_forward()
-        checkpointing_enabled = is_in_first or is_in_second
-        if is_in_first and is_in_second:
-            raise NotImplementedError(
-                "Both first and second forward are = TRUE. You are probably using wrapped and nested checkpointed modules, which is not supported with ExpertGating."
-            )
-        if checkpointing_enabled:
-            # In first forward we discard the first result of topk (topk_values)
-            # and instead use gather.
-            # This is needed if activation checkpointing is used, because
-            # torch aligns tensors in both forward passes by the order in
-            # which they are created and that is the easiest way to do that.
-
-            with torch.no_grad():
-                if is_in_first:
-                    _, topk_indices = torch.topk(gate_out, k=topk, dim=1)
-                    self._checkpointed_topk_indices = topk_indices
-                if is_in_second:
-                    topk_indices = self._checkpointed_topk_indices
-
-            topk_values = gate_out.gather(dim=1, index=topk_indices)
-        else:
-            topk_values, topk_indices = torch.topk(gate_out, k=topk, dim=1)
-        return topk_indices, topk_values
-
-    def init_gate(
-        self,
-        expert_inner_function,
-        get_router_values_from,
-        init_scale,
-        init_type,
-    ):
-        if get_router_values_from == "weights":
-            init = get_init_fun(init_type=init_type, init_scale=init_scale)
-            gate = init((self.dmodel, self.n_experts), self.dmodel)
-            gate = gate.requires_grad_(False) if self.detach_gate else gate
-            return gate, lambda: self.gate
-        elif get_router_values_from in ["gate_weight", "lin1_weight"] and hasattr(
-            expert_inner_function, get_router_values_from
-        ):
-            return (
-                None,
-                lambda: torch.mean(
-                    getattr(expert_inner_function, get_router_values_from), dim=-1
-                ).T,
-            )
-        else:
-            raise Exception(
-                f"Bad get_router_values_from value: {get_router_values_from}"
-            )
+    def remove_router_target_bias(self):
+        self.router_target_bias = None
 
 
-class ExpertGating(MoeGating):
-    def __init__(
-        self,
-        topk_fraction: float,
-        one_hot_impl: bool = False,
-        random_perm: bool = False,
-        n_gating_heatmaps: int = 4,
-        *args,
-        **kwargs,
-    ):
-        super().__init__(*args, **kwargs)
-        self.topk_fraction = topk_fraction
-        self.one_hot_impl = one_hot_impl
-        self.random_perm = random_perm
-        self.n_gating_heatmaps = n_gating_heatmaps
-        assert (
-            not one_hot_impl or self.group_by_batch
-        ), "Not implemented, would require a lot of memory"
+class ManagerMaskSetter:
+    def __init__(self, model: torch.nn.Module, router_target_bias: torch.Tensor):
+        self.router_target_bias = router_target_bias
+        self._layers: list[InputWiseRouterBias] = []
+        for _, layer in model.named_modules():
+            if isinstance(layer, InputWiseRouterBias):
+                self._layers.append(layer)
+        if len(self._layers) == 0:
+            raise Exception("No InputWiseMask modules in provided model")
 
-    def forward(self, x: torch.Tensor, batch_size: int, seq_len: int):
-        # expert embedding
-        gate_out = self.calculate_gate(x, batch_size, seq_len)
+    def __enter__(self):
+        for layer in self._layers:
+            layer.set_router_target_bias(self.router_target_bias)
 
-        topk = round(self.topk_fraction * gate_out.shape[1])
-        assert topk > 0, "topk is 0, increase topk_fraction or batch_size"
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        for layer in self._layers:
+            layer.remove_router_target_bias()
 
-        # choose topk tokens for each expert
-        with measure_time(self, "topk"):
-            topk_indices, topk_values = self.calculate_topk(gate_out, topk)
-
-        if self.group_by_batch and not self.one_hot_impl:
-            with measure_time(self, "indexing_change"):
-                topk *= seq_len
-                # change indexing to recall to batch_size x seq_len
-                row_number = torch.arange(seq_len).to(topk_indices.device)
-                topk_indices = topk_indices * seq_len + row_number
-                topk_indices = topk_indices.reshape(self.n_experts, topk)
-                topk_values = topk_values.reshape(self.n_experts, topk)
-        elif self.group_by_batch:
-            topk *= seq_len
-
-        # cache values for logging
-        self.update_cache_for_logging("gate_softmax_topk_vals", topk_values)
-        self.update_cache_for_logging("topk_indices", topk_indices)
-        self.update_cache_for_logging("n_tokens", torch.Tensor([batch_size * seq_len]))
-
-        # Randomly permute tokens for experts if random_perm is True
-        # Note this is not total randomness, since topk values are already chosen
-        if self.random_perm:
-            topk_values = topk_values.flatten()[
-                torch.randperm(self.n_experts * topk)
-            ].reshape((self.n_experts, topk))
-
-        return topk, topk_indices, topk_values
-
-    def log_heavy(self):
-        if "topk_indices" not in self.logging_cache:
-            return {}
-
-        # calculate indexes choose counts
-        chosen_indexes = self.logging_cache["topk_indices"].flatten()
-        chosen_indexes = torch.cat(
-            (
-                chosen_indexes,
-                torch.Tensor([self.logging_cache["n_tokens"] - 1]).type(
-                    chosen_indexes.type()
-                ),
-            )
-        )  # make sure bincount takes into account the whole range of indexes
-        indexes_choose_counts = chosen_indexes.bincount()
-
-        uf_gate_out = (
-            {
-                f"gating_heatmap_{i}": make_heatmap(
-                    self.logging_cache["unflatten_gate_out"], i
-                )
-                for i in range(min(self.n_gating_heatmaps, self.n_experts))
-            }
-            if "unflatten_gate_out" in self.logging_cache
-            else {}
-        )
-        return {
-            "gate_softmax_topk_vals": make_histogram(
-                self.logging_cache["gate_softmax_topk_vals"].flatten()
-            ),
-            "gate_softmax_all_values": make_histogram(
-                self.logging_cache["gate_softmax_all_values"].flatten()
-            ),
-            "indexes_choose_counts": make_histogram(indexes_choose_counts),
-            **uf_gate_out,
-        }
-
-
-class TokenGating(MoeGating):
+class TokenGatingBiased(MoeGating, InputWiseRouterBias):
     def __init__(
         self,
         dmodel: int,
         n_experts: int,
         capacity_factor: float,
         load_balancing_loss_weight: float,
+        biased_balancing_loss_weight: float,
         routing_top_k: int = 1,
         use_einsum: bool = False,
         **kwargs,
     ):
-        super().__init__(
+        MoeGating().__init__(
             dmodel=dmodel,
             n_experts=n_experts,
             group_by_batch=False,
@@ -274,11 +63,15 @@ class TokenGating(MoeGating):
             use_torch_bmm=not use_einsum,
             **kwargs,
         )
+        InputWiseRouterBias.__init__(self)
 
         self.capacity_factor = capacity_factor
         self.load_balancing_loss_weight = load_balancing_loss_weight
+        self.biased_balancing_loss_weight = biased_balancing_loss_weight
         self.use_einsum = use_einsum
         self.routing_top_k = routing_top_k
+        self.router_target_bias: torch.Tensor = None
+        self.biased_balancing_loss_fn = torch.nn.CrossEntropyLoss()
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
@@ -311,11 +104,22 @@ class TokenGating(MoeGating):
                 gate_out,
                 tokens_per_expert,
                 use_einsum=self.use_einsum,
+                router_target_bias=self.router_target_bias
+            )
+            biased_balancing_loss = calculate_biased_balancing_loss(
+                gate_out,
+                router_target_bias=self.router_target_bias,
+                loss_fn=self.biased_balancing_loss_fn,
+                alpha=self.biased_balancing_loss_weight,
             )
         if "load_balancing_losses" not in self.forward_pass_cache:
             self.forward_pass_cache["load_balancing_losses"] = [load_balancing_loss]
         else:
             self.forward_pass_cache["load_balancing_losses"].append(load_balancing_loss)
+        if "biased_balancing_loss" not in self.forward_pass_cache:
+            self.forward_pass_cache["biased_balancing_loss"] = [biased_balancing_loss]
+        else:
+            self.forward_pass_cache["biased_balancing_loss"].append(biased_balancing_loss)
         self.update_cache_for_logging("tokens_per_expert", tokens_per_expert)
         self.update_cache_for_logging("load_balancing_loss", load_balancing_loss)
 

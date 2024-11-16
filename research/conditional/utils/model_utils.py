@@ -81,6 +81,7 @@ from research.conditional.moe_layers.expert_types import (
 from research.mamba.moe_in_mamba import MambaInProj
 from research.conditional.moe_layers.ff_timed import FeedForwardTimed
 from research.conditional.moe_layers.expert_double_choice import DoubleChoiceFF
+from research.mole.moe_layers.token_choice import TokenChoiceFFBiased
 
 
 def make_loss_and_gradient_function(
@@ -636,6 +637,28 @@ def get_ff_layer(args):
             capacity_factor=args.capacity_factor,
             expert_inner_function=make_expert_inner_function(),
             load_balancing_loss_weight=args.load_balancing_loss_weight,
+            zloss_weight=args.zloss_weight,
+            routing_top_k=args.routing_top_k,
+            init_scale=args.init_scale,
+            init_type=args.init_type,
+            **get_weightless_args(args),
+        )
+    elif args.ff_mode == "token_choice_biased":
+        args = determine_moe_args(args)
+        make_expert_inner_function = get_inner_expert(args)
+        use_topk_initialization = get_expert_init(
+            args.expert_use_topk_initialization, default=False
+        )
+        make_expert_inner_function = partial(
+            make_expert_inner_function, use_topk_initialization=use_topk_initialization
+        )
+        return_fn = lambda: TokenChoiceFFBiased(
+            dmodel=args.dmodel,
+            n_experts=args.n_experts,
+            capacity_factor=args.capacity_factor,
+            expert_inner_function=make_expert_inner_function(),
+            load_balancing_loss_weight=args.load_balancing_loss_weight,
+            biased_balancing_loss_weight=args.biased_balancing_loss_weight,
             zloss_weight=args.zloss_weight,
             routing_top_k=args.routing_top_k,
             init_scale=args.init_scale,
