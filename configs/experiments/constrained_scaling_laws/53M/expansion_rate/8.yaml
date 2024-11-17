@@ -1,5 +1,5 @@
 parent: configs/experiments/constrained_scaling_laws/53M/model.yaml
-md5_parent_hash: 33feb0adc046acf653abb990fe389f8f
+md5_parent_hash: 2e1a0e2e28cd9ccfdaefb1f110f23ad6
 n_gpus: 1 # works for athena
 
 params:
