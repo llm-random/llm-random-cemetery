@@ -1,4 +1,6 @@
 parent: configs/baselines/gpt/expert_choice/granularity/4/medium.yaml
+runner: research.mole.train.cc_train
+argparse: "research.mole.utils.argparse"
 md5_parent_hash: 25eb0c53963eb1c7d96c91bb327c2a20
 time: 0-00:10:00
 interactive_debug_session: false
@@ -14,6 +16,7 @@ params:
   data_seed: 27
 
   activation_type: silu
+  ff_mode: token_choice_biased
   moe_inner_expert: ff_gated
   expansion_rate: 8 
   granularity: 1
