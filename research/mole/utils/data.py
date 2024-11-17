@@ -8,7 +8,7 @@ from attr import dataclass
 @dataclass
 class LLMMetaExample(object):
     input_ids: List[int]
-    one_hot_exp_groups: Optional[torch.Tensor[int]]
+    one_hot_exp_groups: Optional[torch.Tensor]
     target_ids: List[int]
     should_calculate_loss: List[
         int
@@ -18,7 +18,7 @@ class LLMMetaExample(object):
 class LLMMetaBatch:
     def __init__(self, examples: List[LLMMetaExample]):
         self.input_ids = self._make_tensor([example.input_ids for example in examples])
-        if examples[0].one_hot_exp_groups:
+        if examples[0].one_hot_exp_groups != None:
             self.one_hot_exp_groups = torch.cat([example.one_hot_exp_groups.unsqueeze(0) for example in examples], dim=0)
         else:
             self.one_hot_exp_groups = None
