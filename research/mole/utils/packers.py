@@ -38,7 +38,7 @@ pos_grouped = {
  'SCONJ': 7,
 }
 
-def encode_with_meta(sentence, tokenizer, spacy_nlp) -> list[int], list[str]:
+def encode_with_meta(sentence, tokenizer, spacy_nlp) -> Tuple[list[int], list[str]]:
     spacy_tokens = spacy_nlp(sentence)
 
     pretokenized = []
