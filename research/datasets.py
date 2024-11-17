@@ -4,9 +4,9 @@ import copy
 
 import torch
 from torch.utils.data import DataLoader
-
-from lizrd.text import datasets, packers, data, tokenizers
+from lizrd.text import datasets, data, tokenizers, packers
 from lizrd.support.misc import get_ith_chunk
+from research.mole.utils.packers import GPTMetaPacker
 
 
 class DataloaderWrapper:
@@ -83,6 +83,7 @@ def get_processed_dataset(
     use_dummy_dataset: bool = False,
     dataset_split: str = "train",
     dataset_path: Optional[str] = None,
+    biased: Optional[str] = True
 ):
     if dataset_type == "wikibook":
         dataset = partial(
@@ -112,6 +113,12 @@ def get_processed_dataset(
             sequence_length=sequence_length,
             dataset=dataset,
             tokenizer_maker=tokenizers.BertTokenizer,
+        )
+    elif model_type == "gpt" and biased:
+        packer = GPTMetaPacker(
+            sequence_length=sequence_length,
+            dataset_maker=dataset,
+            tokenizer_maker=tokenizers.GPTTokenizer,
         )
     elif model_type == "gpt":
         packer = packers.GPTPacker(
