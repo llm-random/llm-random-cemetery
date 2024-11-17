@@ -8,7 +8,7 @@ from attr import dataclass
 @dataclass
 class LLMMetaExample(object):
     input_ids: List[int]
-    one_hot_exp_groups: Optional[torch.Tensor[int]]
+    one_hot_exp_groups: Optional[torch.Tensor]
     target_ids: List[int]
     should_calculate_loss: List[
         int
