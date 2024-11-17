@@ -4,6 +4,7 @@ import random
 from typing import Callable, Iterator, List, Optional, Tuple
 from attr import define
 import regex as re
+import spacy
 
 import numpy as np
 import torch
@@ -38,7 +39,7 @@ pos_grouped = {
  'SCONJ': 7,
 }
 
-def encode_with_meta(sentence, tokenizer, spacy_nlp) -> list[int], list[str]:
+def encode_with_meta(sentence, tokenizer, spacy_nlp) -> Tuple[list[int], list[str]]:
     spacy_tokens = spacy_nlp(sentence)
 
     pretokenized = []
@@ -76,6 +77,8 @@ class GPTMetaPacker(
             tokenizer_maker,
             seed=seed,
         )
+        self.spacy_nlp = spacy.load("en_core_web_sm")
+
 
 
     def get_sample(self) -> LLMMetaExample:
@@ -93,7 +96,7 @@ class GPTMetaPacker(
         while True:
             document = self.dataset.get_document()
             # tokens = self.tokenizer.text_to_ids(document)
-            tokens, t_metadata = encode_with_meta(document, self.tokenizer.tokenizer, )
+            tokens, t_metadata = encode_with_meta(document, self.tokenizer.tokenizer, self.spacy_nlp)
             # cast pos to their expertise group
             t_metadata = [pos_grouped[t_m] for t_m in t_metadata]
             buffer.extend(tokens + [eot_id])
