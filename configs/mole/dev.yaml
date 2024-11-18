@@ -2,7 +2,7 @@ parent: configs/mole/common.yaml
 time: 0-01:00:00
 n_gpus: 1
 cpus_per_gpu: 16
-md5_parent_hash: f46521584cb698bb67ed75c907d2eb38
+md5_parent_hash: b9ab7d3c624f9f12fdefb10dfee56edb
 
 params:
   name: "MoLE"
