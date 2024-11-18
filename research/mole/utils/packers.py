@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import itertools
 import random
+import time
 from typing import Callable, Iterator, List, Optional, Tuple
 from attr import define
 import regex as re
@@ -41,6 +42,9 @@ pos_grouped = {
 
 def encode_with_meta(sentence, tokenizer, spacy_nlp) -> Tuple[list[int], list[str]]:
     spacy_tokens = spacy_nlp(sentence)
+    print(len(sentence))#dev
+
+    start = time.time() #dev
 
     pretokenized = []
     pretokenized_pos = []
@@ -56,6 +60,9 @@ def encode_with_meta(sentence, tokenizer, spacy_nlp) -> Tuple[list[int], list[st
         n_ids = tokenizer.encode(pt)
         ids.extend(n_ids)
         poss.extend([pos for _ in range(len(n_ids))])
+    
+    end = time.time() #dev
+    print(f"time eclapsed: {end - start}") #dev 
     
     assert len(ids) == len(poss)
     return ids, poss
@@ -78,6 +85,7 @@ class GPTMetaPacker(
             seed=seed,
         )
         self.spacy_nlp = spacy.load("en_core_web_sm")
+        # time.sleep(120) #dev
 
 
 
