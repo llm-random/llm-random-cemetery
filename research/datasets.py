@@ -142,6 +142,7 @@ def get_processed_dataset(
         worker_init_fn=partial(worker_init_fn, seed),
         shuffle=False,
         pin_memory=True,
+        prefetch_factor=128
     )
 
     return DataloaderWrapper(dataloader, device)
