@@ -39,7 +39,7 @@ class LLMMetaBatch:
         self.input_ids = self.input_ids.pin_memory()
         self.target_ids = self.target_ids.pin_memory()
         self.should_calculate_loss = self.should_calculate_loss.pin_memory()
-        self.one_hot_exp_groups = self.one_hot_exp_groups.pin_memory()
+        # self.one_hot_exp_groups = self.one_hot_exp_groups.pin_memory() #dev
         return self
 
     def __iter__(self):
@@ -59,16 +59,16 @@ class LLMMetaBatch:
             == self.target_ids.device
             == self.should_calculate_loss.device
         )
-        if self.one_hot_exp_groups != None:
-            assert self.one_hot_exp_groups.device == self.input_ids.device
+        # if self.one_hot_exp_groups != None: #dev
+        #     assert self.one_hot_exp_groups.device == self.input_ids.device
         return self.input_ids.device
 
     def to(self, device) -> "LLMMetaBatch":
         self.input_ids = self.input_ids.to(device)
         self.target_ids = self.target_ids.to(device)
         self.should_calculate_loss = self.should_calculate_loss.to(device)
-        if self.one_hot_exp_groups != None:
-            self.one_hot_exp_groups = self.one_hot_exp_groups.to(device)
+        # if self.one_hot_exp_groups != None: #dev
+        #     self.one_hot_exp_groups = self.one_hot_exp_groups.to(device)
         return self
 
     def _make_tensor(self, list_of_token_lists: List[List[int]]) -> torch.Tensor:
