@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import itertools
 import random
+import time
 from typing import Callable, Iterator, List, Optional, Tuple
 from attr import define
 import regex as re
@@ -78,6 +79,7 @@ class GPTMetaPacker(
             seed=seed,
         )
         self.spacy_nlp = spacy.load("en_core_web_sm")
+        time.sleep(120) #dev
 
 
 
