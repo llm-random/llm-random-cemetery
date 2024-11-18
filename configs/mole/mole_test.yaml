@@ -1,14 +1,14 @@
 parent: configs/mole/common.yaml
 time: 0-10:00:00
-n_gpus: 1
+n_gpus: 2
 cpus_per_gpu: 16
 md5_parent_hash: 62d34c32cd4064be3b258ae4a35c742b
 
 params:
   name: "MoLE"
-  tags: ["mole", "ms"]
+  tags: ["mole", "ms", "test_pos_router"]
   ^biased_balancing_loss_weight: [0.01, 0.00]
-  ^load_balancing_loss_weight: [0.01]
+  ^load_balancing_loss_weight: [0.000001, 0.000000001, 0.000000000001]
   num_workers: 16
   logging_interval_loss: 100
   
