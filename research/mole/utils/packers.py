@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 import itertools
 import random
+import time
 from typing import Callable, Iterator, List, Optional, Tuple
 from attr import define
 import regex as re
@@ -60,6 +61,8 @@ def encode_with_meta(sentence, tokenizer, spacy_nlp) -> Tuple[list[int], list[st
     assert len(ids) == len(poss)
     return ids, poss
 
+def simple_split(sentence) -> list[str]:
+    return re.findall(r'\S+\s*', sentence)
 
 class GPTMetaPacker(
     AbstractPacker,
@@ -78,6 +81,46 @@ class GPTMetaPacker(
             seed=seed,
         )
         self.spacy_nlp = spacy.load("en_core_web_sm")
+
+
+    # def get_sample(self) -> LLMMetaExample:
+    #     """
+    #     Sample examples from the dataset until we reach the desired sequence length.
+    #     """
+    #     eot_id = self.tokenizer.eot_id
+    #     assert eot_id is not None
+
+    #     buffer: List[int] = []
+    #     token_metadata_buffer: List[str] = []
+    #     calculate_loss: List[int] = []
+    #     document_lengths: List[int] = []
+
+    #     while True:
+    #         document = self.dataset.get_document()
+    #         # tokens, t_metadata = encode_with_meta(document, self.tokenizer.tokenizer, self.spacy_nlp)
+    #         words = simple_split(document)
+    #         t_metadata = [int(pos_grouped[t_m]) for t_m in t_metadata]
+    #         buffer.extend(words + ["<|endoftext|>"])
+    #         # token_metadata_buffer.extend(t_metadata + [int(pos_grouped[EOT_TAG])])
+
+    #         document_lengths.append(len(words) + 1)
+    #         if (sum(document_lengths) - max(document_lengths)) > self.sequence_length:
+    #             break
+
+    #     sample_start = self.py_rng.randint(0, len(buffer) - 1)
+    #     sample_end = sample_start + self.sequence_length
+
+    #     input_words = list(take_circular(buffer, sample_start, sample_end))
+    #     input_sentence
+
+
+    #     ids_exp_groups = torch.tensor(list(take_circular(token_metadata_buffer, sample_start, sample_end)))
+    #     one_hot_exp_groups = torch.nn.functional.one_hot(ids_exp_groups, num_classes=N_GROUPS).type(torch.float32)
+
+    #     target_ids = list(take_circular(buffer, sample_start + 1, sample_end + 1))
+    #     calculate_loss = [1] * len(target_ids)
+   
+    #     return LLMMetaExample(input_ids, one_hot_exp_groups, target_ids, calculate_loss)
 
 
 
