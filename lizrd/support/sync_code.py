@@ -18,6 +18,7 @@ _SSH_HOSTS_TO_PASSPHRASES = {}
 def ConnectWithPassphrase(*args, **kwargs) -> Generator[Connection, None, None]:
     """Connect to a remote host using a passphrase if the key is encrypted. The passphrase is preserved for subsequent connections to the same host."""
     try:
+        print(f"args: {args}")
         connection = Connection(*args, **kwargs)
         connection.run('echo "Connection successful."')
         yield connection
