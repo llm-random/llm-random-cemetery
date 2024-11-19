@@ -1,5 +1,6 @@
 import argparse
 from collections import defaultdict
+import json
 import os
 import random
 from typing import Callable, Optional
@@ -25,6 +26,7 @@ from lizrd.train.train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
+from research import datasets
 from research.batch_size_rampup_config import BatchSizeRampupConfig
 from research.mole.utils.check_args import check_args
 from research.mole.utils.misc_tools import (
@@ -57,6 +59,7 @@ from lizrd.train.load_and_save_model import (
     load_optimizer_state,
     prepare_save_weights_path,
 )
+from transformers import GPT2TokenizerFast
 
 
 def log_batch(
@@ -297,6 +300,43 @@ def main(
             )
     else:
         logger = None
+
+        
+    def tokens_distr(sentence, tokenizer, distribution):
+        tids = tokenizer.encode(sentence+"<|endoftext|>")
+        for tid in tids:
+            token_key = str(tid)
+            distribution[token_key] += 1
+            
+    dataset = datasets.WikiBookDataset(
+        use_dummy_dataset=True,
+        seed=27,
+        split="train"
+    )
+
+    tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+    tokenizer.model_max_length = 100_000
+
+    distribution = dict(sorted({ str(k) : 0 for k in list(tokenizer.get_vocab().values())}.items(), key = lambda x: int(x[0])))
+
+    for i in range(1_000_000_000_000):
+        try:
+            text = dataset.get_document()
+            tokens_distr(text, tokenizer, distribution)
+            if i % 20000 == 0:
+                with open("logs.json", "w") as f:
+                    json.dump(distribution, f, indent=4)
+                if i % 25000 == 0:
+                    with open("logs_copy.json", "w") as f:
+                        json.dump(distribution, f, indent=4)
+                    print("<-------------------------------------------------------")
+                    print(i)
+                    print(distribution)
+                    print("=======================================================>")
+        except Exception as e:
+            raise e
+
+    return "Gites majonez <3"
 
     args.args_override = None
     if checkpoint and "args_override" in checkpoint and checkpoint["args_override"]:
