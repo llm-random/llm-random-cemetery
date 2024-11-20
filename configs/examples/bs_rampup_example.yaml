@@ -9,6 +9,7 @@ params:
     batch_size_rampup_transition_points: [152, 457]
     batch_size_rampup_units: steps
     batch_size_rampup_sizes: [128, 256]
+    lr_warmup_steps: 100
     n_tokens: null  # 0.262144 to match steps configuration
     n_steps: 1266    # 1266 to match tokens configuration with rampup, 1000 without rampup
     batch_size: 512
@@ -24,7 +25,7 @@ params:
     dataset_type: c4
     learning_rate: 5e-4
     name: bs_rampup_refactor
-    tags: [bs_rampup_test, rampup_refactor_pr, rampup, tokens]
+    tags: [warmup_test]
     decoding_interval: 0
     save_weights_interval: 0
     logging_interval_heavy: 1000
