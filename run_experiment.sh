@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/constrained_scaling_laws/30M/expansion_rate/1.yaml --git_branch=constrained_scaling_grid_new_run_2024-11-21_13-20-35 --skip_copy_code
