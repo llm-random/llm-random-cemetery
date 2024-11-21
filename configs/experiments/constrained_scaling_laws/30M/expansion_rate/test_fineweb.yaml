@@ -1,12 +1,14 @@
 parent: configs/experiments/constrained_scaling_laws/30M/model.yaml
 md5_parent_hash: ff3bfc240d4e6c2d174e8d2c30f3215e
 n_gpus: 1 # works for athena
+cpus_per_gpu: 8
 
 params:
   tags: ["constrained_scaling_grid", "30M", "E=1"]
   expansion_rate: 1
   gradient_accumulation_steps: 4
-  n_tokens: 128e6
-  scheduler_trapezoidal_slides: "[{'n_tokens':'32e6'},{'n_tokens':'64e6'}]"
-
-
+  ^num_workers: [4]
+  n_steps: 100
+  save_weights_path: "./constrained_scaling_laws_grid"
+  checkpoint_manager: True
+  scheduler_trapezoidal_slides: "[{'n_steps':100}]"
