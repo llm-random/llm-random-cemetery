@@ -243,11 +243,12 @@ def main(
 
     batch_size_rampup_config = convert_parameters(args)
 
-    if rank is not None:
-        os.environ["MASTER_ADDR"] = "localhost"
-        os.environ["MASTER_PORT"] = port
+    if True: #rank is not None:
+        # os.environ["MASTER_ADDR"] = "localhost"
+        # os.environ["MASTER_PORT"] = port
 
-        init_process_group("nccl", rank=rank, world_size=args.n_gpus)
+        init_process_group("nccl")
+        # init_process_group("nccl", rank=rank, world_size=args.n_gpus)
         torch.cuda.set_device(rank)
 
     if args.deterministic_experiment:
@@ -575,7 +576,7 @@ if __name__ == "__main__":
 
     save_weights_path = prepare_save_weights_path(args.save_weights_path)
 
-    if args.ddp_enabled or args.fsdp_enabled:
+    if False: #args.ddp_enabled or args.fsdp_enabled:
         random.seed(args.data_seed)
         data_seeds = [random.randint(0, 10000000) for _ in range(args.n_gpus)]
 
