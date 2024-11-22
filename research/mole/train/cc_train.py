@@ -466,6 +466,7 @@ def main(
         final_eval_dataloader=final_eval_dataloader,
         final_eval_dataloader_batch_size=args.final_eval_dataloader_batch_size,
         n_final_eval_batches=args.n_final_eval_batches,
+        args.
     )
     trainer.train(args.n_steps)
 
