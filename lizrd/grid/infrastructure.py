@@ -264,7 +264,7 @@ class EntropyBackend(MachineBackend):
         return "/local_storage_2/dataset_cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "lizrd/grid/grid_entrypoint.sh"
+        return "lizrd/grid/grid_entrypoint_entropy.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
