@@ -435,6 +435,8 @@ def main(
                 iteration=checkpoint["step"],
             )
 
+    convert_parameters(args) # we need to convert again after args_override
+
     log_and_print_model_param_count(args, model, vocab_size=VOCAB_SIZE)
 
     args.learning_rate = calculate_lr(args)
