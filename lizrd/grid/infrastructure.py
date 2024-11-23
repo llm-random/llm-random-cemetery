@@ -264,7 +264,7 @@ class EntropyBackend(MachineBackend):
         return "/local_storage_2/dataset_cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "lizrd/grid/grid_entrypoint.sh"
+        return "lizrd/grid/grid_entrypoint_entropy.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
@@ -298,12 +298,12 @@ class EntropyBackend(MachineBackend):
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
             f"{setup_args['grid_entrypoint']}",
-            "singularity",
-            "run",
-            *singularity_env_arguments,
-            make_singularity_mount_paths(setup_args, training_args),
-            "--nv",
-            setup_args["singularity_image"],
+            # "singularity", # dev TODO temporary solution
+            # "run", 
+            # *singularity_env_arguments,
+            # make_singularity_mount_paths(setup_args, training_args),
+            # "--nv",
+            # setup_args["singularity_image"],
             *self.get_runner_command(setup_args["runner"], runner_params),
         ]
 
@@ -318,7 +318,7 @@ class WriterBackend(MachineBackend):
         return "/home/ubuntu/.cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "lizrd/grid/grid_entrypoint.sh"
+        return "lizrd/grid/grid_entrypoint_writer.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
@@ -351,12 +351,12 @@ class WriterBackend(MachineBackend):
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
             f"{setup_args['grid_entrypoint']}",
-            "singularity",
-            "run",
-            *singularity_env_arguments,
-            make_singularity_mount_paths(setup_args, training_args),
-            "--nv",
-            setup_args["singularity_image"],
+            # "singularity",
+            # "run",
+            # *singularity_env_arguments,
+            # make_singularity_mount_paths(setup_args, training_args),
+            # "--nv",
+            # setup_args["singularity_image"],
             *self.get_runner_command(setup_args["runner"], runner_params),
         ]
 
