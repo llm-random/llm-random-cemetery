@@ -5,7 +5,7 @@ n_gpus: 1
 cpus_per_gpu: 26 # writer
 # cpus_per_gpu: 32 # entropy
 # cpus_per_gpu: 16 # athena
-md5_parent_hash: 5060b43ec5784557e7867ff9b5ad3ac3
+md5_parent_hash: fd9382e24ed41a4a03b5a1054cab1401
 
 params:
   dmodel: 768
