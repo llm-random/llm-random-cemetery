@@ -244,7 +244,8 @@ class TokenGatingBiased(MoeGating, InputWiseRouterBias):
         self.router_target_bias: torch.Tensor = None
         # self.biased_balancing_loss_fn = torch.nn.CrossEntropyLoss()
         # self.biased_balancing_loss_fn = WeightedLogLoss(pos_weight=0.0)
-        self.biased_balancing_loss_fn = WeightedLogLoss(pos_weight=0.0, act_func="softmax")
+        # self.biased_balancing_loss_fn = WeightedLogLoss(pos_weight=0.0, act_func="softmax")
+        self.biased_balancing_loss_fn = torch.nn.BCEWithLogitsLoss() #dev
 
     def forward(self, x: torch.Tensor):
         # x is (batch, seq_len, dmodel)
@@ -281,7 +282,7 @@ class TokenGatingBiased(MoeGating, InputWiseRouterBias):
                 use_einsum=self.use_einsum,
             )
             biased_balancing_loss = calculate_biased_balancing_loss(
-                gate_logits,
+                gate_out, #dev
                 router_target_bias=self.router_target_bias,
                 loss_fn=self.biased_balancing_loss_fn,
                 alpha=self.biased_balancing_loss_weight,
