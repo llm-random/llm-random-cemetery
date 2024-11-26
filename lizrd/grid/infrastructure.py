@@ -168,7 +168,7 @@ class HeliosBackend(MachineBackend):
 
     def get_cemetery_directory(self):
         return (
-            f"/net/storage/pr3/plgrid/plggllmeffi/{self.username}/llm_random_cemetery"
+            f"/net/storage/pr3/plgrid/plggllmeffi/{self.username}/c"
         )
 
     def get_subprocess_args(

@@ -4,6 +4,7 @@ import os
 import random
 from typing import Callable, Optional
 import socket
+from multiprocessing import connection
 
 import torch
 import torch.multiprocessing as mp
@@ -150,6 +151,36 @@ def main(
 
     if args.deterministic_experiment:
         set_seed(args.torch_seed)
+
+    import tempfile
+    print(f"Temporary directory: {tempfile.gettempdir()}")
+
+    import multiprocessing.connection as mpc
+
+    # Define the path to your log file
+    log_file_path = '/net/home/plgrid/plgjkrajewski/path_log.txt'
+
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(log_file_path), exist_ok=True)
+
+    # Store the original __init__ method
+    original_listener_init = mpc.Listener.__init__
+
+    # Define a new __init__ method that wraps the original
+    def patched_listener_init(self, address=None, family=None, backlog=1, authkey=None):
+        try:
+            # Call the original __init__ method
+            return original_listener_init(self, address=address, family=family, backlog=backlog, authkey=authkey)
+        except OSError as e:
+            # Write the address and exception to the log file
+            with open(log_file_path, 'a') as f:
+                f.write(f"Failed to bind to address: {address}\n")
+                f.write(f"Exception: {e}\n")
+            # Re-raise the exception to maintain normal error handling
+            raise
+
+    # Replace the original __init__ method with the patched one
+    mpc.Listener.__init__ = patched_listener_init
 
     VOCAB_SIZE = (
         tokenizers.BertTokenizer.VOCAB_SIZE
@@ -326,11 +357,11 @@ def main(
         if args.dataset_type == "wikibook"
         else ("train" if args.use_dummy_dataset else "validation")
     )
-    eval_dataloader = get_processed_dataset(
-        **common_dataloaders_kwargs,
-        dataset_split=eval_split,
-        dataset_path=args.validation_dataset_path,
-    )
+    # eval_dataloader = get_processed_dataset(
+    #     **common_dataloaders_kwargs,
+    #     dataset_split=eval_split,
+    #     dataset_path=args.validation_dataset_path,
+    # )
 
     if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
         logger_run_id = checkpoint["logger"]["run_id"]
@@ -368,7 +399,7 @@ def main(
         model=model,
         optimizer=optimizer,
         train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
+        # eval_dataloader=eval_dataloader,
         vocab_size=VOCAB_SIZE,
         mask_percent=args.mask_percent,
         mixed_precision=False if args.fsdp_enabled else args.mixed_precision,
