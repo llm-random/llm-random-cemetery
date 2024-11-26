@@ -44,7 +44,8 @@ class DataloaderWrapper:
                 self.chunks_iterator = 0
                 self.previous_batch_size_per_gpu = current_batch_size_per_gpu
             current_chunk_index = self.chunks_iterator % current_num_chunks
-
+            import sys
+            sys.exit(0)
             if current_chunk_index == 0:
                 self.current_batch = next(self.generator).to(self.device)
 
