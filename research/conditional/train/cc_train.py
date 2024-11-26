@@ -10,251 +10,252 @@ import torch
 import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 from ast import literal_eval
+import sys
 
-from lizrd.core import misc
-from lizrd.core.llm import Parallel
-from lizrd.support.logging import (
-    get_current_logger,
-    get_logger,
-    log_and_print_model_param_count,
-)
-from lizrd.support.misc import (
-    get_argument_attributes,
-    set_seed,
-    convert_tokens_to_steps,
-    convert_steps_to_tokens,
-    convert_transition_points_in_tokens_to_steps,
-)
-from lizrd.train.checkpoints_manager import start_job_manager_assessment
-from lizrd.train.train_utils import (
-    get_model,
-)
-from lizrd.text import tokenizers
-from research.batch_size_rampup_config import BatchSizeRampupConfig
-from research.conditional.utils.check_args import check_args
-from research.conditional.utils.misc_tools import (
-    get_slurm_job_id,
-    get_termination_timestamp_slurm,
-)
-from research.datasets import DataloaderWrapper, get_processed_dataset
-from research.datasets import (
-    DataloaderWrapper,
-    get_processed_dataset,
-)
-from lizrd.train.scheduler import get_scheduler
-from research.conditional.utils.conditional_trainer import ConditionalTrainer
-from research.conditional.utils.argparse import introduce_parser_arguments
-from research.conditional.utils.model_utils import (
-    disable_profile_schedule_fn,
-    get_classes_from_module_names,
-    get_ff_layer,
-    get_attention_layer,
-    get_mamba_layer,
-    get_mixed_precision_ignored_classes,
-    get_residual_layer,
-    get_classes_from_module_names,
-    update_model_fit_gpu_info,
-    get_vanilla_mamba_layer,
-    calculate_lr,
-)
-from lizrd.train.load_and_save_model import (
-    get_checkpoint_from_path,
-    load_optimizer_state,
-    prepare_save_weights_path,
-)
-
-
-def log_batch(
-    wrapper: DataloaderWrapper,
-    tokenizer_maker: Callable[[], tokenizers.AbstractTokenizer],
-):
-    # In case of GPT, log an example sequence for a possible inspection
-
-    print("Logging example batch...")
-    batch = wrapper.get_batch()
-    hf_tokenizer = tokenizer_maker().tokenizer
-
-    num_to_log = 5
-    for i in range(min(num_to_log, len(batch.input_ids))):
-        get_current_logger().report_text(
-            title=f"example_sequence/seq{i}/input_text",
-            value=hf_tokenizer.decode(batch.input_ids[i]),
-            iteration=0,
-        )
-        get_current_logger().report_text(
-            title=f"example_sequence/seq{i}/target_text",
-            value=hf_tokenizer.decode(batch.target_ids[i]),
-            iteration=0,
-        )
-
-    print("Logged example batch.")
+# from lizrd.core import misc
+# from lizrd.core.llm import Parallel
+# from lizrd.support.logging import (
+#     get_current_logger,
+#     get_logger,
+#     log_and_print_model_param_count,
+# )
+# from lizrd.support.misc import (
+#     get_argument_attributes,
+#     set_seed,
+#     convert_tokens_to_steps,
+#     convert_steps_to_tokens,
+#     convert_transition_points_in_tokens_to_steps,
+# )
+# from lizrd.train.checkpoints_manager import start_job_manager_assessment
+# from lizrd.train.train_utils import (
+#     get_model,
+# )
+# from lizrd.text import tokenizers
+# from research.batch_size_rampup_config import BatchSizeRampupConfig
+# from research.conditional.utils.check_args import check_args
+# from research.conditional.utils.misc_tools import (
+#     get_slurm_job_id,
+#     get_termination_timestamp_slurm,
+# )
+# from research.datasets import DataloaderWrapper, get_processed_dataset
+# from research.datasets import (
+#     DataloaderWrapper,
+#     get_processed_dataset,
+# )
+# from lizrd.train.scheduler import get_scheduler
+# from research.conditional.utils.conditional_trainer import ConditionalTrainer
+# from research.conditional.utils.argparse import introduce_parser_arguments
+# from research.conditional.utils.model_utils import (
+#     disable_profile_schedule_fn,
+#     get_classes_from_module_names,
+#     get_ff_layer,
+#     get_attention_layer,
+#     get_mamba_layer,
+#     get_mixed_precision_ignored_classes,
+#     get_residual_layer,
+#     get_classes_from_module_names,
+#     update_model_fit_gpu_info,
+#     get_vanilla_mamba_layer,
+#     calculate_lr,
+# )
+# from lizrd.train.load_and_save_model import (
+#     get_checkpoint_from_path,
+#     load_optimizer_state,
+#     prepare_save_weights_path,
+# )
 
 
-def make_param_groups_and_lr_ratios(args, model):
-    lr = args.learning_rate
-    if args.relative_lr is None:
-        return [{"params": model.parameters(), "lr": lr}], [1.0]
+# def log_batch(
+#     wrapper: DataloaderWrapper,
+#     tokenizer_maker: Callable[[], tokenizers.AbstractTokenizer],
+# ):
+#     # In case of GPT, log an example sequence for a possible inspection
 
-    relative_lr: dict = args.relative_lr
+#     print("Logging example batch...")
+#     batch = wrapper.get_batch()
+#     hf_tokenizer = tokenizer_maker().tokenizer
 
-    lr_to_params = defaultdict(list)
-    for name, param in model.named_parameters():
-        ratio = 1.0
-        for possible_name in relative_lr.keys():
-            if possible_name in name:
-                ratio = relative_lr[possible_name]
-                break
-        lr_to_params[ratio * lr].append(param)
-    param_grops = [
-        {"params": params, "lr": lr_group} for lr_group, params in lr_to_params.items()
-    ]
-    ratios_in_group_order = [param_group["lr"] / lr for param_group in param_grops]
-    return param_grops, ratios_in_group_order
+#     num_to_log = 5
+#     for i in range(min(num_to_log, len(batch.input_ids))):
+#         get_current_logger().report_text(
+#             title=f"example_sequence/seq{i}/input_text",
+#             value=hf_tokenizer.decode(batch.input_ids[i]),
+#             iteration=0,
+#         )
+#         get_current_logger().report_text(
+#             title=f"example_sequence/seq{i}/target_text",
+#             value=hf_tokenizer.decode(batch.target_ids[i]),
+#             iteration=0,
+#         )
 
-
-def rescale_params_after_init(args, model):
-    relative_scale: dict[str, float] = args.relative_init_scale
-    verbose = args.verbose_relative_init_scale
-
-    if relative_scale is None:
-        return
-    for name, param in model.named_parameters():
-        scale = 1.0
-        for possible_name in relative_scale.keys():
-            if possible_name in name:
-                if verbose:
-                    print(f"Rescaling {name} by {relative_scale[possible_name]}")
-                scale = relative_scale[possible_name]
-                break
-        param.data *= scale
+#     print("Logged example batch.")
 
 
-def convert_parameters(args):
-    if args.batch_size_rampup_transition_points is not None:
-        # convert transition points to steps
-        transition_points = args.batch_size_rampup_transition_points
-        if args.batch_size_rampup_units == "tokens":
-            transition_points = convert_transition_points_in_tokens_to_steps(
-                transition_points_in_tokens=args.batch_size_rampup_transition_points,
-                batch_sizes=args.batch_size_rampup_sizes,
-                seq_len=args.cutoff,
-            )
-            print(f"transition_points: {transition_points}")
+# def make_param_groups_and_lr_ratios(args, model):
+#     lr = args.learning_rate
+#     if args.relative_lr is None:
+#         return [{"params": model.parameters(), "lr": lr}], [1.0]
 
-        batch_size_rampup_config = BatchSizeRampupConfig(
-            transition_points=transition_points,
-            batch_sizes=args.batch_size_rampup_sizes,
-        )
-        transition_points = batch_size_rampup_config.transition_points
-        batch_sizes = batch_size_rampup_config.batch_sizes
-    else:
-        batch_size_rampup_config = None
-        transition_points = None
-        batch_sizes = None
+#     relative_lr: dict = args.relative_lr
 
-    if args.n_steps is None:
-        args.n_steps = convert_tokens_to_steps(
-            tokens=args.n_tokens * 1e9,
-            seq_len=args.cutoff,
-            target_batch_size=args.batch_size,
-            transition_points=transition_points,
-            batch_sizes=batch_sizes,
-        )
-
-    if args.scheduler_trapezoidal_slides:
-        assert args.scheduler == "trapezoidal"
-        assert args.checkpoint_manager
-        args.scheduler_trapezoidal_slides = literal_eval(
-            args.scheduler_trapezoidal_slides
-        )
-        new_scheduler_trapezoidal_slides = []
-        for slide in args.scheduler_trapezoidal_slides:
-            if "n_tokens" in slide:
-                slide["n_steps"] = convert_tokens_to_steps(
-                    tokens=slide["n_tokens"] * 1e9,
-                    seq_len=args.cutoff,
-                    target_batch_size=args.batch_size,
-                    transition_points=transition_points,
-                    batch_sizes=batch_sizes,
-                )
-            else:
-                slide["n_tokens"] = (
-                    convert_steps_to_tokens(
-                        step=slide["n_steps"],
-                        seq_len=args.cutoff,
-                        target_batch_size=args.batch_size,
-                        transition_points=transition_points,
-                        batch_sizes=batch_sizes,
-                    )
-                    // 1e9
-                )  # to make sure it is in billions
-
-            if args.lr_trapezoidal_decay_fraction_unit == "tokens":
-                toks_until_split = int(
-                    (1 - args.lr_trapezoidal_decay_fraction) * slide["n_tokens"] * 1e9
-                )
-                slide["split_step"] = (
-                    convert_tokens_to_steps(
-                        tokens=toks_until_split,
-                        seq_len=args.cutoff,
-                        target_batch_size=args.batch_size,
-                        transition_points=transition_points,
-                        batch_sizes=batch_sizes,
-                    )
-                    - 1
-                )
-            elif args.lr_trapezoidal_decay_fraction_unit == "steps":
-                slide["split_step"] = (
-                    int((1 - args.lr_trapezoidal_decay_fraction) * slide["n_steps"]) - 1
-                )
-
-            new_scheduler_trapezoidal_slides.append(slide)
-        args.scheduler_trapezoidal_slides = new_scheduler_trapezoidal_slides
-
-    if args.lr_warmup_steps is None:
-        args.lr_warmup_steps = convert_tokens_to_steps(
-            tokens=args.lr_warmup_tokens * 1e9,
-            seq_len=args.cutoff,
-            target_batch_size=args.batch_size,
-            transition_points=transition_points,
-            batch_sizes=batch_sizes,
-        )
-
-    return batch_size_rampup_config
+#     lr_to_params = defaultdict(list)
+#     for name, param in model.named_parameters():
+#         ratio = 1.0
+#         for possible_name in relative_lr.keys():
+#             if possible_name in name:
+#                 ratio = relative_lr[possible_name]
+#                 break
+#         lr_to_params[ratio * lr].append(param)
+#     param_grops = [
+#         {"params": params, "lr": lr_group} for lr_group, params in lr_to_params.items()
+#     ]
+#     ratios_in_group_order = [param_group["lr"] / lr for param_group in param_grops]
+#     return param_grops, ratios_in_group_order
 
 
-def convert_lr_scheduler_args(args, rampup_config):
-    if rampup_config is None:
-        transition_points = batch_sizes = None
-    else:
-        transition_points = rampup_config.transition_points
-        batch_sizes = rampup_config.batch_sizes
+# def rescale_params_after_init(args, model):
+#     relative_scale: dict[str, float] = args.relative_init_scale
+#     verbose = args.verbose_relative_init_scale
 
-    if args.scheduler == "trapezoidal":
-        if args.lr_trapezoidal_decay_fraction_unit == "tokens":
-            fraction_of_toks_until_decay = 1 - args.lr_trapezoidal_decay_fraction
-            tokens_until_decay = int(
-                fraction_of_toks_until_decay
-                * convert_steps_to_tokens(
-                    step=args.n_steps,
-                    seq_len=args.cutoff,
-                    target_batch_size=args.batch_size,
-                    transition_points=transition_points,
-                    batch_sizes=batch_sizes,
-                )
-            )
-            steps_until_decay = convert_tokens_to_steps(
-                tokens=tokens_until_decay,
-                seq_len=args.cutoff,
-                target_batch_size=args.batch_size,
-                transition_points=transition_points,
-                batch_sizes=batch_sizes,
-            )
-            args.lr_trapezoidal_decay_steps = args.n_steps - steps_until_decay
-        elif args.lr_trapezoidal_decay_fraction_unit == "steps":
-            args.lr_trapezoidal_decay_steps = int(
-                args.lr_trapezoidal_decay_fraction * args.n_steps
-            )
+#     if relative_scale is None:
+#         return
+#     for name, param in model.named_parameters():
+#         scale = 1.0
+#         for possible_name in relative_scale.keys():
+#             if possible_name in name:
+#                 if verbose:
+#                     print(f"Rescaling {name} by {relative_scale[possible_name]}")
+#                 scale = relative_scale[possible_name]
+#                 break
+#         param.data *= scale
+
+
+# def convert_parameters(args):
+#     if args.batch_size_rampup_transition_points is not None:
+#         # convert transition points to steps
+#         transition_points = args.batch_size_rampup_transition_points
+#         if args.batch_size_rampup_units == "tokens":
+#             transition_points = convert_transition_points_in_tokens_to_steps(
+#                 transition_points_in_tokens=args.batch_size_rampup_transition_points,
+#                 batch_sizes=args.batch_size_rampup_sizes,
+#                 seq_len=args.cutoff,
+#             )
+#             print(f"transition_points: {transition_points}")
+
+#         batch_size_rampup_config = BatchSizeRampupConfig(
+#             transition_points=transition_points,
+#             batch_sizes=args.batch_size_rampup_sizes,
+#         )
+#         transition_points = batch_size_rampup_config.transition_points
+#         batch_sizes = batch_size_rampup_config.batch_sizes
+#     else:
+#         batch_size_rampup_config = None
+#         transition_points = None
+#         batch_sizes = None
+
+#     if args.n_steps is None:
+#         args.n_steps = convert_tokens_to_steps(
+#             tokens=args.n_tokens * 1e9,
+#             seq_len=args.cutoff,
+#             target_batch_size=args.batch_size,
+#             transition_points=transition_points,
+#             batch_sizes=batch_sizes,
+#         )
+
+#     if args.scheduler_trapezoidal_slides:
+#         assert args.scheduler == "trapezoidal"
+#         assert args.checkpoint_manager
+#         args.scheduler_trapezoidal_slides = literal_eval(
+#             args.scheduler_trapezoidal_slides
+#         )
+#         new_scheduler_trapezoidal_slides = []
+#         for slide in args.scheduler_trapezoidal_slides:
+#             if "n_tokens" in slide:
+#                 slide["n_steps"] = convert_tokens_to_steps(
+#                     tokens=slide["n_tokens"] * 1e9,
+#                     seq_len=args.cutoff,
+#                     target_batch_size=args.batch_size,
+#                     transition_points=transition_points,
+#                     batch_sizes=batch_sizes,
+#                 )
+#             else:
+#                 slide["n_tokens"] = (
+#                     convert_steps_to_tokens(
+#                         step=slide["n_steps"],
+#                         seq_len=args.cutoff,
+#                         target_batch_size=args.batch_size,
+#                         transition_points=transition_points,
+#                         batch_sizes=batch_sizes,
+#                     )
+#                     // 1e9
+#                 )  # to make sure it is in billions
+
+#             if args.lr_trapezoidal_decay_fraction_unit == "tokens":
+#                 toks_until_split = int(
+#                     (1 - args.lr_trapezoidal_decay_fraction) * slide["n_tokens"] * 1e9
+#                 )
+#                 slide["split_step"] = (
+#                     convert_tokens_to_steps(
+#                         tokens=toks_until_split,
+#                         seq_len=args.cutoff,
+#                         target_batch_size=args.batch_size,
+#                         transition_points=transition_points,
+#                         batch_sizes=batch_sizes,
+#                     )
+#                     - 1
+#                 )
+#             elif args.lr_trapezoidal_decay_fraction_unit == "steps":
+#                 slide["split_step"] = (
+#                     int((1 - args.lr_trapezoidal_decay_fraction) * slide["n_steps"]) - 1
+#                 )
+
+#             new_scheduler_trapezoidal_slides.append(slide)
+#         args.scheduler_trapezoidal_slides = new_scheduler_trapezoidal_slides
+
+#     if args.lr_warmup_steps is None:
+#         args.lr_warmup_steps = convert_tokens_to_steps(
+#             tokens=args.lr_warmup_tokens * 1e9,
+#             seq_len=args.cutoff,
+#             target_batch_size=args.batch_size,
+#             transition_points=transition_points,
+#             batch_sizes=batch_sizes,
+#         )
+
+#     return batch_size_rampup_config
+
+
+# def convert_lr_scheduler_args(args, rampup_config):
+#     if rampup_config is None:
+#         transition_points = batch_sizes = None
+#     else:
+#         transition_points = rampup_config.transition_points
+#         batch_sizes = rampup_config.batch_sizes
+
+#     if args.scheduler == "trapezoidal":
+#         if args.lr_trapezoidal_decay_fraction_unit == "tokens":
+#             fraction_of_toks_until_decay = 1 - args.lr_trapezoidal_decay_fraction
+#             tokens_until_decay = int(
+#                 fraction_of_toks_until_decay
+#                 * convert_steps_to_tokens(
+#                     step=args.n_steps,
+#                     seq_len=args.cutoff,
+#                     target_batch_size=args.batch_size,
+#                     transition_points=transition_points,
+#                     batch_sizes=batch_sizes,
+#                 )
+#             )
+#             steps_until_decay = convert_tokens_to_steps(
+#                 tokens=tokens_until_decay,
+#                 seq_len=args.cutoff,
+#                 target_batch_size=args.batch_size,
+#                 transition_points=transition_points,
+#                 batch_sizes=batch_sizes,
+#             )
+#             args.lr_trapezoidal_decay_steps = args.n_steps - steps_until_decay
+#         elif args.lr_trapezoidal_decay_fraction_unit == "steps":
+#             args.lr_trapezoidal_decay_steps = int(
+#                 args.lr_trapezoidal_decay_fraction * args.n_steps
+#             )
 
 
 def main(
@@ -608,6 +609,7 @@ def main(
 
 
 if __name__ == "__main__":
+    print(sys.path)
     misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
