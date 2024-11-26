@@ -56,9 +56,6 @@ class TokenChoiceMoMQA(LoggingLayer):
             moe_values_exp=moe_values_exp,
             zloss_weight=zloss_weight,
         )
-        self.q_proj = Linear(
-            self.dmodel, self.dmodel, init_type=init_type, init_scale=init_scale
-        )
         experts = []
         for _ in range(self.n_heads):
             expert = Linear(
