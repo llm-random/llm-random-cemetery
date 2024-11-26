@@ -10,58 +10,59 @@ import torch
 import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 from ast import literal_eval
+import sys
 
-from lizrd.core import misc
-from lizrd.core.llm import Parallel
-from lizrd.support.logging import (
-    get_current_logger,
-    get_logger,
-    log_and_print_model_param_count,
-)
-from lizrd.support.misc import (
-    get_argument_attributes,
-    set_seed,
-    convert_tokens_to_steps,
-    convert_steps_to_tokens,
-    convert_transition_points_in_tokens_to_steps,
-)
-from lizrd.train.checkpoints_manager import start_job_manager_assessment
-from lizrd.train.train_utils import (
-    get_model,
-)
-from lizrd.text import tokenizers
-from research.batch_size_rampup_config import BatchSizeRampupConfig
-from research.conditional.utils.check_args import check_args
-from research.conditional.utils.misc_tools import (
-    get_slurm_job_id,
-    get_termination_timestamp_slurm,
-)
-from research.datasets import DataloaderWrapper, get_processed_dataset
-from research.datasets import (
-    DataloaderWrapper,
-    get_processed_dataset,
-)
-from lizrd.train.scheduler import get_scheduler
-from research.conditional.utils.conditional_trainer import ConditionalTrainer
-from research.conditional.utils.argparse import introduce_parser_arguments
-from research.conditional.utils.model_utils import (
-    disable_profile_schedule_fn,
-    get_classes_from_module_names,
-    get_ff_layer,
-    get_attention_layer,
-    get_mamba_layer,
-    get_mixed_precision_ignored_classes,
-    get_residual_layer,
-    get_classes_from_module_names,
-    update_model_fit_gpu_info,
-    get_vanilla_mamba_layer,
-    calculate_lr,
-)
-from lizrd.train.load_and_save_model import (
-    get_checkpoint_from_path,
-    load_optimizer_state,
-    prepare_save_weights_path,
-)
+# from lizrd.core import misc
+# from lizrd.core.llm import Parallel
+# from lizrd.support.logging import (
+#     get_current_logger,
+#     get_logger,
+#     log_and_print_model_param_count,
+# )
+# from lizrd.support.misc import (
+#     get_argument_attributes,
+#     set_seed,
+#     convert_tokens_to_steps,
+#     convert_steps_to_tokens,
+#     convert_transition_points_in_tokens_to_steps,
+# )
+# from lizrd.train.checkpoints_manager import start_job_manager_assessment
+# from lizrd.train.train_utils import (
+#     get_model,
+# )
+# from lizrd.text import tokenizers
+# from research.batch_size_rampup_config import BatchSizeRampupConfig
+# from research.conditional.utils.check_args import check_args
+# from research.conditional.utils.misc_tools import (
+#     get_slurm_job_id,
+#     get_termination_timestamp_slurm,
+# )
+# from research.datasets import DataloaderWrapper, get_processed_dataset
+# from research.datasets import (
+#     DataloaderWrapper,
+#     get_processed_dataset,
+# )
+# from lizrd.train.scheduler import get_scheduler
+# from research.conditional.utils.conditional_trainer import ConditionalTrainer
+# from research.conditional.utils.argparse import introduce_parser_arguments
+# from research.conditional.utils.model_utils import (
+#     disable_profile_schedule_fn,
+#     get_classes_from_module_names,
+#     get_ff_layer,
+#     get_attention_layer,
+#     get_mamba_layer,
+#     get_mixed_precision_ignored_classes,
+#     get_residual_layer,
+#     get_classes_from_module_names,
+#     update_model_fit_gpu_info,
+#     get_vanilla_mamba_layer,
+#     calculate_lr,
+# )
+# from lizrd.train.load_and_save_model import (
+#     get_checkpoint_from_path,
+#     load_optimizer_state,
+#     prepare_save_weights_path,
+# )
 
 
 def log_batch(
@@ -608,6 +609,7 @@ def main(
 
 
 if __name__ == "__main__":
+    print(sys.path)
     misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
