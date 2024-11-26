@@ -201,6 +201,7 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
+        mup_config=args.mup_params,
     )
 
     n_learnable_parameters = get_n_learnable_parameters(model)

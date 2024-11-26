@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from lizrd.core.llm import Attention, FeedForward, TokenEmbedding, PredictionHead
+from lizrd.core.llm import Attention, LLM, Residual
 
 
 def muP_attention_mechanism(
@@ -109,52 +109,32 @@ class muP_Attention(Attention):
         )
         self.attention_mechanism = muP_AttentionMechanism(mode=mode)
 
-    # def forward(self, x):
-    #     # You can reuse the parent forward method or implement a completely new one
-    #     # For example, calling the parent forward method:
-    #     # output = super(muP_Attention, self).forward(x)
+    def forward(self, x):
+        # You can reuse the parent forward method or implement a completely new one
+        # For example, calling the parent forward method:
+        # output = super(muP_Attention, self).forward(x)
 
-    #     # Modify or override parts of the forward logic here if needed
-    #     pass  # Replace this with your implementation
+        # Modify or override parts of the forward logic here if needed
+        pass  # Replace this with your implementation
 
+class muP_LLM(LLM):
+    def __init__(self, embedding_layer, encoder_tower, head, mup_config: dict = None):
+        super(muP_LLM, self).__init__(embedding_layer, encoder_tower, head)
 
-class muP_FeedForward(FeedForward):
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(Attention, self).__init__()
+        self.mup = False
+        if mup_config is not None:
+            self.mup = True
+            # Register alpha_in and alpha_out as buffers to make them non-trainable
+            self.register_buffer("alpha_in", torch.tensor(mup_config["alpha_in"], dtype=torch.float32))
+            self.register_buffer("alpha_out", torch.tensor(mup_config["alpha_out"], dtype=torch.float32))
+            self.register_buffer("m_d", torch.tensor(mup_config["m_d"], dtype=torch.float32))
 
-
-class muP_TokenEmbedding(TokenEmbedding):
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(Attention, self).__init__()
-
-
-class muP_PredictionHead(PredictionHead):
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(Attention, self).__init__()
+    def forward(self, *args, **kwargs):
+        x = self.embedding_layer(*args, **kwargs)
+        if self.mup:
+            x *= self.alpha_in  # Use the buffer value
+        x = self.encoder(x)
+        x = self.head(x)
+        if self.mup:
+            x *= (self.alpha_out / self.m_d)  # Use the buffer value
+        return x
