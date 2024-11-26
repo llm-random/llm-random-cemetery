@@ -12,16 +12,17 @@ params:
   tags: ["muP_MoE", "test_grid"]
 
   # training
-  n_steps: 1000
-  final_lr_step: 1000
-  lr_warmup_steps: 100
+  n_steps: 25000
+  final_lr_step: 25000
+  lr_warmup_steps: 250
   batch_size: 128
   cutoff: 128
 
   # model
   model_type: gpt
-  ^dmodel: [32, 64, 128, 256, 512, 1024]
-  dmodel: 64
+  # dmodel: 512
+  # ^dmodel: [32, 64, 128, 256, 512]
+  ^dmodel: [128, 256, 512]
   dff_ratio: 4
   n_blocks: 4
   n_att_heads: 4
@@ -30,7 +31,9 @@ params:
 
   # learning
   scheduler: cosine
-  learning_rate: 5e-4
+  # learning_rate: 5e-4
+  # ^learning_rate: [1e-2, 5e-3, 2e-3, 1e-3, 5e-4, 2e-4, 1e-4]
+  ^learning_rate: [5e-2, 2e-2]
   final_lr_fraction: 0.1
   grad_clip: 0.5
   weight_decay: 0.01
