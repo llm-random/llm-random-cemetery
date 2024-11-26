@@ -217,7 +217,7 @@ def plot_module(pivoted_dict, module_keyword, layer_num):
     plt.show()
 
 
-def plot_loss_vs_lr(runs_table):
+def plot_loss_vs_lr(runs_table, ylim=None):
     """
     For each model width in the runs table, plots a line where the y-axis is the final loss value
     and the x-axis is the learning rate (lr).
@@ -260,6 +260,8 @@ def plot_loss_vs_lr(runs_table):
     plt.xscale(
         "log"
     )  # Set x-axis to logarithmic scale if learning rates vary exponentially
+    if ylim is not None:
+        plt.ylim(ylim)
     plt.show()
 
 

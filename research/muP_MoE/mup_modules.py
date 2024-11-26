@@ -118,43 +118,45 @@ class muP_Attention(Attention):
     #     pass  # Replace this with your implementation
 
 
-class muP_FeedForward(FeedForward):
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(Attention, self).__init__()
+# class muP_FeedForward(FeedForward):
+#     def __init__(
+#         self,
+#         dmodel,
+#         heads,
+#         causal,
+#         init_type: str,
+#         init_scale: float,
+#         dhead=None,
+#         flash=False,
+#     ):
+#         super(Attention, self).__init__()
+#         pass
 
 
-class muP_TokenEmbedding(TokenEmbedding):
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(Attention, self).__init__()
+# class muP_TokenEmbedding(TokenEmbedding):
+#     def __init__(
+#         self,
+#         dmodel,
+#         heads,
+#         causal,
+#         init_type: str,
+#         init_scale: float,
+#         dhead=None,
+#         flash=False,
+#     ):
+#         super(Attention, self).__init__()
+#         pass
 
-
-class muP_PredictionHead(PredictionHead):
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(Attention, self).__init__()
+# class muP_PredictionHead(PredictionHead):
+#     def __init__(
+#         self,
+#         dmodel,
+#         heads,
+#         causal,
+#         init_type: str,
+#         init_scale: float,
+#         dhead=None,
+#         flash=False,
+#     ):
+#         super(Attention, self).__init__()
+#         pass
