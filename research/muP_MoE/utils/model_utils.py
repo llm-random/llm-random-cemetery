@@ -409,6 +409,7 @@ def get_model(
     residual_fn: Callable[[], torch.nn.Module] = None,
     include_positional_embedding: bool = True,
     checkpoint: dict[str, torch.Tensor] = None,
+    mup_width_scale: int = None,
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -428,7 +429,7 @@ def get_model(
             )
         )
 
-    embedding_layer = llm.EmbeddingLayer(*embedding_components).to(first_gpu)
+    embedding_layer = llm.Residual(llm.EmbeddingLayer(*embedding_components).to(first_gpu))
 
     # Python officially preserves dict order since 3.7, so we pass the layer dict
     encoder_tower = llm.TransformerTower(
@@ -440,9 +441,10 @@ def get_model(
         residual_fn=residual_fn,
     )
 
-    head = llm.PredictionHead(
+    
+    head = llm.Residual(llm.PredictionHead(
         dm, vocab_size, init_type=init_type, init_scale=init_scale
-    ).to(last_gpu)
+    ).to(last_gpu))
 
     model = llm.LLM(embedding_layer, encoder_tower, head)
 
