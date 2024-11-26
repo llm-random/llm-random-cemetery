@@ -600,6 +600,8 @@ class ConditionalTrainer:
             and self.save_weights_interval > 0
             and step % self.save_weights_interval == 0
         ):
+            print("---------------------------------------------------------------------") #dev
+            print(type(self.logger)) #dev
             save_checkpoint(
                 self.model,
                 self.optimizer,
@@ -609,7 +611,7 @@ class ConditionalTrainer:
                 step,
                 self.batch_size,
                 self.cutoff,
-                self.logger.loggers,
+                self.logger.loggers if self.rank == 0 else None, #dev TODO fix
             )
 
     def _repeater_rerun(
