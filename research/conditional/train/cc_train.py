@@ -326,11 +326,11 @@ def main(
         if args.dataset_type == "wikibook"
         else ("train" if args.use_dummy_dataset else "validation")
     )
-    eval_dataloader = get_processed_dataset(
-        **common_dataloaders_kwargs,
-        dataset_split=eval_split,
-        dataset_path=args.validation_dataset_path,
-    )
+    # eval_dataloader = get_processed_dataset(
+    #     **common_dataloaders_kwargs,
+    #     dataset_split=eval_split,
+    #     dataset_path=args.validation_dataset_path,
+    # )
 
     if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
         logger_run_id = checkpoint["logger"]["run_id"]
@@ -368,7 +368,7 @@ def main(
         model=model,
         optimizer=optimizer,
         train_dataloader=train_dataloader,
-        eval_dataloader=eval_dataloader,
+        # eval_dataloader=eval_dataloader,
         vocab_size=VOCAB_SIZE,
         mask_percent=args.mask_percent,
         mixed_precision=False if args.fsdp_enabled else args.mixed_precision,
