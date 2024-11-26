@@ -41,7 +41,7 @@ class ConditionalTrainer:
     model: torch.nn.Module
     optimizer: torch.optim.Optimizer
     train_dataloader: DataloaderWrapper
-    eval_dataloader: DataloaderWrapper
+    # eval_dataloader: DataloaderWrapper
     vocab_size: int
     mixed_precision: bool
     mixed_precision_dtype: torch.dtype
@@ -314,6 +314,7 @@ class ConditionalTrainer:
         self.optimizer.zero_grad()
 
     def _eval_step(self, step: int):
+        return
         batches = [self.eval_dataloader.get_batch() for _ in range(self.n_eval_batches)]
         self._eval_single_variant(
             batches=batches,
