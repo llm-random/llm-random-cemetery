@@ -3,6 +3,7 @@ import copy
 from time import time
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
+import sys
 
 import torch
 from torch.profiler import profile, ProfilerActivity
@@ -208,6 +209,9 @@ class ConditionalTrainer:
         self._before_train_operations()
         if self.scaler is not None and self.checkpoint is not None:
             load_scaler_state(self.scaler, self.checkpoint)
+
+        sys.exit(0)
+
 
         with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
