@@ -2,6 +2,7 @@ import abc
 import os
 import platform
 import hashlib
+import sys
 
 
 from lizrd.grid.setup_arguments import make_singularity_mount_paths
