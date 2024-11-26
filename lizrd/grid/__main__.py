@@ -44,6 +44,8 @@ if __name__ == "__main__":
             env = os.environ.copy()
             if cuda_visible is not None:
                 env.update({"SINGULARITYENV_CUDA_VISIBLE_DEVICES": cuda_visible})
+            env["PYTHONPATH"] = os.getcwd()
+            print(f"PYTHONPATH: {env['PYTHONPATH']}")
 
             PROCESS_CALL_FUNCTION(subprocess_args, env)
             sleep(1)
