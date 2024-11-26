@@ -20,7 +20,8 @@ params:
 
   # model
   model_type: gpt
-  ^dmodel: [32, 64, 128, 256, 512, 1024]
+  dmodel: 32
+  # ^dmodel: [32, 64, 128, 256, 512, 1024]
   dmodel: 64
   dff_ratio: 4
   n_blocks: 4
@@ -31,6 +32,7 @@ params:
   # learning
   scheduler: cosine
   learning_rate: 5e-4
+  # ^learning_rate: [1e-2, 5e-3, 2e-3, 1e-3, 2e-4, 1e-4]
   final_lr_fraction: 0.1
   grad_clip: 0.5
   weight_decay: 0.01

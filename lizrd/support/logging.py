@@ -610,6 +610,9 @@ def get_logger(
                 name=f"{args.name} {tags_to_name(args.tags)} {unique_timestamp}",
                 with_id=run_id,
             )
+            print(f'args:')
+            for key, val in args_dict:
+                print(f'{key}:\t{val}')
             run["args"] = args_dict
             run["working_directory"] = os.getcwd()
             run["config"].upload(args.path_to_entry_config)
