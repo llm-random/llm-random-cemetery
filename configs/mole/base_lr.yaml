@@ -5,8 +5,8 @@ n_gpus: 2
 # n_gpus: 4 # athena
 
 # cpus_per_gpu: 20 # writer
-# cpus_per_gpu: 25 # entropy
-cpus_per_gpu: 16 # athena
+cpus_per_gpu: 25 # entropy
+# cpus_per_gpu: 16 # athena
 
 params:
   dmodel: 768
@@ -17,11 +17,11 @@ params:
   final_lr_step: 43_200
 
   name: "MoLE"
-  tags: ["mole", "base", "G3"]
+  tags: ["mole", "base", "lr_+"]
 
   ^biased_balancing_loss_weight: [0]
-  ^load_balancing_loss_weight: [0.0625]
-  learning_rate: 0.00025
+  ^load_balancing_loss_weight: [0.015625]
+  ^learning_rate: [0.000125]
 
-  # num_workers: 14 # entropy
-  num_workers: 16 # athena, writer
+  num_workers: 14 # entropy
+  # num_workers: 16 # athena, writer
