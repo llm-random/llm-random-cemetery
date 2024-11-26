@@ -71,7 +71,8 @@ class MachineBackend(abc.ABC):
         return infrastructure_params_dict
 
     def get_runner_command(self, runner, runner_params):
-        return ["python3", "-m", runner, *runner_params]
+        return [f"PYTHONPATH={os.getcwd()}", "torchrun", runner, *runner_params]
+        # return ['python', '-c', 'import sys;print(sys.path)']
 
 
 class AthenaBackend(MachineBackend):
