@@ -1,7 +1,15 @@
+import os
+import sys
+base_path = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+print("base ptah --------------")
+print(base_path)
+if base_path not in sys.path:
+    sys.path.insert(0, base_path)
+
 import argparse
 from collections import defaultdict
 from functools import partial
-import os
+# import os
 import random
 from typing import Callable, Optional
 import socket
@@ -10,6 +18,7 @@ import torch
 import torch.multiprocessing as mp
 from torch.distributed import init_process_group, destroy_process_group
 from ast import literal_eval
+# import sys
 
 from lizrd.core import misc
 from lizrd.core.llm import Parallel
@@ -608,6 +617,7 @@ def main(
 
 
 if __name__ == "__main__":
+    print(sys.path)
     misc.print_available_gpus()
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
