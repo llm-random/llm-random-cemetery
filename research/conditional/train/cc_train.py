@@ -2,6 +2,7 @@ import argparse
 from collections import defaultdict
 from functools import partial
 import os
+import sys
 import random
 from typing import Callable, Optional
 import socket
@@ -547,6 +548,8 @@ def main(
         if args.profiler_enabled
         else disable_profile_schedule_fn
     )
+
+    sys.exit(0)
 
     trainer = ConditionalTrainer(
         model=model,
