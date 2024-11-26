@@ -3,6 +3,7 @@ import copy
 from time import time
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
+import sys
 
 import torch
 from torch.profiler import profile, ProfilerActivity
@@ -221,6 +222,7 @@ class ConditionalTrainer:
             with_flops=True,
             with_modules=True,
         ) as p:
+            print("Starting training...")
             for step in range(self.start_step, n_steps + 1):
                 self.current_step = step
                 self._train_step(step)
@@ -280,8 +282,10 @@ class ConditionalTrainer:
         step,
     ):
         self.model.train()
+        
         if self.is_logging_process:
             self.layer_manager.prepare_for_logging(step)
+        
 
         if self.batch_size_rampup_config is None:
             current_batch_size_per_gpu = self.batch_size // self.n_devices
@@ -307,6 +311,7 @@ class ConditionalTrainer:
                 transition_points=self.batch_size_rampup_config.transition_points,
                 batch_sizes=self.batch_size_rampup_config.batch_sizes,
             )
+        print("batch size calculated")
         self.num_processed_tokens = num_processed_tokens
         processed_batch = self.train_dataloader.get_batch(
             current_batch_size_per_gpu=current_batch_size_per_gpu,
@@ -318,12 +323,16 @@ class ConditionalTrainer:
             target_batch_size=self.batch_size,
             current_batch_size=current_batch_size_per_gpu * self.n_devices,
         )
+        print("Will enter calc loss and grad")
+        sys.exit(0)
         loss, aux_info = self.calculate_loss_and_gradient(
             processed_batch, num_batch_chunks=num_batch_chunks
         )
+        print("Calculated loss and grad")
         if self.rank is not None:
             dist.all_reduce(torch.tensor(loss, device="cuda"), op=dist.ReduceOp.AVG)
         self._apply_gradient()
+        print("Applied gradient")
 
         if self.is_logging_process:
             self._log_train_stats(
@@ -336,6 +345,7 @@ class ConditionalTrainer:
             self.layer_manager.log(step)
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
+        print("Saving checkpoint")
         self._save_weights(step)
 
     def calculate_loss_and_gradient(
@@ -614,6 +624,7 @@ class ConditionalTrainer:
                 self.cutoff,
                 self.logger.loggers,
             )
+        print("Saved checkpoint")
 
     def _repeater_rerun(
         self, step, repeater_job_end_time: Optional[int], buffer=15 * 60
