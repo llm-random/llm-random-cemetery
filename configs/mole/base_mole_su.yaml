@@ -1,0 +1,23 @@
+parent: configs/mole/common_base.yaml
+md5_parent_hash: c4ecc588268f690de51810a2b20f66a4
+time: 2-19:50:00
+n_gpus: 2
+# n_gpus: 4 # athena
+
+# cpus_per_gpu: 20 # writer
+cpus_per_gpu: 25 # entropy
+# cpus_per_gpu: 16 # athena
+
+params:
+  name: "MoLE"
+  tags: ["mole", "base", "optimum_su"]
+
+  ^biased_balancing_loss_weight: [0.015625]
+  ^load_balancing_loss_weight: [0.03125]
+  learning_rate: 0.00025
+
+  n_steps: 43_200
+  scheduler_trapezoidal_slides: "[{'n_steps':34560},{'n_steps':36720},{'n_steps':38880},{'n_steps':41040}]"
+
+  num_workers: 14 # entropy
+  # num_workers: 16 # athena, writer
