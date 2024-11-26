@@ -129,7 +129,7 @@ class muP_FeedForward(FeedForward):
         dhead=None,
         flash=False,
     ):
-        super(Attention, self).__init__()
+        super(FeedForward, self).__init__()
 
 
 class muP_TokenEmbedding(TokenEmbedding):
@@ -143,7 +143,7 @@ class muP_TokenEmbedding(TokenEmbedding):
         dhead=None,
         flash=False,
     ):
-        super(Attention, self).__init__()
+        super(TokenEmbedding, self).__init__()
 
 
 class muP_PredictionHead(PredictionHead):
@@ -157,4 +157,4 @@ class muP_PredictionHead(PredictionHead):
         dhead=None,
         flash=False,
     ):
-        super(Attention, self).__init__()
+        super(PredictionHead, self).__init__()
