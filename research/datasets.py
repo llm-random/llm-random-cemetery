@@ -88,8 +88,13 @@ def get_processed_dataset(
     pos_grouped: Optional[dict] = None,
     n_experts: Optional[int] = None
 ):
-    # assert ((biased=="pos") and pos_grouped and n_experts) or not((biased!="pos") or pos_grouped or n_experts), "Have to provide n_experts and pos_grouped when using pos biased datapacker." #dev
-    # assert ((biased=="hash_token") and n_experts) or not((biased!="hash_token") or n_experts), "Have to provide n_experts when using hash_token biased datapacker." #dev
+    print("biased---------------------------------------------------------------------------")#dev
+    print(biased)#dev
+    print(n_experts)#dev
+    print(pos_grouped)#dev
+    print("biased---------------------------------------------------------------------------")#dev
+    assert ((biased=="pos") and pos_grouped and n_experts) or not((biased!="pos") or pos_grouped or n_experts), "Have to provide n_experts and pos_grouped when using pos biased datapacker." #dev
+    assert ((biased=="hash_token") and n_experts) or not((biased!="hash_token") or n_experts), "Have to provide n_experts when using hash_token biased datapacker." #dev
     if dataset_type == "wikibook":
         dataset = partial(
             datasets.WikiBookDataset,
