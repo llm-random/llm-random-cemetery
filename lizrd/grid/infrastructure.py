@@ -70,11 +70,11 @@ class MachineBackend(abc.ABC):
         infrastructure_params_dict.update(cluster_default_arg_dict)
         return infrastructure_params_dict
 
-    def get_runner_command(self, runner, runner_params):
+    def get_runner_command(self, runner, runner_params, setup_args):
         return [
             "srun",
             "torchrun",
-            "--nnodes=2",
+            f"--nnodes={setup_args['n_nodes']}",
             "--nproc_per_node=4",
             "--rdzv_id",
             "__RANDOM__",
@@ -265,7 +265,7 @@ class IdeasBackend(MachineBackend):
             make_singularity_mount_paths(setup_args, training_args),
             "--nv",
             setup_args["singularity_image"],
-            *self.get_runner_command(setup_args["runner"], runner_params),
+            *self.get_runner_command(setup_args["runner"], runner_params, setup_args),
         ]
 
 
