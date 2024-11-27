@@ -3,8 +3,8 @@ md5_parent_hash: c7e284c7ce24a161e67f2011d5b49190
 time: 0-00:55:00
 n_gpus: 2
 # cpus_per_gpu: 16 # athena, writer
-# cpus_per_gpu: 26 # writer
-cpus_per_gpu: 20 # entropy
+cpus_per_gpu: 26 # writer
+# cpus_per_gpu: 20 # entropy
 
 params:
   name: "MoLE_su"
@@ -12,10 +12,10 @@ params:
   ^biased_balancing_loss_weight: [0.015625]
   ^load_balancing_loss_weight: [0.03125]
   n_steps: 500
-  # num_workers: 24 # writer
+  num_workers: 24 # writer
   # num_workers: 16 # athena, writer
   # num_workers: 14 # entropy
-  num_workers: 7 # entropy
+  # num_workers: 7 # entropy
 
   checkpoint_manager: True
   save_weights_interval: 100000
