@@ -3,6 +3,8 @@ import os
 import random
 from typing import Callable, Optional
 import socket
+from collections import defaultdict
+
 
 import torch
 import torch.multiprocessing as mp
@@ -72,6 +74,28 @@ def convert_args(args):
 
     if args.mup_params is not None:
         args.mup_params["m_d"] = args.dmodel / args.mup_params["base_dmodel"]
+
+
+def get_muP_learning_rates(args, model):
+    lr = args.learning_rate
+    if args.relative_lr is None:
+        return [{"params": model.parameters(), "lr": lr}], [1.0]
+
+    relative_lr: dict = args.relative_lr
+
+    lr_to_params = defaultdict(list)
+    for name, param in model.named_parameters():
+        ratio = 1.0
+        for possible_name in relative_lr.keys():
+            if possible_name in name:
+                ratio = relative_lr[possible_name]
+                break
+        lr_to_params[ratio * lr].append(param)
+    param_grops = [
+        {"params": params, "lr": lr_group} for lr_group, params in lr_to_params.items()
+    ]
+    ratios_in_group_order = [param_group["lr"] / lr for param_group in param_grops]
+    return param_grops, ratios_in_group_order
 
 
 def main(
