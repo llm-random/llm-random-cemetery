@@ -74,7 +74,7 @@ class MachineBackend(abc.ABC):
         return [
             "srun",
             "torchrun",
-            "--nnodes=2",
+            f"--nnodes={setup_args['n_nodes']}",
             "--nproc_per_node=4",
             "--rdzv_id",
             "__RANDOM__",
