@@ -10,11 +10,12 @@ params:
   name: "MoLE_su"
   tags: ["mole", "G2", "medium", "tuned_speedup", "rep_var"]
   # ^biased_balancing_loss_weight: [0.0]
+  # ^load_balancing_loss_weight: [0.0625]
   ^biased_balancing_loss_weight: [0.015625]
   ^load_balancing_loss_weight: [0.03125]
   n_steps: 12_800
   checkpoint_manager: True
-  scheduler_trapezoidal_slides: "[{'n_steps':10200},{'n_steps':10900},{'n_steps':11500},{'n_steps':12200}]"
+  scheduler_trapezoidal_slides: "[{'n_steps':11500},{'n_steps':12200}]"
   ^data_seed: [28, 29, 30]
 
   # num_workers: 24 # writer
