@@ -282,6 +282,7 @@ def main(
     batch_size_rampup_config = convert_parameters(args)
 
     rank = int(os.environ["LOCAL_RANK"])
+    global_rank = int(os.environ.get("GLOBAL_RANK", default=None))
     init_process_group("nccl")
     torch.cuda.set_device(rank)
 
@@ -318,7 +319,11 @@ def main(
         fsdp_modules_to_wrap = None
 
     # in case of data parallelism (DDP/FSDP), only gpu:0 should log
-    is_logging_process = True if rank is None or rank == 0 else False
+    is_logging_process = (
+        True
+        if rank is None or (rank == 0 and (global_rank == 0 or global_rank is None))
+        else False
+    )
 
     activation_checkpointing_modules = get_classes_from_module_names(
         args.activation_checkpointing_modules
