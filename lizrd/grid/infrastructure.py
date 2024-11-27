@@ -71,7 +71,7 @@ class MachineBackend(abc.ABC):
         return infrastructure_params_dict
 
     def get_runner_command(self, runner, runner_params):
-        return ["torchrun", "--nnodes=1", "--nproc_per_node=4", runner, *runner_params]
+        return ["torchrun", "--nnodes=2", "--nproc_per_node=4", "--rdzv_id", "$RANDOM", "--rdzv_backend", "c10d", "--rdzv_endpoint", "$head_node_ip:29500", runner, *runner_params]
 
 
 class AthenaBackend(MachineBackend):
@@ -186,7 +186,8 @@ class HeliosBackend(MachineBackend):
 
         return [
             slurm_command,
-            f"--gres=gpu:{setup_args['n_gpus']}",
+            "--nodes=2",
+            f"--gpus=8",
             f"--array=0-{n_consecutive-1}%1",
             "--partition=plgrid-gpu-gh200",
             "--cpus-per-gpu=72",
