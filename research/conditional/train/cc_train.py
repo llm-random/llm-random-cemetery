@@ -631,7 +631,7 @@ if __name__ == "__main__":
         os.environ.get("MASTER_PORT") is not None
     ):  # if this is already set, we are using multinode torchrun setup
         world_size = int(os.environ["WORLD_SIZE"])
-        assert args.data_seed < 0, "Data seed not support"
+        assert args.data_seed < 0, "Data seed not supported in multi-node training"
         data_seeds = [random.randint(0, 10000000) for _ in range(world_size)]
         main(
             rank=int(os.environ["RANK"]),
