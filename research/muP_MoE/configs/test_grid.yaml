@@ -13,8 +13,8 @@ params:
   tags: ["muP_MoE", "muTransfer", "alpha_grid"]
 
   mup_params:
-    ^alpha_in: [0.2, 0.5, 1.0, 2.0, 5.0]
-    ^alpha_out: [0.2, 0.5, 1.0, 2.0, 5.0]
+    ^alpha_in: [2.0, 10.0]
+    ^alpha_out: [0.1, 0.2, 0.5, 1.0, 2.0]
     base_dmodel: 32
 
   # training
@@ -65,6 +65,7 @@ params:
   mixed_precision: true
   flash_attention: true
   mixed_precision_dtype: bfloat16
+  data_seed: 99
 
   # logging etc.
   logger_types: "neptune"
