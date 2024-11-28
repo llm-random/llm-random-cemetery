@@ -329,7 +329,6 @@ def main(
         fsdp_modules_to_wrap = None
 
     # in case of data parallelism (DDP/FSDP), only gpu:0 should log
-    is_logging_process = True
     if rank is None or global_rank == 0:
         is_logging_process = True
     else:
@@ -633,7 +632,6 @@ if __name__ == "__main__":
     if (
         os.environ.get("MASTER_PORT") is not None
     ):  # if this is already set, we are using multinode torchrun setup
-        print("Detected multinode")
         world_size = int(os.environ["WORLD_SIZE"])
         assert (
             args.data_seed < 0
@@ -648,7 +646,6 @@ if __name__ == "__main__":
             is_using_torchrun=True,
         )
     elif args.ddp_enabled or args.fsdp_enabled:  # single-node multi-gpu training
-        print("Detected multigpu")
         data_seeds = [random.randint(0, 10000000) for _ in range(args.n_gpus)]
 
         # find free port
@@ -666,7 +663,6 @@ if __name__ == "__main__":
             nprocs=args.n_gpus,
         )
     else:  # single-gpu training
-        print("Detected single gpu")
         random.seed(args.data_seed)
         data_seeds = [random.randint(0, 10000000) for _ in range(args.n_gpus)]
         main(
