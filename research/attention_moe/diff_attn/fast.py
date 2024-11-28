@@ -1,5 +1,6 @@
 from bdb import effective
 import math
+from numpy import dtype
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -259,11 +260,9 @@ class VanillaFlashDiff1(nn.Module):
         self.use_rope = use_rope
         if self.use_rope:
             self.rotary_emb = RotaryEmbedding(
-                self.head_dim,
-                base=10000.0,
-                interleaved=True,
+                self.head_dim, base=10000.0, interleaved=True
             )
-            self.rotary_emb._update_cos_sin_cache(self.seq_len)
+            self.rotary_emb._update_cos_sin_cache(self.seq_len, dtype=torch.float32)
 
         self.q_proj = Linear(
             embed_dim, embed_dim, bias=False, init_type=init_type, init_scale=init_scale
@@ -300,33 +299,25 @@ class VanillaFlashDiff1(nn.Module):
         v = v.view(bsz, src_len, self.num_kv_heads, self.head_dim)
 
         if self.use_rope:
+            assert self.rotary_emb._cos_cached.dtype == torch.float32
             rel_pos = (
-                self.rotary_emb._cos_cached.to(x),
-                self.rotary_emb._sin_cached.to(x),
+                self.rotary_emb._cos_cached,
+                self.rotary_emb._sin_cached,
             )
-            q = apply_rotary_emb(q, *rel_pos, interleaved=True)
-            k = apply_rotary_emb(k, *rel_pos, interleaved=True)
+            q = apply_rotary_emb(q.to(dtype=torch.float32), *rel_pos, interleaved=True)
+            k = apply_rotary_emb(k.to(dtype=torch.float32), *rel_pos, interleaved=True)
 
         # offset = src_len - tgt_len
         q = q.reshape(bsz, tgt_len, self.num_heads, self.head_dim)
         k = k.reshape(bsz, src_len, self.num_kv_heads, self.head_dim)
-        # q1, q2 = q[:, :, :, 0], q[:, :, :, 1]
-        # k1, k2 = k[:, :, :, 0], k[:, :, :, 1]
-        attn = flash_attn_func(q, k, v, causal=True)
-        # attn2 = flash_attn_func(q2, k2, v, causal=True)
+        attn = flash_attn_func(
+            q.to(dtype=torch.float32),
+            k.to(dtype=torch.float32),
+            v.to(dtype=torch.float32),
+            causal=True,
+        )
 
-        # lambda_1 = torch.exp(
-        #     torch.sum(self.lambda_q1 * self.lambda_k1, dim=-1).float()
-        # ).type_as(q)
-        # lambda_2 = torch.exp(
-        #     torch.sum(self.lambda_q2 * self.lambda_k2, dim=-1).float()
-        # ).type_as(q)
-        # lambda_full = lambda_1 - lambda_2 + self.lambda_init
-        # attn = attn1 - lambda_full * attn2
-
-        # attn = self.subln(attn)
-        # attn = attn * (1 - self.lambda_init)
-        attn = attn.reshape(bsz, tgt_len, self.num_heads * self.head_dim)
+        attn = attn.reshape(bsz, tgt_len, self.num_heads * self.head_dim).to(x)
 
         attn = self.out_proj(attn)
         return attn
