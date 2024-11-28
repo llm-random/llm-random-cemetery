@@ -14,7 +14,7 @@ params:
     data_seed: -1
     n_tokens: null
     n_steps: 1266    
-    batch_size: 8
+    batch_size: 2
     cutoff: 512
     fsdp_enabled: true
     mixed_precision: true
