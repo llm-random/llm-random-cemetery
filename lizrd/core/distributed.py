@@ -42,7 +42,7 @@ def wrap_in_fsdp(
             if min_num_params is not None
             else size_based_auto_wrap_policy
         )
-
+    print(f"Current device: {torch.cuda.current_device()}, local_rank: {local_rank}")
     wrapped = FSDP(
         module,
         sharding_strategy=ShardingStrategy.HYBRID_SHARD,  # sharded within node, data parallel across nodes
