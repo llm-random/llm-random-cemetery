@@ -406,7 +406,7 @@ def main(
         checkpoint = (
             get_checkpoint_from_path(checkpoint_path) if checkpoint_path else None
         )
-
+    print(f"current device: {DEVICE}, will pass local rank: {local_rank}")
     model = get_model(
         max_length=args.cutoff,
         vocab_size=VOCAB_SIZE,
