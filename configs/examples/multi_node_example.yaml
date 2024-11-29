@@ -15,7 +15,7 @@ params:
     mixed_precision_dtype: bfloat16
     flash_attention: true
     fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
-    gradient_accumulation_steps: 1
+    gradient_accumulation_steps: 2
     ff_mode: vanilla
     dataset_type: c4
     learning_rate: 5e-4
