@@ -117,10 +117,10 @@ def introduce_parser_arguments(
         "--lr_warmup_tokens", type=float, default=None, help="in bilions of tokens"
     )
     parser.add_argument("--lr_trapezoidal_decay_fraction", type=float, default=0.20)
-    parser.add_argument(
-        "--lr_trapezoidal_decay_fraction_unit",
+    parser.add_argument( #dev TODO: backward compatibility
+        "--lr_trapezoidal_decay_fraction_unit", 
         type=str,
-        default="tokens",
+        default=None,
         choices=["tokens", "steps"],
     )
     parser.add_argument("--lr_decay_interval", type=int, default=0)
