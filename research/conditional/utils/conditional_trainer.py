@@ -100,11 +100,12 @@ class ConditionalTrainer:
     get_final_eval_dataloader: Optional[Callable[..., DataloaderWrapper]] = None
     final_eval_dataloader_batch_size: Optional[int] = None
     n_final_eval_batches: int = None
+    loaded_training_loop_accumulators: dict = None
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
             self.scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
-        self.loss_accumulators = {
+        self.loss_accumulators = { #dev
             f"loss_interval/{i}": SN(acc=0.0, interval=i)
             for i in self.loss_log_intervals
         }
@@ -113,7 +114,19 @@ class ConditionalTrainer:
         )
         self.correct_tokens_accumulator = 0.0
         self.total_tokens_accumulator = 0.0
-        self.auxiliary_losses_accumulator = dict()
+        self.auxiliary_losses_accumulator = dict() #dev
+        
+        if self.loaded_training_loop_accumulators:
+            assert list(self.loss_accumulators.keys()) == list(self.loaded_training_loop_accumulators["loss_accumulators"].keys())
+            assert list(self.auxiliary_losses_accumulator.keys()) == list(self.loaded_training_loop_accumulators["auxiliary_losses_accumulator"].keys())
+            # for k in list(self.loss_accumulators.keys()) + ["loss"]:
+            #     self.loss_accumulators[k].acc = self.accumulators_loaded_state["loss_accumulators"][k]["acc"]
+            #     self.loss_accumulators[k].interval = self.accumulators_loaded_state["loss_accumulators"][k]["interval"]
+            self.loss_accumulators = self.loaded_training_loop_accumulators["loss_accumulators"]
+            self.correct_tokens_accumulator = self.loaded_training_loop_accumulators["correct_tokens_accumulator"]
+            self.total_tokens_accumulator = self.loaded_training_loop_accumulators["total_tokens_accumulator"]
+            self.auxiliary_losses_accumulator = self.loaded_training_loop_accumulators["auxiliary_losses_accumulator"]
+            
         self._calculate_loss_and_gradient = make_loss_and_gradient_function(
             loss_checkpoint_chungs=self.loss_checkpoint_chungs,
         )
@@ -167,6 +180,10 @@ class ConditionalTrainer:
                     self.batch_size,
                     self.cutoff,
                     self.logger.loggers if self.is_logging_process else None,
+                    self.loss_accumulators, 
+                    self.correct_tokens_accumulator,
+                    self.total_tokens_accumulator,
+                    self.auxiliary_losses_accumulator,
                     self.args_override,
                 )
 
@@ -266,6 +283,10 @@ class ConditionalTrainer:
                                 self.batch_size,
                                 self.cutoff,
                                 split_loggers,
+                                self.loss_accumulators,
+                                self.correct_tokens_accumulator,
+                                self.total_tokens_accumulator,
+                                self.auxiliary_losses_accumulator,
                                 args_override={
                                     "n_steps": slide["n_steps"],
                                     "scheduler_trapezoidal_slides": None,
@@ -613,6 +634,10 @@ class ConditionalTrainer:
                 self.batch_size,
                 self.cutoff,
                 self.logger.loggers,
+                loss_accumulators = self.loss_accumulators,
+                correct_tokens_accumulator = self.correct_tokens_accumulator,
+                total_tokens_accumulator = self.total_tokens_accumulator,
+                auxiliary_losses_accumulator = self.auxiliary_losses_accumulator,
             )
 
     def _repeater_rerun(
@@ -632,6 +657,10 @@ class ConditionalTrainer:
                 self.batch_size,
                 self.cutoff,
                 self.logger.loggers if self.is_logging_process else None,
+                self.loss_accumulators,
+                self.correct_tokens_accumulator,
+                self.total_tokens_accumulator,
+                self.auxiliary_losses_accumulator,
                 self.args_override,
             )
 
