@@ -100,11 +100,12 @@ class ConditionalTrainer:
     get_final_eval_dataloader: Optional[Callable[..., DataloaderWrapper]] = None
     final_eval_dataloader_batch_size: Optional[int] = None
     n_final_eval_batches: int = None
+    accumulators: dict = None
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
             self.scaler = torch.cuda.amp.GradScaler(enabled=self.mixed_precision)
-        self.loss_accumulators = {
+        self.loss_accumulators = { #dev
             f"loss_interval/{i}": SN(acc=0.0, interval=i)
             for i in self.loss_log_intervals
         }
@@ -113,7 +114,11 @@ class ConditionalTrainer:
         )
         self.correct_tokens_accumulator = 0.0
         self.total_tokens_accumulator = 0.0
-        self.auxiliary_losses_accumulator = dict()
+        self.auxiliary_losses_accumulator = dict() #dev
+        
+        if self.accumulators:
+            ...
+            
         self._calculate_loss_and_gradient = make_loss_and_gradient_function(
             loss_checkpoint_chungs=self.loss_checkpoint_chungs,
         )
