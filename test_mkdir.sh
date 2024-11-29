@@ -1,0 +1,1 @@
+mkdir /local_storage_1/mstefaniak_1
