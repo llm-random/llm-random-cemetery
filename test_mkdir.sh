@@ -1,0 +1,3 @@
+  File "/home/ludziej_a100/llm_random_cemetery/checkpoint_manager_example_2024-11-29_14-52-32/research/conditional/utils/model_utils.py", line 335, in determine_moe_args
+    raise AssertionError(
+AssertionError: You must specify either total_experts_width, effective_dff, and n_experts or expert_size, topk_fraction, and n_experts or granularity, expansion_rate, and effective_dff_x or n_experts, expert_size, and routing_top_k.
