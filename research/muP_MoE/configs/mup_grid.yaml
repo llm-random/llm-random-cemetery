@@ -10,7 +10,7 @@ interactive_debug: false
 params:
   name: "muP_MoE"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "alpha_grid_2"]
+  tags: ["muP_MoE", "muTransfer", "alpha_grid_3"]
 
   mup_params:
     # ^alpha_in: [2.0, 5.0, 10.0]
@@ -20,13 +20,13 @@ params:
     base_dmodel: 64
 
   # training
-  n_steps: 25000
-  final_lr_step: 25000
-  lr_warmup_steps: 250
-  # n_steps: 1000
-  # final_lr_step: 1000
-  # lr_warmup_steps: 100
-  batch_size: 128
+  # n_steps: 25000
+  # final_lr_step: 25000
+  # lr_warmup_steps: 250
+  n_steps: 4000
+  final_lr_step: 4000
+  lr_warmup_steps: 100
+  batch_size: 64
   cutoff: 128
 
   # model
@@ -38,7 +38,7 @@ params:
   n_blocks: 4
   n_att_heads: 4
   attention_mode: 'vanilla'
-  attention_normalization_scale: 'dhead'
+  attention_normalization: 'dhead'
   ff_mode: vanilla
   use_torch_bmm: true
 
