@@ -6,4 +6,8 @@ params:
   tags: ["constrained_scaling_grid", "30M", "E=8"]
   expansion_rate: 8
   gradient_accumulation_steps: 4
+  run_final_eval: true
+  neptune_id: LLMRANDOM-22621
+  final_eval_batches: 8
+
 
