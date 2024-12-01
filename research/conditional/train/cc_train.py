@@ -423,7 +423,23 @@ def main(
                     logger_runs_ids.append(None)
             else:
                 logger_runs_ids = None
-        logger = get_logger(args, model, VOCAB_SIZE, logger_runs_ids)
+        if args.run_final_eval:
+            assert args.neptune_id is not None
+            assert not args.checkpoint_manager
+            logger_runs_ids = [args.neptune_id]
+            non_invasive_logger = True
+        else:
+            non_invasive_logger = False
+
+        logger = get_logger(
+            args, model, VOCAB_SIZE, logger_runs_ids, non_invasive=non_invasive_logger
+        )
+        if args.run_final_eval:
+            run = logger.loggers[0].instance_logger
+            logger_step = run["step"].fetch_last()
+            logger_lr = run["lr"].fetch_last()
+            assert logger_lr == 0.0
+
         if checkpoint_path:
             logger.report_text(
                 title=f"job/loaded_checkpoint",
@@ -492,18 +508,21 @@ def main(
         "use_dummy_dataset": args.use_dummy_dataset,
     }
 
-    train_dataloader = get_processed_dataset(
-        **common_dataloaders_kwargs,
-        dataset_split="train",
-        dataset_path=args.train_dataset_path,
-    )
-
-    if args.eval_interval > 0:
-        eval_split = (
-            "eval"
-            if args.dataset_type == "wikibook"
-            else ("train" if args.use_dummy_dataset else "validation")
+    if not args.run_final_eval:
+        train_dataloader = get_processed_dataset(
+            **common_dataloaders_kwargs,
+            dataset_split="train",
+            dataset_path=args.train_dataset_path,
         )
+    else:
+        train_dataloader = None
+
+    eval_split = (
+        "eval"
+        if args.dataset_type == "wikibook"
+        else ("train" if args.use_dummy_dataset else "validation")
+    )
+    if args.eval_interval > 0 and not args.run_final_eval:
         eval_dataloader = get_processed_dataset(
             **common_dataloaders_kwargs,
             dataset_split=eval_split,
@@ -511,6 +530,9 @@ def main(
         )
     else:
         eval_dataloader = None
+
+    if args.run_final_eval:
+        assert args.n_final_eval_batches > 0
 
     if args.n_final_eval_batches > 0:
         final_eval_dataloader_kwargs = {**common_dataloaders_kwargs}
@@ -601,7 +623,10 @@ def main(
         final_eval_dataloader_batch_size=args.final_eval_dataloader_batch_size,
         n_final_eval_batches=args.n_final_eval_batches,
     )
-    trainer.train(args.n_steps)
+    if args.run_final_eval:
+        trainer.final_eval(logger_step)
+    else:
+        trainer.train(args.n_steps)
 
     if rank is not None:
         destroy_process_group()
