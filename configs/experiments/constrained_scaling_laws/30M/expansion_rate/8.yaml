@@ -6,4 +6,8 @@ params:
   tags: ["constrained_scaling_grid", "30M", "E=8"]
   expansion_rate: 8
   gradient_accumulation_steps: 4
+  run_final_eval: true
+  neptune_id: "LLMRANDOM-22621"
+  n_final_eval_batches: 8
+  load_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgjkrajewski/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-23_13-54-39/constrained_scaling_laws_grid/1074655/22888.pt
 
