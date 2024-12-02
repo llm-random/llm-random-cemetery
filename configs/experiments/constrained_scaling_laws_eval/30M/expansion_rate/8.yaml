@@ -9,13 +9,11 @@ params:
   expansion_rate: 8
   gradient_accumulation_steps: 4
   run_final_eval: true
-  ^force_final_eval: [true, false]
-  final_eval_step: 22888
-  # neptune_id: "LLMRANDOM-22621"
+  neptune_id: "LLMRANDOM-22621"
   n_final_eval_batches: 8
   # load_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgjkrajewski/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-23_13-54-39/constrained_scaling_laws_grid/1074655/22888.pt
   # load_weights_path: /home/ubuntu/constrained/22888.pt
-  # load_weights_path: /net/home/plgrid/plgmaciejpioro/constrained/22888.pt
+  load_weights_path: /net/home/plgrid/plgmaciejpioro/constrained/22888.pt
   checkpoint_manager: false
   scheduler_trapezoidal_slides: Null
   batch_size_rampup_transition_points: Null
