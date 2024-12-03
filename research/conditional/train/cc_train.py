@@ -403,6 +403,7 @@ def main(
         my_run = runs_table[
             (runs_table["args/tags"] == my_tags) & (runs_table["step"] == my_step)
         ]
+        print(my_run)
         assert len(my_run) == 1
         args.load_weights_path = my_run["job/saved_checkpoint"].item()
         neptune_id = my_run["sys/id"].item()
