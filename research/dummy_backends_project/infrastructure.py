@@ -61,6 +61,60 @@ class WriterBackend(MachineBackend):
         ]
 
 
+class EntropyBackend(MachineBackend):
+    max_exp_time = 14 * 24 * 60 * 60
+
+    def get_common_directory(self) -> str:
+        return "/home/jkrajewski_a100"
+
+    def get_cache_path(self) -> str:
+        return "/local_storage_2/dataset_cache"
+
+    def get_grid_entrypoint(self) -> str:
+        return "lizrd/grid/grid_entrypoint.sh"
+
+    def get_default_train_dataset_path(self, dataset_type: str):
+        if dataset_type == "c4":
+            return "/local_storage_2/llm-random/datasets/c4_train"
+        return super().get_default_train_dataset_path(dataset_type)
+
+    def get_default_validation_dataset_path(self, dataset_type: str):
+        if dataset_type == "c4":
+            return "/local_storage_2/llm-random/datasets/c4_validation"
+        return super().get_default_train_dataset_path(dataset_type)
+
+    def get_cemetery_directory(self):
+        return f"~/llm_random_cemetery"
+
+    def get_subprocess_args(
+        self,
+        slurm_command,
+        setup_args,
+        training_args,
+        singularity_env_arguments,
+        runner_params,
+        n_consecutive: int = 1,
+    ):
+        return [
+            slurm_command,
+            "--partition=a100",
+            f"--gres=gpu:a100:{setup_args['n_gpus']}",
+            f"--array=0-{n_consecutive-1}%1",
+            f"--cpus-per-task=1",
+            "--mem=1G",
+            f"--job-name={training_args['name']}",
+            f"--time={setup_args['time']}",
+            f"{setup_args['grid_entrypoint']}",
+            "singularity",
+            "run",
+            *singularity_env_arguments,
+            make_singularity_mount_paths(setup_args, training_args),
+            "--nv",
+            setup_args["singularity_image"],
+            *self.get_runner_command(setup_args["runner"], runner_params),
+        ]
+
+
 COMMON_DEFAULT_INFRASTRUCTURE_ARGS = {
     "gres": "gpu:1",
     "time": "1-00:00:00",
