@@ -9,9 +9,9 @@ cpus_per_gpu: 16
 interactive_debug: false
 
 params:
-  name: "muP_MoE"
+  name: "muP_MoE_extrpl"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "mup_grid_1"]
+  tags: ["muP_MoE", "muTransfer", "mup_grid_2"]
 
   mup_params:
     ^alpha_in: [20.0]
@@ -33,7 +33,7 @@ params:
   # model
   model_type: gpt
   # ^dmodel: [768]
-  ^dmodel: [64, 128, 256, 512]
+  ^dmodel: [32, 64, 128, 256, 512]
   # ^dmodel: [32, 64, 128, 256, 512]
   # ^dmodel: [128, 256]
   dff_ratio: 4
@@ -47,12 +47,11 @@ params:
   # learning
   scheduler: cosine
   # learning_rate: 2e-2
-  ^learning_rate: [2e-3, 1e-3]
+  ^learning_rate: [1e-1, 5e-2, 2e-2, 1e-2, 5e-3, 2e-3, 1e-3]
   final_lr_fraction: 0.1
   grad_clip: 0.5
-  weight_decay: 0.01
+  ^weight_decay: [0.01, 0.0]
   ^init_scale: [0.2]
-  ^init_scale: [1.0]
   init_type: truncated_normal
   capacity_factor: 1.0
 
@@ -76,7 +75,7 @@ params:
   # logging etc.
   logger_types: "neptune"
   project_name: "pmtest/llm-random"
-  logging_interval_heavy: 100
+  logging_interval_heavy: 1000
   # logging_interval_light: 50
   # logging_interval_loss: 20
   # save_weights_interval: null
