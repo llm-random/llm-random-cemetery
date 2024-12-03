@@ -1,8 +1,13 @@
 parent: configs/baselines/gpt/dense/common.yaml
 md5_parent_hash: 1b1451abcd3779c5960c78b2f48aecbc
+time: 00:30:00
+n_gpus: 1
 
 params:
   dmodel: 256
   dff: 1024
   n_blocks: 4
   n_att_heads: 4
+  learning_rate: 1e-4
+  init_type: truncated_normal
+  init_scale: 0.02
