@@ -309,6 +309,10 @@ def main(
         local_rank = global_rank = None
         data_seeds = None
 
+    args.data_seeds = " ".join([str(seed) for seed in data_seeds])
+    print(f"Data seeds: {args.data_seeds}")
+    print(f"Global rank: {global_rank}")
+
     if args.deterministic_experiment:
         set_seed(args.torch_seed)
 
