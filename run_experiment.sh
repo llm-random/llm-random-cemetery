@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/dummy_backends_project/config.yaml --git_branch=test_backends_2024-12-03_10-38-49 --skip_copy_code --custom_backends_module=research.dummy_backends_project.infrastructure
