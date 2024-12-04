@@ -121,7 +121,8 @@ def get_processed_dataset(
         )
     else:
         raise ValueError(f"Unknown model type: {model_type}")
-
+    import os
+    print(f"Seed: {seed}. Currently on global rank {os.environ.get('RANK', 0)}")
     dataloader = DataLoader(
         packer,
         num_workers=num_workers,
