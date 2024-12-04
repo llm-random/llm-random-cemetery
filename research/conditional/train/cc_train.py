@@ -390,6 +390,7 @@ def main(
                 "step",
                 "final_eval",
                 "lr",
+                "job/saved_checkpoint",
             ],
         ).to_pandas()
         runs_table["sys/tags"] = runs_table["sys/tags"].apply(
