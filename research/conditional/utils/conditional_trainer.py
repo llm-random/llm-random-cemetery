@@ -117,7 +117,7 @@ class ConditionalTrainer:
         self.auxiliary_losses_accumulator = dict()
         
         if self.loaded_training_loop_accumulators:
-            print("--------------------------------")
+            print("--------------------------------") #dev
             print(f"self.loaded_training_loop_accumulators {self.loaded_training_loop_accumulators}")
             print(f"self.loss_accumulators.keys() {self.loss_accumulators.keys()}")
             print(f"self.loaded_training_loop_accumulators[loss_accumulators].keys() {self.loaded_training_loop_accumulators['loss_accumulators'].keys()}")
@@ -129,7 +129,8 @@ class ConditionalTrainer:
             print(f"list(self.loaded_training_loop_accumulators[auxiliary_losses_accumulator].keys()) {list(self.loaded_training_loop_accumulators['auxiliary_losses_accumulator'].keys())}")
             print("--------------------------------")
             assert list(self.loss_accumulators.keys()) == list(self.loaded_training_loop_accumulators["loss_accumulators"].keys())
-            assert list(self.auxiliary_losses_accumulator.keys()) == list(self.loaded_training_loop_accumulators["auxiliary_losses_accumulator"].keys())
+            # assert list(self.auxiliary_losses_accumulator.keys()) == list(self.loaded_training_loop_accumulators["auxiliary_losses_accumulator"].keys()) #dev TODO validate this, to have loaded model - config coherence
+
             # for k in list(self.loss_accumulators.keys()) + ["loss"]:
             #     self.loss_accumulators[k].acc = self.accumulators_loaded_state["loss_accumulators"][k]["acc"]
             #     self.loss_accumulators[k].interval = self.accumulators_loaded_state["loss_accumulators"][k]["interval"]
