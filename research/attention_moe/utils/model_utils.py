@@ -285,6 +285,7 @@ def get_attention_layer(args):
         attention_layer_fun = lambda: VanillaAttention(
             dmodel=args.dmodel,
             n_heads=args.n_att_heads,
+            length=args.cutoff,
             init_type=args.init_type,
             init_scale=args.init_scale,
         )
@@ -295,25 +296,42 @@ def get_attention_layer(args):
         attention_layer_fun = lambda: MQA(
             dmodel=args.dmodel,
             n_heads=args.n_att_heads,
+            length=args.cutoff,
             init_type=args.init_type,
             init_scale=args.init_scale,
         )
     elif args.attention_mode == "momqa":
-        # attention_layer_fun = lambda: MoMQA(
-        #     n_embd=args.dmodel,
-        #     n_head=args.n_att_heads,
-        #     block_size=args.cutoff,
-        #     load_balancing_loss_weight=args.load_balancing_loss_weight,
-        #     multiply_by_n_head=args.multiply_by_n_head,
-        # )
         attention_layer_fun = lambda: TokenChoiceMoMQA(
             dmodel=args.dmodel,
             n_heads=args.n_att_heads,
+            length=args.cutoff,
             capacity_factor=args.capacity_factor,
             load_balancing_loss_weight=args.load_balancing_loss_weight,
             init_type=args.init_type,
             init_scale=args.init_scale,
             use_dropped_tokens_head=args.momqa_use_dropped_tokens_head,
+        )
+    elif args.attention_mode == "momqa_placeholder":
+        attention_layer_fun = lambda: TokenChoiceMoMQA(
+            dmodel=args.dmodel,
+            n_heads=args.n_att_heads,
+            length=args.cutoff,
+            capacity_factor=args.capacity_factor,
+            load_balancing_loss_weight=args.load_balancing_loss_weight,
+            init_type=args.init_type,
+            init_scale=args.init_scale,
+            use_dropped_tokens_head=False,
+        )
+    elif args.attention_mode == "momqa_default_head":
+        attention_layer_fun = lambda: TokenChoiceMoMQA(
+            dmodel=args.dmodel,
+            n_heads=args.n_att_heads,
+            length=args.cutoff,
+            capacity_factor=args.capacity_factor,
+            load_balancing_loss_weight=args.load_balancing_loss_weight,
+            init_type=args.init_type,
+            init_scale=args.init_scale,
+            use_dropped_tokens_head=True
         )
     # elif args.attention_mode == "dropping_momqa":
     #     attention_layer_fun = lambda: DroppingMoMQA(
