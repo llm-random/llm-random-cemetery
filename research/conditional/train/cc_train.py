@@ -390,6 +390,7 @@ def main(
                 "step",
                 "final_eval",
                 "lr",
+                "job/saved_checkpoint",
             ],
         ).to_pandas()
         runs_table["sys/tags"] = runs_table["sys/tags"].apply(
@@ -408,11 +409,12 @@ def main(
         print(my_run)
         assert len(my_run) == 1
         args.load_weights_path = my_run["job/saved_checkpoint"].item()
+        checkpoint_path = None
         neptune_id = my_run["sys/id"].item()
         assert my_run["lr"].item() == 0.0
         args.neptune_id = neptune_id
         final_eval_value = my_run["final_eval"].item()
-        if self.is_logging_process:
+        if is_logging_process:
             if not math.isnan(final_eval_value):
                 if args.force_final_eval:
                     with neptune.init_run(
