@@ -6,6 +6,7 @@ from torch.distributed.fsdp import MixedPrecision, CPUOffload, ShardingStrategy
 from torch.nn.parallel import DistributedDataParallel as DDP
 import torch.nn as nn
 import torch
+import torch.distributed as dist
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
@@ -45,8 +46,9 @@ def wrap_in_fsdp(
 
     wrapped = FSDP(
         module,
-        sharding_strategy=ShardingStrategy.HYBRID_SHARD,  # sharded within node, data parallel across nodes
-        device_id=local_rank,
+        sharding_strategy=ShardingStrategy.FULL_SHARD,  # sharded within node, data parallel across nodes
+        # device_id=local_rank
+        device_id=torch.cuda.current_device(),
         mixed_precision=MixedPrecision(
             param_dtype=param_precision,
             reduce_dtype=param_precision,
@@ -56,6 +58,8 @@ def wrap_in_fsdp(
         cpu_offload=CPUOffload(offload_params=offload_params),
         auto_wrap_policy=wrap_policy,
     )
+    pg = wrapped.process_group
+    print(f"Wrapping model in FSDP with local rank {local_rank}, global rank {torch.distributed.get_rank()}, and device {torch.cuda.current_device()}, world size of process group {dist.get_world_size(group=pg)}")
 
     if print_model and is_logging_process:
         print("------- MODEL AFTER WRAPPING IN FSDP -------")
