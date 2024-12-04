@@ -5,6 +5,7 @@ from copy import deepcopy
 from time import sleep
 from datetime import datetime
 from typing import Optional, Union
+from torch.distributed import barrier
 
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 from lizrd.train.load_and_save_model import save_checkpoint
@@ -49,13 +50,13 @@ class Locker:
         self.mode = mode
 
     def __enter__(self):
-        self.fp = open(self.filename, self.mode)
         fcntl.flock(self.fp.fileno(), fcntl.LOCK_EX)
+        self.fp = open(self.filename, self.mode)
         return self.fp
 
     def __exit__(self, _type, value, tb):
-        fcntl.flock(self.fp.fileno(), fcntl.LOCK_UN)
         self.fp.close()
+        fcntl.flock(self.fp.fileno(), fcntl.LOCK_UN)
 
 
 def manager_start_checkpoint(job_id, timestamp):
@@ -187,28 +188,26 @@ def start_job_manager_assessment(
             raise Exception("No available training to do")
         else:
             return result, metadata
-    else:
-        for i in range(100):
-            sleep(3)
-            try:
-                with Locker(EXPERIMENT_CHECKPOINT_MANAGER, "r") as f:
-                    manager = yaml.load(f, Loader=yaml.SafeLoader)
-                    result = -1
-                    for i, element in enumerate(manager[CHECKPOINTS_TAG]):
-                        if (
-                            element[CHECKPOINT_STATUS] == CHECKPOINT_STATUS_RUNNING
-                            and element[CHECKPOINT_RUNNING_JOB_ID] == job_id
-                        ):
-                            result = element[MODEL_CHECKPOINT]
-                            metadata = element[CHECKPOINT_METADATA_TAG]
-                            break
-                if result == -1:
-                    raise Exception("No available trainig to do")
-                else:
-                    return result, metadata
-            except Exception as e:
-                if i >= 99:
-                    raise e
+    barrier()
+    try:
+        with Locker(EXPERIMENT_CHECKPOINT_MANAGER, "r") as f:
+            manager = yaml.load(f, Loader=yaml.SafeLoader)
+            result = -1
+            for i, element in enumerate(manager[CHECKPOINTS_TAG]):
+                if (
+                    element[CHECKPOINT_STATUS] == CHECKPOINT_STATUS_RUNNING
+                    and element[CHECKPOINT_RUNNING_JOB_ID] == job_id
+                ):
+                    result = element[MODEL_CHECKPOINT]
+                    metadata = element[CHECKPOINT_METADATA_TAG]
+                    break
+        if result == -1:
+            raise Exception("No available training to do")
+        else:
+            return result, metadata
+    except Exception as e:
+            raise e
+      
 
 
 def job_out_of_time_checkpoint(
