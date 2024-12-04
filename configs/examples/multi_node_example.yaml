@@ -1,8 +1,8 @@
 parent: configs/baselines/gpt/dense/mini.yaml
 md5_parent_hash: f181bf20ef729beb781a926a284a7e4f
-n_gpus: 8
+n_gpus: 2
 n_nodes: 2
-time: "0-00:45:00"
+time: "0-00:10:00"
 params:
     num_workers: 4
     data_seed: -1

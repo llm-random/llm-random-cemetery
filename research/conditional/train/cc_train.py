@@ -290,6 +290,11 @@ def main(
             local_rank = int(os.environ["LOCAL_RANK"])
             global_rank = int(os.environ["RANK"])
             init_process_group("nccl")
+            # Add these print statements
+            print(f"Process group initialized: {torch.distributed.is_initialized()}")
+            print(f"World size: {torch.distributed.get_world_size()}")
+            print(f"Global rank: {torch.distributed.get_rank()}")
+            print(f"Local rank: {local_rank}")
         else:  # single-node multi-gpu without torchrun. We need to setup things manually
             local_rank = global_rank = rank
             os.environ["MASTER_ADDR"] = "localhost"
@@ -308,6 +313,10 @@ def main(
     else:
         local_rank = global_rank = None
         data_seeds = None
+
+    args.data_seeds = " ".join([str(seed) for seed in data_seeds])
+    print(f"Data seeds: {args.data_seeds}")
+    print(f"Global rank: {global_rank}")
 
     if args.deterministic_experiment:
         set_seed(args.torch_seed)
@@ -571,6 +580,11 @@ def main(
         if args.profiler_enabled
         else disable_profile_schedule_fn
     )
+
+    print(f"just before train: Process group initialized: {torch.distributed.is_initialized()}")
+    print(f"just before train: World size: {torch.distributed.get_world_size()}")
+    print(f"just before train: Global rank: {torch.distributed.get_rank()}")
+    print(f"just before train: Local rank: {local_rank}")
 
     trainer = ConditionalTrainer(
         model=model,
