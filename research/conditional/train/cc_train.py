@@ -381,6 +381,10 @@ def main(
         checkpoint_path, checkpoint_metadata = start_job_manager_assessment(
             get_slurm_job_id(), is_logging_process
         )
+        print("------------------------------------------------------------------------------------------------------") #dev
+        print("------------------------------------------------------------------------------------------------------")
+        print(checkpoint_path)
+        print("------------------------------------------------------------------------------------------------------")
         checkpoint = (
             get_checkpoint_from_path(checkpoint_path) if checkpoint_path else None
         )
