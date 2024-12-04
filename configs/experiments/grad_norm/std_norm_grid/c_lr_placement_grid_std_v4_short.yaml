@@ -1,0 +1,2911 @@
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_0_div10_exp_1
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_0
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_0_mul1_exp_2
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_0
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_0_mul10_exp_3
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_0
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_0_mul100_exp_4
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_0
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1_div10_exp_5
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1_mul1_exp_6
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1_mul10_exp_7
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1_mul100_exp_8
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-1_div10_exp_9
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-1_mul1_exp_10
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-1_mul10_exp_11
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-1_mul100_exp_12
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-2_div10_exp_13
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-2
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-2_mul1_exp_14
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-2
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-2_mul10_exp_15
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-2
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-2_mul100_exp_16
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-2
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-3_div10_exp_17
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-3
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-3_mul1_exp_18
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-3
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-3_mul10_exp_19
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-3
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-3_mul100_exp_20
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-3
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-4_div10_exp_21
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-4
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-4_mul1_exp_22
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-4
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-4_mul10_exp_23
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-4
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-4_mul100_exp_24
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-4
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-5_div10_exp_25
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-5
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-5_mul1_exp_26
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-5
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-5_mul10_exp_27
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-5
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_ff
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_attn_and_ff_c_1e-5_mul100_exp_28
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_attn_and_ff
+  - c_1e-5
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_0_div10_exp_29
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_0
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_0_mul1_exp_30
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_0
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_0_mul10_exp_31
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_0
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_0_mul100_exp_32
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_0
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1_div10_exp_33
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1_mul1_exp_34
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1_mul10_exp_35
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1_mul100_exp_36
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-1_div10_exp_37
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-1_mul1_exp_38
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-1_mul10_exp_39
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-1_mul100_exp_40
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-2_div10_exp_41
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-2
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-2_mul1_exp_42
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-2
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-2_mul10_exp_43
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-2
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-2_mul100_exp_44
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-2
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-3_div10_exp_45
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-3
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-3_mul1_exp_46
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-3
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-3_mul10_exp_47
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-3
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-3_mul100_exp_48
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-3
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-4_div10_exp_49
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-4
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-4_mul1_exp_50
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-4
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-4_mul10_exp_51
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-4
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-4_mul100_exp_52
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-4
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-5_div10_exp_53
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-5
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-5_mul1_exp_54
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-5
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-5_mul10_exp_55
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-5
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_norm
+  - post_ff_norm
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_norm_c_1e-5_mul100_exp_56
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_norm
+  - c_1e-5
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_0_div10_exp_57
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_0
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_0_mul1_exp_58
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_0
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_0_mul10_exp_59
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_0
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_0_mul100_exp_60
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_0
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1_div10_exp_61
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1_mul1_exp_62
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1_mul10_exp_63
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1_mul100_exp_64
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-1_div10_exp_65
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-1_mul1_exp_66
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-1_mul10_exp_67
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-1_mul100_exp_68
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-2_div10_exp_69
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-2
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-2_mul1_exp_70
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-2
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-2_mul10_exp_71
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-2
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-2_mul100_exp_72
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-2
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-3_div10_exp_73
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-3
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-3_mul1_exp_74
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-3
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-3_mul10_exp_75
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-3
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-3_mul100_exp_76
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-3
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-4_div10_exp_77
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-4
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-4_mul1_exp_78
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-4
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-4_mul10_exp_79
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-4
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-4_mul100_exp_80
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-4
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-5_div10_exp_81
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-5
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-5_mul1_exp_82
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-5
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-5_mul10_exp_83
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-5
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn_add
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_post_add_c_1e-5_mul100_exp_84
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - post_add
+  - c_1e-5
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_0_div10_exp_85
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_0
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_0_mul1_exp_86
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_0
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_0_mul10_exp_87
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_0
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_0_mul100_exp_88
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_0
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1_div10_exp_89
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1_mul1_exp_90
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1_mul10_exp_91
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1_mul100_exp_92
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-1_div10_exp_93
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-1
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-1_mul1_exp_94
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-1
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-1_mul10_exp_95
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-1
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.1
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-1_mul100_exp_96
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-1
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-2_div10_exp_97
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-2
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-2_mul1_exp_98
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-2
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-2_mul10_exp_99
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-2
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.01
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-2_mul100_exp_100
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-2
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-3_div10_exp_101
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-3
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-3_mul1_exp_102
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-3
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-3_mul10_exp_103
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-3
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-3_mul100_exp_104
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-3
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-4_div10_exp_105
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-4
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-4_mul1_exp_106
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-4
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-4_mul10_exp_107
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-4
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=0.0001
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-4_mul100_exp_108
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-4
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 1.0e-05
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-5_div10_exp_109
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-5
+  - div10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.0001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-5_mul1_exp_110
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-5
+  - mul1
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.001
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-5_mul10_exp_111
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-5
+  - mul10
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
+---
+md5_parent_hash: 8556a2a83ef57f62cc46ac98fdde0763
+params:
+  grad_modif_params:
+  - layer_type=v4
+  - c=1e-05
+  - eps=0
+  grad_modif_placement:
+  - post_attn
+  - post_attn_norm
+  - post_attn_add
+  - post_ff
+  - post_ff_norm
+  - post_ff_add
+  grad_modif_type: std_norm
+  learning_rate: 0.01
+  n_steps: 2000
+  name: std_v4_c_lr_grid_placement_short_std_v4_all_c_1e-5_mul100_exp_112
+  tags:
+  - reduced_bs
+  - grad_norm
+  - std_v4
+  - short
+  - std_norm
+  - all
+  - c_1e-5
+  - mul100
+parent: configs/experiments/grad_norm/medium_reduced_bs.yaml
+time: 0-4:00:00
