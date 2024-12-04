@@ -46,7 +46,8 @@ def wrap_in_fsdp(
     wrapped = FSDP(
         module,
         sharding_strategy=ShardingStrategy.HYBRID_SHARD,  # sharded within node, data parallel across nodes
-        device_id=local_rank,
+        # device_id=local_rank
+        device_id=torch.cuda.current_device(),
         mixed_precision=MixedPrecision(
             param_dtype=param_precision,
             reduce_dtype=param_precision,
