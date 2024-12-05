@@ -29,6 +29,7 @@ def wrap_in_fsdp(
     min_num_params: int,
     modules_to_wrap: tuple[Type[nn.Module]],
     is_logging_process: bool,
+    device_mesh=None,
 ):
     assert (modules_to_wrap is None and min_num_params is not None) or (
         modules_to_wrap is not None and min_num_params is None
@@ -45,7 +46,7 @@ def wrap_in_fsdp(
 
     wrapped = FSDP(
         module,
-        sharding_strategy=ShardingStrategy.FULL_SHARD,
+        sharding_strategy=ShardingStrategy.HYBRID_SHARD,
         device_id=local_rank,
         mixed_precision=MixedPrecision(
             param_dtype=param_precision,
@@ -55,6 +56,7 @@ def wrap_in_fsdp(
         ),
         cpu_offload=CPUOffload(offload_params=offload_params),
         auto_wrap_policy=wrap_policy,
+        device_mesh=device_mesh,
     )
 
     if print_model and is_logging_process:
