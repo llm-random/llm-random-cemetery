@@ -1,7 +1,7 @@
 parent: configs/baselines/gpt/dense/mini.yaml
 md5_parent_hash: f181bf20ef729beb781a926a284a7e4f
-n_gpus: 8
-n_nodes: 2
+n_gpus: 1
+# n_nodes: 1
 time: "0-00:30:00"
 params:
     num_workers: 4
@@ -15,8 +15,8 @@ params:
     mixed_precision_dtype: bfloat16
     flash_attention: true
     fsdp_modules_to_wrap: "TransformerBlock,EmbeddingLayer,PredictionHead"
-    # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
-    # gradient_accumulation_steps: 4
+    activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+    gradient_accumulation_steps: 4
     ff_mode: vanilla
     dataset_type: c4
     learning_rate: 5e-4
@@ -31,3 +31,4 @@ params:
     eval_interval: 1000
     init_type: truncated_normal
     init_scale: 1.0
+    
