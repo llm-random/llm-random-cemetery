@@ -163,12 +163,8 @@ def start_job_manager_assessment(
 
     Currently do not take deadlocks into account!!!
     """
-    print("-------------------------------------------------------------------------") #dev
-    print("start_job_manager_assessment")
     timestamp_now = __get_manager_timestamp()
     if is_logging_process:
-        print("-------------------------------------------------------------------------") #dev
-        print("is_logging_process")
         with Locker(EXPERIMENT_CHECKPOINT_MANAGER, "r+") as f:
             manager = yaml.load(f, Loader=yaml.SafeLoader)
             if not manager:
@@ -191,15 +187,11 @@ def start_job_manager_assessment(
                         )
                         __overwrite_manager(manager, f)
                         break
-        print("-------------------------------------------------------------------------") #dev
-        print("Pr0 barrier")
         barrier()
         if result == -1:
             raise Exception("No available training to do")
         else:
             return result, metadata
-    print("-------------------------------------------------------------------------") #dev
-    print("Other barrier")
     barrier()
     try:
         with Locker(EXPERIMENT_CHECKPOINT_MANAGER, "r") as f:
