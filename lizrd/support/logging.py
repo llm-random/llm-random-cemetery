@@ -570,6 +570,8 @@ def log_and_print_model_param_count(args, model, vocab_size):
     )
     print(f"#tokens / #active:\t\t\t{args.token_to_active_ratio:.2f}")
 
+    return args.model_n_active_params
+
 
 def log_plot(figure: plotly.graph_objs.Figure, title: str, series: str, iteration: int):
     logger = get_current_logger()
