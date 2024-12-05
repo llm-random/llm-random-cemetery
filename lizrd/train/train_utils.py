@@ -34,6 +34,7 @@ def get_model(
     residual_fn: Callable[[], torch.nn.Module] = None,
     include_positional_embedding: bool = True,
     checkpoint: dict[str, torch.Tensor] = None,
+    device_mesh = None,
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -88,6 +89,7 @@ def get_model(
             min_num_params=fsdp_min_num_params,
             modules_to_wrap=fsdp_modules_to_wrap,
             is_logging_process=is_logging_process,
+            device_mesh=device_mesh
         )
 
     if activation_checkpointing_modules is not None:

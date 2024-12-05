@@ -285,11 +285,15 @@ def main(
 
     data_distributed = args.ddp_enabled or args.fsdp_enabled
 
+    device_mesh = None
+
     if data_distributed:
         if is_using_torchrun:
             local_rank = int(os.environ["LOCAL_RANK"])
             global_rank = int(os.environ["RANK"])
-            init_process_group("nccl")
+            # init_process_group("nccl")
+            from torch.distributed.device_mesh import init_device_mesh
+            device_mesh = init_device_mesh("cuda", (args.n_nodes, int(args.n_gpus / args.n_nodes)), mesh_dim_names=("replicate", "shard"))
         else:  # single-node multi-gpu without torchrun. We need to setup things manually
             local_rank = global_rank = rank
             os.environ["MASTER_ADDR"] = "localhost"
@@ -436,6 +440,7 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
+        device_mesh=device_mesh,
     )
 
     if is_logging_process:
