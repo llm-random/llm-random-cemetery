@@ -549,6 +549,10 @@ def main(
         if args.profiler_enabled
         else disable_profile_schedule_fn
     )
+    print("----------------------------------------------------------------")
+    print("args.scheduler_trapezoidal_slides: ", end="")
+    print(args.scheduler_trapezoidal_slides)
+    print("------------------------------------------------------------------------------------------------")
 
     trainer = ConditionalTrainer(
         model=model,
