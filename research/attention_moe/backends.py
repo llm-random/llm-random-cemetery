@@ -94,7 +94,7 @@ class AthenaBackend(MachineBackend):
         return f"/net/tscratch/people/{self.username}/.cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "lizrd/grid/grid_entrypoint.sh"
+        return "research/attention_moe/entrypoints/writer.sh"
 
     def get_cemetery_directory(self):
         return (
