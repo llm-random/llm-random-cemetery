@@ -432,5 +432,6 @@ def introduce_parser_arguments(
     parser.add_argument("--diff_transformer_lowrank_dim", type=int, default=0)
     parser.add_argument("--diff_transformer_flip_negative_heads", action="store_true")
     parser.add_argument("--diff_transformer_roll_negative_heads", action="store_true")
+    parser.add_argument("--diff_transformer_adapter_type", type=str, default="none")
 
     return parser

@@ -372,6 +372,7 @@ def get_attention_layer(args):
             flip_negative_heads=args.diff_transformer_flip_negative_heads,
             roll_negative_heads=args.diff_transformer_roll_negative_heads,
             num_kv_heads=args.n_kv_heads,
+            adapter_type=args.diff_transformer_adapter_type,
         )
     else:
         raise NotImplementedError(
