@@ -1,66 +1,83 @@
 checkpoints:
 -   create_timestamp: '2024-11-29T07:01:06.162'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
-    metadata: null
-    model_checkpoint: null
-    running_job_id: '1085173'
-    start_timestamp: '2024-11-29T07:01:06.162'
-    status: PENDING
-    stop_timestamp: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1099532/96979.pt
     metadata:
-      ignore_model_args: true
+        ignore_model_args: true
+    model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/56456.pt
+    running_job_id: '1099532'
+    start_timestamp: '2024-12-05T15:08:34.935'
+    status: FINISHED
+    stop_timestamp: '2024-12-06T14:54:25.971'
 -   create_timestamp: '2024-11-29T08:14:09.244'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1100870/7629.pt
     metadata: trapezoidal_slide
     model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/6102.pt
-    running_job_id: '1087001'
-    start_timestamp: '2024-12-01T06:46:24.494'
-    status: PENDING
-    stop_timestamp: null
+    running_job_id: '1100870'
+    start_timestamp: '2024-12-06T14:55:11.651'
+    status: FINISHED
+    stop_timestamp: '2024-12-06T15:19:47.462'
 -   create_timestamp: '2024-11-29T09:23:42.878'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1100899/11443.pt
     metadata: trapezoidal_slide
     model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/9917.pt
-    running_job_id: '1087003'
-    start_timestamp: '2024-12-01T07:11:10.799'
-    status: PENDING
-    stop_timestamp: null
+    running_job_id: '1100899'
+    start_timestamp: '2024-12-06T15:20:26.413'
+    status: FINISHED
+    stop_timestamp: '2024-12-06T15:55:41.973'
 -   create_timestamp: '2024-11-29T11:46:51.632'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1100947/15258.pt
     metadata: trapezoidal_slide
     model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/13731.pt
-    running_job_id: '1087007'
-    start_timestamp: '2024-12-01T07:46:56.794'
-    status: PENDING
-    stop_timestamp: null
+    running_job_id: '1100947'
+    start_timestamp: '2024-12-06T15:56:13.107'
+    status: FINISHED
+    stop_timestamp: '2024-12-06T16:57:34.106'
 -   create_timestamp: '2024-11-29T16:35:45.938'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1101028/22888.pt
     metadata: trapezoidal_slide
     model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/19835.pt
-    running_job_id: '1087085'
-    start_timestamp: '2024-12-01T08:48:49.481'
-    status: PENDING
-    stop_timestamp: null
+    running_job_id: '1101028'
+    start_timestamp: '2024-12-06T16:57:56.854'
+    status: FINISHED
+    stop_timestamp: '2024-12-06T18:51:56.130'
 -   create_timestamp: '2024-11-30T02:10:41.438'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1104286/38146.pt
     metadata: trapezoidal_slide
     model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/32042.pt
-    running_job_id: '1087384'
-    start_timestamp: '2024-12-01T12:51:18.962'
-    status: PENDING
-    stop_timestamp: null
+    running_job_id: '1104286'
+    start_timestamp: '2024-12-06T20:24:13.071'
+    status: FINISHED
+    stop_timestamp: '2024-12-07T00:06:05.674'
 -   create_timestamp: '2024-11-30T21:17:24.969'
     creator_job_id: '1085173'
-    final_model_checkpoint: null
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1104637/68664.pt
     metadata: trapezoidal_slide
     model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/constrained_scaling_grid_21_11_2024-11-28_15-42-29/constrained_scaling_laws_grid/1085173/56456.pt
-    running_job_id: '1087501'
-    start_timestamp: '2024-12-01T16:32:43.246'
+    running_job_id: '1104637'
+    start_timestamp: '2024-12-07T00:08:21.563'
+    status: FINISHED
+    stop_timestamp: '2024-12-07T07:23:49.671'
+-   create_timestamp: '2024-12-06T14:54:25.971'
+    creator_job_id: '1099532'
+    final_model_checkpoint: null
+    metadata: null
+    model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1099532/96979.pt
+    running_job_id: '1104803'
+    start_timestamp: '2024-12-07T07:24:57.219'
     status: PENDING
     stop_timestamp: null
+-   create_timestamp: '2024-12-07T12:25:07.370'
+    creator_job_id: '1104803'
+    final_model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1105687/129699.pt
+    metadata: trapezoidal_slide
+    model_checkpoint: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/constrained_scaling_grid_21_11_2024-12-05_15-07-44/constrained_scaling_laws_grid/1104803/105284.pt
+    running_job_id: '1105687'
+    start_timestamp: '2024-12-08T07:24:56.565'
+    status: FINISHED
+    stop_timestamp: '2024-12-08T21:47:27.600'
