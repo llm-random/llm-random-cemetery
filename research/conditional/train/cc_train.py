@@ -8,7 +8,7 @@ import socket
 
 import torch
 import torch.multiprocessing as mp
-from torch.distributed import init_process_group, destroy_process_group
+from torch.distributed import init_process_group, destroy_process_group, barrier
 from ast import literal_eval
 
 from lizrd.core import misc
@@ -606,6 +606,7 @@ def main(
     )
     trainer.train(args.n_steps)
 
+    barrier()
     if rank is not None:
         destroy_process_group()
 
