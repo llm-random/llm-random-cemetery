@@ -3,7 +3,7 @@ import torch
 from fancy_einsum import einsum
 from plotly import express as px
 
-from lizrd.support.logging import make_histogram
+from lizrd.support.logging import make_histogram, logg_tokens_in_experts
 from lizrd.train import checkpointing
 import torch.nn.functional as F
 
@@ -306,6 +306,8 @@ class TokenGating(MoeGating):
     def calculate_balancing_loss(self, gate_out, expert_mask):
         with measure_time(self, "calculate aux loss"):
             tokens_per_expert = expert_mask.sum(dim=0, dtype=gate_out.dtype)
+            print(f'expert mask shape: {expert_mask.shape}')
+            print(f'tokens_per_expert shape: {tokens_per_expert.shape}')
             load_balancing_loss = calculate_load_balancing_loss(
                 self.load_balancing_loss_weight,
                 gate_out,
@@ -389,6 +391,9 @@ class TokenGating(MoeGating):
             "tokens_per_expert_counts": make_histogram(
                 self.logging_cache["tokens_per_expert"]
             ),
+            "jm_tokens_in_experts": logg_tokens_in_experts(
+                self.logging_cache["tokens_per_expert"]
+            )
         }
 
 
