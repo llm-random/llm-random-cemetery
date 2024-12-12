@@ -1,0 +1,74 @@
+time: "4-00:00:00"
+
+# n_gpus: 4
+# cpus_per_gpu: 16
+
+params:
+  name: "bad_routing"
+  tags: ["bad_routing", "remove"]
+
+  # training
+  # n_steps: 30000
+  n_steps: 30
+  final_lr_step: 30000
+  lr_warmup_steps: 300
+  batch_size: 512
+  cutoff: 512
+
+  # model
+  model_type: gpt
+  dmodel: 768
+  n_att_heads: 12
+  n_blocks: 24
+  effective_dff_x: 3  # went from 4 -> 3
+  expansion_rate: 8
+  granularity: 8
+  ff_mode: token_choice
+  moe_inner_expert: swi_glu
+  use_torch_bmm: true
+  softmax_over: experts
+  group_granular_moe_by_batch: true
+  granular_moe_one_hot_impl: true
+
+  # learning
+  scheduler: cosine
+  learning_rate: 5e-4
+  # ^learning_rate: [1e-3, 5e-4, 2e-4, 1e-4, 5e-5]
+  final_lr_fraction: 0.1
+  grad_clip: 0.5
+  weight_decay: 0.01
+  init_scale: 0.1
+  init_type: truncated_normal
+  capacity_factor: 1.0
+  # ^capacity_factor: [1.0, 50.0]
+
+  # aux losses
+  load_balancing_loss_weight: 0.01
+  zloss_weight: 0.001
+
+  # other
+  dataset_type: c4
+  mixed_precision: true
+  flash_attention: true
+  mixed_precision_dtype: bfloat16
+
+  # logging etc.
+  logger_types: "neptune"
+  project_name: "pmtest/llm-random"
+  # logging_interval_heavy: 500
+  logging_interval_heavy: 5
+  logging_interval_loss: 500
+  save_weights_interval: -1
+
+  # debug
+  # logger_types: "stdout"
+  # n_steps: 100
+  batch_size: 8
+  cutoff: 16
+  use_dummy_dataset: true
+  n_blocks: 2
+  dmodel: 16
+  n_att_heads: 2
+  granularity: 1
+
+  # print_parameter_names: true
