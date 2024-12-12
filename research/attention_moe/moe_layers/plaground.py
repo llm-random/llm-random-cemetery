@@ -66,7 +66,7 @@ k.shape
 # print(k_gathered.shape)
 
 # %%
-k_gathered
+# k_gathered
 # experts_output =
 
 # print(experts_input.shape)
@@ -79,7 +79,7 @@ k_gathered
 # )
 # print(gating)
 # %%
-import os
+# import os
 import sys
 
 
@@ -92,10 +92,11 @@ add_to_path("/Users/maciej/Documents/llm-random")
 # print(os.getcwd())
 
 #
-from research.attention_moe.moe_layers_cc.moe_gating import TokenGating
+# from research.attention_moe.moe_layers_cc.moe_gating import TokenGating
 
 # import lizrd
 # %%
 from einops import einsum
 
 einsum
+#
