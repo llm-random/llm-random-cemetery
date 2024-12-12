@@ -660,3 +660,7 @@ def make_histogram(tensor, **kwargs):
     return px.histogram(
         prepare_tensor_for_logging(tensor, with_replacement=False), **kwargs
     )
+
+
+def logg_tokens_in_experts(tensor: torch.Tensor, **kwargs):
+    return px.histogram(tensor.tolist(), **kwargs)
