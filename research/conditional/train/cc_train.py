@@ -168,6 +168,8 @@ def convert_parameters(args):
         args.scheduler_trapezoidal_slides = literal_eval(
             args.scheduler_trapezoidal_slides
         )
+        if args.logger_runs_ids:
+            assert len(args.logger_runs_ids) + 1 == len(args.scheduler_trapezoidal_slides)
         new_scheduler_trapezoidal_slides = []
         for slide in args.scheduler_trapezoidal_slides:
             if "n_tokens" in slide:
