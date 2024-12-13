@@ -7,6 +7,7 @@ from typing import List, Optional
 
 import neptune
 import numpy as np
+import pandas as pd
 import plotly
 import plotly.express as px
 import torch
@@ -660,3 +661,19 @@ def make_histogram(tensor, **kwargs):
     return px.histogram(
         prepare_tensor_for_logging(tensor, with_replacement=False), **kwargs
     )
+
+
+def logg_tokens_in_experts(tensor: torch.Tensor, **kwargs):
+    # Convert tensor to list
+    values = tensor.tolist()
+    
+    # Create a DataFrame for better handling
+    df = pd.DataFrame({
+        'Expert': list(range(len(values))),
+        'tokens': values
+    })
+    
+    # Create a bar chart
+    fig = px.bar(df, x='Expert', y='tokens', **kwargs)
+    
+    return fig
