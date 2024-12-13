@@ -421,6 +421,10 @@ def main(
     if is_logging_process:
         if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
             logger_runs_ids = checkpoint["logger"]["run_id"]
+            print("logger_runs_ids ----------------------------------------------------------------------------------")
+            print(type(logger_runs_ids))
+            print(logger_runs_ids) #dev
+            print("logger_runs_ids ------------------------------------------------------------")
         else:
             if args.scheduler_trapezoidal_slides:
                 logger_runs_ids = []
