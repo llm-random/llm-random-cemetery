@@ -3,7 +3,7 @@ import torch
 from fancy_einsum import einsum
 from plotly import express as px
 
-from lizrd.support.logging import make_histogram
+from lizrd.support.logging import make_histogram, logg_tokens_in_experts
 from lizrd.train import checkpointing
 import torch.nn.functional as F
 
@@ -389,6 +389,9 @@ class TokenGating(MoeGating):
             "tokens_per_expert_counts": make_histogram(
                 self.logging_cache["tokens_per_expert"]
             ),
+            "jm_tokens_in_experts": logg_tokens_in_experts(
+                self.logging_cache["tokens_per_expert"]
+            )
         }
 
 
