@@ -256,7 +256,8 @@ class IdeasBackend(MachineBackend):
 
 
 class EntropyBackend(MachineBackend):
-    max_exp_time = 14 * 24 * 60 * 60
+    # max_exp_time = 14 * 24 * 60 * 60
+    max_exp_time = 55 * 60
 
     def get_common_directory(self) -> str:
         return "/home/jkrajewski_a100"
