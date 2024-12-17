@@ -63,7 +63,8 @@ params:
   mixed_precision: true
   flash_attention: true
   mixed_precision_dtype: bfloat16
-  data_seed: 101
+  # data_seed: 101
+  ^data_seed: [102, 103, 104, 105, 106, 107, 108, 109, 110]
 
   # logging etc.
   logger_types: "neptune"
