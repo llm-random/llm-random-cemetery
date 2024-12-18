@@ -256,7 +256,8 @@ class IdeasBackend(MachineBackend):
 
 
 class EntropyBackend(MachineBackend):
-    max_exp_time = 14 * 24 * 60 * 60
+    # max_exp_time = 14 * 24 * 60 * 60
+    max_exp_time = 55 * 60
 
     def get_common_directory(self) -> str:
         return "/home/jkrajewski_a100"
@@ -303,6 +304,8 @@ class EntropyBackend(MachineBackend):
             "run",
             *singularity_env_arguments,
             make_singularity_mount_paths(setup_args, training_args),
+            "-B /local_storage_1",
+            "-B /local_storage_2",
             "--nv",
             setup_args["singularity_image"],
             *self.get_runner_command(setup_args["runner"], runner_params),
