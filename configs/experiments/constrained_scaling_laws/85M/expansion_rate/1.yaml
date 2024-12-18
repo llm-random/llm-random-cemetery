@@ -3,7 +3,11 @@ md5_parent_hash: 13be260becb886bbd310ebb0983a809f
 n_gpus: 2 # works for athena
 
 params:
-  tags: ["constrained_scaling_grid", "85M", "E=1"]
+  tags: ["constrained_scaling_grid", "85M", "E=1", "V2"]
   expansion_rate: 1
   gradient_accumulation_steps: 2
+  scheduler_trapezoidal_slides: "[]"
+  logger_runs_ids: "['LLMRANDOM-22395']"
+  iteration_logging_threshold: 349425
+
 
