@@ -108,6 +108,32 @@ class MultiheadFlashDiff1(nn.Module):
                 init_scale,
                 output_dim=2 * self.head_dim * self.num_kv_heads,
             )
+        elif self.adapter_type == "additive":
+            self.k_delta = nn.Parameter(
+                torch.zeros(
+                    2 * self.head_dim * self.num_kv_heads, dtype=torch.float32
+                ).normal_(mean=0, std=0.1)
+            )
+            self.q_delta = nn.Parameter(
+                torch.zeros(self.embed_dim, dtype=torch.float32).normal_(
+                    mean=0, std=0.1
+                )
+            )
+        elif self.adapter_type == "multiplicative":
+            self.k_delta = nn.Parameter(
+                torch.zeros(
+                    2 * self.head_dim * self.num_kv_heads, dtype=torch.float32
+                ).normal_(mean=1, std=0.1)
+            )
+            self.q_delta = nn.Parameter(
+                torch.zeros(self.embed_dim, dtype=torch.float32).normal_(
+                    mean=1, std=0.1
+                )
+            )
+        elif self.adapter_type == "none":
+            pass
+        else:
+            raise NotImplementedError
 
         self.scaling = self.head_dim**-0.5
 
@@ -194,13 +220,13 @@ class MultiheadFlashDiff1(nn.Module):
             q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
             k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
             v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            k_negative = k.clone()
+            k_negative = k + self.k_delta
             q_negative = q + self.q_delta
         elif self.adapter_type == "multiplicative":
             q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
             k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
             v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            k_negative = k.clone()
+            k_negative = k * self.k_delta
             q_negative = q * self.q_delta
         elif self.adapter_type == "identity":
             q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
