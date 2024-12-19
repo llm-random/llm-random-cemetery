@@ -11,7 +11,7 @@ interactive_debug: false
 params:
   name: "muP_MoE_10_step"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "10_step"]
+  tags: ["muP_MoE", "muTransfer", "10_step_test"]
 
   mup_params:
     ^alpha_in: [20.0]
@@ -28,8 +28,8 @@ params:
 
   # model
   model_type: gpt
-  # dmodel: 32
-  ^dmodel: [32, 64, 128, 256, 512]
+  dmodel: 32
+  # ^dmodel: [32, 64, 128, 256, 512]
   dff_ratio: 4
   n_blocks: 4
   n_att_heads: 4
@@ -64,9 +64,10 @@ params:
   flash_attention: true
   mixed_precision_dtype: bfloat16
   data_seed: 101
+  # ^data_seed: [102, 103, 104, 105, 106, 107, 108, 109, 110]
 
   # logging etc.
-  logger_types: "neptune"
+  logger_types: "neptune,stdout"
   project_name: "pmtest/llm-random"
   logging_interval_heavy: 1
   # logging_interval_light: 50
