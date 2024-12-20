@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/diff_attn/20.12_multiadd_adapter.yaml --git_branch=debug_diff_2024-12-20_20-30-56 --skip_copy_code --custom_backends_module=research.attention_moe.backends
