@@ -53,6 +53,13 @@ class Lowrank(nn.Module):
     def forward(self, x):
         return self.w2(self.w1(x))
 
+def manual_attention(q, k, v):
+    ...# manual implementation of attention
+    att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
+    att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
+    att = F.softmax(att, dim=-1)
+    att = self.attn_dropout(att)
+    y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
 
 class MultiheadFlashDiff1(LoggingLayer):
     """
@@ -322,18 +329,20 @@ class MultiheadFlashDiff1(LoggingLayer):
             q2 = torch.roll(q2, shifts=1, dims=(2,))
             k2 = torch.roll(k2, shifts=1, dims=(2,))
 
-        attn1 = flash_attn_func(
-            q1,
-            k1,
-            v,
-            causal=True,
-        )
-        attn2 = flash_attn_func(
-            q2,
-            k2,
-            v,
-            causal=True,
-        )
+        if self.use_flash_attn:
+            attn1 = flash_attn_func(
+                q1,
+                k1,
+                v,
+                causal=True,
+            )
+            attn2 = flash_attn_func(
+                q2,
+                k2,
+                v,
+                causal=True,
+            )
+        elif 
 
         lambda_1 = torch.exp(
             torch.sum(self.lambda_q1 * self.lambda_k1, dim=-1).float()
