@@ -224,6 +224,8 @@ class ConditionalTrainer:
             for step in range(self.start_step, n_steps + 1):
                 self.current_step = step
                 self._train_step(step)
+                if step == 9:
+                    torch.cuda.memory._dump_snapshot("/home/crewtool_a100/ohoh_malo.pickle")
                 if self._repeater_rerun(step, self.repeater_job_end_time):
                     break
 
