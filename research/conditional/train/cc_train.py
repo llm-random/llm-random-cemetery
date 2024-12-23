@@ -135,6 +135,7 @@ def main(
     """
     rank: int - the ID of the current process (usually also the GPU ID). Only relevant for multi-GPU training.
     """
+    torch.cuda.memory._record_memory_history()
     if runner_params is not None:
         parser = argparse.ArgumentParser()
         introduce_parser_arguments(parser)
