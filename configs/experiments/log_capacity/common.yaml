@@ -40,8 +40,8 @@ params:
   # batch size
   batch_size: 512
   cutoff: 512
-  batch_size_rampup_transition_points: [0.5, 1.0]
-  batch_size_rampup_sizes: [128, 256]
+  # batch_size_rampup_transition_points: [0.5, 1.0]
+  # batch_size_rampup_sizes: [128, 256]
 
   # eval
   final_eval_seed: 420
