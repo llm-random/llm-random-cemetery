@@ -18,13 +18,13 @@ from lizrd.support.misc import (
     get_n_learnable_parameters,
     set_seed,
 )
-from lizrd.train.train_utils import (
+from ..train_utils import (
     get_model,
 )
 from lizrd.text import tokenizers
 from research.attention_moe.utils.check_args import check_args
 from research.attention_moe.utils.misc_tools import get_termination_timestamp_slurm
-from research.datasets import DataloaderWrapper, get_processed_dataset
+from research.attention_moe.datasets import DataloaderWrapper, get_processed_dataset
 from lizrd.train.scheduler import get_scheduler
 from research.attention_moe.utils.trainer import ConditionalTrainer
 from research.attention_moe.utils.argparse import introduce_parser_arguments
