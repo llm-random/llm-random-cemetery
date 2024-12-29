@@ -1,6 +1,7 @@
 import math
 import torch
 from torch import nn
+import torch.nn.functional as F
 
 from lizrd.core.misc import Linear, LoggingLayer
 
@@ -54,14 +55,19 @@ class Lowrank(nn.Module):
         return self.w2(self.w1(x))
 
 
-# def manual_attention(q, k, v):
-#     ...# manual implementation of attention
-#     att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(k.size(-1)))
-#     att = att.masked_fill(self.bias[:,:,:T,:T] == 0, float('-inf'))
-#     torch.tril(torch.ones(config.block_size, config.block_size)).view(1, 1, config.block_size, config.block_size))
-#     att = F.softmax(att, dim=-1)
-#     att = self.attn_dropout(att)
-#     y = att @ v # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+def manual_attention(q, k, v, causal=True):
+    """Preserves flashattention's interface, but also returns attention weights"""
+    # ...# manual implementation of attention
+    if not causal:
+        raise NotImplementedError
+    bs, nh, slen, head_dim = q.shape
+    att = (q @ k.transpose(-2, -1)) * (1.0 / math.sqrt(head_dim))
+    att = att.masked_fill(
+        torch.tril(torch.ones(slen, slen).to(att)) == 0, float("-inf")
+    )
+    att = F.softmax(att, dim=-1)
+    y = att @ v  # (B, nh, T, T) x (B, nh, T, hs) -> (B, nh, T, hs)
+    return y, att
 
 
 class MultiheadFlashDiff1(LoggingLayer):
@@ -90,6 +96,8 @@ class MultiheadFlashDiff1(LoggingLayer):
         super().__init__()
         # self.args = args
         self.embed_dim = embed_dim
+        self.save_attention_weights = False
+        self.attention_weights = None
         # num_heads set to half of Transformer's #heads
         self.num_heads = num_heads  # // args.model_parallel_size
         # self.num_kv_heads = (
@@ -332,21 +340,6 @@ class MultiheadFlashDiff1(LoggingLayer):
             q2 = torch.roll(q2, shifts=1, dims=(2,))
             k2 = torch.roll(k2, shifts=1, dims=(2,))
 
-        # if self.use_flash_attn:
-        attn1 = flash_attn_func(
-            q1,
-            k1,
-            v,
-            causal=True,
-        )
-        attn2 = flash_attn_func(
-            q2,
-            k2,
-            v,
-            causal=True,
-        )
-        # elif
-
         lambda_1 = torch.exp(
             torch.sum(self.lambda_q1 * self.lambda_k1, dim=-1).float()
         ).type_as(q)
@@ -356,6 +349,55 @@ class MultiheadFlashDiff1(LoggingLayer):
         lambda_full = lambda_1 - lambda_2 + self.lambda_init
 
         self.update_cache_for_logging("lambda", lambda_full)
+
+        if self.save_attention_weights:
+            attn1, attn1_scores = manual_attention(
+                q1,
+                k1,
+                v,
+                causal=True,
+            )
+            attn2, attn2_scores = manual_attention(
+                q2,
+                k2,
+                v,
+                causal=True,
+            )
+            if self.block_number == 0:
+                reference_attn1 = flash_attn_func(
+                    q1,
+                    k1,
+                    v,
+                    causal=True,
+                )
+                reference_attn2 = flash_attn_func(
+                    q2,
+                    k2,
+                    v,
+                    causal=True,
+                )
+                assert torch.allclose(
+                    attn1, reference_attn1
+                ), f"Manual attn1 does not match reference attn1"
+                assert torch.allclose(
+                    attn2, reference_attn2
+                ), f"Manual attn2 does not match reference attn2"
+
+            differential_scores = attn1_scores - lambda_full * attn2_scores
+            self.attention_weights = differential_scores
+        else:
+            attn1 = flash_attn_func(
+                q1,
+                k1,
+                v,
+                causal=True,
+            )
+            attn2 = flash_attn_func(
+                q2,
+                k2,
+                v,
+                causal=True,
+            )
 
         attn = attn1 - lambda_full * attn2
 
