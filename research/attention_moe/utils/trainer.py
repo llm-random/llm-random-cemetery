@@ -153,6 +153,7 @@ class ConditionalTrainer:
             for step in range(self.start_step, n_steps + 1):
                 self.current_step = step
                 self._train_step(step)
+                self.evaluate_attention(step)
                 if self._repeater_rerun(step, self.repeater_job_end_time):
                     break
                 if self.profiler_enabled:
@@ -198,6 +199,50 @@ class ConditionalTrainer:
             self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
         self._save_weights(step)
+
+    def evaluate_attention(self, step):
+        self.model.eval()
+        batch = self.eval_dataloader.get_batch()
+
+        # 1. split batch into examples
+        # 2. get attention weights for each example
+        # 3. stack the attention weights for each layer
+        # 4. get the relevancy score
+        # batches = [self.eval_dataloader.get_batch() for _ in range(self.n_eval_batches
+        with torch.no_grad():
+            # self.layer_manager.set_save_attention_weights(True)
+            for layer in self.model.modules():
+                if hasattr(layer, "save_attention_weights"):
+                    layer.save_attention_weights = True
+            input_tokens = batch.input_ids
+            model_output = self.model(input_tokens)
+
+            for layer in self.model.modules():
+                if hasattr(layer, "attention_weights"):
+                    depth = layer.block_number
+                    attention_weights = layer.attention_weights
+                    # attention_weights = torch.stack(attention_weights, dim=0)
+                    # relevancy_score = torch.sum(attention_weights, dim=0)
+                    # relevancy_score = torch.sum(relevancy_score, dim=0)
+                    # relevancy_score = relevancy_score / torch.sum(relevancy_score)
+                    # print(relevancy_score)
+                    if self.is_logging_process:
+                        print(f"Got weights: {attention_weights.shape} @ depth={depth}")
+
+            # for module in self.model.modules():
+            #     if hasattr(module, "attention_weights"):
+            #         attention_weights = module.attention_weights
+            #         # attention_weights = torch.stack(attention_weights, dim=0)
+            #         # relevancy_score = torch.sum(attention_weights, dim=0)
+            #         # relevancy_score = torch.sum(relevancy_score, dim=0)
+            #         # relevancy_score = relevancy_score / torch.sum(relevancy_score)
+            #         # print(relevancy_score)
+            #         print(attention_weights)
+
+            for layer in self.model.modules():
+                if hasattr(layer, "save_attention_weights"):
+                    layer.save_attention_weights = True
+                    layer.attention_weights = None
 
     def calculate_loss_and_gradient(self, processed_batch: LLMBatch):
         """gradient accumulation: slice the batch into minibatches, get gradients from each, then average and apply them
