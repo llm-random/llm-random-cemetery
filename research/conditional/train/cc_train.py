@@ -387,15 +387,15 @@ def main(
         dataset_path=args.validation_dataset_path,
     )
 
-    if args.model_type == "gpt" and is_logging_process:
-        log_batch(
-            train_dataloader,
-            tokenizer_maker=(
-                tokenizers.GPTTokenizer
-                if args.model_type == "gpt"
-                else tokenizers.BertTokenizer
-            ),
-        )
+    # if args.model_type == "gpt" and is_logging_process:
+    #     log_batch(
+    #         train_dataloader,
+    #         tokenizer_maker=(
+    #             tokenizers.GPTTokenizer
+    #             if args.model_type == "gpt"
+    #             else tokenizers.BertTokenizer
+    #         ),
+    #     )
 
     profiler_schedule = (
         torch.profiler.schedule(
