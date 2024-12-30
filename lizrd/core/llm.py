@@ -290,17 +290,40 @@ class Attention(LoggingLayer):
         )
         self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
 
+    # def forward(self, x):
+    #     projected = self.input_projection(x)
+
+    #     # batch, seq_len = x.shape[:-1]
+    #     # projected = projected.view(
+    #     #     batch, seq_len, self.heads, 3 * self.dhead
+    #     # ).transpose(1, 2)
+    #     # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+
+    #     batch, seq_len = x.shape[:-1]
+    #     q_chunk, k_chunk, v_chunk = torch.chunk(projected, chunks=3, dim=-1)
+    #     q = q_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+    #     k = k_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+    #     v = v_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+
+    #     attention_output = self.attention_mechanism(
+    #         query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
+    #     )
+
+    #     output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
+
+    #     return output
+
     def forward(self, x):
         projected = self.input_projection(x)
 
         batch, seq_len = x.shape[:-1]
-        projected = projected.view(
-            batch, seq_len, self.heads, 3 * self.dhead
-        ).transpose(1, 2)
-        q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        q_chunk, k_chunk, v_chunk = torch.chunk(projected, chunks=3, dim=-1)
+        q = q_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+        k = k_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+        v = v_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
 
         attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
+            query=q, key=k, value=v, causal=self.causal
         )
 
         output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
@@ -422,14 +445,31 @@ class Attention(LoggingLayer):
         )
         self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
 
+    # def forward(self, x):
+    #     projected = self.input_projection(x)
+
+    #     batch, seq_len = x.shape[:-1]
+    #     projected = projected.view(
+    #         batch, seq_len, self.heads, 3 * self.dhead
+    #     ).transpose(1, 2)
+    #     q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+
+    #     attention_output = self.attention_mechanism(
+    #         query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
+    #     )
+
+    #     output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
+
+    #     return output
+
     def forward(self, x):
         projected = self.input_projection(x)
 
         batch, seq_len = x.shape[:-1]
-        projected = projected.view(
-            batch, seq_len, self.heads, 3 * self.dhead
-        ).transpose(1, 2)
-        q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        q_chunk, k_chunk, v_chunk = torch.chunk(projected, chunks=3, dim=-1)
+        q = q_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+        k = k_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
+        v = v_chunk.view(batch, seq_len, self.heads, -1).transpose(1, 2)
 
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
