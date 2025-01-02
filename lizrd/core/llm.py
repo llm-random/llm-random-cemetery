@@ -71,7 +71,7 @@ def FeedForward(
                         init_scale=init_scale,
                     ),
                 ),
-                ("relu", nn.ReLU()),
+                ("gelu", nn.GELU()),
                 (
                     "logging_ff_post_relu",
                     Linear(
