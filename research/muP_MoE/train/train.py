@@ -74,6 +74,14 @@ def convert_args(args):
     if args.mup_params is not None:
         args.mup_params["m_d"] = args.dmodel / args.mup_params["base_dmodel"]
 
+    if args.dhead is None and args.n_att_heads is not None:
+        assert args.dmodel % args.n_att_heads == 0
+        args.dhead = args.dmodel // args.n_att_heads
+
+    if args.n_att_heads is None and args.dhead is not None:
+        assert args.dmodel % args.dhead == 0
+        args.n_att_heads = args.dmodel // args.dhead
+
 
 def get_muP_learning_rates(args, model, m_d=1.0):
     lr = args.learning_rate
