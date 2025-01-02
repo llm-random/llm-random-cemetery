@@ -196,6 +196,8 @@ def calculate_llm_loss_and_gradient(
 
 
 def get_attention_layer(args):
+    print("D_HEAD", args.dhead)
+    print("N_ATT_HEADS", args.n_att_heads)
     causal = args.model_type == "gpt"
     if args.attention_mode == "vanilla":
         attention_layer_fun = lambda: llm.Attention(

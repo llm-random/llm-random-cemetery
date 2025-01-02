@@ -74,6 +74,14 @@ def convert_args(args):
     if args.mup_params is not None:
         args.mup_params["m_d"] = args.dmodel / args.mup_params["base_dmodel"]
 
+    if args.dhead is None and args.n_att_heads is not None:
+        assert args.dmodel % args.n_att_heads == 0
+        args.dhead = args.dmodel // args.n_att_heads
+
+    if args.n_att_heads is None and args.dhead is not None:
+        assert args.dmodel % args.dhead == 0
+        args.n_att_heads = args.dmodel // args.dhead
+
 
 def get_muP_learning_rates(args, model, m_d=1.0):
     lr = args.learning_rate
@@ -110,8 +118,8 @@ def apply_muP_init(args, model, init_base_value=1.0, m_d=1.0, n_blocks=1.0):
     if args.load_weights_path is None:
         return
 
-    if m_d == 1.0:
-        return
+    # if m_d == 1.0:
+    #     return
 
     key_init_dict = {
         "embedding_layer": 1.0,
@@ -136,6 +144,8 @@ def apply_muP_init(args, model, init_base_value=1.0, m_d=1.0, n_blocks=1.0):
             if keyword in name:
                 scale = key_init_dict[keyword]
                 break
+        print(f"Initializing {name} with scale {scale}")
+        print(f"Resulting std: {(init_base_value * scale) ** 0.5}")
         torch.nn.init.normal_(
             param.data, mean=0.0, std=(init_base_value * scale) ** 0.5
         )
