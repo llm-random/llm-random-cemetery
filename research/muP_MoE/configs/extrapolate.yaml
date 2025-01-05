@@ -11,34 +11,34 @@ interactive_debug: false
 params:
   name: "muP_MoE_extrpl"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "kc_version_2", "kc_extrapolation"]
+  tags: ["muP_MoE", "muTransfer", "kc_mup_grid", "kc_version_3", "like_blog"]
 
   mup_params:
-    ^alpha_in: [10.0]
-    ^alpha_out: [0.2]
+    ^alpha_in: [1.0]
+    ^alpha_out: [1.0]
     # alpha_in: 5.0
     # alpha_out: 0.2
-    base_dmodel: 64
+    base_dmodel: 256
 
   # training
-  n_steps: 25000
-  final_lr_step: 25000
-  lr_warmup_steps: 250
+  n_steps: 1000
+  final_lr_step: 1000
+  lr_warmup_steps: 100
   # n_steps: 4000
   # final_lr_step: 4000
   # lr_warmup_steps: 100
-  batch_size: 64
-  cutoff: 128
+  batch_size: 32
+  cutoff: 1024
 
   # model
   model_type: gpt
   # ^dmodel: [768]
-  ^dmodel: [32, 64, 128, 256, 512]
+  ^dmodel: [256, 512, 1024, 2048]
   # ^dmodel: [32, 64, 128, 256, 512]
   # ^dmodel: [128, 256]
   dff_ratio: 4
-  n_blocks: 4
-  n_att_heads: 4
+  n_blocks: 2
+  dhead: 64
   attention_mode: 'vanilla'
   attention_normalization: 'dhead'
   ff_mode: vanilla
@@ -47,11 +47,11 @@ params:
   # learning
   scheduler: cosine
   # learning_rate: 2e-2
-  ^learning_rate: [1e-1, 5e-2, 2e-2, 1e-2, 5e-3, 2e-3, 1e-3]
+  ^learning_rate: [0.125, 0.0625, 0.03125, 0.015625, 0.0078125, 0.00390625, 0.001953125, 0.0009765625, 0.00048828125, 0.000244140625, 0.0001220703125, 0.00006103515625]
   final_lr_fraction: 0.1
-  grad_clip: 0.5
-  ^weight_decay: [0.01, 0.0]
-  ^init_scale: [0.1]
+  grad_clip: 1
+  ^weight_decay: [0.1]
+  ^init_scale: [0.0004]
   init_type: truncated_normal
   capacity_factor: 1.0
 
@@ -70,12 +70,12 @@ params:
   mixed_precision: true
   flash_attention: true
   mixed_precision_dtype: bfloat16
-  data_seed: 101
+  ^data_seed: [101, 102, 103]
 
   # logging etc.
   logger_types: "neptune"
   project_name: "pmtest/llm-random"
-  logging_interval_heavy: 1000
+  logging_interval_heavy: 100
   # logging_interval_light: 50
   # logging_interval_loss: 20
   # save_weights_interval: null
