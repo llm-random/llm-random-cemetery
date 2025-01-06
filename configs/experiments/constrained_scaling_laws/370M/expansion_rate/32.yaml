@@ -1,9 +1,18 @@
 parent: configs/experiments/constrained_scaling_laws/370M/model.yaml
 md5_parent_hash: 53d19b0a28f041bce199ecbbfaf8889a
-n_gpus: 4 # works for athena
+n_gpus: 8 # works for athena
+# time: "5-00:00:00"
 
 params:
-  tags: ["constrained_scaling_grid", "370M", "E=32"]
+  tags: ["constrained_scaling_grid", "370M", "E=32", "V2"]
   expansion_rate: 32
   gradient_accumulation_steps: 2
+  scheduler_trapezoidal_slides: "[{'n_tokens':64},{'n_tokens':80},{'n_tokens':96},{'n_tokens':112}]"
+  logger_runs_ids: "['LLMRANDOM-23685','LLMRANDOM-23686','LLMRANDOM-23687','LLMRANDOM-23688','LLMRANDOM-23689']"
+  iteration_logging_threshold: 202900
+  num_workers: 2
 
+  # scheduler_trapezoidal_slides: "[{'n_tokens':32},{'n_tokens':48},{'n_tokens':64},{'n_tokens':80},{'n_tokens':96},{'n_tokens':112}]"
+  # logger_runs_ids: "['LLMRANDOM-23683','LLMRANDOM-23684','LLMRANDOM-23685','LLMRANDOM-23686','LLMRANDOM-23687','LLMRANDOM-23688','LLMRANDOM-23689']"
+  # iteration_logging_threshold: 86000
+  # num_workers: 2
