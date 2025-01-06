@@ -1,9 +1,11 @@
 parent: configs/experiments/constrained_scaling_laws/190M/model.yaml
 md5_parent_hash: 2d869341e25fbb090df80b68a7091fbf
 n_gpus: 2 # works for athena
+time: "5-00:00:00"
 
 params:
-  tags: ["constrained_scaling_grid", "190M", "E=2"]
+  tags: ["constrained_scaling_grid", "190M", "E=2", "V2"]
   expansion_rate: 2
   gradient_accumulation_steps: 2
-
+  # scheduler_trapezoidal_slides: "[{'n_tokens':32},{'n_tokens':48},{'n_tokens':64},{'n_tokens':80},{'n_tokens':96},{'n_tokens':112}]"
+  # logger_runs_ids: "['LLMRANDOM-23002','LLMRANDOM-23003','LLMRANDOM-23004','LLMRANDOM-23005','LLMRANDOM-23006','LLMRANDOM-23007','LLMRANDOM-23008']"
