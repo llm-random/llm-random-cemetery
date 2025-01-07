@@ -59,7 +59,7 @@ params:
   # n_steps: 488297
   save_weights_path: "./constrained_scaling_laws_grid"
   checkpoint_manager: True
-  scheduler_trapezoidal_slides: "[{'n_tokens':0.5},{'n_tokens':1},{'n_tokens':2},{'n_tokens':4},{'n_tokens':8},{'n_tokens':16},{'n_tokens':32},{'n_tokens':48},{'n_tokens':64},{'n_tokens':80},{'n_tokens':96},{'n_tokens':112}]"
+  scheduler_trapezoidal_slides: "[{'n_tokens':1},{'n_tokens':4}]"
   # scheduler_trapezoidal_slides: "[{'n_steps':1923},{'n_steps':3830},{'n_steps':7645},{'n_steps':15274},{'n_steps':30533},{'n_steps':61051},{'n_steps':122086},{'n_steps':183121},{'n_steps':244156},{'n_steps':305191},{'n_steps':366226},{'n_steps':427262}]"
 
   # precision and distributed
@@ -70,7 +70,7 @@ params:
 
   fsdp_enabled: True
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
   logger_types: "neptune"
