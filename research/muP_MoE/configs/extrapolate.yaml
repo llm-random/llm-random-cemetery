@@ -11,11 +11,11 @@ interactive_debug: false
 params:
   name: "muP_MoE_extrpl"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "kc_version_2", "kc_extrapolation"]
+  tags: ["muP_MoE", "muTransfer", "kc_mup_extrapolation", "kc_version_3", "extrapol_2"]
 
   mup_params:
     ^alpha_in: [10.0]
-    ^alpha_out: [0.2]
+    ^alpha_out: [0.1]
     # alpha_in: 5.0
     # alpha_out: 0.2
     base_dmodel: 64
@@ -33,7 +33,7 @@ params:
   # model
   model_type: gpt
   # ^dmodel: [768]
-  ^dmodel: [32, 64, 128, 256, 512]
+  ^dmodel: [64, 128, 256, 512]
   # ^dmodel: [32, 64, 128, 256, 512]
   # ^dmodel: [128, 256]
   dff_ratio: 4
@@ -47,11 +47,11 @@ params:
   # learning
   scheduler: cosine
   # learning_rate: 2e-2
-  ^learning_rate: [1e-1, 5e-2, 2e-2, 1e-2, 5e-3, 2e-3, 1e-3]
+  ^learning_rate: [1e-3, 2e-3, 5e-3, 1e-2, 2e-2, 5e-2, 1e-1]
   final_lr_fraction: 0.1
-  grad_clip: 0.5
-  ^weight_decay: [0.01, 0.0]
-  ^init_scale: [0.1]
+  grad_clip: 1
+  ^weight_decay: [0.0, 0.01]
+  ^init_scale: [0.01]
   init_type: truncated_normal
   capacity_factor: 1.0
 
@@ -70,12 +70,12 @@ params:
   mixed_precision: true
   flash_attention: true
   mixed_precision_dtype: bfloat16
-  data_seed: 101
+  ^data_seed: [101, 102, 103]
 
   # logging etc.
   logger_types: "neptune"
   project_name: "pmtest/llm-random"
-  logging_interval_heavy: 1000
+  logging_interval_heavy: 100
   # logging_interval_light: 50
   # logging_interval_loss: 20
   # save_weights_interval: null
