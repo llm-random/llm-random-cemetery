@@ -100,6 +100,7 @@ class ConditionalTrainer:
     get_final_eval_dataloader: Optional[Callable[..., DataloaderWrapper]] = None
     final_eval_dataloader_batch_size: Optional[int] = None
     n_final_eval_batches: int = None
+    save_sharded: bool = False
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
@@ -610,10 +611,14 @@ class ConditionalTrainer:
                 step,
                 self.cutoff,
                 self.logger.loggers,
-            ) #dev TODO add args_override for checkpoint compatibility with checkpoint manager repeater
+                save_sharded=isinstance(self.model, FSDP) and self.save_sharded,
+            )  # dev TODO add args_override for checkpoint compatibility with checkpoint manager repeater
 
     def _repeater_rerun(
-        self, step, repeater_job_end_time: Optional[int], buffer=45 * 60 #dev TODO once was too short in constrained 190x32v2
+        self,
+        step,
+        repeater_job_end_time: Optional[int],
+        buffer=45 * 60,  # dev TODO once was too short in constrained 190x32v2
     ) -> bool:
         if repeater_job_end_time and ((repeater_job_end_time - time())) < buffer:
             job_id = get_slurm_job_id()
