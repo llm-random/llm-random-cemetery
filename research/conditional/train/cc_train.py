@@ -410,6 +410,9 @@ def main(
             get_checkpoint_from_path(checkpoint_path) if checkpoint_path else None
         )
 
+    print("args.dff -----------------------------------------------------------------------------------")#dev
+    print(args.dff)#dev
+
     model = get_model(
         max_length=args.cutoff,
         vocab_size=VOCAB_SIZE,
