@@ -31,6 +31,7 @@ def ConnectWithPassphrase(*args, **kwargs) -> Generator[Connection, None, None]:
         connection.run('echo "Connection successful."')
         yield connection
     except paramiko.ssh_exception.PasswordRequiredException as e:
+        print(f"Connection to {connection.host} requires a passphrase.")
         if connection.host not in _SSH_HOSTS_TO_PASSPHRASES:
             passphrase = getpass.getpass(
                 f"SSH key encrypted, provide the passphrase ({connection.host}): "
@@ -85,6 +86,7 @@ def submit_experiment(
 
         if connection.run(f"test -d {experiment_directory}", warn=True).failed:
             print(f"Cloning {experiment_branch_name} to {experiment_directory}...")
+            print(f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}")
             connection.run(
                 f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}"
             )
