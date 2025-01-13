@@ -1,0 +1,19 @@
+parent: configs/baselines/gpt/dense/common.yaml
+md5_parent_hash: 1b1451abcd3779c5960c78b2f48aecbc
+
+params:
+  dmodel: 4096
+  dff: 14336
+  n_blocks: 32
+  n_att_heads: 32
+
+  ff_mode: token_choice
+  capacity_factor: 1.0
+  # activation_type: silu
+  # moe_inner_expert: ff_gated
+  granularity: 1
+  effective_dff_x: 4
+  expansion_rate: 1
+  # attention_mode: "rope"
+  # no_positional_embedding: true
+  
