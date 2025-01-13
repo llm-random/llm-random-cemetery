@@ -5,5 +5,7 @@ n_gpus: 4
 params:
   tags: ["constrained_scaling_grid", "1.3B", "E=1"]
   expansion_rate: 1
-  gradient_accumulation_steps: 4
-
+  gradient_accumulation_steps: 1
+  scheduler_trapezoidal_slides: "[{'n_tokens':0.5},{'n_tokens':1},{'n_tokens':2},{'n_tokens':4},{'n_tokens':8},{'n_tokens':16},{'n_tokens':32},{'n_tokens':64}]"
+  n_tokens: 128
+  activation_checkpointing_modules: Null
