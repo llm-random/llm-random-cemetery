@@ -22,7 +22,6 @@ EXPERIMENT_DIR_FILENAME = "__experiment__dir__.txt"
 
 _SSH_HOSTS_TO_PASSPHRASES = {}
 
-
 @contextmanager
 def ConnectWithPassphrase(*args, **kwargs) -> Generator[Connection, None, None]:
     """Connect to a remote host using a passphrase if the key is encrypted. The passphrase is preserved for subsequent connections to the same host."""
@@ -85,6 +84,7 @@ def submit_experiment(
 
         if connection.run(f"test -d {experiment_directory}", warn=True).failed:
             print(f"Cloning {experiment_branch_name} to {experiment_directory}...")
+            print(f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}")
             connection.run(
                 f"git clone --depth 1 -b {experiment_branch_name} {CEMETERY_REPO_URL} {experiment_directory}"
             )
