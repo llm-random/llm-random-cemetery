@@ -7,7 +7,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "small", "distillation"]
+  tags: ["projected_dis", "small", "distillation", "dev_recovered"]
 
   dmodel: 256
   dff: 1024
