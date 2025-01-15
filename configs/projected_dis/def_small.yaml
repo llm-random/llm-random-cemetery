@@ -1,0 +1,16 @@
+
+parent: configs/projected_dis/common.yaml
+md5_parent_hash: c7e284c7ce24a161e67f2011d5b49190
+time: 0-02:00:00
+n_gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  tags: ["projected_dis", "small"]
+
+  dmodel: 256
+  dff: 1024
+  n_blocks: 8
+  n_att_heads: 8
+  n_steps: 43_200
