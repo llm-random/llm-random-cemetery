@@ -436,7 +436,13 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
+        projected_distillation = args.projected_distillation
     )
+
+    for param in model.features.parameters(): #dev
+        print(param) 
+        print(type(param))
+        print(vars(param))
 
     if is_logging_process:
         if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
