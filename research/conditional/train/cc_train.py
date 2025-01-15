@@ -436,7 +436,11 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
+        projected_distillation = args.projected_distillation
     )
+
+    # for name, param in model.named_parameters():
+    #     print(f"{name} requires_grad: {param.requires_grad}")
 
     if is_logging_process:
         if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
