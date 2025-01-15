@@ -282,9 +282,9 @@ def get_attention_layer(args):
         )
     elif args.attention_mode == "projected_vanilla": #dev
         attention_layer_fun = lambda: ProjectedAttention(
-            dmodel_old=args.dmodel,
-            projected_dmodel_old=args.projected_dmodel,
-            heads=args.n_att_heads,
+            dmodel=args.dmodel,
+            projeted_dmodel=args.projected_dmodel,
+            headsc=args.n_att_heads,
             causal=causal,
             dhead=args.dhead,
             flash=args.flash_attention,
