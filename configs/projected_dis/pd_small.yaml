@@ -1,0 +1,23 @@
+
+parent: configs/projected_dis/common.yaml
+md5_parent_hash: 36ade390c68024da6cad59429ce2003b
+time: 0-02:00:00
+n_gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  tags: ["projected_dis", "small", "distillation"]
+
+  dmodel: 512
+  dff: 2048
+  projected_dmodel: 256
+  projected_dff: 1024
+  n_steps: 3_200
+
+  # attention_mode: projected_vanilla
+  ff_mode: projected_vanilla
+
+  projected_distillation: True
+  projected_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-01-12_18-11-22/models_ckpt/1153089/12800.pt
+  
