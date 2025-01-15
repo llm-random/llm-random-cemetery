@@ -6,6 +6,7 @@ import random
 from typing import Callable, Optional
 import socket
 
+from research.projected_distillation.utils import freez_projected_params
 import torch
 import torch.multiprocessing as mp
 from torch.distributed import (
@@ -436,7 +437,21 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
+        projected_distillation = args.projected_distillation
     )
+
+    # model = freez_projected_params(model)
+
+    # for name, param in model.named_parameters():
+    # if 'layer1' in name:  # Check if the parameter belongs to layer1
+    #     param.requires_grad = False
+    print("-------------------------------------------------------------------------------------------------------")
+    print(model)
+    print("-------------------------------------------------------------------------------------------------------")
+    for name, param in model.named_parameters():#dev
+        print(f"{name} requires_grad: {param.requires_grad}")
+    print("-------------------------------------------------------------------------------------------------------")
+    raise
 
     if is_logging_process:
         if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
