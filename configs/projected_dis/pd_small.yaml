@@ -7,7 +7,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "small", "distillation"]
+  tags: ["projected_dis", "small", "distillation", "dev_recovered"]
 
   dmodel: 256
   dff: 1024
@@ -16,9 +16,10 @@ params:
   n_steps: 3_200
   # batch_size: 1 #dev
   # cutoff: 1 #dev
+  learning_rate: 0.0002
 
   # attention_mode: projected_vanilla
-  # ff_mode: projected_vanilla
+  ff_mode: projected_vanilla
 
   projected_distillation: True
   projected_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-01-12_18-11-22/models_ckpt/1153089/12800.pt
