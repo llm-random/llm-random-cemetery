@@ -269,7 +269,11 @@ class ProjectedAttention(LoggingLayer):
         self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
 
     def forward(self, x):
+        print("x.shape ------------------------------------------------------------")
+        print(x.shape)# dev
         projected = self.input_projection(x)
+        print("projected.shape ------------------------------------------------------------")
+        print(projected.shape)# dev
 
         batch, seq_len = x.shape[:-1]
         projected = projected.view(
