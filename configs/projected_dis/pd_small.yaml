@@ -1,6 +1,6 @@
 
 parent: configs/projected_dis/common.yaml
-md5_parent_hash: 36ade390c68024da6cad59429ce2003b
+md5_parent_hash: 0b99d4166956df2c940d39e5d28494f3
 time: 0-02:00:00
 n_gpus: 1
 cpus_per_gpu: 16
@@ -16,7 +16,8 @@ params:
   n_steps: 3_200
   # batch_size: 1 #dev
   # cutoff: 1 #dev
-  learning_rate: 0.0005
+  # learning_rate: 0.0005
+  learning_rate: 0.001
 
   attention_mode: projected_vanilla
   ff_mode: projected_vanilla

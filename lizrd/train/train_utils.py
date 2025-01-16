@@ -1,5 +1,6 @@
 from typing import Callable, Optional, Union, Type
 
+from research.projected_distillation.utils import freeze_projected_params
 import torch
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
@@ -34,7 +35,7 @@ def get_model(
     residual_fn: Callable[[], torch.nn.Module] = None,
     include_positional_embedding: bool = True,
     checkpoint: dict[str, torch.Tensor] = None,
-    projected_distillation: bool = False
+    projected_checkpoint: dict[str, torch.Tensor] = None
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -75,6 +76,12 @@ def get_model(
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
 
+    # if projected_checkpoint is not None:
+    #     load_projected_weights(model, checkpoint)
+    freeze_projected_params(model)
+    for name, param in model.named_parameters(): #dev
+        print(f"{name} requires_grad: {param.requires_grad}")
+        
     if ddp_enabled:
         model = wrap_in_ddp(module=model, local_rank=local_rank)
     elif fsdp_enabled:
