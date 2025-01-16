@@ -1,6 +1,6 @@
 
 parent: configs/projected_dis/common.yaml
-md5_parent_hash: 36ade390c68024da6cad59429ce2003b
+md5_parent_hash: 0b99d4166956df2c940d39e5d28494f3
 time: 0-02:00:00
 n_gpus: 1
 cpus_per_gpu: 16
