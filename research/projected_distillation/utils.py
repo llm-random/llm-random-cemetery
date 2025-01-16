@@ -1,11 +1,11 @@
 import numpy as np
 
 FREEZE_PARAMS_REGULES = [
-    "logging_ff_pre_relu_p11",
-    "logging_ff_pre_relu_p12",
-    "logging_ff_pre_relu_p21",
-    "logging_ff_pre_relu_p22",
+    ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.", #FF
+    ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu.",
 
+    "logging_ff_pre_relu_p21", #ATT
+    "logging_ff_pre_relu_p22",
 ]
 
 
