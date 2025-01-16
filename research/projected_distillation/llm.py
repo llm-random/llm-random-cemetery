@@ -224,14 +224,21 @@ class ProjectedAttention(LoggingLayer):
                     init_type=init_type,
                     init_scale=init_scale,
                 )),
-                ("input_projection",
+                # ("",
+                # Linear(
+                #     projected_dmodel, # xb
+                #     3 * heads * projected_dhead, # yb
+                #     bias=False,
+                #     init_type=init_type,
+                #     init_scale=init_scale,
+                # )),
                 Linear(
                     projected_dmodel, # xb
                     3 * heads * projected_dhead, # yb
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
-                )),
+                ),
                 ("input_projection_p12",
                 Linear(
                     3 * heads * projected_dhead, #yb
@@ -253,14 +260,21 @@ class ProjectedAttention(LoggingLayer):
                     init_type=init_type,
                     init_scale=init_scale,
                 )),
-                ("output_projection",
+                # ("",
+                # Linear(
+                #     heads * projected_dhead, # xb
+                #     projected_dmodel, # yb
+                #     bias=False,
+                #     init_type=init_type,
+                #     init_scale=init_scale,
+                # )),
                 Linear(
                     heads * projected_dhead, # xb
                     projected_dmodel, # yb
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
-                )),
+                ),
                 ("output_projection_p22",
                 Linear(
                     projected_dmodel, # yb
