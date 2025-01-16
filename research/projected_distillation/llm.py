@@ -1,14 +1,11 @@
 from collections import OrderedDict
-from typing import Literal, Callable, Optional
-from functools import partial
+from typing import Literal
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from lizrd.core import misc
-from lizrd.core.misc import default, Aggregate
-from lizrd.core.initialization import get_init_weight, ValidInitType
+from lizrd.core.initialization import ValidInitType
 from lizrd.core.misc import Linear, LoggingLayer
 
 

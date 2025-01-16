@@ -75,6 +75,10 @@ def get_model(
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
 
+    for name, param in model.parameters(): #dev
+        print(f"{name} requires_grad: {param.requires_grad}")
+    raise
+
     if ddp_enabled:
         model = wrap_in_ddp(module=model, local_rank=local_rank)
     elif fsdp_enabled:
