@@ -224,7 +224,7 @@ class ProjectedAttention(LoggingLayer):
                     init_type=init_type,
                     init_scale=init_scale,
                 )),
-                ("input_projection",
+                ("",
                 Linear(
                     projected_dmodel, # xb
                     3 * heads * projected_dhead, # yb
@@ -253,7 +253,7 @@ class ProjectedAttention(LoggingLayer):
                     init_type=init_type,
                     init_scale=init_scale,
                 )),
-                ("output_projection",
+                ("",
                 Linear(
                     heads * projected_dhead, # xb
                     projected_dmodel, # yb
