@@ -437,7 +437,7 @@ def main(
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
         checkpoint=checkpoint,
-        projected_distillation = args.projected_distillation
+        projected_checkpoint = None
     )
 
     # model = freez_projected_params(model)
