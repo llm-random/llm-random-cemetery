@@ -270,6 +270,8 @@ class ProjectedAttention(LoggingLayer):
 
     def forward(self, x):
         projected = self.input_projection(x)
+        print("projected.shape() ------------------------------------------------------------")
+        print(projected.shape)# dev
 
         batch, seq_len = x.shape[:-1]
         projected = projected.view(
