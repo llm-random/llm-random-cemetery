@@ -34,7 +34,7 @@ def get_model(
     residual_fn: Callable[[], torch.nn.Module] = None,
     include_positional_embedding: bool = True,
     checkpoint: dict[str, torch.Tensor] = None,
-    projected_distillation: bool = False
+    projected_checkpoint: dict[str, torch.Tensor] = None
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -74,6 +74,13 @@ def get_model(
 
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
+
+    # if projected_checkpoint is not None:
+    #     load_projected_weights(model, checkpoint)
+
+    for name, param in model.named_parameters(): #dev
+        print(f"{name} requires_grad: {param.requires_grad}")
+    raise
 
     if ddp_enabled:
         model = wrap_in_ddp(module=model, local_rank=local_rank)
