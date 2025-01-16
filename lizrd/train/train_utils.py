@@ -83,7 +83,7 @@ def get_model(
     freeze_projected_params(model)
     for name, param in model.named_parameters(): #dev
         print(f"{name} requires_grad: {param.requires_grad}")
-        
+    # raise #dev
     if ddp_enabled:
         model = wrap_in_ddp(module=model, local_rank=local_rank)
     elif fsdp_enabled:
