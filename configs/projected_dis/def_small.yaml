@@ -7,8 +7,8 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "small"]
+  tags: ["projected_dis", "small", "long"]
 
   dmodel: 256
   dff: 1024
-  n_steps: 3_200
+  n_steps: 12_800
