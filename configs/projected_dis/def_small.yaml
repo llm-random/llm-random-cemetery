@@ -2,13 +2,16 @@
 parent: configs/projected_dis/common.yaml
 md5_parent_hash: 49ce21414901578ae2d5e0bbbe097c10
 time: 0-02:00:00
-n_gpus: 1
+n_gpus: 2
 cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "small"]
+  tags: ["projected_dis", "small", "debug_small"]
 
-  dmodel: 256
+  ^dmodel: [256, 256]
   dff: 1024
   n_steps: 3_200
+
+  # ^fsdp_enabled: [true, false]
+  fsdp_enabled: true
