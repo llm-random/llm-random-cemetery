@@ -16,3 +16,4 @@ params:
 
   # ^fsdp_enabled: [true, false]
   # fsdp_enabled: true
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
