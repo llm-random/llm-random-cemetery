@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/experiments/constrained_scaling_laws/1.3B_equivalents/e=1/ratio=17.58.yaml --git_branch=constrained_scaling_grid_21_11_2025-01-18_13-28-06 --skip_copy_code
