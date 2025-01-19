@@ -16,7 +16,7 @@ CAST_PROJECTED_PARAMS_NAME_PARTS = [
 
 def load_projected_weights(model:torch.nn.Module, projected_weights):
     # print(list(projected_weights["model"].keys())) #dev
-    # print("----------------replace with new values----------------") #dev
+    print("----------------replace with new values----------------") #dev
     for name, params in model.named_parameters():
         for e in CAST_PROJECTED_PARAMS_NAME_PARTS:
             if e[0] in name:
