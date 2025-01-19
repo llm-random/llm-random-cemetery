@@ -7,7 +7,43 @@ import torch.nn.functional as F
 
 from lizrd.core.initialization import ValidInitType
 from lizrd.core.misc import Linear, LoggingLayer
+from lizrd.core.initialization import get_init_weight, ValidInitType
 
+
+def ProjectedTokenEmbedding(
+    vocab_size,
+    embedding_dim,
+    projected_embedding_dim,
+    init_type: ValidInitType,
+    init_scale: float,
+):
+    weight = get_init_weight(
+        shape=(vocab_size, embedding_dim),
+        fan_in=1,  # fan_in=1 is also default in pytorch
+        init_type=init_type,
+        scale=init_scale,
+    )
+
+    return nn.Sequential(
+        OrderedDict([
+                (
+                    "embedding",
+                    nn.Embedding(vocab_size, projected_embedding_dim, _weight=weight)
+                ),
+                (
+                    "embedding_projection",
+                    Linear(
+                        projected_embedding_dim, #xb
+                        embedding_dim, #yb
+                        bias=False,
+                        init_type=init_type,
+                        init_scale=init_scale,
+                    ),
+                )
+            ])
+    )
+
+    return nn.Embedding(vocab_size, embedding_dim, _weight=weight)
 
 def decode_bias_string(bias):
     assert bias in ["both", "first", "second", "none"]
