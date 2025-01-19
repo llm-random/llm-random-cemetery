@@ -41,6 +41,7 @@ params:
   
   weight_decay: 0.1
   grad_clip: 0.5
+  residual_mode: pre_norm_no_bias
 
   scheduler: trapezoidal
   learning_rate: 0.001
