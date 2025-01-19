@@ -80,9 +80,9 @@ def get_model(
     if projected_checkpoint is not None:
         load_projected_weights(model, projected_checkpoint["model"])
         freeze_projected_params(model)
-
+    
     for name, param in model.named_parameters(): #dev
-        print(f"{name} requires_grad: {param.requires_grad}")
+        print(f"{name}, shape: {param.shape} requires_grad: {param.requires_grad}")
         
     if ddp_enabled:
         model = wrap_in_ddp(module=model, local_rank=local_rank)
