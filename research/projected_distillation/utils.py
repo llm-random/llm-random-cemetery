@@ -1,11 +1,15 @@
 import numpy as np
 
 FREEZE_PARAMS_REGULES = [
+    "embedding_layer.layers.",
+
     ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.", #FF
     ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu.",
 
     ".block.residual_attention.layer.attention.input_projection.input_projection.weight", #ATT
     ".block.residual_attention.layer.attention.output_projection.output_projection.weight",
+
+    "head.weight"
 ]
 
 def freeze_projected_params(model):
@@ -14,3 +18,17 @@ def freeze_projected_params(model):
             param.requires_grad = False
     return model 
 
+
+# PROJECTIONS_1_1 = [
+#     ""
+# ]
+
+# PROJECTIONS_1_4 = [
+#     ""
+# ]
+
+# PROJECTIONS_1_3 = [
+#     ""
+# ]
+
+# def initialize_projectors(model):
