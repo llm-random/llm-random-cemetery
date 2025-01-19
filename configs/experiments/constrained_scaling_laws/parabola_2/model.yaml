@@ -1,0 +1,13 @@
+parent: configs/experiments/constrained_scaling_laws/common.yaml
+md5_parent_hash: 839338c2136f94ad1e69306ecea94832
+
+params:
+  tags: ["constrained_scaling_grid", "parabolae"]
+
+  dmodel: 1792
+  n_blocks: 28
+  n_att_heads: 28
+  scheduler_trapezoidal_slides: "[{'n_tokens':1.98},{'n_tokens':2.784},{'n_tokens':4.022},{'n_tokens':5.569},{'n_tokens':11.14}]"
+  n_tokens: 18.56
+
+  # 1.98e09 2.784e+09', '4.022e+09', '5.569e+09', '1.114e+10
