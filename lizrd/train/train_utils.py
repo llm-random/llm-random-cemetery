@@ -1,5 +1,6 @@
 from typing import Callable, Optional, Union, Type
 
+from research.projected_distillation.llm import ProjectedPositionalEmbedding, ProjectedTokenEmbedding
 from research.projected_distillation.load_and_save_model import load_projected_weights
 from research.projected_distillation.utils import freeze_projected_params
 import torch
@@ -36,7 +37,8 @@ def get_model(
     residual_fn: Callable[[], torch.nn.Module] = None,
     include_positional_embedding: bool = True,
     checkpoint: dict[str, torch.Tensor] = None,
-    projected_checkpoint: dict[str, torch.Tensor] = None
+    projected_checkpoint: dict[str, torch.Tensor] = None,
+    projected_dmodel:int = None
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -45,16 +47,34 @@ def get_model(
         first_gpu = torch.device("cuda:0")
         last_gpu = torch.device(f"cuda:{len(model_fragmentation)}")
 
-    embedding_components = [
-        llm.TokenEmbedding(vocab_size, dm, init_type=init_type, init_scale=init_scale)
-    ]
+    if projected_checkpoint:
+        embedding_components = [
+            ProjectedTokenEmbedding(vocab_size, dm, projected_dmodel, init_type=init_type, init_scale=init_scale)
+        ]
+    else:
+        embedding_components = [
+            llm.TokenEmbedding(vocab_size, dm, init_type=init_type, init_scale=init_scale)
+        ]
 
     if include_positional_embedding:
-        embedding_components.append(
-            llm.PositionalEmbedding(
-                max_length, dm, init_type=init_type, init_scale=init_scale
+        if projected_checkpoint:
+            embedding_components.append(
+                ProjectedPositionalEmbedding(
+                    max_length, dm, projected_dmodel, init_type=init_type, init_scale=init_scale
+                )
             )
-        )
+        else:
+            embedding_components.append(
+                llm.PositionalEmbedding(
+                    max_length, dm, init_type=init_type, init_scale=init_scale
+                )
+            )
+
+    # embedding_components.append(
+    #     llm.PositionalEmbedding(
+    #         max_length, dm, init_type=init_type, init_scale=init_scale
+    #     )
+    # )
 
     embedding_layer = llm.EmbeddingLayer(*embedding_components).to(first_gpu)
 
@@ -80,9 +100,9 @@ def get_model(
     if projected_checkpoint is not None:
         load_projected_weights(model, projected_checkpoint["model"])
         freeze_projected_params(model)
-
+    
     for name, param in model.named_parameters(): #dev
-        print(f"{name} requires_grad: {param.requires_grad}")
+        print(f"{name}, shape: {param.shape} requires_grad: {param.requires_grad}")
         
     if ddp_enabled:
         model = wrap_in_ddp(module=model, local_rank=local_rank)

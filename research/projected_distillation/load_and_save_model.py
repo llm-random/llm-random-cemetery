@@ -6,18 +6,27 @@ TRANSFER_PARAMS = [
 
     ".block.residual_attention.layer.attention.input_projection.weight", #ATT
     ".block.residual_attention.layer.attention.output_projection.weight",
+
+    "embedding_layer.layers.0.weight",
+    # "embedding_layer.layers.1.layer.weight"
+
+    # "head.weight",
 ]
 
 CAST_PROJECTED_PARAMS_NAME_PARTS = [
     (".output_projection.output_projection.", ".output_projection."),
-    (".input_projection.input_projection.", ".input_projection.")
+    (".input_projection.input_projection.", ".input_projection."),
+    ("embedding_layer.layers.0.embedding.weight", "embedding_layer.layers.0.weight"),
+    #("#dev", "embedding_layer.layers.1.layer.weight"),
+    #("#dev", "head.weight"),
 ]
 
 
 def load_projected_weights(model:torch.nn.Module, projected_weights):
     # print(list(projected_weights["model"].keys())) #dev
-    # print("----------------replace with new values----------------") #dev
+    print("------------------------------replace with new values------------------------") #dev
     for name, params in model.named_parameters():
+        # print(name) #dev
         for e in CAST_PROJECTED_PARAMS_NAME_PARTS:
             if e[0] in name:
                 name = name.replace(e[0], e[1])
@@ -27,4 +36,4 @@ def load_projected_weights(model:torch.nn.Module, projected_weights):
         if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
             print(name) #dev
             params.data.copy_(prj_params)
-    print("--------------end------------------") #dev
+    print("------------------------------replace with new values end------------------------") #dev
