@@ -7,14 +7,14 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "small"]
+  tags: ["projected_dis", "small", "pre_norm_no_bias"]
 
   # ^dmodel: [256, 256]
   dmodel: 256
   dff: 1024
   n_steps: 3_200
   # n_steps: 12_800
-  # residual_mode: pre_norm_no_bias
+  residual_mode: pre_norm_no_bias
 
   # ^fsdp_enabled: [true, false]
 
