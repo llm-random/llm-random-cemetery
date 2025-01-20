@@ -13,7 +13,7 @@ FREEZE_PARAMS_REGULES = [
     "embedding_layer.layers.0.embedding.weight", #TE
     "embedding_layer.layers.1.layer.weight", #PE
 
-    ".pre_norm.", # Layer norm
+    # ".pre_norm.", # Layer norm
 
     # "head.head.weight", #Head
 ]
@@ -40,11 +40,11 @@ PROJECTIONS_1_1_T = [
 ]
 
 PROJECTIONS_1_4 = [
-    ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
+    ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
 ]
 
 PROJECTIONS_1_4_T = [
-    ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
+    ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
 ]
 
 PROJECTIONS_1_3 = [
@@ -70,59 +70,72 @@ def is_in_partial_list(elemen_name:str, partials_list:list[str]):
             return True
     return False
 
-def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:int, init_type=None):
+def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:int, init_type=None, init_scale=0.15, diagonal=True):
     if not init_type:
         return
     elif init_type == "random":
         projection = get_init_weight(
             shape=(projected_dmodel, dmodel),
             fan_in=1,  # fan_in=1 is also default in pytorch
-            init_type=init_type,
-            scale="kaiming_uniform",
+            init_type="kaiming_uniform",
+            scale=init_scale,
         )
+        projection_z = torch.zeros((projected_dmodel, dmodel))
     else:
         raise Exception("Wrong projection init type")
+    
+
     projection_3 = torch.concat((projection, projection, projection))
     projection_3 = torch.concat((projection_3, projection_3, projection_3), dim=1)
     projection_3.shape
 
-    projection_4 = torch.concat((projection, projection, projection, projection))
-    projection_4 = torch.concat((projection_4, projection_4, projection_4, projection_4), dim=1)
-    projection_4.shape
+    if diagonal:
+        projection_4 = torch.concat((
+            torch.concat((projection, projection_z, projection_z, projection_z), dim=0),
+            torch.concat((projection_z, projection, projection_z, projection_z), dim=0),
+            torch.concat((projection_z, projection_z, projection, projection_z), dim=0),
+            torch.concat((projection_z, projection_z, projection_z, projection), dim=0),
+            ), dim=1)
+    else:
+        projection_4 = torch.concat((projection, projection, projection, projection))
+        projection_4 = torch.concat((projection_4, projection_4, projection_4, projection_4), dim=1)
+        projection_4.shape
 
     print("------------------------------init projections------------------------") #dev
     for name, params in model.named_parameters():
         if is_in_partial_list(name, PROJECTIONS_1_1):
             # projection
-            print(f"projection: {name}")
+            print(f"projection: {name}, {params.shape}")
             params.data.copy_(projection)
         elif is_in_partial_list(name, PROJECTIONS_1_1_T):
             # projection_T
-            print(f"projection_T: {name}")
+            print(f"projection_T: {name}, {params.shape}")
             params.data.copy_(projection.T)
         elif is_in_partial_list(name, PROJECTIONS_1_4):
             # projection_4
-            print(f"projection_4: {name}")
+            print(f"projection_4: {name}, {params.shape}")
             params.data.copy_(projection_4)
         elif is_in_partial_list(name, PROJECTIONS_1_4_T):
             # projection_4_T
-            print(f"projection_4_T: {name}")
+            print(f"projection_4_T: {name}, {params.shape}")
             params.data.copy_(projection_4.T)
         elif is_in_partial_list(name, PROJECTIONS_1_3):
             # projection_3
+            print(f"projection_3: {name}, {params.shape}")
             raise NotImplemented()
-            print(f"projection_3: {name}")
             params.data.copy_(projection_3)
         elif is_in_partial_list(name, PROJECTIONS_1_3_T):
             # projection_3_T
-            print(f"projection_3_T: {name}")
+            print(f"projection_3_T: {name}, {params.shape}")
             params.data.copy_(projection_3.T)
         elif is_in_partial_list(name, MULTIPLY):
             # projection
+            print(f"projection: {name}, {params.shape}")
             raise NotImplemented()
             params.data.copy_(projection)
         elif is_in_partial_list(name, MULTIPLY_T):
             # projection
+            print(f"projection: {name}, {params.shape}")
             raise NotImplemented()
             params.data.copy_(projection)
         else:
