@@ -1,0 +1,12 @@
+parent: configs/experiments/constrained_scaling_laws/common.yaml
+md5_parent_hash: 839338c2136f94ad1e69306ecea94832
+
+params:
+  # tags: ["constrained_scaling_grid", "parabolae"]
+  tags: ["mem_bench"]
+
+  dmodel: 2304
+  n_blocks: 36
+  n_att_heads: 36
+  scheduler_trapezoidal_slides: "[{'n_tokens':0.98},{'n_tokens':1.38},{'n_tokens':1.995},{'n_tokens':2.76},{'n_tokens':5.52}]"
+  n_tokens: 9.2

@@ -1,0 +1,8 @@
+parent: configs/experiments/constrained_scaling_laws/1.3b_equiv_longer/model.yaml
+md5_parent_hash: ccd938a96fddadf49160794ebed88d1a
+n_gpus: 4 # works for athena
+
+params:
+  # tags: ["constrained_scaling_grid", "parabolae", "E=1"]
+  expansion_rate: 32
+  ^gradient_accumulation_steps: [8, 16, 32, 64]
