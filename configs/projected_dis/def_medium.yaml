@@ -1,7 +1,7 @@
 
 parent: configs/projected_dis/common.yaml
 md5_parent_hash: 426d38a67881ad9b9276b25286a1ce31
-time: 0-02:00:00
+time: 0-03:00:00
 n_gpus: 1
 cpus_per_gpu: 16
 
@@ -15,8 +15,8 @@ params:
   n_steps: 12_800
   residual_mode: pre_norm_no_bias
 
-  # save_weights_path: /local_storage_1/ms_tmp/models/
-  save_weights_path: models_ckpt
+  save_weights_path: /local_storage_1/ms_tmp/models/
+  # save_weights_path: models_ckpt
 
   # fsdp_enabled: false
 
