@@ -20,6 +20,8 @@ CAST_PROJECTED_PARAMS_NAME_PARTS = [
     ("head.head.weight", "head.weight"), #Head
 ]
 
+LAYER_NORM_COPY = []
+
 
 def load_projected_weights(model:torch.nn.Module, projected_weights):
     print(list(projected_weights.keys())) #dev
