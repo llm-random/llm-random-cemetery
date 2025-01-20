@@ -120,7 +120,7 @@ def get_model(
 
     if projected_checkpoint is not None:
         load_projected_weights(model, projected_checkpoint["model"])
-        initialize_projections(model, dm, projected_dmodel, projection_init_type)
+        initialize_projections(model, dm, projected_dmodel, projection_init_type) #dev
         freeze_projected_params(model)
         
     for name, param in model.named_parameters(): #dev
