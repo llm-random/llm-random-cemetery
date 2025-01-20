@@ -70,15 +70,15 @@ def is_in_partial_list(elemen_name:str, partials_list:list[str]):
             return True
     return False
 
-def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:int, init_type=None):
+def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:int, init_type=None, init_scale=0.15):
     if not init_type:
         return
     elif init_type == "random":
         projection = get_init_weight(
             shape=(projected_dmodel, dmodel),
             fan_in=1,  # fan_in=1 is also default in pytorch
-            init_type=init_type,
-            scale="kaiming_uniform",
+            init_type="kaiming_uniform",
+            scale=init_scale,
         )
     else:
         raise Exception("Wrong projection init type")
@@ -102,7 +102,7 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
             params.data.copy_(projection.T)
         elif is_in_partial_list(name, PROJECTIONS_1_4):
             # projection_4
-            print(f"projection_4: {name}")
+            print(f"projection_4: {name}, shape params: {params.shape}, shape projection_4: {projection_4.shape}")
             params.data.copy_(projection_4)
         elif is_in_partial_list(name, PROJECTIONS_1_4_T):
             # projection_4_T
