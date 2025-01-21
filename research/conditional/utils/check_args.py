@@ -36,9 +36,9 @@ def check_args(args):
         ), "Do not add filename extensions (e.g. .pt or .pth) to save_weights_path! It is added automatically, along with step number."
 
     if args.checkpoint_manager:
-        assert (
-            args.load_weights_path == None
-        ), "Loads model according to checkpoint manager"
+        # assert (
+        #     args.load_weights_path == None
+        # ), "Loads model according to checkpoint manager"
         assert (
             args.relative_init_scale == None
         ), "Seems wrong to apply init scale on loaded and already trained weights"
