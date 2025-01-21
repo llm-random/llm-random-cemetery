@@ -20,8 +20,12 @@ CAST_PROJECTED_PARAMS_NAME_PARTS = [
     ("head.head.weight", "head.weight"), #Head
 ]
 
+LAYER_NORM_COPY = [
+    ".block.residual_feedforward.layer.pre_norm."
+]
 
-def load_projected_weights(model:torch.nn.Module, projected_weights):
+
+def load_projected_weights(model:torch.nn.Module, projected_weights, projection:torch.Tensor):
     print(list(projected_weights.keys())) #dev
     print("------------------------------replace with new values------------------------") #dev
     for name, params in model.named_parameters():
@@ -33,5 +37,8 @@ def load_projected_weights(model:torch.nn.Module, projected_weights):
         if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
             params.data.copy_(prj_params)
             print(f"REPLACED: {name}")
+        if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
+            params.data.copy_(prj_params@projection)
+            print(f"REPLACED_PROJECTED: {name}")
     print("------------------------------replace with new values end------------------------") #dev
 
