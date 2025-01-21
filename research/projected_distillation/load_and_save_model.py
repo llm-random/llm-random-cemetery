@@ -1,5 +1,7 @@
 import torch
 
+from lizrd.core.initialization import get_init_weight
+
 TRANSFER_PARAMS = [
     ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.", #FF
     ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu.", #FF
@@ -20,8 +22,12 @@ CAST_PROJECTED_PARAMS_NAME_PARTS = [
     ("head.head.weight", "head.weight"), #Head
 ]
 
+LAYER_NORM_COPY = [
+    ".block.residual_feedforward.layer.pre_norm."
+]
 
-def load_projected_weights(model:torch.nn.Module, projected_weights):
+
+def load_projected_weights(model:torch.nn.Module, projected_weights, projection:torch.Tensor, dm, projected_dmodel, init_scale):
     print(list(projected_weights.keys())) #dev
     print("------------------------------replace with new values------------------------") #dev
     for name, params in model.named_parameters():
@@ -33,5 +39,15 @@ def load_projected_weights(model:torch.nn.Module, projected_weights):
         if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
             params.data.copy_(prj_params)
             print(f"REPLACED: {name}")
+        if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
+            if not projection:
+                local_p = get_init_weight(
+                    shape=(projected_dmodel, dm),
+                    fan_in=1,  # fan_in=1 is also default in pytorch
+                    init_type="truncated_normal",
+                    scale=init_scale,
+                ).to(device)
+            params.data.copy_(prj_params@local_p)
+            print(f"REPLACED_PROJECTED: {name}")
     print("------------------------------replace with new values end------------------------") #dev
 
