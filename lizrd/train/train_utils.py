@@ -86,33 +86,36 @@ def get_model(
         residual_fn=residual_fn,
     )
 
-    if projected_checkpoint:
-        head = llm.PredictionHead(
-            projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
-        ).to(last_gpu)
-        head = torch.nn.Sequential(
-            OrderedDict([
-                (
-                    "head_p",
-                    Linear(
-                        dm, #xs
-                        projected_dmodel, #xb
-                        bias=False,
-                        init_type=init_type,
-                        init_scale=init_scale,
-                    ).to(last_gpu),
-                ),
-                (
-                    "head",
-                    head,
-                )
-            ])
-        )
-    else:
-        head = llm.PredictionHead(
+    # if projected_checkpoint:
+    #     head = llm.PredictionHead(
+    #         projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
+    #     ).to(last_gpu)
+    #     head = torch.nn.Sequential(
+    #         OrderedDict([
+    #             (
+    #                 "head_p",
+    #                 Linear(
+    #                     dm, #xs
+    #                     projected_dmodel, #xb
+    #                     bias=False,
+    #                     init_type=init_type,
+    #                     init_scale=init_scale,
+    #                 ).to(last_gpu),
+    #             ),
+    #             (
+    #                 "head",
+    #                 head,
+    #             )
+    #         ])
+    #     )
+    # else:
+    #     head = llm.PredictionHead(
+    #         dm, vocab_size, init_type=init_type, init_scale=init_scale
+    #     ).to(last_gpu)
+    
+    head = llm.PredictionHead(
             dm, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
-        
 
     model = llm.LLM(embedding_layer, encoder_tower, head)
 
