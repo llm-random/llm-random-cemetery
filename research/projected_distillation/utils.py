@@ -15,7 +15,7 @@ FREEZE_PARAMS_REGULES = [
 
     ".pre_norm.", # Layer norm
 
-    # "head.head.weight", #Head
+    "head.head.weight", #Head
 ]
 
 def freeze_projected_params(model):
