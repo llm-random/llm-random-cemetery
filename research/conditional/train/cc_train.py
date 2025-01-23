@@ -438,7 +438,8 @@ def main(
         checkpoint=checkpoint,
         projected_checkpoint = get_checkpoint_from_path(args.projected_weights_path) if args.projected_weights_path else None,
         projected_dmodel = args.projected_dmodel,
-        projection_init_type = args.projection_init_type
+        projection_init_type = args.projection_init_type,
+        no_projected_head = args.no_projected_head
     )
     # print("1-------------------------------------------------------------------------------------------------------")
     # for name, param in model.named_parameters(): #dev
@@ -661,6 +662,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     introduce_parser_arguments(parser)
     args = parser.parse_args()
+    print("------------------------------------------------------------------------------------------------")
+    print(f"args.save_weights_path: {args.save_weights_path}") #dev
+    print("------------------------------------------------------------------------------------------------")
+    raise 
 
     save_weights_path = prepare_save_weights_path(args.save_weights_path)
 
