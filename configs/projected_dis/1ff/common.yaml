@@ -9,12 +9,12 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "medium", "common_config"]
+  tags: ["projected_dis", "1ff", "medium", "common_config"]
   data_seed: 27
 
   # MODEL
   dmodel: 512
-  dff: 2048
+  dff: 512
   n_blocks: 8
   n_att_heads: 8
   ff_mode: vanilla
@@ -37,7 +37,7 @@ params:
   dataset_type: c4
   batch_size: 256
   cutoff: 256
-  n_steps: 12_800
+  n_steps: 6_800
   
   weight_decay: 0.1
   grad_clip: 0.5
@@ -63,3 +63,4 @@ params:
   save_weights_path: None
   save_weights_interval: 0
   dont_save_final_model: True
+  
