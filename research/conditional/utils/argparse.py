@@ -522,5 +522,6 @@ def introduce_parser_arguments(
     parser.add_argument("--projected_dff", type=int, required=False)
     parser.add_argument("--projected_distillation", action="store_true")
     parser.add_argument("--projection_init_type", type=str, default=None, help="eg. random, None (does not share same projection)") # None does not share same projection
-
+    parser.add_argument("--no_projected_head", action="store_true")
+    
     return parser
