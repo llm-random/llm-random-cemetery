@@ -7,7 +7,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "small", "all_distillation"]
+  tags: ["projected_dis", "1ff", "medium"]
 
   dmodel: 256
   dff: 256
@@ -19,7 +19,7 @@ params:
   attention_mode: projected_vanilla
   ff_mode: projected_vanilla
   residual_mode: pre_norm_no_bias
-  
+
   projection_init_type: null
   # projection_init_type: random
   # projection_init_type: sum1d
