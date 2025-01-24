@@ -1,13 +1,13 @@
 
 parent: configs/projected_dis/1ff/common.yaml
-md5_parent_hash: d233f50504be99b92d74b8ed59810c08
+md5_parent_hash: 3d46d5a14eb873ef5bcd6a6438fc8304
 time: 0-01:00:00
 n_gpus: 1
 cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "small", "p_init_grid"]
+  tags: ["projected_dis", "1ff", "medium"]
 
   dmodel: 256
   dff: 256
@@ -19,23 +19,19 @@ params:
   attention_mode: projected_vanilla
   ff_mode: projected_vanilla
   residual_mode: pre_norm_no_bias
-  
-  # projection_init_type: null
+
+  projection_init_type: null
   # projection_init_type: random
   # projection_init_type: sum1d
   # projection_init_type: half
   # projection_init_type: orthagonal
   # projection_init_type: col1
   # projection_init_type: asd
-  # ^projection_init_type: [null, sum1d, half, orthagonal]
-  # ^no_layer_norm: [True, False]
-  # ^no_projected_head: [True, False]
-  ^projection_init_type: [null]
-  ^no_layer_norm: [False]
-  ^no_projected_head: [True]
+  # ^projection_init_type: [orthagonal, col1]
+  # ^projection_init_type: [null, random, sum1d, half, orthagonal, col1]
 
   projected_distillation: True
-  projected_weights_path: /local_storage_1/ms_tmp/models/42951/6800.pt
+  projected_weights_path: /local_storage_1/ms_tmp/models/42950/6800.pt
   
 
 
