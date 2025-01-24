@@ -48,7 +48,8 @@ params:
   lr_trapezoidal_decay_fraction: 0.2
   lr_warmup_percent: 0.01
   lr_warmup_steps: 0
-  
+  no_layer_norm: True
+
   fsdp_enabled: false
   # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
   # fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
