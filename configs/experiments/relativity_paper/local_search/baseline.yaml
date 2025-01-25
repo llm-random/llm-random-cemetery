@@ -6,11 +6,11 @@ interactive_debug: false
 cpus_per_gpu: 8
 
 params:
-  name: "relativity_baseline"
-  tags: ["relativity_paper"]
+  name: "relativity_relative_verify_merge_baseline"
+  tags: ["relativity_merge", "baseline"]
   ff_mode: token_choice
   capacity_factor: 1.0
-  ^data_seed: [47,48,49,50,51,52,53] #[44,45,46]
+  data_seed: 47 #[44,45,46]
 
   activation_type: silu
   moe_inner_expert: ff_gated
