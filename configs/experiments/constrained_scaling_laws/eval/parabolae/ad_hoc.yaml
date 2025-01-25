@@ -1,0 +1,9 @@
+parent: configs/experiments/constrained_scaling_laws/eval/parabolae/model.yaml
+md5_parent_hash: 3f5015f5ef6222d45c69b90164f37f73
+
+params:
+  ^neptune_id: ['LLMRANDOM-28964']
+  final_eval_step: Null
+  n_blocks: 1
+  dmodel: 1
+  n_att_heads: 1
