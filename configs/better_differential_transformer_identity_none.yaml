@@ -1,6 +1,6 @@
 runner: "research.attention_moe.train.train"
 time: 1-00:00:00
-n_gpus: 1
+n_gpus: 4
 interactive_debug: false
 backends_module: research.attention_moe.backends
 
@@ -61,7 +61,7 @@ params:
   diff_transformer_roll_negative_heads: true
 #  ^n_kv_heads: [12]
 #  ^diff_transformer_adapter_type: [additive, multiplicative, lora, identity, multiadd]
-  ^diff_transformer_adapter_type: [identity, none]
+  ^diff_transformer_adapter_type: [none]
   evaluate_attention_relevancy_interval: 5000
   # ^load_balancing_loss_weight: [0.01]
 
