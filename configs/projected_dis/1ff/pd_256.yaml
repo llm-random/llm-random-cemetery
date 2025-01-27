@@ -23,9 +23,17 @@ params:
 
   projection_init_type: half
   ^no_projected_head: True
+ 
+  # ^projection_init_type: [orthagonal]
+  # ^no_projected_head: [True, False]
+  # ^no_layer_norm: [True, False]
+
+  # ^projection_init_type: [half, orthagonal, null, sum1d]
+  # ^no_projected_head: [True, False]
+
 
   projected_distillation: True
-  projected_weights_path: /local_storage_1/ms_tmp/models/42951/6800.pt
+  projected_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-01-24_18-16-36/None/1171839/19545.pt
   
 
 
