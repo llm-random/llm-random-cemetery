@@ -1,13 +1,13 @@
 
 parent: configs/projected_dis/1ff/common.yaml
-md5_parent_hash: 3a334a7df4fb5340ca5da7c06952f387
+md5_parent_hash: 099bae218730a43890c603c081288bf9
 time: 0-01:00:00
 n_gpus: 1
 cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "dm512"]
+  tags: ["projected_dis", "1ff", "compression", "dm512"]
 
   dmodel: 512
   dff: 512
@@ -22,10 +22,10 @@ params:
   
 
   projection_init_type: half
-  ^no_projected_head: True
+  no_projected_head: True
 
   projected_distillation: True
-  projected_weights_path: /local_storage_1/ms_tmp/models/42951/6800.pt
+  projected_weights_path: /local_storage_1/ms_tmp/models/42951/6800.pt 
   
 
 
