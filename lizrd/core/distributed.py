@@ -29,6 +29,8 @@ def wrap_in_fsdp(
     min_num_params: int,
     modules_to_wrap: tuple[Type[nn.Module]],
     is_logging_process: bool,
+    frozen_modules=[],
+    # fsdp_use_orig_params:bool = False,
 ):
     assert (modules_to_wrap is None and min_num_params is not None) or (
         modules_to_wrap is not None and min_num_params is None
@@ -55,6 +57,9 @@ def wrap_in_fsdp(
         ),
         cpu_offload=CPUOffload(offload_params=offload_params),
         auto_wrap_policy=wrap_policy,
+        ignored_modules=frozen_modules,
+        # use_orig_params=fsdp_use_orig_params,
+
     )
 
     if print_model and is_logging_process:
