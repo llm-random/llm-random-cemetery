@@ -1,0 +1,25 @@
+
+parent: configs/projected_dis/1ff/common.yaml
+md5_parent_hash: 099bae218730a43890c603c081288bf9
+time: 2-00:00:00
+n_gpus: 4
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  tags: ["projected_dis", "1ff", "dm4098", "doner"]
+
+  ^learning_rate: [0.0000625, 0.000125, 0.00025]
+  
+  dmodel: 4098
+  dff: 4098
+  flash_attention: False
+  n_steps: 371_403
+
+  dont_save_final_model: False
+  # save_weights_path: /local_storage_1/ms_tmp/models/
+
+  fsdp_use_orig_params: True
+  fsdp_enabled: True
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
