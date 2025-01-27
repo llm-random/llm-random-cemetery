@@ -44,7 +44,8 @@ def get_model(
     projected_dmodel:int = None,
     projection_init_type:str = None,
     no_projected_head:bool = False,
-    no_layer_norm:bool = False
+    no_layer_norm:bool = False,
+    fsdp_use_orig_params:bool = False,
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -181,6 +182,7 @@ def get_model(
             min_num_params=fsdp_min_num_params,
             modules_to_wrap=fsdp_modules_to_wrap,
             is_logging_process=is_logging_process,
+            fsdp_use_orig_params=fsdp_use_orig_params,
         )
 
     if activation_checkpointing_modules is not None:

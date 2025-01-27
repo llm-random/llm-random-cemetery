@@ -441,6 +441,7 @@ def main(
         projection_init_type = args.projection_init_type,
         no_projected_head = args.no_projected_head,
         no_layer_norm = args.no_layer_norm,
+        fsdp_use_orig_params = args.fsdp_use_orig_params,
         
     )
     # print("1-------------------------------------------------------------------------------------------------------")
