@@ -17,10 +17,12 @@ FREEZE_PARAMS_REGULES = [
 ]
 
 def freeze_projected_params(model):
+    frozen_modules = []
     for name, param in model.named_parameters():
         if any([reg in name for reg in FREEZE_PARAMS_REGULES]):  # Check if the parameter belongs to layer1
             param.requires_grad = False
-    return model 
+            frozen_modules.append(param)
+    return frozen_modules
 
 
 FREEZE_LN_REGULES = [
@@ -28,10 +30,12 @@ FREEZE_LN_REGULES = [
 ]
 
 def freeze_ln_params(model):
+    frozen_modules = []
     for name, param in model.named_parameters():
         if any([reg in name for reg in FREEZE_LN_REGULES]):  # Check if the parameter belongs to layer1
             param.requires_grad = False
-    return model 
+            frozen_modules.append(param)
+    return frozen_modules 
 
 
 PROJECTIONS_1_1 = [
