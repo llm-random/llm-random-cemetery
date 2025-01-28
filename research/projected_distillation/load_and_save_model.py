@@ -10,7 +10,7 @@ TRANSFER_PARAMS = [
     ".block.residual_attention.layer.attention.output_projection.weight", #ATT
 
     "embedding_layer.layers.0.weight", #TE
-    "embedding_layer.layers.1.layer.weight" #PE
+    "embedding_layer.layers.1.layer.weight" #PE - 
 
     "head.weight", #Head
 ]
@@ -20,6 +20,7 @@ CAST_PROJECTED_PARAMS_NAME_PARTS = [
     (".input_projection.input_projection.", ".input_projection."), #ATT
     ("embedding_layer.layers.0.embedding.weight", "embedding_layer.layers.0.weight"), #TE
     ("head.head.weight", "head.weight"), #Head
+    ("embedding_layer.layers.1.projected_layer.pe_layer.weight", "embedding_layer.layers.1.layer.weight"), # PE
 ]
 
 LAYER_NORM_COPY = [
