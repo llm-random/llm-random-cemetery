@@ -10,7 +10,7 @@ TRANSFER_PARAMS = [
     ".block.residual_attention.layer.attention.output_projection.weight", #ATT
 
     "embedding_layer.layers.0.weight", #TE
-    "embedding_layer.layers.1.layer.weight" #PE
+    "embedding_layer.layers.1.layer.weight", #PE - 
 
     "head.weight", #Head
 ]
@@ -20,6 +20,7 @@ CAST_PROJECTED_PARAMS_NAME_PARTS = [
     (".input_projection.input_projection.", ".input_projection."), #ATT
     ("embedding_layer.layers.0.embedding.weight", "embedding_layer.layers.0.weight"), #TE
     ("head.head.weight", "head.weight"), #Head
+    ("embedding_layer.layers.1.projected_layer.pe_layer.weight", "embedding_layer.layers.1.layer.weight"), # PE
 ]
 
 LAYER_NORM_COPY = [
@@ -34,8 +35,9 @@ def load_projected_weights(model:torch.nn.Module, projected_weights, projection:
         for e in CAST_PROJECTED_PARAMS_NAME_PARTS:
             if e[0] in name:
                 name = name.replace(e[0], e[1])
-                # print("replaced name", name) #dev
+                print("replaced name", name) #dev
         prj_params = projected_weights.get(name)
+        print("prj_params ", type(prj_params)) #dev
         if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
             print(f"REPLACED: {name}, {prj_params.device}")
             params.data.copy_(prj_params)
