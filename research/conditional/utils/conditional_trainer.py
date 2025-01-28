@@ -151,11 +151,13 @@ class ConditionalTrainer:
             "success",
         )
         if self.is_logging_process:
+            print(f'logging_process rank: {self.global_rank}')
             self.logger.exit_job_metadata(self.current_step)
 
         if self.current_step >= n_steps:  # - end of model training operations
             if self.save_weights_path:
                 job_id = get_slurm_job_id()
+                print(f'checkpoint_manager_enabled: {self.checkpoint_manager_enabled}')
                 end_training_checkpoint(
                     job_id,
                     self.is_logging_process,
@@ -211,6 +213,7 @@ class ConditionalTrainer:
         if self.scaler is not None and self.checkpoint is not None:
             load_scaler_state(self.scaler, self.checkpoint)
 
+        print('_________ct.train before profile_________')
         with profile(
             activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
             schedule=self.profiler_schedule,
@@ -223,10 +226,14 @@ class ConditionalTrainer:
             with_flops=True,
             with_modules=True,
         ) as p:
+            print('__________ct.train before loop__________')
             for step in range(self.start_step, n_steps + 1):
+                if step % 50 == 0:
+                    print(f'step: {step}\t rank: {self.global_rank}')
                 self.current_step = step
                 self._train_step(step)
                 if self._repeater_rerun(step, self.repeater_job_end_time):
+                    print('_____________ct.train before break if self._repeater_rerun(step, self.repeater_job_end_time)________')
                     break
 
                 if self.profiler_enabled:
@@ -275,6 +282,7 @@ class ConditionalTrainer:
                             )
                 self._final_eval(n_steps)
                 self._after_step_operations(step)
+        print('_____________before _after_train_operations_____________')
         self._after_train_operations(n_steps)
 
     def _train_step(
