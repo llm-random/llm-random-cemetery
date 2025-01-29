@@ -64,7 +64,8 @@ def get_model(
         ]
 
     if include_positional_embedding:
-        if projected_checkpoint:
+        # if projected_checkpoint:
+        if False: #dev inverted_test
             embedding_components.append(
                 ProjectedPositionalEmbedding(
                     max_length, dm, projected_dmodel, init_type=init_type, init_scale=init_scale
@@ -89,7 +90,8 @@ def get_model(
         residual_fn=residual_fn,
     )
 
-    if projected_checkpoint and not no_projected_head:
+    # if projected_checkpoint and not no_projected_head:
+    if False: #dev inverted_test
         head = llm.PredictionHead(
             projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
@@ -115,7 +117,6 @@ def get_model(
         head = llm.PredictionHead(
             dm, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
-
 
     model = llm.LLM(embedding_layer, encoder_tower, head)
 
@@ -157,6 +158,9 @@ def get_model(
             print("Projection initialization: col1")
             projection = torch.rand(projected_dmodel, dm)
             projection = projection / projection.sum(dim=0, keepdim=True)
+        elif projection_init_type == "inverted_test": #dev inverted_test
+            print("Projection initialization: projection")
+            projection = torch.zeros(projected_dmodel, dm)
         else:
             raise Exception("Wrong projection init type")
         load_projected_weights(model, projected_checkpoint["model"], projection, dm, projected_dmodel, init_scale, device)
