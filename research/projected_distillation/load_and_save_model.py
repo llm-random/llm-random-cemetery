@@ -35,7 +35,7 @@ def load_projected_weights(model:torch.nn.Module, projected_weights, projection:
     for name, params in model.named_parameters():
         for e in CAST_PROJECTED_PARAMS_NAME_PARTS:
             if e == "head.weight":
-                name = "default_head"
+                name = "head.weight" #dev inverted_test
             if e[0] in name:
                 name = name.replace(e[0], e[1])
                 print("replaced name", name) #dev
@@ -46,6 +46,7 @@ def load_projected_weights(model:torch.nn.Module, projected_weights, projection:
             params.data.copy_(prj_params)
         if (prj_params is not None) and any([reg in name for reg in LAYER_NORM_COPY]):
             print(f"REPLACED_PROJECTED: {name}, {prj_params.device}")
+            print(params.data) #dev
             if projection is None:
                 local_p = get_init_weight(
                     shape=(projected_dmodel, dm),
