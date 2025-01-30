@@ -89,7 +89,8 @@ def get_model(
         residual_fn=residual_fn,
     )
 
-    if projected_checkpoint and not no_projected_head:
+    # if projected_checkpoint and not no_projected_head:
+    if False: #dev inverted_test
         head = llm.PredictionHead(
             projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
