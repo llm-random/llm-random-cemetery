@@ -107,9 +107,15 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
     # else:
     #     raise Exception("Wrong projection init type")
 
-    projection_3 = torch.concat((projection, projection, projection))
-    projection_3 = torch.concat((projection_3, projection_3, projection_3), dim=1)
-    projection_3.shape
+    # projection_3 = torch.concat((projection, projection, projection))
+    # projection_3 = torch.concat((projection_3, projection_3, projection_3), dim=1)
+    
+    projection_z = torch.zeros((projected_dmodel, dmodel)) #dev
+    projection_3 = torch.concat((
+        torch.concat((projection, projection_z, projection_z), dim=0),
+        torch.concat((projection_z, projection, projection_z), dim=0),
+        torch.concat((projection_z, projection_z, projection), dim=0),
+        ), dim=1)
 
     if diagonal:
         projection_z = torch.zeros((projected_dmodel, dmodel))
