@@ -1,5 +1,5 @@
 parent: configs/experiments/relativity_paper/dense/large_baseline.yaml
-md5_parent_hash: 1b1ffcdc3fd41e11469538e6857b13ee
+md5_parent_hash: d365a6c47c277e5cb8215a41a781f450
 
 params:
   name: "large_dense_relative"
