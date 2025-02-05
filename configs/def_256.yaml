@@ -1,0 +1,27 @@
+
+parent: configs/pc_common.yaml
+md5_parent_hash: 047ce896ed9f8ea9d549c77f3ddf9459
+time: 0-03:00:00
+n_gpus: 1
+# n_gpus: 2
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  tags: ["projected_dis", "1ff", "dm256", "test_main", "save", "ts"]
+
+  learning_rate: 0.002
+  scheduler_trapezoidal_slides: "[{'n_steps':1000},{'n_steps':2000},{'n_steps':3000},{'n_steps':4000},{'n_steps':5000},{'n_steps':6000},{'n_steps':7000}]"
+
+  dmodel: 256
+  dff: 256
+  n_steps: 8812
+  # n_steps: 881
+
+  save_final_model: true
+  # fsdp_enabled: true
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
+
+
