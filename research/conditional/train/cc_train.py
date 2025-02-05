@@ -167,8 +167,8 @@ def convert_parameters(args):
         )
 
     if args.scheduler_trapezoidal_slides:
-        assert args.scheduler == "trapezoidal"
-        assert args.checkpoint_manager
+        assert args.scheduler == "trapezoidal" # TODO move to check args
+        assert args.checkpoint_manager # TODO move to check args
         args.scheduler_trapezoidal_slides = literal_eval(
             args.scheduler_trapezoidal_slides
         )
