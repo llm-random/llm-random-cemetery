@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/bdf_gda/better_differential_transformer3.yaml --git_branch=diff_gda_parameter_matched_2025-02-06_00-32-39 --skip_copy_code --custom_backends_module=research.attention_moe.backends
