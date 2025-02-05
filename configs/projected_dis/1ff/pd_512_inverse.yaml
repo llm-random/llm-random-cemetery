@@ -8,10 +8,10 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm256"]
+  tags: ["projected_dis", "1ff", "compression", "dm512", "inverse"]
 
-  dmodel: 256
-  dff: 256
+  dmodel: 512
+  dff: 512
   projected_dmodel: 512
   projected_dff: 512
   n_steps: 8812 # same as dmodel
