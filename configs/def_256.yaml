@@ -1,0 +1,20 @@
+
+parent: configs/pc_common.yaml
+md5_parent_hash: 6611ac316c5755e8242d83210bcae258
+time: 0-03:00:00
+n_gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  tags: ["projected_dis", "1ff", "dm256", "test_main"]
+
+  learning_rate: 0.002
+
+  dmodel: 256
+  dff: 256
+  n_steps: 881
+  
+
+
+
