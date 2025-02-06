@@ -149,6 +149,9 @@ def get_model(
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
             projection = projection[:, :int(dm)]
+            # shuffled_indices = torch.randperm(int(dm))
+            # projection = projection[shuffled_indices]
+            # projection
         elif projection_init_type == "orthogonal":
             print("Projection initialization: orthogonal")
             projection = torch.empty(projected_dmodel, dm)
