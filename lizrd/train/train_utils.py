@@ -54,7 +54,8 @@ def get_model(
         first_gpu = torch.device("cuda:0")
         last_gpu = torch.device(f"cuda:{len(model_fragmentation)}")
 
-    if projected_checkpoint:
+    # if projected_checkpoint:
+    if False: #dev inverted_test
         embedding_components = [
             ProjectedTokenEmbedding(vocab_size, dm, projected_dmodel, init_type=init_type, init_scale=init_scale)
         ]
@@ -64,7 +65,8 @@ def get_model(
         ]
 
     if include_positional_embedding:
-        if projected_checkpoint:
+        # if projected_checkpoint:
+        if False: #dev inverted_test
             embedding_components.append(
                 ProjectedPositionalEmbedding(
                     max_length, dm, projected_dmodel, init_type=init_type, init_scale=init_scale
@@ -89,7 +91,8 @@ def get_model(
         residual_fn=residual_fn,
     )
 
-    if projected_checkpoint and not no_projected_head:
+    # if projected_checkpoint and not no_projected_head:
+    if False: #dev inverted_test
         head = llm.PredictionHead(
             projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
@@ -149,6 +152,9 @@ def get_model(
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
             projection = projection[:, :int(dm)]
+            # shuffled_indices = torch.randperm(int(dm))
+            # projection = projection[shuffled_indices]
+            # projection
         elif projection_init_type == "orthogonal":
             print("Projection initialization: orthogonal")
             projection = torch.empty(projected_dmodel, dm)
