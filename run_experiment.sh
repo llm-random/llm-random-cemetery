@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m lizrd.grid --config_path=configs/better_differential_transformer.yaml --git_branch=diff_gqa_ropefix_parameter_matched_2025-02-10_17-50-18 --skip_copy_code --custom_backends_module=research.attention_moe.backends
+python3 -m lizrd.grid --config_path=configs/better_differential_transformer_dora.yaml --git_branch=diff_lora_dora_compare_2025-02-10_21-40-54 --skip_copy_code --custom_backends_module=research.attention_moe.backends
