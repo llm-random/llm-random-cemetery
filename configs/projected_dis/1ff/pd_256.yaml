@@ -8,7 +8,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm256", "half_var"]
+  tags: ["projected_dis", "1ff", "compression", "dm256"]
 
   dmodel: 256
   dff: 256
@@ -22,7 +22,8 @@ params:
   attention_mode: projected_vanilla
   ff_mode: projected_vanilla
 
-  ^projection_init_type: [half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var]
+  projection_init_type: half_var
+  # ^projection_init_type: [half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var]
   # ^projection_init_type: [half, orthogonal]
  
   projected_distillation: True
