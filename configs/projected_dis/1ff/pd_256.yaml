@@ -22,7 +22,8 @@ params:
   attention_mode: projected_vanilla
   ff_mode: projected_vanilla
 
-  ^projection_init_type: [half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var]
+  projection_init_type: half_var
+  # ^projection_init_type: [half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var, half_var]
   # ^projection_init_type: [half, orthogonal]
  
   projected_distillation: True
