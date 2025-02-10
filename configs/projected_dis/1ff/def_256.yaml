@@ -17,6 +17,7 @@ params:
   dmodel: 256
   dff: 256
   n_steps: 8812
+  # n_steps: 6168
   
 
 
