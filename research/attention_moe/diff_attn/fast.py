@@ -225,8 +225,8 @@ class MultiheadFlashDiff1(LoggingLayer):
             )
             self.k_neg_proj = Linear(
                 self.dmodel,
-                self.dhead * self.n_negative_heads,
-                # self.dhead * self.n_kv_heads,
+                # self.dhead * self.n_negative_heads,
+                self.dhead * self.n_kv_heads,
                 bias=False,
                 init_type=init_type,
                 init_scale=init_scale,
