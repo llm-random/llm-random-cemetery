@@ -46,6 +46,7 @@ def get_model(
     no_projected_head:bool = False,
     no_layer_norm:bool = False,
     fsdp_use_orig_params:bool = False,
+    unprojected_embeddings:bool = False,
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -54,8 +55,7 @@ def get_model(
         first_gpu = torch.device("cuda:0")
         last_gpu = torch.device(f"cuda:{len(model_fragmentation)}")
 
-    if projected_checkpoint:
-    # if False: #dev inverted_test
+    if projected_checkpoint and not unprojected_embeddings:
         embedding_components = [
             ProjectedTokenEmbedding(vocab_size, dm, projected_dmodel, init_type=init_type, init_scale=init_scale)
         ]
@@ -65,8 +65,7 @@ def get_model(
         ]
 
     if include_positional_embedding:
-        if projected_checkpoint:
-        # if False: #dev inverted_test
+        if projected_checkpoint and not unprojected_embeddings:
             embedding_components.append(
                 ProjectedPositionalEmbedding(
                     max_length, dm, projected_dmodel, init_type=init_type, init_scale=init_scale
@@ -91,8 +90,7 @@ def get_model(
         residual_fn=residual_fn,
     )
 
-    if projected_checkpoint and not no_projected_head:
-    # if False: #dev inverted_test
+    if projected_checkpoint and not no_projected_head and not unprojected_embeddings:
         head = llm.PredictionHead(
             projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
@@ -152,9 +150,13 @@ def get_model(
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
             projection = projection[:, :int(dm)]
-            # shuffled_indices = torch.randperm(int(dm))
-            # projection = projection[shuffled_indices]
-            # projection
+        elif projection_init_type == "half_down":
+            print("Projection initialization: half")
+            # assert projected_dmodel/2 == dm
+            projection = torch.zeros(projected_dmodel, projected_dmodel)
+            mask = torch.eye(projected_dmodel).bool()
+            projection = projection.masked_fill(mask, 1)
+            projection = projection[:, int(dm):]
         elif projection_init_type == "orthogonal":
             print("Projection initialization: orthogonal")
             projection = torch.empty(projected_dmodel, dm)
@@ -185,11 +187,11 @@ def get_model(
             projection = torch.zeros(projected_dmodel, projected_dmodel)
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
-            # projection = projection[:, int(dm):]
 
             columns_to_remove = torch.randperm(projected_dmodel)[:projected_dmodel-dm]
             mask = torch.ones(projected_dmodel, dtype=torch.bool)
             mask[columns_to_remove] = False
+            # mask[:int(len(mask)/2)] = False #dev
             print(mask) #dev
             projection = projection[:, mask]
         else:
