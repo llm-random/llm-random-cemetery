@@ -28,20 +28,31 @@ LAYER_NORM_COPY = [
     # ".block.residual_feedforward.layer.pre_norm."
 ]
 
+UNPROJECTED_EMBEDDINGS_BLACKLIST = [
+    "embedding_layer.layers.0.weight",
+    "head.weight",
+    "embedding_layer.layers.1.layer.weight",
+    "asd",
+    "asd",
+]
 
-def load_projected_weights(model:torch.nn.Module, projected_weights, projection:torch.Tensor, dm, projected_dmodel, init_scale, device):
+
+def load_projected_weights(model:torch.nn.Module, projected_weights, projection:torch.Tensor, dm, projected_dmodel, init_scale, unprojected_embeddings): 
     print(list(projected_weights.keys())) #dev
     print("------------------------------replace with new values------------------------") #dev
     for name, params in model.named_parameters():
         for e in CAST_PROJECTED_PARAMS_NAME_PARTS:
-            if e == "head.weight":
-                # name = "head.weight" #dev inverted_test
+            if e == "head.weight": # prevents copying to default not projected head 
                 name = "default_head"
             if e[0] in name:
                 name = name.replace(e[0], e[1])
                 print("replaced name", name) #dev
+        if unprojected_embeddings:
+            for e in UNPROJECTED_EMBEDDINGS_BLACKLIST:
+                if e in name:
+                    name = name + "_unprojected_embeddings"
         prj_params = projected_weights.get(name)
-        print("prj_params ", prj_params.shape if prj_params is not None else prj_params) #dev
+        print(f"{name} - prj_params: ", prj_params.shape if prj_params is not None else prj_params) #dev
         if (prj_params is not None) and any([reg in name for reg in TRANSFER_PARAMS]):
             print(f"REPLACED: {name}, {prj_params.device}")
             params.data.copy_(prj_params)
