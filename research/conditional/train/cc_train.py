@@ -442,6 +442,7 @@ def main(
         no_projected_head = args.no_projected_head,
         no_layer_norm = args.no_layer_norm,
         fsdp_use_orig_params = args.fsdp_use_orig_params,
+        unprojected_embeddings = args.unprojected_embeddings,
         
     )
     # print("1-------------------------------------------------------------------------------------------------------")
