@@ -150,13 +150,13 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
         if is_in_partial_list(name, PROJECTIONS_1_1):
             # projection
             print(f"projection: {name}, {params.shape}")
-            # params.data.copy_(projection)
-            params.data = projection #dev coupled 
+            params.data.copy_(projection)
+            # params.data = projection #dev coupled 
         elif is_in_partial_list(name, PROJECTIONS_1_1_T):
             # projection_T
             print(f"projection_T: {name}, {params.shape}")
-            # params.data.copy_(projection.T)
-            params.data = projection.T #dev coupled 
+            params.data.copy_(projection.T)
+            # params.data = projection.T #dev coupled 
             # params.data.copy_(torch.inverse(projection).T) #dev inverted_test
             # params.data.copy_(torch.inverse(projection)) #dev inverted_test
         elif is_in_partial_list(name, PROJECTIONS_1_4):
@@ -183,8 +183,8 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
                 torch.concat((projection_z, projection_c, projection_z), dim=0),
                 torch.concat((projection_z, projection_z, projection_c), dim=0),
             ), dim=1)
-            # params.data.copy_(projection_3.T)
-            params.data = projection_3.T #dev coupled 
+            params.data.copy_(projection_3.T)
+            # params.data = projection_3.T #dev coupled 
             # params.data.copy_(torch.inverse(projection_3).T) #dev inverted_test
             # params.data.copy_(torch.inverse(projection_3)) #dev inverted_test
         elif is_in_partial_list(name, MULTIPLY):
