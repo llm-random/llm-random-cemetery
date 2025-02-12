@@ -287,17 +287,23 @@ def get_attention_layer(args):
     return attention_layer_fun
 
 
-def get_norm_class(norm_class):
+def get_norm_class(args, norm_class):
     if norm_class == "layer_norm":
         return LayerNorm
     elif norm_class == "rms_norm":
         return llm.RMSNorm
+    elif norm_class == "learn_norm":
+        return lambda dmodel: llm.LearnNorm(
+            dmodel,
+            mean_loss_weight=args.mean_loss_weight,
+            std_loss_weight=args.std_loss_weight,
+        )
     else:
         raise NotImplementedError(f"Norm type {norm_class} not implemented")
 
 
 def get_residual_layer(args):
-    norm_class = get_norm_class(args.norm_class)
+    norm_class = get_norm_class(args, args.norm_class)
     if args.residual_mode == "pre_norm":
         return partial(llm.PreNormBlock, dmodel=args.dmodel, norm_class=norm_class)
     elif args.residual_mode == "parallel_pre_norm":
@@ -504,6 +510,12 @@ def retrieve_additional_losses(model: torch.nn.Module):
         z_losses = torch.stack(z_losses)
         z_loss = torch.sum(z_losses)
         losses["z_loss"] = z_loss
+
+    if "ln_losses" in model.forward_pass_cache:
+        ln_losses = model.forward_pass_cache.get("ln_losses", [])
+        ln_losses = torch.stack(ln_losses)
+        ln_loss = torch.sum(ln_losses)
+        losses["ln_loss"] = ln_loss
 
     return losses
 

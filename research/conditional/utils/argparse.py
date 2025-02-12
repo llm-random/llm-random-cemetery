@@ -41,6 +41,21 @@ def introduce_parser_arguments(
     parser.add_argument("--no_ff", action="store_true")
     parser.add_argument("--moe_inner_expert", type=str, default="ff")
 
+    # LearnNorm
+    parser.add_argument(
+        "--norm_class",
+        type=str,
+        choices=[
+            "layer_norm",
+            "rms_norm",
+            "learn_norm",
+        ],
+        default="layer_norm",
+        required=False,
+    )
+    parser.add_argument("--mean_loss_weight", type=float, required=False, default=0.0)
+    parser.add_argument("--std_loss_weight", type=float, required=False, default=0.0)
+
     # CORE training hyperparameters, almost always specified in baseline configs
 
     parser.add_argument(
@@ -440,17 +455,6 @@ def introduce_parser_arguments(
     )
     parser.add_argument("--dr_linear_first", action="store_true")
     parser.add_argument("--dr_relu_with_first", action="store_true")
-
-    parser.add_argument(
-        "--norm_class",
-        type=str,
-        choices=[
-            "layer_norm",
-            "rms_norm",
-        ],
-        default="layer_norm",
-        required=False,
-    )
 
     parser.add_argument(
         "--relative_lr",
