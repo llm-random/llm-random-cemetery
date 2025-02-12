@@ -8,7 +8,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm256", "fix_projected_attention", "dev"]
+  tags: ["projected_dis", "1ff", "compression", "dm256", "fix_projected_attention", "dev", "v1"]
 
   dmodel: 256
   dff: 256
