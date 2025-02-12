@@ -399,6 +399,31 @@ class RMSNorm(nn.Module):
         return x * self.g + self.b
 
 
+class LearnNorm(nn.Module):
+    def __init__(self, dmodel, mean_loss_weight=0.0, std_loss_weight=0.0):
+        super().__init__()
+        self.forward_pass_cache = None
+        self.mean_loss_weight = mean_loss_weight
+        self.std_loss_weight = std_loss_weight
+
+    def forward(self, x):
+        mean_pow = 2
+        std_pow = 2
+        mean_loss = (
+            x.mean(dim=-1, keepdim=False).abs() ** mean_pow
+        ).mean() * self.mean_loss_weight
+        std_loss = (
+            x.std(dim=-1, keepdim=False).abs() ** std_pow
+        ).mean() * self.std_loss_weight
+        self.forward_pass_cache["mean_loss"] = self.forward_pass_cache.get(
+            "mean_loss", []
+        ) + [mean_loss]
+        self.forward_pass_cache["std_loss"] = self.forward_pass_cache.get(
+            "std_loss", []
+        ) + [std_loss]
+        return x
+
+
 class ReZero(nn.Module):
     def __init__(self, fn, init=0.0):
         super().__init__()
