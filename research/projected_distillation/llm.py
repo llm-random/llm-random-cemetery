@@ -306,6 +306,7 @@ class ProjectedAttention(LoggingLayer):
         self.dhead = dhead
         self.causal = causal
         self.flash = flash
+        self.projected_dhead = projected_dhead
 
         self.input_projection = nn.Sequential(
             OrderedDict([
@@ -325,17 +326,56 @@ class ProjectedAttention(LoggingLayer):
                     init_type=init_type,
                     init_scale=init_scale,
                 )),
-                ("input_projection_p12",
+                # ("input_projection_p12",
+                # Linear(
+                #     3 * heads * projected_dhead, #yb
+                #     3 * heads * dhead, #ys
+                #     bias=False,
+                #     init_type=init_type,
+                #     init_scale=init_scale,
+                # )),
+            ])
+        )
+
+        self.input_projection_out_projection_q = nn.Sequential(
+            OrderedDict([
+                ("input_projection_p12_q",
                 Linear(
-                    3 * heads * projected_dhead, #yb
-                    3 * heads * dhead, #ys
+                    projected_dmodel, # xb
+                    dmodel, # xs
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
-                )),
+                ))
             ])
         )
-            
+
+        self.input_projection_out_projection_k = nn.Sequential(
+            OrderedDict([
+                ("input_projection_p12_k",
+                Linear(
+                    projected_dmodel, # xb
+                    dmodel, # xs
+                    bias=False,
+                    init_type=init_type,
+                    init_scale=init_scale,
+                ))
+            ])
+        )
+
+        self.input_projection_out_projection_v = nn.Sequential(
+            OrderedDict([
+                ("input_projection_p12_v",
+                Linear(
+                    projected_dmodel, # xb
+                    dmodel, # xs
+                    bias=False,
+                    init_type=init_type,
+                    init_scale=init_scale,
+                ))
+            ])
+        )
+
         self.output_projection = nn.Sequential(
             OrderedDict([
                 ("output_projection_p21",
@@ -369,12 +409,17 @@ class ProjectedAttention(LoggingLayer):
 
     def forward(self, x):
         projected = self.input_projection(x)
+        raise Exception(f"shape {projected.shape}")
 
         batch, seq_len = x.shape[:-1]
         projected = projected.view(
-            batch, seq_len, self.heads, 3 * self.dhead
+            batch, seq_len, self.heads, 3 * self.projected_dhead # dev num of heads of projected model, 3*projected_dhead
         ).transpose(1, 2)
         q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+
+        q = self.input_projection_out_projection_q(q)
+        k = self.input_projection_out_projection_k(k)
+        v = self.input_projection_out_projection_v(v)
 
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
