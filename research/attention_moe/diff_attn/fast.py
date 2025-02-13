@@ -37,7 +37,7 @@ def lambda_init_fn(depth):
     return 0.8 - 0.6 * math.exp(-0.3 * depth)
 
 
-class Lowrank(nn.Module):
+class Lowrank(LoggingLayer):
     def __init__(self, outer_dim, inner_dim, init_type, init_scale, output_dim=None):
         super().__init__()
         self.inner_dim = inner_dim
