@@ -38,7 +38,15 @@ def lambda_init_fn(depth):
 
 
 class Lowrank(nn.Module):
-    def __init__(self, outer_dim, inner_dim, init_type, init_scale, output_dim=None):
+    def __init__(
+        self,
+        outer_dim,
+        inner_dim,
+        init_type,
+        init_scale,
+        output_dim=None,
+        dtype=None,
+    ):
         super().__init__()
         self.inner_dim = inner_dim
         self.w1 = Linear(
@@ -51,9 +59,16 @@ class Lowrank(nn.Module):
             init_type=init_type,
             init_scale=init_scale,
         )
+        self.dtype = dtype
 
     def forward(self, x):
-        return self.w2(self.w1(x))
+        if self.dtype is None:
+            return self.w2(self.w1(x))
+        else:
+            original_dtype = x.dtype
+            x = x.to(self.dtype)
+            res = self.w2(self.w1(x))
+            return res.to(original_dtype)
 
 
 def manual_attention(q, k, v, causal=True):
@@ -93,6 +108,7 @@ class MultiheadFlashDiff1(LoggingLayer):
         init_scale,
         num_kv_heads=None,
         adapter_type="none",
+        lowrank_dtype=None,
     ):
         super().__init__()
         # self.args = args
@@ -118,7 +134,11 @@ class MultiheadFlashDiff1(LoggingLayer):
         self.lowrank_inner_dim = lowrank_inner_dim
         if self.adapter_type == "lora" and self.lowrank_inner_dim > 0:
             self.lowrank_q = Lowrank(
-                embed_dim, self.lowrank_inner_dim, init_type, init_scale
+                embed_dim,
+                self.lowrank_inner_dim,
+                init_type,
+                init_scale,
+                dtype=lowrank_dtype,
             )
             self.lowrank_k = Lowrank(
                 embed_dim,
@@ -126,6 +146,7 @@ class MultiheadFlashDiff1(LoggingLayer):
                 init_type,
                 init_scale,
                 output_dim=2 * self.head_dim * self.num_kv_heads,
+                dtype=lowrank_dtype,
             )
         elif self.adapter_type == "additive":
             self.k_delta = nn.Parameter(
