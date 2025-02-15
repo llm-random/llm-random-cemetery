@@ -38,7 +38,15 @@ def lambda_init_fn(depth):
 
 
 class Lowrank(nn.Module):
-    def __init__(self, outer_dim, inner_dim, init_type, init_scale, output_dim=None):
+    def __init__(
+        self,
+        outer_dim,
+        inner_dim,
+        init_type,
+        init_scale,
+        output_dim=None,
+        dtype=None,
+    ):
         super().__init__()
         self.inner_dim = inner_dim
         self.w1 = Linear(
@@ -51,9 +59,17 @@ class Lowrank(nn.Module):
             init_type=init_type,
             init_scale=init_scale,
         )
+        self.dtype = dtype
 
     def forward(self, x):
-        return self.w2(self.w1(x))
+        if self.dtype is None:
+            return self.w2(self.w1(x))
+        else:
+            original_dtype = x.dtype
+            forced_dtype = getattr(torch, self.dtype)
+            x = x.to(forced_dtype)
+            res = self.w2(self.w1(x))
+            return res.to(original_dtype)
 
 
 def manual_attention(q, k, v, causal=True):
@@ -93,6 +109,8 @@ class MultiheadFlashDiff1(LoggingLayer):
         init_scale,
         num_kv_heads=None,
         adapter_type="none",
+        lowrank_dtype=None,
+        use_qk_norm: bool = False,
     ):
         super().__init__()
         # self.args = args
@@ -118,7 +136,11 @@ class MultiheadFlashDiff1(LoggingLayer):
         self.lowrank_inner_dim = lowrank_inner_dim
         if self.adapter_type == "lora" and self.lowrank_inner_dim > 0:
             self.lowrank_q = Lowrank(
-                embed_dim, self.lowrank_inner_dim, init_type, init_scale
+                embed_dim,
+                self.lowrank_inner_dim,
+                init_type,
+                init_scale,
+                dtype=lowrank_dtype,
             )
             self.lowrank_k = Lowrank(
                 embed_dim,
@@ -126,6 +148,7 @@ class MultiheadFlashDiff1(LoggingLayer):
                 init_type,
                 init_scale,
                 output_dim=2 * self.head_dim * self.num_kv_heads,
+                dtype=lowrank_dtype,
             )
         elif self.adapter_type == "additive":
             self.k_delta = nn.Parameter(
@@ -228,6 +251,14 @@ class MultiheadFlashDiff1(LoggingLayer):
         )
 
         self.subln = RMSNorm(2 * self.head_dim, eps=1e-5, elementwise_affine=True)
+        self.use_qk_norm = use_qk_norm
+        if self.use_qk_norm:
+            if self.adapter_type != "none":
+                qk_norm_dim = 2 * self.head_dim
+            else:
+                qk_norm_dim = self.head_dim
+            self.q_norm = RMSNorm(qk_norm_dim, eps=1e-5, elementwise_affine=True)
+            self.k_norm = RMSNorm(qk_norm_dim, eps=1e-5, elementwise_affine=True)
 
     def forward(
         self,
@@ -296,6 +327,10 @@ class MultiheadFlashDiff1(LoggingLayer):
             q = q.view(bsz, tgt_len, 2 * self.num_heads, self.head_dim)
             k = k.view(bsz, src_len, 2 * self.num_kv_heads, self.head_dim)
             v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+
+        if self.qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
 
         if self.use_rope:
             assert self.rotary_emb._cos_cached.dtype == torch.float32
