@@ -1,0 +1,1172 @@
+    %%%%%%%% ICML 2025 EXAMPLE LATEX SUBMISSION FILE %%%%%%%%%%%%%%%%%
+
+    \documentclass{article}
+
+    % Recommended, but optional, packages for figures and better typesetting:
+    \usepackage{microtype}
+    \usepackage{graphicx}
+    \usepackage{subfigure}
+    \usepackage{booktabs} % for professional tables
+    
+    \usepackage{enumitem}
+    
+    \usepackage{algorithm}
+    \usepackage{algpseudocode}
+    
+    \usepackage{sidecap}
+    \usepackage{array}
+    \usepackage{ulem} % for strike-through
+    
+    % hyperref makes hyperlinks in the resulting PDF.
+    % If your build breaks (sometimes temporarily if a hyperlink spans a page)
+    % please comment out the following usepackage line and replace
+    % \usepackage{icml2025} with \usepackage[nohyperref]{icml2025} above.
+    \usepackage{hyperref}
+    
+    
+    % Attempt to make hyperref and algorithmic work together better:
+    \newcommand{\theHalgorithm}{\arabic{algorithm}}
+    
+    % Use the following line for the initial blind version submitted for review:
+    % \usepackage{icml2025}
+    
+    % If accepted, instead use the following line for the camera-ready submission:
+    \usepackage[accepted]{icml2025}
+    
+    % For theorems and such
+    \usepackage{amsmath}
+    \usepackage{amssymb}
+    \usepackage{mathtools}
+    \usepackage{amsthm}
+    
+    % if you use cleveref..
+    \usepackage[capitalize,noabbrev]{cleveref}
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % THEOREMS
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \theoremstyle{plain}
+    \newtheorem{theorem}{Theorem}[section]
+    \newtheorem{proposition}[theorem]{Proposition}
+    \newtheorem{lemma}[theorem]{Lemma}
+    \newtheorem{corollary}[theorem]{Corollary}
+    \theoremstyle{definition}
+    \newtheorem{definition}[theorem]{Definition}
+    \newtheorem{assumption}[theorem]{Assumption}
+    \theoremstyle{remark}
+    \newtheorem{remark}[theorem]{Remark}
+    
+    % Todonotes is useful during development; simply uncomment the next line
+    %    and comment out the line below the next line to turn off comments
+    %\usepackage[disable,textsize=tiny]{todonotes}
+    \usepackage[textsize=tiny]{todonotes}
+    
+    
+    \usepackage{hyperref}       % hyperlinks
+    \usepackage{url}            % simple URL typesetting
+    \usepackage{booktabs}       % professional-quality tables
+    \usepackage{amsfonts}       % blackboard math symbols
+    \usepackage{nicefrac}       % compact symbols for 1/2, etc.
+    \usepackage{microtype}      % microtypography
+    \usepackage{xcolor}         % colors
+    
+    \usepackage{ulem}  % strike-through
+    
+    \usepackage{graphicx}
+    
+    \usepackage{fp}
+    
+    % \newcommand{\roundto}[2]{%
+    %     \FPround\result{#1}{#2}%
+    %     \result
+    % }
+    \newcommand{\roundto}[2]{%
+        \FPsub\tempresult{#1}{1}%
+        \FPmul\tempresult{\tempresult}{100}%
+        \FPround\result{\tempresult}{1}%
+        \result\%
+    }
+    
+    % The \icmltitle you define below is probably too long as a header.
+    % Therefore, a short form for the running title is supplied here:
+    \icmltitlerunning{Decoupled Relative Learning Rate Schedules}
+    
+    
+    \newcommand{\moe}[1]{$\text{MoE}_{8\times#1\text{M}}$}
+    \newcommand{\dense}[1]{$\text{Dense}_{#1\text{M}}$}
+    
+    \newcommand{\fix}{\marginpar{FIX}}
+    \newcommand{\new}{\marginpar{NEW}}
+    \newcommand{\comment}[1]{\textcolor{red}{#1}}
+    \newcommand{\sj}[1]{\textcolor{blue}{[SJ: #1]}}
+    \newcommand{\ka}[1]{\textcolor{magenta}{[KA: #1]}}
+    \newcommand{\kas}[1]{\textcolor{magenta}{\sout{#1}}}
+    \newcommand{\jl}[1]{\textcolor{green}{[JL: #1]}}
+    \newcommand{\jlr}[2]{\textcolor{green}{[JL: \sout{#1} #2]}}
+    
+    \newcommand{\jmr}[2]{\textcolor{purple}{[JM:] \sout{#1} #2}}
+    \newcommand{\mps}[2]{\textcolor{orange}{\small [mp:\sout{#1} #2}]}
+    \renewcommand{\mp}[1]{\textcolor{orange}{\small [mp: #1]}}
+    \let\pioro\mp
+    
+    
+    \begin{document}
+    
+    \twocolumn[
+    \icmltitle{Decoupled Relative Learning Rate Schedules}
+    
+    % It is OKAY to include author information, even for blind
+    % submissions: the style file will automatically remove it for you
+    % unless you've provided the [accepted] option to the icml2025
+    % package.
+    
+    % List of affiliations: The first argument should be a (short)
+    % identifier you will use later to specify author affiliations
+    % Academic affiliations should list Department, University, City, Region, Country
+    % Industry affiliations should list Company, City, Region, Country
+    
+    % You can specify symbols, otherwise they are numbered in order.
+    % Ideally, you should not use this facility. Affiliations will be numbered
+    % in order of appearance and this is the preferred way.
+    \icmlsetsymbol{equal}{*}
+    
+    \begin{icmlauthorlist}
+    \icmlauthor{Firstname1 Lastname1}{equal,yyy}
+    \icmlauthor{Firstname2 Lastname2}{equal,yyy,comp}
+    \icmlauthor{Firstname3 Lastname3}{comp}
+    \icmlauthor{Firstname4 Lastname4}{sch}
+    \icmlauthor{Firstname5 Lastname5}{yyy}
+    \icmlauthor{Firstname6 Lastname6}{sch,yyy,comp}
+    \icmlauthor{Firstname7 Lastname7}{comp}
+    %\icmlauthor{}{sch}
+    \icmlauthor{Firstname8 Lastname8}{sch}
+    \icmlauthor{Firstname8 Lastname8}{yyy,comp}
+    %\icmlauthor{}{sch}
+    %\icmlauthor{}{sch}
+    \end{icmlauthorlist}
+    
+    \icmlaffiliation{yyy}{Department of XXX, University of YYY, Location, Country}
+    \icmlaffiliation{comp}{Company Name, Location, Country}
+    \icmlaffiliation{sch}{School of ZZZ, Institute of WWW, Location, Country}
+    
+    \icmlcorrespondingauthor{Firstname1 Lastname1}{first1.last1@xxx.edu}
+    \icmlcorrespondingauthor{Firstname2 Lastname2}{first2.last2@www.uk}
+    
+    % You may provide any keywords that you
+    % find helpful for describing your paper; these are used to populate
+    % the "keywords" metadata in the PDF but will not be shown in the document
+    \icmlkeywords{Machine Learning, ICML}
+    
+    \vskip 0.3in
+    ]
+    
+    % this must go after the closing bracket ] following \twocolumn[ ...
+    
+    % This command actually creates the footnote in the first column
+    % listing the affiliations and the copyright notice.
+    % The command takes one argument, which is text to display at the start of the footnote.
+    % The \icmlEqualContribution command is standard text for equal contribution.
+    % Remove it (just {}) if you do not need this facility.
+    
+    %\printAffiliationsAndNotice{}  % leave blank if no need to mention equal contribution
+    \printAffiliationsAndNotice{\icmlEqualContribution} % otherwise use the standard text.
+    
+    \begin{abstract}
+    In this work, we introduce a novel  approach for optimizing neural network training by adjusting learning rates across weights of different components in Transformer models. Traditional methods often apply a uniform learning rate across all network layers, potentially overlooking the unique dynamics of each part. Remarkably, our introduced relative learning rates, RLRS, method accelerates the training process by up to {$23\%$}, particularly in complex models such as Mixture of Experts (MoE). Hyperparameters of RLRS can be efficiently tuned on smaller models and then effectively reused on models up to $27\times$ larger. This simple and effective method results in a substantial reduction in training time and computational resources, offering a practical and scalable solution for optimizing large-scale neural networks.
+    \end{abstract}
+    
+    
+    
+    \section{Introduction}
+    
+    The learning rate is a crucial hyperparameter in Deep Learning, determining the size of the steps that the optimization algorithm takes when updating model parameters during training. In the context of Transformers, widely used for tasks in Natural Language Processing (NLP) and other areas, the learning rate significantly impacts the model's convergence and overall performance. While higher learning rates, with larger updates to the model, may generally converge faster, they can also introduce instabilities. Therefore, the learning rate must be carefully chosen to balance the speed and stability of the training process.
+    %A well-chosen learning rate ensures efficient training, balances between underfitting and overfitting \sj{chcemy pisać takie rzeczy? zupełnie nieistotne dla LLM}, and ultimately leads to better generalization of the model to unseen data.
+    %Current research on learning rates in transformers has focused on refining strategies to optimize training stability and efficiency. The strategies include warm-up phase, where the learning rate gradually increases from a small value at the beginning of training to a predefined peak before following a decay schedule, and various learning rate schedules, such as cosine annealing and step decay, have also been explored to adapt the learning rate dynamically throughout training, promoting better convergence and preventing overfitting. \comment{list maybe one-two more research area for lr} Despite these advancements,
+    
+    
+    %A noteworthy aspect of transformer models is that, despite consisting of various layer modules, the same learning rate is typically applied across all of them.
+    At the same time, modern Deep Learning architectures are not homogeneous, with different parts having distinct structures, serving varied purposes, and exhibiting unique behaviors. Importantly, they also have individual training dynamics. As seen in Figure~\ref{fig:updates}, weight updates for different model parts follow different patterns during training. This variability can result in components behaving differently depending on the training phase, which may be problematic in some cases. For example, in Mixture of Experts (MoE) models, the Router often stabilizes early in training, leading to deterministic routing to the Experts~\citep{xue2024openmoe}. %{Transformer models, in particular, consist of different parts, each serving a different purpose. While attention mechanisms mixes information between different tokens, the feed-forward networks process each token independently, enhancing the model's overall understanding of the input data. Moreover, components may behave differently depending on the training phase. For instance, phase transitions occur due to the formation of induction heads within the attention mechanism \citep{olsson2022context}. The weight dynamics can also vary across modules. In Mixture of Experts (MoE) models, the router often stabilizes early in training, leading to deterministic routing to the experts \citep{xue2024openmoe}.} 
+    
+    
+    %\sj{But we don't do relative LRs for final vs first layers, do we?} \jl{ok, tu chodzi o jakies rozjasnienie, ze nie tunujemy roznych LR na poczatkowe I koncowe bloki}.
+    
+    %\sj{Narracyjnie, fajnie by było wziąć dwa z tych komponentów "na warsztat" (najlepiej, żeby nie było to MoE), I powiedzieć które szybciej zbiega a które wolniej, czy coś takiego. Może z wykresem, może z wykresem z innego papera. No, ale to raczej na maintrack.}
+    
+    \begin{figure*}[h]
+        \centering
+        % Correcting the includegraphics command
+        \includegraphics[width=\linewidth]{figs/relativity_motivation_onerow.pdf}
+        
+        % Adding descriptions below the image
+    %    \vspace{0.5cm} % Adjust the vertical space between the image and the descriptions
+        % \footnotesize
+        % \begin{tabular}{ >{\centering\arraybackslash}p{2.5cm} 
+        %                  >{\centering\arraybackslash}p{2cm} 
+        %                  >{\centering\arraybackslash}p{2cm} 
+        %                  >{\centering\arraybackslash}p{2.9cm} 
+        %                  >{\centering\arraybackslash}p{3cm} }
+                        
+        %     \textbf{(a)} Attention & \textbf{(b)} Expert & \textbf{(c)} Router & \textbf{(d)} Embedding & \textbf{(e)} Unembedding
+        % \end{tabular}
+        
+        \vspace{0.2cm} % Adjust the vertical space between the descriptions and the caption
+        \caption{Magnitudes of weight updates for different components of the Transformer with MoE (trained without RLRS), right before applying learning rate.} 
+        \label{fig:updates}
+    \end{figure*}
+    
+    
+    
+    Given the diversity of layers within a model, it is reasonable to expect that their requirements would vary, particularly when balancing training speed and stability. Despite this, a uniform learning rate is often applied across all modules. A common practice, for example, is to reduce the learning rate for the whole model after the introduction of an MoE layer due to instabilities~\citep{pmlr-v162-rajbhandari22a}. As a result, hyperparameters are typically tuned for the entire network, even if the instabilities may originate from a single layer. In this work, we challenge the implicit assumption of a global learning rate.
+    Motivated by the heterogeneity of Transformer's modules, we ask ourselves: can we improve the training procedure by tailoring the learning rate schedules to different model's components? 
+    %Since each layer serves a different purpose at different stages of the training process, can we improve it by tailoring the learning rate schedules accordingly?
+    
+    To answer this question, we decouple learning rates in Transformers and tuning them individually for various model components—including Embedding, Unembedding, Attention, Feed-Forward, and, in the case of Mixture of Experts architecture, Router and Experts—we enhance the model's overall performance and stability by tailoring the learning rate to meet the specific needs of each component. 
+    %We explore and calculate optimal tuning schemes across different Transformer variants, such as Dense Transformers, MoE architectures, and those using SwiGLU activations, and demonstrate that these tailored schemes can be successfully extrapolated across various configurations, leading to more effective and adaptable models.
+    
+    Commonly used adaptive optimizers, like AdamW \citep{loshchilov2019decoupled}, show the importance of well-adjusted learning rates during training. However, adaptive optimizers generally treat all layers in the same way and do not differentiate between them. Our proposed RLRS is used on top of an adaptive optimizer (Adam in this work, but RLRS is independent of the optimizer), and we show that adjusting learning rate schedules for individual model components brings improvements.
+    
+    
+    
+    Furthermore, we propose a straightforward scheme to adjust relative learning rate values that can be effectively scaled to models larger by orders of magnitude. This approach eliminates the need for extensive hyperparameter searches for larger models, resulting in significant computational savings and enhancing its practical applicability. (This could also be combined with Tensor Programs \citep{yang2022tensor}, see discussion in Section~\ref{future:tensor_programs}.)%make it more general than just saying 27x
+    
+    In essence, we propose the following approach: first, relative learning rates, RLRS, should be tuned on a small model; later, the same RLRS can be reused when training the model's significantly larger counterpart.
+    Our method is easy to implement, with no additional overhead required, apart from the relatively inexpensive hyperparameter search on the small model. While tailored to our specific training setup, the relative LR values configuration shared in this work have proven robust across a range of model sizes and training lengths, making them an excellent starting point. 
+    Additionally, we provide an analysis of how these values, obtained using automated methods, align with our intuitive understanding of Transformer training. In summary,
+    
+    \begin{itemize}
+        \item We propose distinct, relative learning rate schedules (RLRS) tailored for different components of a Transformer model, optimizing each part individually for better overall performance.
+        \item We demonstrate performance improvements of the introduced method in standard Transformers, and achieving  even larger speedup in the case of Mixture of Experts (MoE) based models, highlighting the importance of relative learning rates for more complex models. 
+        % \item We demonstrate that in both dense and Mixture of Experts (MoE) architectures, this targeted learning rate division significantly enhances performance, highlighting its importance in more complex models.\sj{rewrite?}
+        \item We demonstrate that the hyperparameters tuned on small models extrapolate to larger models, showing that our approach generalizes effectively across different architecture sizes. 
+        
+    \end{itemize}
+    
+    
+    
+    % \begin{figure}
+    %     \centering
+    %     \includegraphics[width=\linewidth]{figs/gradients.pdf
+        
+    %     % Adding descriptions below the image and above the caption
+    %     %\vspace{0.5cm} % Adjust the vertical space between the image and the descriptions
+    %     \footnotesize
+    % \begin{tabular}{ >{\centering\arraybackslash}p{2.5cm} 
+    %                  >{\centering\arraybackslash}p{2cm} 
+    %                  >{\centering\arraybackslash}p{2cm} 
+    %                  >{\centering\arraybackslash}p{2.9cm} 
+    %                  >{\centering\arraybackslash}p{3cm} }
+                    
+    %                 \textbf{(a)} Attention & \textbf{(b)} Expert & \textbf{(c)} Router & \textbf{(d)} Embedding & \textbf{(e)} Unembedding
+    %     \end{tabular}
+        
+    %    % \vspace{0.5cm} % Adjust the vertical space between the descriptions and the caption
+    %     \caption{Gradient norms updates of Transformer layer modules over the course of the training. }
+    %     \label{fig:updates}
+    % \end{figure}
+    
+    \section{Decoupled Relative Learning Rate Schedules}
+    %\sj{This section could be simplified with different notations/explanations, I think.}
+     \begin{figure*}
+        \centering
+        \includegraphics[width=\linewidth]{figs/rlrs_visualization.pdf}
+        % \caption{Visualization of the RLRS for a hypothetical model trained for 10,000 steps with 10\% warmup. The lines show the base learning rate as well as the effective learning rates for some components $\text{m}_1$ and $\text{m}_2$.}
+        \label{fig:rlrs_vis}
+        % https://colab.research.google.com/drive/1IXW1rjoy1nzolg_IjfeN5gJkzkAPuQxU#scrollTo=ngWf4GfAeaBN
+        \caption{Decoupled Relative Learning Rate Schedules. Depiction of distinction schedules between each model component and the base model learning rate.}
+    \end{figure*}
+    
+    We define a \textit{decoupled learning rate} as a separate learning rate schedule for different layer types (also called parts, modules, or components). Decoupled learning rate schedules enable the learning procedure to focus on different components during various phases of a model's pretraining, facilitating a more targeted and efficient optimization process.
+    
+    We specify decoupled learning rates following the structure of the cosine learning rate scheduler~\citep{loshchilov2016sgdr}, widely used for training Large Language Models (LLMs)~\citep{touvron2023llama, hoffmann2022training}. The cosine scheduler adjusts the learning rate over time according to a cosine function, starting with a high learning rate that gradually decays to a minimum value in a smooth, nonlinear manner.
+    
+    
+    %We propose decoupling the learning rate schedules for different components of the model to achieve fine control over their optimization. 
+    
+    % We use the following parametrization of decoupled cosine schedule:
+    We define the base learning rates, shared across modules, using parameters:
+    
+    \begin{itemize}[topsep=0pt, leftmargin=*] 
+    \item \textit{Base LR} ($\eta_{\text{base}}$) --- the reference learning rate for the entire model. In a typical cosine schedule, it is the peak learning rate.
+    
+    \item \textit{Base LR Final Fraction} ($\alpha_{\text{end}}$) --- the reference fraction of the base learning rate at the end of the training. In a typical cosine schedule, the final learning rate $\eta_{\text{end}} = \eta_{\text{base}} \times \alpha_{\text{end}}$. %The base for final relative learning rates is given by $\eta_{\text{end}} = \eta_{\text{base}} \times \alpha_{\text{end}}$.
+    
+    % \item \jmr{}{\textit{Base LR} ($\eta_{\text{base}}$) --- the reference learning rate for the entire model. In a typical cosine schedule, it is the maximal LR value.}
+    
+    % \item \jmr{}{\textit{Base LR Final Fraction} ($\lambda_{\text{base}}$) --- $\lambda_{\text{base}} = \frac{\eta_{\text{end}}}{\eta_{\text{base}}}$ Where $\eta_{\text{end}}$ is the learning rate at the end of the cosine scheduler. \jl{tu jest cos nie tak w tej notacji}.}
+     \end{itemize}
+    
+    %The final learning rate is computed as: \end{itemize}
+    %\begin{equation} \eta_{\text{final}} = \eta_{\text{base}} \times \text{Final Learning Rate Fraction} \end{equation}
+    
+    %\jmr{It gradually reduces the learning rate from an initial value to a lower final value using the cosine function}{}.
+    The cosine scheduler adjusts the learning rate following a cosine curve over a specified number of iterations.  The learning rate $\eta_t$ at step $t$ is computed using the cosine function: $\eta_t = \eta_{\text{end}} + \frac{1}{2} (\eta_{\text{start}} - \eta_{\text{end}}) \left(1 + \cos\left(\frac{t}{T} \pi\right)\right)$, where $t$ is the current step, and $T$ is the total number of steps.
+    
+    
+    For each component $m$ of the model, we further define a learning rate scaling factors \textit{relative} to the base learning rates defined above:
+    
+    \begin{itemize} [topsep=0pt, leftmargin=*]
+    \item \textit{Relative Start LR} ($\lambda_{\text{start}}^m$) --- the scaling factor of the base learning rate at the beginning of training. 
+    
+    \item \textit{Relative End LR} ($\lambda_{\text{end}}^m$) --- the scaling factor of the final learning rate at the end of training. 
+    \end{itemize}
+    
+    Thus, the \textit{decoupled learning rates} $\eta_{\text{start}}^m$ and $\eta_{\text{end}}^m$ for a component $m$ are defined as:
+    
+    %\begin{equation} \eta_{\text{start}}^m = \eta_{\text{base}} \times \lambda^m_{\text{start}} \end{equation}
+    
+    %\begin{equation} \eta_{\text{end}}^m = \eta_{\text{base}} \times \lambda_{\text{base}} \times \lambda^m_{\text{end}} \end{equation}
+    
+    % \[
+    %     \makebox[0.2\textwidth][l]{\(\eta_{\text{start}}^m = \eta_{\text{base}} \times \lambda^m_{\text{start}}\)}
+    %     \makebox[0.45\textwidth][r]{\(\eta_{\text{end}}^m = \eta_{\text{base}} \times \lambda_{\text{base}} \times \lambda^m_{\text{end}}\)}
+    % \]
+    \begin{align}
+    \eta_{\text{start}}^m &= \eta_{\text{base}} \times \lambda_{\text{start}}^m \\
+    \eta_{\text{end}}^m &= \eta_{\text{base}} \times \alpha_{\text{end}} \times \lambda_{\text{end}}^m
+    \end{align}
+    
+    These values are adjusted for each Transformer component. In this work, we distinguish the following layer modules $m$: Embedding, Attention, Unembedding, and additionally, for dense models, the Feed-Forward layer, and for Mixture of Experts models, the Expert and Router layers.
+    
+    % These values are adjusted for each transformer component, such as the embedding layer, attention projections, and linear layers in a dense transformer architecture. In the case of a Mixture of Experts (MoE) model, we instead tune the router and expert layers.
+    
+    Thus, for a given model, one needs to obtain the baseline learning rate $\eta_{\text{base}}$ and the relative learning rates, $\lambda_{\text{start}}^m$, $\lambda_{\text{end}}^m$. In Section~\ref{app:local_search}, we show how we find them in practice. However, in the next section, we demonstrate that we do not need to tune the relative learning rates for every model separately, as the same set of values remains robust across a range of model sizes. 
+    
+    %these values remain (italicize) good across a range of architectures. We show in the next section that gains obtasined from tuning these parameters on the small model are well retained on a larger model. 
+    
+    
+    
+    
+    % This result need some further validation - it can be really sensitive to the chosen (base) learning rate. Therefore, the final extrapolation has to be run with at least 3 different LRs. This exp was run with 3e-4, other exps are running. 
+    
+    
+    
+    % \subsection{Gradient dynamics}
+    % tutaj macieja analiza gradientow
+    
+    
+    \subsection{Preserving Relative Values}
+    
+    %In this section, we demonstrate that decoupled learning rates remain stable across various models, with their values staying approximately constant relative to the base learning rate.
+    
+    Directly tuning relative learning rate values on large models may be impractical due to significant computational costs. To address this, we propose a method that fine-tunes these values on a smaller proxy model and then transfers them to a larger model. This approach significantly reduces the need for costly tuning on large models, offering substantial computational savings.
+    
+    Our method, described in Algorithm~\ref{algo}, involves conducting a search for optimal values on smaller models under the assumption that these relative values extrapolate effectively to larger models. This search consumes only a fraction of the training time required for large models.
+    
+    \begin{algorithm*}
+    \caption{Relative Learning Rate Adjustment Procedure}
+    \begin{algorithmic}[1]
+    \State Determine $\eta_{\text{base}}$ for a small model.
+    \State For each module $m$, find relative values $\lambda_{\text{start}}^m$ and $\lambda_{\text{end}}^m$ on a small model.
+    \State Determine base learning rate $\eta_{\text{base}}$ for the large model.
+    \State Apply relative learning rates $\lambda_{\text{start}}^m$ and $\lambda_{\text{end}}^m$ from the small model to the large model.
+    \end{algorithmic}
+    \label{algo}
+    \end{algorithm*}
+    
+    While we do not claim that $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$ values are optimal for larger models, they are straightforward to use and yield substantial improvements, as shown in the next section. We leave the investigation of optimal extrapolation as future work. % Other hyperparameters (such as $\lambda_{\textit{base}}$) have been determined using Algorithm~\ref{algo_local}.
+    
+    
+    % \jl{te zdania nizej nie maja sensu, algorithm 1 to jest ten co fituje oddzielnie base LR wlasnie, tutaj jest odwrotnie napisane. Alternatywa do obu paragrafow nizej}
+    % Algorithm~\ref{algo} presents a simple way to find relative learning rates independently of the base learning rate and applying them to both small and large models. This method is especially useful if a model with an already tuned base learning rate is available. However, if this is not the case, we propose Algorithm~\ref{algo2} as an alternative, where the base learning rate is adjusted again after setting the relative learning rates. 
+    % Algorithm~\ref{algo2} may perform slightly better than Algorithm~\ref{algo}. However, applying relative rates to a model with a known optimal base learning rate yields substantial improvement, which can be useful in practice.\jl{alternatywa}:
+    
+    Algorithm~\ref{algo} presents a simple way to introduce relative learning rates independently of the base learning rate and to apply them to both small and large models. Moreover, as we see in Table \ref{tab:extrapol}, the base learning rate $\eta_{\text{base}}$ tuned with relative rates rarely differs from the optimal learning rate for the baseline non-RLRS model with the same configuration. Therefore, if an already tuned learning rate for a large model is available, we can reuse it as our base learning rate $\eta_{\text{base}}$ with relative schedules. Then further applying relative rates would yield substantial improvement without additional tuning on a large scale, which can be useful in practice.
+    
+    
+    % 
+    % \begin{algorithm}
+    % \caption{Relative LR Adjustment Algorithm }
+    % \begin{algorithmic}[1]
+    % \State For a small model, determine $\eta_{\textit{base}}$, and for each module $m$, find relative values $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$.
+    % \State Apply relative learning rates $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$ from the small model.
+    % \State Adjust base learning rate $\eta_{\textit{base}}$ for the large model.
+    % \end{algorithmic}
+    % \label{algo2}
+    % \end{algorithm}
+    
+    % \jmr{}{instead of current alg 2 I propose different way of describing it, such that the realtion between the algorithms is clearer}
+    
+    % \jmr{}{}
+    % \begin{algorithm}
+    % \caption{JM: this should be algorithm 2}
+    % \begin{algorithmic}[1]
+    % \State Find $\eta_{\textit{base}}$ for a small model.
+    % \State For each module $m$, find relative values $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$ on a small model.
+    % \State Find base learning rate $\eta_{\textit{base}}$ for the large model with relative learning rates $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$ from the small model.
+    % \end{algorithmic}
+    % \label{algo_additional}
+    % \end{algorithm}
+    
+    %\jmr{, and w}{W}e focus on \jmr{this}{which setting? we've just discussed both algorithms, moreover I'd say we do both.} setting in the next section. 
+    %Additionally, the implementation of Step~$1$ of Algorithm~\ref{algo2} can be further expanded \jl{nie rozumiem tego zdania, dodatkowo używamy algorithm 1 take naprawde, bo tunujemy oddzielnie LR I taki wychodzi optymalny}.
+    We provide the details of our implementation of the hyperparameter search in Section~\ref{app:local_search} and Algorithm~\ref{algo_local}. Moreover, additional methods for adjusting the $\eta_{\text{base}}$ on extrapolation are considered in Section~\ref{future:tensor_programs}.
+    
+    
+    %\jl{sekcja przejrzana, oprocz komentarzy jest ok}
+    
+    \section{Results}
+    
+    
+    We first provide a detailed setup of our experiments. Then, we present details on how to find relative learning rates, and showcase the improvements obtained via the proposed decoupled relative learning rate schedules. Subsequently, we provide some interpretation of the presented relative rates. For reproducibility purposes, we provide the complete code and configuration files used in our experiments in a public repository upon deanonymization. 
+    %at \url{https://github.com/llm-random/llm-random}.
+    
+    \subsection{Experimental Setup}
+    
+    %\ka{ta subsekcja imo breaks the flow of the paper, możnaby ją nawet wrzucić do appendixa}
+    
+    
+    
+    % \jmr{}{Ta sekcja brzmi mało ładnie językowo, wrzućmy ją do chata / grammarly. może wziąć exp setup z granularity i pozmieniać wartości?}
+    
+    %\jl{to jest kopia z granularity, musimy to napsiac inaczej ale setup taki jest.}
+    % All of the models considered in this work are decoder-only Transformers trained on the C4 dataset (Raffel et al., 2023). We
+    % use GPT2 tokenizer (Radford et al., 2018a). Our optimizer is AdamW (Loshchilov & Hutter, 2019). In each training run, we use cosine decay with linear warmup for 1\% steps . To improve stability, we initialize weights using
+    % the truncated normal distribution with reduced scale, as advised in (Fedus et al., 2022). The models are trained using mixed
+    % precision; we always keep the attention mechanism and router in high precision. We use Swiglu activation and Token Choice routing algorithm with 8 experts, 1 of them activated. Compute-optimal training durations for MoE are taken from [cite granularity], as 20x active parameters. We do not take embedding parameters into account anywhere in the paper.
+    
+    All models in this study are decoder-only Transformers trained on the C4 dataset~\citep{raffel2023exploring}. We use the GPT-2 tokenizer~\citep{radford2018improving} and optimize with AdamW~\citep{loshchilov2019decoupled}. Training follows a cosine decay schedule with linear warmup for the first $1\%$ of steps. For stability, weights are initialized with a truncated normal distribution at a reduced scale, as suggested by \citet{fedus2022switch}. Mixed precision training is applied, with Attention and Router components computed at high precision. The models employ SwiGLU activation and Token Choice routing with $8$ Experts, $1$ of which is activated per token. Two auxiliary losses are used for the Router: a z-loss weighted at $0.001$~\citep{zoph2022st} and load balancing weighted at $0.01$~\citep{fedus2022switch}. Compute-optimal training durations align with \citet{hoffmann2022training}, calculated for MoE as $20$ times the number of active parameters, excluding Embedding and Unembedding, as per \citet{ludziejewskiscaling}. We also report results on an overtrained \moe{113} model with a token-to-active-parameter ratio nearing $130$. For extrapolations, we fine-tune base learning rates for both relative learning rates, RLRS, and the baseline on a grid of {$1e{-n}$, $2e{-n}$, $5e{-n}$}. By tuning learning rates separately, we ensure that performance differences arise from the effects of relative values rather than from base learning rates.
+    % \jl{dopisac o tym, ze dzieki tunowaniu LR oddzielnie many pewnosc, ze nasz metoda nie jest lepsza np. przez to ze po prostu srednio ma wiekszy/mniejszy LR, a naprawde porownuje przydatnosc relatywnych wartosci}\jmr{.}{, thus we ensure, that any differences in performance are due to the methods themselves and not to discrepancies in overall learning rates caused by the relative values.}
+    For both dense and MoE models, the weight decay value has been optimized to $0.1$, the initialization scale to $0.15$, and \textit{Base LR Final Fraction} ($\lambda_{\text{base}}$) to $0.04$ for MoE and $0.06$ for dense. 
+    
+    \begin{table*}[H]
+        \centering
+    
+    
+    \begin{tabular}{cccccccc}
+    \toprule
+    Type & Active Params & Total Params & $d_{\textit{model}}$ & $n_{\textit{layers}}$ & $n_{\textit{experts}}$ & \texttt{BS} & \texttt{SL} \\
+    \midrule
+    \dense{34} & $33.6$M & $33.6$M & $512$ & $8$ & $ $ & $256$ & $512$ \\
+    \moe{34} & $33.6$M   & $210$M  & $512$ & $8$ & $8$ & $256$ & $512$ \\
+    \midrule
+    \dense{113} & $113$M & $113$M  & $768$ & $12$ & $ $ & $256$ & $512$ \\
+    \moe{113} & $113$M   & $708$M  & $768$ & $12$ & $8$ & $256$ & $512$ \\
+    \midrule
+    \dense{906} & $906$M & $906$M  & $1536$ & $24$ & $ $ & $384$ & $1024$ \\
+    \moe{906} & $906$M   & $5.67$B & $1536$ & $24$ & $8$ & $384$ & $1024$ \\
+    \bottomrule
+    \end{tabular}
+    \vspace{0.1cm}
+    % \jmr{All dense models have the same configuration as their MoE counterparts in terms of active parameters.}{} 
+        \caption{Models used in this paper. \texttt{BS} indicates batch size, and \texttt{SL} indicates sequence length. Active parameters exclude Embedding and Unembedding parameters.}
+        \label{tab:my_label}
+        % \comment{są różne configi densa i moe dla medium i base. w tym moe medium ma 2x overtrain, a dense jest compute optimal... rzucam rerun densa na athene, bo zdążymy, a to nie ma sensu żeby tak było (jm)}
+    \end{table*}
+    
+    \paragraph{Speed-up metric.} In Tables~\ref{smalltab} and~\ref{tab:extrapol}, we present a speedup metric that measures how much faster a training process becomes when relative rates are applied. It is calculated using $(\frac{T_{\text{base}}}{T_{\text{relative}}} - 1) \times 100\%$, where $T_{\text{base}}$ is the number of steps performed in the standard training with a base learning rate, and $T_{\text{relative}}$ is the number of steps incurred until the loss of the training with the relative learning rate schedule exceeds the baseline loss. It is important to note that using this metric likely underestimates the improvement of our method since for relative learning rate training steps, when we compute the speedup, the cosine schedule has not yet reached its end.
+    %of $p\%$ means that our method achieved the same train loss as the final baseline loss after $(100-p)\%$ of the training steps.
+    We perform three runs for each configuration, and for each of them, we measure the loss per $1\%$ of all training steps . The speedup is then calculated over the means of $3$ runs. To reduce variance from random data seeds, we use $3$ specified data seeds for each model type comparison.
+    
+    \paragraph{Local search.} Our approach involves optimizing a set of relative learning rates (RLRS) using a straightforward and scalable local search algorithm. While grid search could be employed for hyperparameter optimization, it demands precise boundary definitions and entails an exponential number of training runs, making it computationally expensive. Instead, we intentionally adopt a simple local search method to demonstrate that our approach delivers significant improvements even with basic hyperparameter tuning. This approach highlights the robustness of our method and leaves room for future exploration of more sophisticated optimization techniques.
+    
+    This algorithm iteratively adjusts each hyperparameter by scaling its value with factors from a predefined set. If the adjustment improves performance, the change is retained, and the process repeats until no further improvements are observed. In our experiments, we optimized weight decay and initialization scale along with all RLRS values, ensuring a fair comparison. For the baseline, the same method was used to optimize the learning rate at the start and end of the cosine schedule, in addition to weight decay and initialization scale. Further details and the exact algorithm can be found in Appendix. 
+    %While our algorithm is simple, it effectively highlights the robustness of our method and leaves room for future exploration of more sophisticated optimization techniques.
+    
+    
+    
+    
+    
+    \subsection{Tuning Small Models}
+    
+    
+    \begin{figure*}
+        \centering
+        \begin{minipage}[t]{0.42\textwidth}
+            \includegraphics[width=\linewidth]{figs/medium_relative_vs_baseline.pdf}
+            \caption{Training loss for Baseline versus RLRS for \moe{33}. }
+            \label{fig:loss}
+        \end{minipage}
+        \hfill
+        % \centering
+        % \begin{minipage}[t]{0.3\textwidth}
+        %     \includegraphics[width=\linewidth]{figs/stability_spikes.pdf}
+        %     \caption{Stabilizing training with RLRS vs. baseline LR for \moe{906}.}
+        %     \label{fig:stable}
+        % \end{minipage}
+        % \hfill
+        % \hspace{1cm} %
+        \centering
+        \begin{minipage}[t]{0.4\textwidth}
+            \includegraphics[width=\linewidth]{figs/sensitivity_base.pdf}
+            \caption{Loss of RLRS and baseline for different  $\eta_{\textit{base}}$ on 
+            \moe{113} models. RLRS results in better loss across a range of learning rates.
+            }
+            \label{fig:sensitivity}
+        \end{minipage}\hfill
+    %    \caption{Stability}
+        \label{fig:stability}
+    \end{figure*}
+    
+    
+    
+    
+    We begin by presenting results obtained with relative learning rates on a small model. The compact size enables a broader search of hyperparameters; therefore, we propose performing the local search on a small model of choice. The details are given in Sec.~\ref{app:local_search} of the Appendix. The relative learning rate values optimized on this smaller model then serve as reference points for extrapolation to larger models.
+    
+    %\jmr{For a fine-grained search, we perform a joint local search for optimal $\eta_{\textit{base}}$, and for each module $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$. We incorporate $\eta_{\textit{base}}$ into the local search, but similar results were obtained when baseline and relative learning rates were tuned separately.}{yyy}
+    Adjusting relative rates according to the proposed schedule results in significantly higher sample efficiency, which reduces the training time by up to $23\%$ for MoE and by up to $17\%$ for a dense Transformer (see Table~\ref{smalltab}). The exact relative learning rate values can be found in Section~\ref{sec:analysis}.
+    
+    
+    
+    \begin{table*}[h]
+        \centering
+    \caption{Using RLRS results in faster model convergence. }
+    \begin{tabular}{ccccccc}
+    \toprule
+    % Type & LR type & $d_{model}$ & Active params & Base LR & Train tokens & Speed-up \\
+    % \midrule
+    % \moe{34} & baseline & 512 & 30M & $3 \times 10^{-3}$ & 721M & - \\
+    % & relative & 512 & 30M & $3 \times 10^{-3}$ & 721M & 11\% \\
+    % \midrule
+    % \dense{34} & baseline & 512 & 30M & $2 \times 10^{-3}$ & 721M & - \\
+    % & relative & 512 & 30M & $2 \times 10^{-3}$ & 721M & 14\% \\
+    Type & LR Type & Base LR & Train Tokens &  Total Params & Speedup \\
+    \midrule
+    \dense{34} & baseline & $2 \times 10^{-3}$ & 1.3B & 34M & - \\
+    & relative & $2 \times 10^{-3}$ & 1.3B & 34M & \roundto{1.17162471395881}{3} \\ 
+    \midrule
+    \moe{34} & baseline & $3 \times 10^{-3}$ & 1.3B & 210M & - \\
+    & relative & $3 \times 10^{-3}$ & 1.3B & 210M & \roundto{1.2278177458033572}{3} \\ 
+    \bottomrule
+    \end{tabular}
+    \vspace{0.1cm}
+    
+    \label{smalltab}
+    \end{table*}
+    
+    
+    
+    %tutaj wykres LR/Loss per parameter, z lokalnymi minmami w srodku
+    
+    \subsection{Extrapolation}
+    \label{sec:exper_extra}
+    
+    % In this section, we show the results when relative values tuned on a small model are extrapolated to larger models. We find that, in all extrapolations, RLRS yields significantly better results than baseline. 
+    % % \jmr{On 906M model compute optimal we note $13.6\%$ Speed-up. On 113M model we have better gains of $19\%$ and $14.6\%$ for compute optimal and overtrain respectivly.}{} 
+    % However,  With that said, RLRS has more than $50\%$ it's original gain on $27\times$ larger extrapolation without any scaling formula. We leave scaling formulas for future work.
+    
+    
+    %Subsequently, we extrapolate the relative values to large models, with the largest one having 906M active parameters (and 5.7B total parameters). 
+    
+    In this section, we show the performance of large models trained with relative learning rate values tuned on small models. We demonstrate that, remarkably, this method improves the training speed of the large models as well.
+    
+    We use models with $113$M and $906$M active parameters (in the case of MoE, $708$M and $5.67$B total parameters, respectively). The models are trained both in a compute-optimal and overtrained setting.  
+    %As shown in Table \ref{tab:extrapol}, applying the relative rates from smaller to larger models results in nearly a fifth reduction in training time for both MoE and dense models.
+    As shown in Table~\ref{tab:extrapol}, extrapolating the relative rates results in up to $19\%$ faster training both in the case of MoE and dense model. Furthermore, the improvement is also noticeable in an overtrained MoE model with a token-to-active-parameter ratio that is almost 130. The most far-reaching extrapolations are performed on training runs more than 200$\times$ costly in terms of FLOPs as well as on models 27$\times$ bigger in terms of parameters than the training runs employed in the small-scale relative learning rates tuning. Even in these scaled-up scenarios, RLRS retains noticeably higher sample efficiency.
+    %\kas{While in both cases gain was higher on our small proxy model, it is reasonable to assume that some of it was due to overfitting to the specific setting.}
+    
+    In Figure~\ref{fig:uplots_base}, we demonstrate that without fine-tuning on a large model, the transferred relative learning rates are still noticeably better than the baseline and generally close to the optimal value. 
+    
+    %The only exception is the Embedding layer. We elaborate on these findings in the next section.
+    
+    % \jl{say how me measure speed-up, and that's it's a lower-bound of our gains, since our method is measured with suboptimal, non-finished schedule}
+    
+    \begin{table*}[h]
+        \centering
+        \caption{Speedup achieved when extrapolating relative learning rates, RLRS, to larger models.}
+    \begin{tabular}{ccccccc}
+    \toprule
+    % Type & LR type & $d_{model}$ & Active params & Base LR & Train tokens & Speed-up \\ \midrule
+    % MoE & baseline & 768 & 100M & $1 \times 10^{-3}$ & 2.6B & - \\
+    % & relative & 768 & 100M & $1 \times 10^{-3}$ & 2.6B & 16\% \\
+    % %MoE & baseline & 768 & 100M & $1 \times 10^{-3}$ & 14B & - \\
+    % %(overtrained) & relative & 768 & 100M & $1 \times 10^{-3}$ & 14B & 23\% \\ 
+    % MoE & baseline & 768 & 100M & $1 \times 10^{-3}$ & 23B & - \\
+    % (overtrained) & relative & 768 & 100M & $1 \times 10^{-3}$ & 23B & 18\% \\
+    % \midrule
+    % Dense & baseline & 768 & 100M & $1 \times 10^{-3}$& 2.6B & - \\
+    % & relative & 768 & 100M & $1 \times 10^{-3}$ & 2.6B & 16\% \\
+    % \midrule
+    
+    % MoE & baseline & 1536 & 1B & $2 \times 10^{-4}$ & 20B & - \\
+    % & relative & 1536 & 1B & $2 \times 10^{-4}$ & 20B & 24\% \\
+    % \midrule
+    % Dense & baseline & 1536 & 1B & $5 \times 10^{-4}$ & 20B & - \\
+    % & relative & 1536 & 1B & $5 \times 10^{-4}$ & 20B & 8\% \\
+    
+    % & $210$M 
+    % & $33.6$M
+    % & 708M 
+    % & 113M 
+    % & 5.67B
+    % & 906M 
+    
+    Type & LR Type & Base LR & Train Tokens & Total Parameters &  Speedup \\ \midrule
+    
+    
+    \dense{113} & baseline & $1 \times 10^{-3}$& 2.5B & 113M & - \\
+    & relative & $1 \times 10^{-3}$ & 2.5B & 113M & \roundto{1.1898734177215189}{3} \\
+    \midrule
+    \moe{113} & baseline & $2 \times 10^{-3}$ & 2.5B & 708M & - \\
+    & relative & $1 \times 10^{-3}$ & 2.5B & 708M & \roundto{1.1898734177215189}{3} \\
+    %MoE & baseline & 768 & 100M & $1 \times 10^{-3}$ & 14B & - \\
+    %(overtrained) & relative & 768 & 100M & $1 \times 10^{-3}$ & 14B & 23\% \\ 
+    \moe{113} & baseline & $1 \times 10^{-3}$ & 14B & 708M & - \\
+    (overtrained) & relative & $1 \times 10^{-3}$ & 14B & 708M & \roundto{1.1458333333333333}{3} \\
+    \midrule
+    \dense{906} & baseline & $5 \times 10^{-4}$ & 20B & 906M & - \\
+    & relative & $5 \times 10^{-4}$ & 20B & 906M & \roundto{1.0869565217391304}{3} \\
+    \midrule
+    
+    \moe{906} & baseline & $2 \times 10^{-4}$ & 20B & 5.67B & - \\
+    & relative & $2 \times 10^{-4}$ & 20B & 5.67B & \roundto{1.1363636363636365}{3} \\
+    \bottomrule
+    \vspace{0.1cm}
+    \end{tabular}
+    \label{tab:extrapol}
+    \end{table*}
+    
+    % \begin{table}[H]
+    %     \centering
+    % \begin{tabular}{ccccccc}
+    % \toprule
+    % Type & Speedup \\
+    % \midrule
+    % \dense{34} & \roundto{1.17162471395881}{3} \\ 
+    % \midrule
+    % \moe{34} & \roundto{1.2278177458033572}{3} \\ 
+    
+    % \midrule
+    % \dense{113} & \roundto{1.1898734177215189}{3} \\
+    % \midrule
+    
+    % \moe{113} & \roundto{1.1898734177215189}{3} \\
+    % \moe{113} & \roundto{1.1458333333333333}{3}  \\
+    % (overtrained) &  & \\
+    % \midrule
+    
+    % \dense{906} & \roundto{1.0869565217391304}{3} \\
+    % \midrule
+    
+    % \moe{906} & \roundto{1.1363636363636365}{3} \\
+    % \bottomrule
+    % \end{tabular}
+    % \end{table}
+    
+    %\jmr{a large model}{} \jmr{($113$M and 906M active parameters). These gains also hold for overtrained models (over $20$ tokens per active parameter).}{}
+    
+    
+    
+    % \subsection{Relative values transfer}
+    
+    % Here, we provide some plots that show, that local relative minimas hold up to some extend. 
+    
+    
+    % \begin{figure}
+    %     \centering
+    %     \includegraphics[width=0.5\linewidth]{figs/extra.png}
+    %     \caption{Extrapolation}
+    %     \label{fig:enter-label}
+    % \end{figure}
+    
+    
+    \section{Analysis}
+    
+    \label{sec:analysis}
+    
+    \subsection{Interpreting Relative Learning Rates}
+    % \begin{figure}[t]
+    %     \centering
+    %     \begin{minipage}{0.32\textwidth}
+    %         \centering
+    %         \includegraphics[trim=20 50 20 85, clip, width=1.0\linewidth]{figs/base_relative_vs_baseline.png}
+    %         %\vspace{5pt} % Adjust the value here for more/less space
+    %         \caption{Training loss for Baseline vs. Decoupled Relative LR for MoE.}
+    %         \label{fig:loss}
+    %     \end{minipage}\hfill
+    %     \begin{minipage}{0.32\textwidth}
+    %         \centering
+    %         \includegraphics[trim=20 20 45 63, clip, width=\linewidth]{figs/extra2.png}
+    %         %\vspace{5pt} % Adjust the value here for more/less space
+    %         \caption{Stabilizing the training with Decoupled LR (light blue) vs Baseline LR (dark blue) for MoE }
+    %         \label{fig:stable}
+    %     \end{minipage}\hfill
+    %     \begin{minipage}{0.32\textwidth}
+    %         \centering
+    %         \includegraphics[trim=0 1460 350 25, clip, width=0.9\linewidth]{figs/U-plots-std.png}
+    %         \vspace{5pt} % Adjust the value here for more/less space
+    %         \caption{Relative LR resulted from a local search in comparison to non-relative LR and other relative scalings for the Embedding layer.}
+    %         \label{fig:uplot}
+    %     \end{minipage}
+    %     \vspace{-0.3cm}
+    % \end{figure}
+    
+    
+    % \begin{verbatim}
+    %   relative_lr:
+    %     embedding_layer: 5.
+    %     head: 1.
+    %     layer.feedforward: 1.
+    %     projection: 1.
+    
+    %   relative_scheduler_fraction:
+    %     embedding_layer: 0.6666
+    %     head: 0.4444  # last sota was 0.4444, but differences are almost invisible, so to not give someone bad ideas for explanations i leave it at 0.6666
+    %     layer.feedforward: 0.6666
+    %     projection: 0.2
+    
+    % \subsection{MoE}
+    %   relative_lr:
+    %     embedding_layer: 3.333
+    %     head: 0.666
+    %     gating: 0.666
+    %     expert_inner_function: 0.3
+    %     projection: 1.
+    
+    %   relative_scheduler_fraction:
+    %     embedding_layer: 0.666
+    %     head: 0.666
+    %     gating: 1.
+    %     expert_inner_function: 1.125
+    %     projection: 1.
+    % \end{verbatim}
+    
+    
+    
+    
+    In this section, we present the numerical results and trends for relative learning rates (RLRS) and analyze them with respect to each layer module. We prioritize MoE models, as RLRS yields more pronounced improvement in this setting.  Interpretations provided below are an attempt to convey intuitions related to why RLRS works well that may be practical to other researchers and are not backed by experimental evidence. Although the values have been determined experimentally, they are often interpretable and aligned to counteract the existing issues of each component. While some of these ideas were also the motivation for this work and could be potentially used to guide the search of the optimal relative learning rates, we suspect that utilizing an exhaustive search will be a more reliable method in the long term.
+    %\jl{bitter lesson reference? nwm czy nie wywali tego ostatniego zdania tez}
+    %Although, more research is required to fully resolve the addressed issues.
+    %In Transformer models, the learning rate varies across different components, reflecting their distinct roles in the network. 
+    
+    \paragraph{Embedding.} The relative learning rate $\lambda_{\textit{start}}$ starts high at $5$ and decays to $0.6$. This aggressive early training helps the Embedding stabilize quickly, as it influences the entire network. Later in the training process, the learning rate is reduced to prevent drastic changes in the Embeddings, while the rest of the model can adjust accordingly. As seen in Section~\ref{sec:ablations}, it is the only layer that prefers adjustment of relative learning rate when increasing model size; while other relative learning rates transfer without change, the Embedding's rate should be increased, but only at the start.
+    
+    \paragraph{Unembedding.} 
+    % The layer is also sometimes referred to as Unembedding in the context of models that perform embedding and Unembedding coupling~\citep{press2017using}. 
+    Unembedding handles the conversion of the model output into a probability distribution over the tokens in its vocabulary.
+    % By examining relative learning rates, we provide some justification for weight sharing between input and output embeddings, a technique employed in many state-of-the-art pre-trained language models~\citep{conneau2019unsupervised, devlin2018bert}. Although weight tying is not used in our tested model, the functional similarity between the two layers, often coupled in other models, suggests that their learning schedules should follow similar patterns. 
+    We observe that, similarly to the Embedding, the relative learning rate gradually decreases toward the end of training. This behavior also aligns with observations in the literature that weights in the Unembedding may diverge, potentially causing instabilities later in the training process~\citep{chowdhery2022palm, zoph2022st}, which would require reducing gradient values. 
+    % Indeed, we find empirically that the relative rate for the Unembedding shows a decreasing trend.
+    
+    
+    \paragraph{Router + Experts.} Router (or gating network) plays a crucial role in determining which Expert networks are trained during the learning process. ~\citet{xue2024openmoe} observed that the model often learns its routing decisions early in the pre-training phase, and these decisions remain largely fixed throughout training. Once a token is assigned to an Expert, it is rarely reassigned, making it difficult for the model to adapt to new or unseen data during later stages of training. Moreover, there have been conflicting guidelines in literature about suiting the learning rate for MoE models in comparison to their dense counterparts i.e. \citep{zoph2022st} argues that MoE benefit from higher learning rates. On the other hand, multiple studies analyze the instability of MoEs \citep{fedus2022switch}, and the most straightforward approach to alleviate instabilities is to lower the learning rate for the whole model \citep{wortsman2023small}. We suppose that all of these aforementioned analysis are plausible and introduce many contradictory trade-offs that are hard to resolve under the assumption of a fixed learning rate for all modules. The gain from RLRS might come from alleviating these issues. Lowering the learning rate only at the beginning of the training (0.6) for the \textbf{Router} may mitigate instabilities and loss spikes caused by MoE, simultaneously delaying the early router stabilization. Increasing the relative learning rate at the end to 1, allow the model to benefit from the higher value while those issues are no longer present. Similarly, the relative learning rate of an \textbf{Experts} layer starts from the smallest value of $0.3$ to aid stability when the Router is essentially random and prevent early expert specialization, which causes the router to freeze prematurely. It then increases to the highest relative value at the end (1.125), allowing the Experts to fine-tune and benefit from a high learning rate while the Router remains largely fixed.
+    
+    
+    %We think that all of these aforementioned reasons are plausible and are only seemingly contradicting under the assumption of fixed learning rate for all modules, which introduces many trade-offs that are hard to resolve.
+    % \jl{cala ta sekcje, razem z expertami przepisze I dodam info o niejasności w literature w dostosowywaniu LR dla MoE (większy/mniejszy) }
+    %Moreover, the Router tends to be unstable at the early stages of training. Starting the relative learning rate with a lower value of $0.6$ and then ending with $1$ might help mitigate these problems. 
+    %it may be hard to resolve all trade-off under the assumption of fixed learning rates and schedules, 
+    % MoE sparse models benefit from higher learning rates. Higher learning rates might improve generalization by increasing noise during training, helping sparse models avoid overfitting \citep{zoph2022st}.  In this work, we show a similar trend.
+    % \paragraph{Experts.} 
+    % The relative learning rate of an Expert layer increases from the smallest value of $0.3$ to aid stability when the Router is essentially random, and increases to the highest relative value at the end, allowing the Experts to fine-tune while the Router remains largely fixed.
+    
+    
+    % \paragraph{Feed-forward (dense).} By employing decoupled learning rates (LR), we highlight a key distinction between Mixture of Experts (MoE) and dense models. While the decoupled learning rate for MoE layers increases, the learning rate for the feed-forward layers in dense models decreases. In fact, all components of dense models exhibit a decreasing learning rate trend. This aligns with the findings in \citep{zoph2022st}, which observed that unlike sparse models, dense models tend to perform better with lower learning rates.
+    
+    \paragraph{Attention.} In the Attention layers of the MoE model, the relative learning rate remains unchanged, making it unique in not benefiting from relative rates.
+    
+    % \textbf{Embeddings (MoE, dense)} The learning rate starts from much higher value of 3.333 in case of MoE and 5 in case dense, and decays to 0.666. This aggressive schedule is compatible with most straightforward intuition - we need to train them fast at the beginning. However embeddings influence the entirety of the network, therefore later we should not change them too much, because all the other parts have to adjust to the change in embeddings.
+    
+    % \paragraph{Unembedding (Head)} 
+    % tak samo jak embeddings
+    % Relative LR stays constant at 0.6 (this means that it decays from 0.6 of start LR to 0.6
+    % of end LR). In case of dense it falls from 1 to 0.4
+    
+    % \textbf{Router} it is known that it can freeze at the beginning \citep{xue2024openmoe}, it changes which model parts are trained, so in cannot converge to fast. Relative value slightly increases within pretraining, from 0.666 to 1. niestabilny na poczatku, wiec obnizony.
+    
+    % \textbf{Experts} they are trained less frequently, on dataset subset, LR should be adjusted. They go from 0.3 to 1.125. When router is essentially random, we have much smaller learning rate, this can also help with stability. Then at the end when the model is functioning properly it is the highest value - were just “fine-tuning” the experts. 
+    
+    
+    
+    % \textbf{Attention (MoE, Dense)}
+    
+    % likes more lr (relative lr ~ 2.5), doesn’t care about schedule fraction?Experimental
+    
+    % Projection does not change in case of MoE and is the we find it is the only one that does not need relative rates. In case of dense it decays from 1 to 0.2
+    
+    % %\textbf{Feed-forward layer} It falls from 1 to 0.666 (?)
+    
+    
+    
+    % To summarize the main takeaways, the embeddings and head layers are trained more intensively at the beginning, then gradually reduce the learning rate for these parts, allowing the inner layers to fine-tune and train smoothly toward the same objective.
+    
+    %\section{Ablation studies}
+    
+    
+    %ablation study, jak tuning każdego z komponentów (attention, expert, etc.) wpływa na trening
+    
+    %odwołajmy sie do plota z medium modeli, mozemy cos powiedziec o noise w tym itp.
+    
+    %Final run of local search is literally ablations section. We can run in on base model. \comment{?}
+    
+    
+    %In Fig. \ref{fig:uplot}, we compare Relative LR results from a local search with non-relative LR and other relative scalings. See Appendix for plots of other modules. 
+    
+    We summarize the Decoupled Learning Rate for both dense and MoE models in Table~\ref{tab:moe_results}.
+    
+    \begin{table*}[h]
+        \centering
+    
+    \caption{Relative learning rate values ($\lambda$) for MoE.}
+        \begin{tabular}{cccccc}
+    \toprule  & \text{Embedding} & \text{Unembedding} & \text{Router} & \text{Experts} & \text{Attention} \\
+    \midrule
+    \text{start} & $5$ & $0.6$ & $0.6$ & $0.3$ & $1$ \\
+    \midrule
+    \text{end} & $0.6$ & $0.4$ & $1$ & $1.125$ &  $1$  \\
+    \bottomrule
+    \end{tabular}
+    \vspace{0.1cm}
+        \label{tab:moe_results}
+    \end{table*}
+    
+    \begin{table*}[h]
+        \centering
+    \caption{Relative learning rate values ($\lambda$) for dense models.}
+        \begin{tabular}{ccccc}
+    \toprule  & \text{Embedding} & \text{Unembedding} & \text{Feed-Forward} & \text{Attention} \\
+    \midrule
+    \text{start} & $5$ & $1$ & $1$ & $1$ \\
+    \midrule
+    \text{end} & $0.6$ & $0.4$ & $0.6$ &  $0.2$  \\
+    \bottomrule
+    \end{tabular}
+    \vspace{0.1cm}
+        \label{tab:dense_results}
+    \end{table*}
+    
+    
+    
+    
+    % \begin{figure}
+    %     \centering
+    %     \includegraphics[width=0.5\linewidth]{figs/ablations.png}
+    %     \caption{Ablation}
+    %     \label{fig:enter-label}
+    % \end{figure}
+    
+    
+    %We maybe need some ablation on different expansion rates/granularity? This can influence the relative values, maybe will help with extreme granularity. 
+    
+    
+    %Check with gp2 init?
+    \begin{figure}[t]
+        \centering
+    
+            \includegraphics[width=0.8\linewidth]{figs/stability_spikes.pdf}
+            \caption{Stabilizing training with RLRS vs. baseline LR for \moe{906}.}
+            \label{fig:stable}
+    
+        \end{figure}
+    
+    
+    \subsection{Stability}
+    
+    
+    
+    
+    % In this work, we demonstrate that applying relative learning rates enhances stability across models of varying sizes. Training Transformers, particularly MoE architectures, often leads to instabilities when using a uniform learning rate across the entire architecture.
+    % The overall customization of learning rates proposed in this work has several benefits. First, it leads to faster training convergence, as shown in Section~\ref{sec:results} and Figure~\ref{fig:loss}. Furthermore, training with relative rates is more stable in MoE setting.
+    %As seen in Figure~\ref{fig:stable}, the baseline exhibits instabilities that are absent with the relative schedules. This is also intuitive, as MoE models are considered unstable and require lower learning rates for optimal learning.
+    As seen in Figure~\ref{fig:stable}, the baseline exhibits loss spikes that were absent with the relative schedules. This is also intuitive, as MoE models are considered unstable, thus requiring lower learning rates for optimal learning, which, however, affects the speed of training. In our method, the learning rates for both the Router and the Experts start off relatively lower, while they are higher for other parts of the model, resulting in both better stability and convergence.
+    
+    Large Transformer-based models frequently encounter instabilities, even when using hyperparameters that worked well for smaller models. \citet{wortsman2023small} demonstrate that instabilities in small models with a higher than optimal learning rate can be a good proxy measure for instabilities on a larger scale. Following that, we provide Figure~\ref{fig:sensitivity} comparing the learning rate sensitivity of RLRS and the baseline. We can see that training with relative learning rates outperforms the baseline across various learning rates.
+    % We further argue that training a model with relative learning rates enhances stability across different baseline learning rates, reducing sensitivity to parameter tuning and improving training stability, especially in large models.
+    
+    %As seen in Figure~\ref{fig:stable}, the baseline exhibits loss spikes that were absent with the relative schedules. This is also intuitive, as MoE models are considered unstable and require lower learning rates for optimal learning, which, however, affects the speed of training.
+    %In our method, the learning rates for both the Router and the Experts start off relatively lower, while they are higher for other parts of the model, resulting in both better stability and convergence.
+    
+    %We further argue that training a model with relative learning rates enhances stability across different baseline learning rates, reducing sensitivity to parameter tuning and improving training stability, especially in large models. Large Transformer-based models frequently encounter instabilities, even when using hyperparameters that worked well for smaller models. \citet{wortsman2023small} demonstrate that instabilities in small models with a higher than optimal learning rate can be a good proxy measure for instabilities on a larger scale. Following that, we provide Figure~\ref{fig:sensitivity} comparing the learning rate sensitivity of RLRS and the baseline. We can see that training with relative learning rates outperforms the baseline across various learning rates.
+    
+    %To address this, we follow \citet{wortsman2023small} to mitigate instabilities and enable stable training across varying learning rates. 
+    
+    
+    % \begin{figure}[h]
+    %     \centering
+    %     \begin{minipage}[t]{0.45\textwidth}
+    %         \includegraphics[width=\linewidth]{figs/stability_spikes.pdf}
+    %         \caption{Stabilizing training with RLRS vs. baseline LR for large Mixture of Experts (906M).}
+    %         \label{fig:stable}
+    %     \end{minipage}
+    %     \hfill
+    %     % \hspace{1cm} %
+    %     \begin{minipage}[t]{0.45\textwidth}
+    %         \includegraphics[width=\linewidth]{figs/sensitivity_base.pdf}
+    %         \caption{Loss of RLRS and baseline for different  $\eta_{\textit{base}}$ on \moe{113} models. RLRS results in better loss across a range of learning rates.}
+    %         \label{fig:sensitivity}
+    %     \end{minipage}%\hfill
+    % %    \caption{Stability}
+    %     \label{fig:stability}
+    % \end{figure}
+    
+    
+    
+    
+    % \begin{minipage}
+    %     \centering
+        
+    % \end{minipage}
+    
+    
+    % \citet{lingle2024large}
+    \subsection{Ablations}
+    \label{sec:ablations}
+    
+    
+    
+    \begin{figure*}[h]  % The empty optional argument can be used for width adjustment
+      \centering
+      \includegraphics[width=\textwidth, trim=0 350 0 0, clip]{figs/U-plots-Base (100M).pdf}
+      \caption{The performance of relative learning rates, $\lambda_{\text{small}}$ extrapolated to larger models. We vary relative values for a given component while keeping all others fixed at their optimal values. The top row explores varying starting learning rates, bottom corresponds to end rates. The optimal $\lambda_{\text{small}}$ (green) is compared to larger and smaller relative rates (white) and the baseline learning rate (red) at $\lambda=1$. The plot shows standard boxplots with 1.5 interquartile range.  Each boxplot is based on 10 experiments on \moe{113}.}
+      %Values of all other relative variables are from the tuned configuration. 
+      \label{fig:uplots_base}
+    \end{figure*}
+    
+    We have shown that relative values tuned on a small model improve the training efficiency of their scaled-up counterparts.
+    However, the question remains: how effective is this transfer, and can we obtain better results by further tuning relative values on the large model of choice? In Figure~\ref{fig:uplots_base}, we ablate each relative learning rate, $\lambda_{\textit{start}}^m$ and $\lambda_{\textit{end}}^m$ and show the importance of tuning the relative learning rates for individual modules. We conduct tests by evaluating the relative learning rate, transferred from the small model \moe{34} to  \moe{113}, with comparisons to its neighboring values. If the relative rate is not $1$, we also include it as a baseline, accounting for cases where the value is not modified by any relative factor. It is important to note that the improvement brought by the method seems to largely come from the interactions between the relative rates for all the components rather than any specific module. 
+    
+    While in most cases the transferred rates $\lambda_{\text{start}}^m$ and $\lambda_{\text{end}}^m$ perform consistently well compared to the surrounding values, an interesting exception is the Embedding layer, which shows a clear preference to increase its relative learning rate when increasing the model size. This aligns with \citet{yang2022tensor}, which studies models with increasing width and finds that Embedding is the only layer type whose learning rate should not be scaled down when increasing the model size. This only applies to the relative learning rate at the start, consistent with the Tensor Programs theory, which analyses the stability of the first iteration of the training process. 
+    
+    %The study indicates the particular significance of Embedding and Unembedding which is also seen in Table \ref{tab:ablation} \sj{broken ref}
+    
+    % In Figure~\ref{fig:uplots_base}, we show that the transferred rates $\lambda_{\text{start}}^m$ and $\lambda_{\text{end}}^m$ perform consistently well compared to the surrounding values. This empirical result shows the relative rates not only result in gains as shown in Section~\ref{sec:exper_extra}, but also are close to optimal for other \jmr{models}{modules / parts of the model} \jl{co to znaczy }.  An interesting exception is the Embedding layer, which shows a clear preference to increase its relative learning rate when increasing the model size. 
+    
+    % In most cases, the $\lambda_{\text{small}}$ relative learning rates are close to optimal values in larger models. The Embedding layer requires scaling relative values. 
+    
+    
+    
+    
+    
+    % \begin{table}[ht]
+    % \centering
+    % \begin{tabular}{llrrr}
+    % \toprule
+    % & Model Part & Train Tokens & Speedup Relative \\
+    % \midrule
+    % 0 & Embedding & 2.5B & \roundto{1.301370}{3} \\
+    % 1 & Unembedding & 2.5B & \roundto{1.144578}{3}  \\
+    % 2 & Gating & 2.5B & \roundto{1.021505}{3} \\
+    % 3 & Expert & 2.5B & \roundto{1.104651}{3}\\
+    % \bottomrule
+    % \end{tabular}
+    % \vspace{0.1cm}
+    % \caption{Above, we present the speed-up obtained from selecting the relative LR for all the components over the training where one component is excluded. The speed-up is adjusted in relationship to the full relative schedule. Ablation studies are performed on a small 34M MoE model. \jl{janek, sprawdz czy to jest aktualne, jak nie to mozna wywalic, jak tak to zostawiamy}}
+    % \label{tab:ablation}
+    % \end{table}
+    
+    
+    
+    
+    
+    
+    % \begin{table}[h]
+    %     \centering
+    % \begin{tabular}{ccccccc}
+    % \toprule
+    % Type & Component Ablated & Speed-up\\
+    % %\midrule
+    % %MoE & baseline & 512 & 30M & $3 \times 10^{-3}$  & - \\
+    % %& relative & 512 & 30M & $3 \times 10^{-3}$  & 11\% \\
+    % \midrule
+    % \moe{34} & w/o Embedding  & 1.33 \\
+    % & w/o Router &  N/A \\
+    % & w/o Experts & 1.13 \\
+    % & w/o Unembedding & 1.20 \\
+    % % \moe{34} & -  & 24\% \\
+    % % & w/o Embedding  & -2\% \\
+    % % & w/o Router &  13.5\% \\
+    % % & w/o Experts & 13.5\% \\
+    % % & w/o Final Linear Layer & 5\% \\
+    % % & w/o Any Relative LR & 0\% \\
+    % \bottomrule
+    % \vspace{0.1cm}
+    % \end{tabular}
+    %     \caption{
+    %     Above, we present the speed-up obtained from selecting the relative LR for all the components over the training where one component is excluded. The speed-up is adjusted in relationship to the full relative schedule. Ablation studies are performed on a small 34M MoE model.}
+    %     \label{tab:ablation}
+    % \end{table}
+    %  The upper table is the same as the Table \ref{tab:my_label}. 
+    % 
+    
+    % \begin{tabular}{llrllll}
+    % \toprule
+    %  & component & total_tokens & faster_tokens & speedup (1-(a/b)) & speedup ((b-a)/a) & speedup (b/a) \\
+    % \midrule
+    % 0 & embedding_layer & 10240.000000 & 9340.000000 & 0.087891 & 0.096360 & 1.096360 \\
+    % 1 & head & 10240.000000 & N/A & N/A & N/A & N/A \\
+    % 2 & gating & 10240.000000 & N/A & N/A & N/A & N/A \\
+    % 3 & expert_inner_function & 10240.000000 & 10040.000000 & 0.019531 & 0.019920 & 1.019920 \\
+    % \bottomrule
+    % \end{tabular}
+    % \caption{removal}
+    
+    % \begin{tabular}{llrllll}
+    % \toprule
+    %  & component & total_tokens & faster_tokens & speedup (1-(a/b)) & speedup ((b-a)/a) & speedup (b/a) \\
+    % \midrule
+    % 0 & embedding_layer & 19000.000000 & 14300.000000 & 0.247368 & 0.328671 & 1.328671 \\
+    % 1 & head & 19000.000000 & 15800.000000 & 0.168421 & 0.202532 & 1.202532 \\
+    % 2 & gating & 19000.000000 & N/A & N/A & N/A & N/A \\
+    % 3 & expert_inner_function & 19000.000000 & 16800.000000 & 0.115789 & 0.130952 & 1.130952 \\
+    % \bottomrule
+    % \end{tabular}
+    % \caption{removal \comment{będzie usunięta}}
+    
+    
+    % \begin{tabular}{llrllll}
+    % \toprule
+    %  & component & total_tokens & faster_tokens & speedup (1-(a/b)) & speedup ((b-a)/b) & speedup (b/a) \\
+    % \midrule
+    % 0 & embedding_layer & 10240.000000 & 8340.000000 & 0.185547 & 0.227818 & 1.227818 \\
+    % 1 & head & 10240.000000 & N/A & N/A & N/A & N/A \\
+    % 2 & gating & 10240.000000 & 9440.000000 & 0.078125 & 0.084746 & 1.084746 \\
+    % 3 & expert_inner_function & 10240.000000 & 9940.000000 & 0.029297 & 0.030181 & 1.030181 \\
+    % \bottomrule
+    % \end{tabular}
+    % \caption{contribution}
+    
+    % \begin{tabular}{llrllll}
+    % \toprule
+    %  & component & total_tokens & faster_tokens & speedup (1-(a/b)) & speedup ((b-a)/b) & speedup (b/a) \\
+    % \midrule
+    % 0 & embedding_layer & 19000.000000 & 16000.000000 & 0.157895 & 0.187500 & 1.187500 \\
+    % 1 & head & 19000.000000 & N/A & N/A & N/A & N/A \\
+    % 2 & gating & 19000.000000 & N/A & N/A & N/A & N/A \\
+    % 3 & expert_inner_function & 19000.000000 & N/A & N/A & N/A & N/A \\
+    % \bottomrule
+    % \end{tabular}
+    % \caption{contribution}
+    
+    
+    \section{Related and Future Work}
+    
+    The literature on learning rates in Machine Learning, particularly for Transformers, highlights the importance of adaptive learning rate schedules. Stochastic Weight Averaging (SWA)~\citep{izmailov2018averaging} utilizes a modified learning rate schedule that applies a decaying learning rate during the initial phase of training, followed by a constant rate for the remainder. 
+    %Differentiating learning rates for different layers is also commonly discussed, as the bottom and top layers of Transformer models capture different types of information. 
+    In \citet{sun2019fine}, the authors introduce layer-wise learning rate decay, which applies higher learning rates to top layers and lower rates to bottom layers. A related concept, discriminative fine-tuning, is discussed in \citet{howard2018universal}. Additionally, \citet{everett2024scaling} explores how various parameterizations and optimizers impact the learning rate transfer in large-scale models and proposes a per-layer (depth-wise) learning rate strategy.
+    
+    \subsection{Relation to Tensor Programs}
+    \label{future:tensor_programs}
+    
+    Our method explores the transfer of relative learning rates; however, the base learning rate must still be independently tuned for the extrapolated model. Approaches such as Tensor Programs~\citep{yang2020tensor, yang2022tensor, everett2024scaling} propose parameterizations that facilitate the transfer of the base learning rate. By combining these two approaches, it may be possible to achieve a zero-shot transfer of RLRS. 
+    
+    While our methods share similarities with Tensor Programs and draw inspiration from them, our project has a distinct goal. We aim to identify implicit assumptions in the tuning process and decouple parameters to devise a scheme that enables Large Language Models (LLMs) to converge faster. Our extrapolations demonstrate that our optimization scheme depends on the architecture rather than the model size. This scheme is defined relative to the base learning rate, which must be tuned individually for each model size. Our method does not aim to facilitate learning rate transfer between different model sizes and is supported by experimental evidence. We do not mathematically examine the limits of parameter updates in a gradient descent step. A key difference is that our relative values change dynamically during training, and our goal is to enable the model to focus on different modules during pretraining.
+    
+    \subsection{Fine-Tuning}
+    Fine-tuning allows users to adapt pre-trained Large Language Models (LLMs) to more specialized tasks. In traditional fine-tuning, certain model components are often ``frozen'' (effectively setting their relative learning rates to zero) to preserve learned knowledge while adapting other parts. Our proposed method introduces a more flexible approach, serving as a continuous alternative to freezing parameters. This enables fine-grained control over information transfer within specific components of the model. Consequently, our method could be particularly applicable to fine-tuning scenarios and complement existing methods that involve freezing parameters. Parameter-Efficient Fine-Tuning (PEFT) techniques, such as LoRA~\citep{hu2021lora}, address this by updating only a subset of parameters while freezing the rest. Our work aligns with more advanced methods like LoRA+~\citep{hayou2024lora+}, which select different learning rates for the adapter matrices, and AdaLoRA~\citep{zhang2023adalora}, which adapts the rank of the LoRA matrices, providing enhanced flexibility in the fine-tuning process.
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
+    \section{Conclusion}
+    
+    We have presented a method for decoupling learning rate schedules across different neural network components, removing the implicit assumption of homogeneity among them. We achieve higher training speed through increased sample efficiency along with greater stability when using RLRS.
+    % , and achieving better training speed and stability as a result 
+    % \jl{+data efficiency} \jl{maciej spojrz}. 
+    Our method applies to any Transformer-based model and significantly enhances performance in Mixture of Experts (MoE) models. By tuning relative learning rates on smaller models, this approach can be used to economically achieve significant improvements in the training of order-of-magnitude larger models. 
+    
+    \section*{Impact Statement}
+    
+    This paper presents work whose goal is to advance the field of Machine Learning. There are many potential societal consequences of our work, none which we feel must be specifically highlighted here.
+    
+    \bibliography{main}
+    \bibliographystyle{icml2025}
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % APPENDIX
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    \newpage
+    \appendix
+    \onecolumn
+    \section{Finding Decoupled Relative Learning Rates} \label{app:local_search}
+    
+    % Our method involves finding a set of relative learning rates. There are various ways to optimize these hyperparameters, and we assume that decoupling learning rates is mostly invariant with the exact optimization algorithm used. We list \jmr{here}{} two popular choices \jmr{}{here}. The first option is a grid search over the parameters. While it may be the most straightforward approach, grid search requires proper \jmr{initialization values}{grid values (gird > initialization, ale still słabo)} and demands an exponential number of experiments to be run. In our implementation, we opt for the simple Local Search algorithm described below. \jmr{Local Search is also more adaptable to additional hyperparameters, such as weight decay and initialization scale.}{}
+    
+    Our method involves determining a set of relative learning rates. While these hyperparameters could be optimized using a straightforward grid search, such a procedure requires carefully setting the search boundaries and involves an exponential number of training runs. In our experiments, we opt for a more scalable local search algorithm, which is described below. 
+    
+    
+    \begin{algorithm}
+    \caption{Local Search}
+    \begin{algorithmic}[1]
+    \State Iterate over the set of hyperparameters.
+    \State For a given hyperparameter, multiply its value by a factor from $\{\frac{1}{5}, \frac{2}{3}, \frac{3}{2}, \frac{5}{1}\}$
+    \State Run experiments, and if there is an improvement, adjust the hyperparameter value.
+    \State If any change has been made among all hyperparameters, return to Step $1$.
+    %\State Resulting set should be a $1.5$-approximation of local minima (not accounting for non-determinism).
+    \end{algorithmic}
+    \label{algo_local}
+    \end{algorithm}
+    
+    We note that Algorithm~\ref{algo_local} is a relatively simple optimization method, and we expect that a more complex alternative could either converge faster or find an even better set of hyperparameters. To ensure proper configuration, we optimized the weight decay and initialization scale along with all RLRS values. For the baseline, the same algorithm was used to find the learning rate at the start and at the end of the cosine schedule, along with weight decay and initialization scale. 
+    % \ka{Local search runs around $500$ experiments on \moe{34} models before converging and $200$ on \dense{34}. too detailed, usunąłbym}
+    
+    \newpage
+    \section{Additional Figures}
+    
+    
+    
+    \begin{figure*}[h]  % The empty optional argument can be used for width adjustment
+      \centering
+      \includegraphics[width=\textwidth, trim=0 0 0 0, clip]{figs/U-plots-Base (100M).pdf}
+      \caption{The performance of relative learning rates, $\lambda_{\text{small}}$ extrapolated to larger models. We vary relative values for a given component while keeping all others fixed at their optimal values. The figure shows varying starting learning rates, the ablation for end rates can be found in Appendix. The optimal $\lambda_{\text{small}}$ (green) is compared to larger and smaller relative rates (white) and the baseline learning rate (red) at $\lambda=1$. The plot shows standard boxplots with 1.5 interquartile range.  Each boxplot is based on 10 experiments on \moe{113}.}
+      %Values of all other relative variables are from the tuned configuration. 
+      \label{fig:uplots_base}
+    \end{figure*}
+    
+    
+    \begin{figure}[H]  % The empty optional argument can be used for width adjustment
+      \centering
+      \includegraphics[width=\textwidth]{figs/U-plot-Attention.pdf} 
+      \caption{Varying $\lambda_{\text{start}}^{\text{Attention}}$ and $\lambda_{\text{end}}^{\text{Attention}}$ for \moe{116}. For this component, our optimization algorithm kept the relative value unchanged ($\lambda = 1.0$). }
+      \label{fig:uplots_attention}
+    \end{figure}
+    %
+    \begin{figure}[h]
+        \centering
+        \begin{minipage}[t]{0.45\textwidth}
+            \includegraphics[width=\linewidth]{figs/medium_relative_vs_baseline.pdf}
+            \caption{Training loss for Baseline versus RLRS for \moe{33} ($210$M total parameters), averaged among 3 runs.}
+            \label{fig:medium_relative_vs_baseline}
+        \end{minipage}
+        \hfill
+        % \hspace{1cm} %
+        \begin{minipage}[t]{0.45\textwidth}
+            \includegraphics[width=\linewidth]{figs/large_relative_vs_baseline.pdf}
+            \caption{Training loss for Baseline versus RLRS for \moe{906} ($5.67$B total parameters) with hyperparameters extrapolated from \moe{33}, averaged among 3 runs. }
+            \label{fig:sensitivity}
+        \end{minipage}%\hfill
+    %    \caption{Stability}
+        \label{fig:large_relative_vs_baseline}
+    \end{figure}
+    
+    \begin{figure}[h]  % The empty optional argument can be used for width adjustment
+      \centering
+      \includegraphics[width=0.75\textwidth]{figs/relativity_motivation.pdf} 
+      \caption{Magnitudes of weight updates for different components of all 8 layers of \moe{33} trained without RLRS, right before applying learning rate.}
+      \label{fig:gradients_all}
+    \end{figure}
+    
+    
+    
+    
+    
+    % In Figure~\ref{fig:uploty_all}, we vary relative learning rates for individual components to test the relative learning rates obtained from the local search. This is an extension of Figure~\ref{fig:uplots_base} from the main text. The plots show the possible improvement in loss even when the relative learning rate is tuned for only a single component. In every case, RLRS improves the baseline. The study also indicates that the reported results may improve further with better local or grid search.
+    
+    % \begin{figure}
+    %     \centering
+    %     \includegraphics[width=0.5\linewidth]{figs/U-plots-std.png}
+    %     \caption{Varying relative learning rate for different Transformer components for both $\lambda_{\text{start}}$ and $\lambda_{\text{end}}$. A given scaling factor for a component is varied, while others are fixed. The values in green are the results of the local search applied in this paper. The study shows that the selected values are always better than the baseline learning rate and generally perform better than neighboring values, with some potential room for improvement. Note that in some instances, the training diverged, which caused the extraordinarily large bars.}
+    %     \label{fig:uploty_all}
+    % \end{figure}
+    
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    
+    
+    \end{document}
+    
+    
+    % This document was modified from the file originally made available by
+    % Pat Langley and Andrea Danyluk for ICML-2K. This version was created
+    % by Iain Murray in 2018, and modified by Alexandre Bouchard in
+    % 2019 and 2021 and by Csaba Szepesvari, Gang Niu and Sivan Sabato in 2022.
+    % Modified again in 2023 and 2024 by Sivan Sabato and Jonathan Scarlett.
+    % Previous contributors include Dan Roy, Lise Getoor and Tobias
+    % Scheffer, which was slightly modified from the 2010 version by
+    % Thorsten Joachims & Johannes Fuernkranz, slightly modified from the
+    % 2009 version by Kiri Wagstaff and Sam Roweis's 2008 version, which is
+    % slightly modified from Prasad Tadepalli's 2007 version which is a
+    % lightly changed version of the previous year's version by Andrew
+    % Moore, which was in turn edited from those of Kristian Kersting and
+    % Codrina Lauth. Alex Smola contributed to the algorithmic style files.
+    
