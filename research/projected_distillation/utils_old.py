@@ -32,6 +32,7 @@ def freeze_projected_params(model, unprojected_ff):
             frozen_modules.append(param)
     return frozen_modules
 
+
 FREEZE_LN_REGULES = [
     ".pre_norm.", # Layer norm
 ]
@@ -63,6 +64,32 @@ PROJECTIONS_1_1_T = [
     ".block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight", 
 ]
 
+PROJECTIONS_1_4 = [
+    # ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
+]
+
+PROJECTIONS_1_4_T = [
+    # ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
+]
+
+PROJECTIONS_1_3 = [
+
+]
+
+PROJECTIONS_1_3_T = [
+    # ".block.residual_attention.layer.attention.input_projection.input_projection_p12.weight",
+]
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight, shape: torch.Size([512, 256]) requires_grad: True, cuda:0
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight, shape: torch.Size([256, 512]) requires_grad: True, cuda:0
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight, shape: torch.Size([512, 256]) requires_grad: True, cuda:0
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight, shape: torch.Size([256, 512]) requires_grad: True, cuda:0
+MULTIPLY = [
+
+]
+
+MULTIPLY_T = [
+
+]
 
 
 def is_in_partial_list(elemen_name:str, partials_list:list[str]):
@@ -71,65 +98,64 @@ def is_in_partial_list(elemen_name:str, partials_list:list[str]):
             return True
     return False
 
-def print_dict_hierarchy(d, indent=0): #dev debug
-    """Recursively print dictionary keys hierarchically."""
-    for key, value in d.items():
-        print(' ' * indent + str(key))
-        if isinstance(value, dict):
-            print_dict_hierarchy(value, indent + 2)
-
-def svd_init_truncated_sv(weight:torch.Tensor, dm, projected_dm):
-    u, s, v = torch.svd(weight)
-    assert u.shape[0] == u.shape[1] == s.shape[0] == s.shape[1] == v.shape[0] == v.shape[1] == projected_dm
-    
-    projection_in = u[:, :dm] # f.e. projected_dm=512, than shape=[512, 256]
-    projection_out = v[:dm, :] # f.e. projected_dm=512, than shape=[256, 512]
-    projected_weight = s # f.e. projected_dm=512, than shape=[512, 512]
-    
-    return projection_in, projection_out, projected_weight
-
-
 def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:int, projection:torch.Tensor, diagonal=True):
     if projection is None:
         print("No projection initialization")
         return
     
-    embedding_layer_tag = "embedding_layer."
-    head_tag = "head."
-    encode_block_tag = "encoder.blocks.block_"
 
-    model_grouped = {
-        embedding_layer_tag: {},
-        head_tag: {},
-        encode_block_tag: {
+    # if diagonal:
+    #     projection_z = torch.zeros((projected_dmodel, dmodel))
+    #     projection_4 = torch.concat((
+    #         torch.concat((projection, projection_z, projection_z, projection_z), dim=0),
+    #         torch.concat((projection_z, projection, projection_z, projection_z), dim=0),
+    #         torch.concat((projection_z, projection_z, projection, projection_z), dim=0),
+    #         torch.concat((projection_z, projection_z, projection_z, projection), dim=0),
+    #         ), dim=1)
+    #     projection_4_T = projection_4.T
+    # else:
+    #     print("NO DIAGONAL INIT") #dev
+    #     projection_4 = torch.concat((projection, projection, projection, projection))
+    #     projection_4 = torch.concat((projection_4, projection_4, projection_4, projection_4), dim=1)
+    #     projection_4_T = projection_4.T
 
-        }
-    }
+    #dev start experimental layer dependent projections
+    # def generate_projection():
+    #     ret_proj = torch.zeros(projected_dmodel, projected_dmodel)
+    #     mask = torch.eye(projected_dmodel).bool()
+    #     ret_proj = ret_proj.masked_fill(mask, 1)
+    #     # projection = projection[:, int(dm):]
+
+    #     columns_to_remove = torch.randperm(projected_dmodel)[:projected_dmodel-dmodel]
+    #     mask = torch.ones(projected_dmodel, dtype=torch.bool)
+    #     mask[columns_to_remove] = False
+    #     # print(mask) #dev
+    #     ret_proj = ret_proj[:, mask]
+    #     return ret_proj
+    # default_projection = generate_projection() 
+    # projections_dict = {
+    #     "block_0": default_projection,
+    #     "block_1": default_projection,
+    #     "block_2": default_projection,
+    #     "block_3": default_projection,
+    #     "block_4": default_projection,
+    #     "block_5": default_projection,
+    #     "block_6": default_projection,
+    #     "block_7": default_projection,
+    # }
+    #dev stop experimental layer dependent projections
     
-    for name, params in model.named_parameters():
-        if embedding_layer_tag == name[:len(embedding_layer_tag)]:
-            model_grouped[embedding_layer_tag][name[len(embedding_layer_tag):]] = params
-            continue
-        if head_tag == name[:len(head_tag)]:
-            model_grouped[head_tag][name[len(head_tag):]] = params
-            continue
-        if encode_block_tag == name[:len(encode_block_tag)]:
-            parsed_name = name[:len(encode_block_tag)].split('.')
-            block_number = int(parsed_name[0])
-            block_component_name = ".".join(parsed_name[1:])
-            model_grouped[encode_block_tag][str(block_number)][block_component_name] = params
-            continue
-        raise Exception(f"Could not parse model into expected template, unexpected name: name")
-        
-    print_dict_hierarchy(model_grouped, 3) #dev
-
-    raise Exception(f"Good ending") #dev
-
-
     projection_z = torch.zeros((projected_dmodel, dmodel), device=projection.device)
 
     print("------------------------------init projections------------------------") #dev
     for name, params in model.named_parameters():
+
+        # print(f"{name} projection fitting") #dev layer_dependent
+        # projection = default_projection #dev layer_dependent
+        # for k, v in projections_dict.items(): #dev layer_dependent
+        #     if k in name:
+        #         print(f"{k} in this name")
+        #         projection = v
 
         if is_in_partial_list(name, PROJECTIONS_1_1):
             # projection
