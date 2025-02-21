@@ -32,6 +32,7 @@ def freeze_projected_params(model, unprojected_ff):
             frozen_modules.append(param)
     return frozen_modules
 
+
 FREEZE_LN_REGULES = [
     ".pre_norm.", # Layer norm
 ]
@@ -43,6 +44,8 @@ def freeze_ln_params(model):
             param.requires_grad = False
             frozen_modules.append(param)
     return frozen_modules 
+
+
 
 PROJECTIONS_1_1 = [
     ".block.residual_attention.layer.attention.input_projection.input_projection_p11.weight",
@@ -58,10 +61,19 @@ PROJECTIONS_1_1_T = [
     ".block.residual_attention.layer.attention.output_projection.output_projection_p22.weight",
     ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight",
     ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight", #FF out - 1ff configuration
-    ".block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight", #Attention in_projection_out_projection
-    ".block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight", 
-    ".block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight", 
 ]
+
+PROJECTIONS_1_3 = [
+
+]
+
+PROJECTIONS_1_3_T = [
+    ".block.residual_attention.layer.attention.input_projection.input_projection_p12.weight",
+]
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight, shape: torch.Size([512, 256]) requires_grad: True, cuda:0
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight, shape: torch.Size([256, 512]) requires_grad: True, cuda:0
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight, shape: torch.Size([512, 256]) requires_grad: True, cuda:0
+# encoder.blocks.block_7.block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight, shape: torch.Size([256, 512]) requires_grad: True, cuda:0
 
 
 
@@ -108,20 +120,15 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
     
     for name, params in model.named_parameters():
         if embedding_layer_tag == name[:len(embedding_layer_tag)]:
-            print(f"embedding_layer_tag {name}")
             model_grouped[embedding_layer_tag][name[len(embedding_layer_tag):]] = params
             continue
         if head_tag == name[:len(head_tag)]:
-            print(f"head_tag {name}")
             model_grouped[head_tag][name[len(head_tag):]] = params
             continue
         if encode_block_tag == name[:len(encode_block_tag)]:
-            print(f"encode_block_tag {name}")
-            parsed_name = name[len(encode_block_tag):].split('.')
+            parsed_name = name[:len(encode_block_tag)].split('.')
             block_number = int(parsed_name[0])
             block_component_name = ".".join(parsed_name[1:])
-            if model_grouped[encode_block_tag].get(str(block_number)) is None:
-                model_grouped[encode_block_tag][str(block_number)] = {}
             model_grouped[encode_block_tag][str(block_number)][block_component_name] = params
             continue
         raise Exception(f"Could not parse model into expected template, unexpected name: name")
@@ -130,10 +137,20 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
 
     raise Exception(f"Good ending") #dev
 
+    EMBEDDING_P = []
+    EMBEDDING_P_T = []
+    for k, v in model_grouped[model_grouped]:
+        ...
+    
+    DEEMBEDDING_P = ["head_p.weight"]
+    DEEMBEDDING_P_T = []
+    model_grouped[model_grouped][]
+
+
 
     projection_z = torch.zeros((projected_dmodel, dmodel), device=projection.device)
 
-    print("------------------------------init projections------------------------") #dev
+    print("------------------------------init_projections------------------------") #dev
     for name, params in model.named_parameters():
 
         if is_in_partial_list(name, PROJECTIONS_1_1):
@@ -148,16 +165,6 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
             # params.data = projection.T #dev coupled 
             # params.data.copy_(torch.inverse(projection).T) #dev inverted_test
             # params.data.copy_(torch.inverse(projection)) #dev inverted_test
-        elif is_in_partial_list(name, PROJECTIONS_1_4):
-            # projection_4
-            print(f"projection_4: {name}, {params.shape}")
-            raise NotImplemented()
-            # params.data.copy_(projection_4)
-        elif is_in_partial_list(name, PROJECTIONS_1_4_T):
-            # projection_4_T
-            print(f"projection_4_T: {name}, {params.shape}")
-            raise NotImplemented()
-            # params.data.copy_(projection_4_T)
         elif is_in_partial_list(name, PROJECTIONS_1_3):
             # projection_3
             print(f"projection_3: {name}, {params.shape}")
@@ -176,16 +183,6 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
             # params.data = projection_3.T #dev coupled 
             # params.data.copy_(torch.inverse(projection_3).T) #dev inverted_test
             # params.data.copy_(torch.inverse(projection_3)) #dev inverted_test
-        elif is_in_partial_list(name, MULTIPLY):
-            # projection
-            print(f"projection: {name}, {params.shape}")
-            raise NotImplemented()
-            params.data.copy_(projection)
-        elif is_in_partial_list(name, MULTIPLY_T):
-            # projection
-            print(f"projection: {name}, {params.shape}")
-            raise NotImplemented()
-            params.data.copy_(projection)
         else:
             print(f"Not projection: {name}, {params.shape}, {params.requires_grad}")
     print("------------------------------init projections end------------------------") #dev
