@@ -188,16 +188,7 @@ def get_model(
             N_HEADS = 8
             print("Projection initialization: half_var")
             assert projected_dmodel/2 == dm
-            # projection = torch.zeros(projected_dmodel, projected_dmodel)
-            # mask = torch.eye(projected_dmodel).bool()
-            # projection = projection.masked_fill(mask, 1)
-
-            # columns_to_remove = torch.randperm(projected_dmodel/N_HEADS)[:projected_dmodel-dm]
-            # mask = torch.ones(projected_dmodel/N_HEADS, dtype=torch.bool)
-            # mask[columns_to_remove] = False
-            # # mask[:int(len(mask)/2)] = False #dev
-            # print(mask) #dev
-            # projection = projection[:, mask]
+            
             projection = torch.zeros(projected_dmodel, projected_dmodel)
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
