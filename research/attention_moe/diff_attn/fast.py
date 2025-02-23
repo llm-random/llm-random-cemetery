@@ -160,6 +160,7 @@ class MultiheadFlashDiff1(LoggingLayer):
         # TODO run exp --yes
         # TODO folder na expy o tej samej nazwie
         # TODO optymalny vocab size -> inne rzeczy dla MFU?
+        # TODO inżynierka setupu
 
 
         # self.n_kv_heads = n_kv_heads or n_heads
