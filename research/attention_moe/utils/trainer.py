@@ -351,7 +351,7 @@ class Trainer:
                             me_looking_at_me
                             / (
                                 me_looking_at_anyone
-                                + copysign(me_looking_at_anyone, 1e-5)
+                                + copysign(1e-5, me_looking_at_anyone)
                             )
                         ]
 
