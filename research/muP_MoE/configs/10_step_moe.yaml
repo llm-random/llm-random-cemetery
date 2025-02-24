@@ -3,15 +3,15 @@ runner: "research.muP_MoE.train.train"
 # time: "05:00:00"
 time: "00:20:00"
 
-n_gpus: 1
+n_gpus: 2
 cpus_per_gpu: 16
 
 interactive_debug: false
 
 params:
-  name: "muP_MoE_10_step"
+  name: "muP_MoE_10_step_moe"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "10_step", "kc_version_3_moe", "constant_dhead"]
+  tags: ["muP_MoE", "muTransfer", "10_step_moe", "kc_version_3_moe", "constant_dhead"]
 
   mup_params:
     ^alpha_in: [1.0]
@@ -29,7 +29,7 @@ params:
   # model
   model_type: gpt
   # dmodel: 32
-  ^dmodel: [256, 512, 1024, 2048, 4096]
+  ^dmodel: [1536, 2048, 3072, 4096]
   n_blocks: 2
   dhead: 64
   attention_mode: 'vanilla'
