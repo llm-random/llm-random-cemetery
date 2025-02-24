@@ -308,7 +308,7 @@ def main(
 
     if args.print_parameter_names:
         for name, param in model.named_parameters():
-            print(name, param.shape)
+            print(f'name: {name},\tshape: {param.shape}')
 
     # muP innit
     if args.mup_params is not None:
