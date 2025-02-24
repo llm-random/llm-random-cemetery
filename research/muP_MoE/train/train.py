@@ -108,11 +108,11 @@ def get_muP_learning_rates(args, model, m_d=1.0):
                 break
         print(f"Assigning lr ratio {ratio} to {name}")
         ratio_to_params[ratio].append(param)
-    param_grops = [
+    param_groups = [
         {"params": params, "lr": ratio * lr, "lr_ratio": ratio}
         for ratio, params in ratio_to_params.items()
     ]
-    return param_grops
+    return param_groups
 
 
 def apply_muP_init(args, model, init_base_value=1.0, m_d=1.0, n_blocks=1.0):
@@ -307,8 +307,9 @@ def main(
         model = torch.compile(model)
 
     if args.print_parameter_names:
+        print('----------print_parameter_names----------')
         for name, param in model.named_parameters():
-            print(name, param.shape)
+            print(f'name: {name},\tshape: {param.shape}')
 
     # muP innit
     if args.mup_params is not None:
@@ -323,10 +324,10 @@ def main(
             m_d=m_d,
             n_blocks=args.n_blocks,
         )
-    param_grops = get_muP_learning_rates(args, model, m_d=m_d)
+    param_groups = get_muP_learning_rates(args, model, m_d=m_d)
 
     optimizer = torch.optim.AdamW(
-        param_grops,
+        param_groups,
         lr=args.learning_rate,
         weight_decay=args.weight_decay,
         betas=(args.adam_beta1, args.adam_beta2),
