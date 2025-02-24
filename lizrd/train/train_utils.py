@@ -49,6 +49,7 @@ def get_model(
     unprojected_embeddings:bool = False,
     unprojected_attention:bool = False,
     unprojected_ff:bool = False,
+    n_att_heads:int=None
     
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
@@ -126,8 +127,8 @@ def get_model(
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
         
-    N_HEADS = 8
     frozen_modules = []
+    mask_1d = None
     if projected_checkpoint is not None:
         if not projection_init_type:
             projection = None
@@ -204,29 +205,40 @@ def get_model(
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
 
-            columns_to_chose = torch.randperm(int(projected_dmodel/N_HEADS))[:int(projected_dmodel/N_HEADS-dm/N_HEADS)]
-            mask = torch.ones(int(projected_dmodel/N_HEADS), dtype=torch.bool)
-            mask[columns_to_chose] = False
+            columns_to_chose = torch.randperm(int(projected_dmodel/n_att_heads))[:int(projected_dmodel/n_att_heads-dm/n_att_heads)]
+            mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
+            mask_1d[columns_to_chose] = False
 
-            print(mask) #dev
-            projection = projection[:, torch.concat([mask]*N_HEADS)]
+            print(mask_1d) #dev
+            projection = projection[:, torch.concat([mask_1d]*n_att_heads)]
         elif projection_init_type == "head_half":
             print("Projection initialization: head_half_var")
-            assert (projected_dmodel/N_HEADS)%2 == 0
+            assert (projected_dmodel/n_att_heads)%2 == 0
             
             projection = torch.zeros(projected_dmodel, projected_dmodel)
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
 
-            mask = torch.ones(int(projected_dmodel/N_HEADS), dtype=torch.bool)
-            mask[int(len(mask)/2):] = False #dev
-            print(mask) #dev
-            projection = projection[:, torch.concat([mask]*N_HEADS)]
+            mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
+            mask_1d[int(len(mask_1d)/2):] = False #dev
+            print(mask_1d) #dev
+            projection = projection[:, torch.concat([mask_1d]*n_att_heads)]
+        elif projection_init_type == "svd_half":
+            print("Projection initialization: svd_half")
+            assert (projected_dmodel/n_att_heads)%2 == 0
+            
+            mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
+            mask_1d[int(len(mask_1d)/2):] = False #dev
+            mask_1d = torch.concat([mask_1d]*n_att_heads)
+            print(mask_1d) #dev
+            projection = "svd"
         else:
             raise Exception("Wrong projection init type")
-        projection = projection.to(device) #dev to device projection reference 
+        
+        if isinstance(projection, torch.Tensor):
+            projection = projection.to(device) #dev to device projection reference 
         load_projected_weights(model, projected_checkpoint["model"], projection, dm, projected_dmodel, init_scale, unprojected_embeddings, unprojected_attention, unprojected_ff)
-        initialize_projections(model, dm, projected_dmodel, projection) #dev
+        initialize_projections(model, dm, projected_dmodel, projection, mask_1d) #dev
         frozen_modules = freeze_projected_params(model, unprojected_ff)
 
     if no_layer_norm:
