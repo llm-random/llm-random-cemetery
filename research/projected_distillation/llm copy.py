@@ -376,7 +376,7 @@ class ProjectedAttention(LoggingLayer):
 
         self.output_projection = nn.Sequential(
             OrderedDict([
-                ("output_projection_p21_add",
+                ("output_projection_p21",
                 Linear(
                     heads * dhead, # xs
                     heads * projected_dhead, # xb
