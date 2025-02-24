@@ -445,7 +445,7 @@ def main(
         unprojected_embeddings = args.unprojected_embeddings,
         unprojected_attention = args.unprojected_attention,
         unprojected_ff = args.unprojected_ff,
-        
+        n_att_heads = args.n_att_heads,
     )
     # print("1-------------------------------------------------------------------------------------------------------")
     # for name, param in model.named_parameters(): #dev
