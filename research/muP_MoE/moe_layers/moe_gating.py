@@ -288,6 +288,7 @@ class TokenGating(MoeGating):
         }
 
     def log_heavy(self):
+        print(f'xxx gate_softmax_all_values xxx: {self.logging_cache["gate_softmax_all_values"]}')
         return {
             "gate_softmax_all_values": make_histogram(
                 self.logging_cache["gate_softmax_all_values"].flatten()  # move
