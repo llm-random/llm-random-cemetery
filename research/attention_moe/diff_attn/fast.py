@@ -341,6 +341,9 @@ class MultiheadFlashDiff1(LoggingLayer):
         if self.use_qk_norm:
             q = self.q_norm(q)
             k = self.k_norm(k)
+            if self.adapter_type != "none":
+                q_negative = self.q_norm(q_negative)
+                k_negative = self.k_norm(k_negative)
 
         if self.use_rope:
             assert self.rotary_emb._cos_cached.dtype == torch.float32
