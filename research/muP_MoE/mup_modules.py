@@ -8,8 +8,8 @@ class nonResidual(LoggingLayer):
     def __init__(self, layer, alpha=1.0, m_d=1.0):
         super(nonResidual, self).__init__()
         self.layer = layer
-        self.register_buffer("alpha", torch.tensor(alpha, dtype=torch.float32))
-        self.register_buffer("m_d", torch.tensor(m_d, dtype=torch.float32))
+        self.register_buffer("alpha", torch.tensor(alpha, dtype=torch.bfloat16))
+        self.register_buffer("m_d", torch.tensor(m_d, dtype=torch.bfloat16))
 
     def forward(self, x):
         out = self.layer(x)
