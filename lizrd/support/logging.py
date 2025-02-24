@@ -646,6 +646,10 @@ def prepare_tensor_for_logging(
     Default sample size = 2500 is selected because (experimentally) this works with ClearML plotting
     """
     num_elems = x.numel()
+    print(f'prepare_tensor_for_logging: x {x}')
+    print(f'prepare_tensor_for_logging: x.detach() {x.detach()}')
+    print(f'prepare_tensor_for_logging: x.detach().view(-1).cpu() {x.detach().view(-1).cpu()}')
+    print(f'prepare_tensor_for_logging: x.detach().view(-1).cpu().numpy() {x.detach().view(-1).cpu().numpy()}')
     x = x.detach().view(-1).cpu().numpy()
 
     if num_elems <= sample_size:

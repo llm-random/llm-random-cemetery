@@ -289,7 +289,7 @@ def main(
     n_learnable_parameters = get_n_learnable_parameters(model)
     args.n_learnable_parameters = n_learnable_parameters
     print(f"Number of learnable parameters: {n_learnable_parameters:_}")
-
+ 
     embedding = [m for m in model.modules() if isinstance(m, EmbeddingLayer)][0]
     head = model.head
 
