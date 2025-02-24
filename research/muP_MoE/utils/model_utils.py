@@ -22,6 +22,7 @@ from lizrd.core import llm
 from research.muP_MoE import mup_modules
 from research.muP_MoE.moe_layers.expert_types import ExpertFF, ExpertGated
 from research.muP_MoE.moe_layers.token_choice import TokenChoiceFF
+from research.muP_MoE.moe_layers.moe_gating import TokenGating
 
 
 def make_loss_and_gradient_function(
@@ -345,12 +346,7 @@ def get_ff_layer(args):
     elif args.ff_mode == "token_choice":
         args = determine_moe_args(args)
         make_expert_inner_function = get_inner_expert(args)
-        # use_topk_initialization = get_expert_init(
-        #     args.expert_use_topk_initialization, default=False
-        # )
-        # make_expert_inner_function = partial(
-        #     make_expert_inner_function, use_topk_initialization=use_topk_initialization
-        # )
+
         return_fn = lambda: TokenChoiceFF(
             dmodel=args.dmodel,
             n_experts=args.n_experts,
@@ -399,6 +395,12 @@ def get_classes_from_module_names(
             classes.append(llm.PredictionHead)
         elif name == "Softmax":
             classes.append(torch.nn.Softmax)
+        elif name == "ExpertFF":
+            classes.append(ExpertFF)
+        elif name == "ExpertGated":
+            classes.append(ExpertGated)
+        elif name == "TokenGating":
+            classes.append(TokenGating)
         else:
             raise ValueError(f"Unknown name {name}")
     return tuple(classes)
@@ -492,6 +494,13 @@ def get_model(
         )
 
     embedding_layer = llm.EmbeddingLayer(*embedding_components).to(first_gpu)
+    if mup_config is not None:
+        for name, param in embedding_layer.named_parameters():
+            print('---Embedding init with muP---')
+            print(f"Initializing {name} with scale {init_scale}")
+            torch.nn.init.normal_(
+                param.data, mean=0.0, std=(init_scale) ** 0.5
+            )
 
     # Python officially preserves dict order since 3.7, so we pass the layer dict
     transformer_tower = llm.TransformerTower(
@@ -502,10 +511,25 @@ def get_model(
         model_fragmentation=model_fragmentation,
         residual_fn=residual_fn,
     )
+    if mup_config is not None:
+        for name, param in transformer_tower.named_parameters():
+            print('---Unembedding init with muP---')
+            scale = init_scale
+            print(f"Initializing {name} with scale {scale}")
+            torch.nn.init.normal_(
+                param.data, mean=0.0, std=(scale) ** 0.5
+            )
 
     head = llm.PredictionHead(
         dm, vocab_size, init_type=init_type, init_scale=init_scale
     ).to(last_gpu)
+    if mup_config is not None:
+        for name, param in head.named_parameters():
+            print('---Unembedding init with muP---')
+            print(f"Initializing {name} with scale {init_scale}")
+            torch.nn.init.normal_(
+                param.data, mean=0.0, std=(init_scale) ** 0.5
+            )
 
     model = mup_modules.muP_LLM(embedding_layer, transformer_tower, head, mup_config)
 
@@ -513,11 +537,11 @@ def get_model(
         load_model_weights(model, checkpoint)
 
     if ddp_enabled:
-        model = wrap_in_ddp(module=model, rank=rank)
+        model = wrap_in_ddp(module=model, local_rank=rank)
     elif fsdp_enabled:
         model = wrap_in_fsdp(
             module=model,
-            rank=rank,
+            local_rank=rank,
             param_precision=fsdp_param_precision,
             cast_inputs=True,
             mixed_precision_ignored_classes=fsdp_mixed_precision_ignore_classes,
