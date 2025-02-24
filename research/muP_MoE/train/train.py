@@ -307,8 +307,9 @@ def main(
         model = torch.compile(model)
 
     if args.print_parameter_names:
+        print('----------print_parameter_names----------')
         for name, param in model.named_parameters():
-            print(name, param.shape)
+            print(f'name: {name},\tshape: {param.shape}')
 
     # muP innit
     if args.mup_params is not None:
