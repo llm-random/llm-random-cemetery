@@ -133,8 +133,12 @@ class MultiheadFlashDiff1(LoggingLayer):
 
         self.num_kv_heads = num_kv_heads or num_heads
         self.n_rep = self.num_heads // self.num_kv_heads
+        self.adapter_type = adapter_type
 
-        self.head_dim = embed_dim // num_heads // 2
+        if self.adapter_type == "none":
+            self.head_dim = embed_dim // num_heads // 2
+        else:
+            self.head_dim = embed_dim // num_heads
 
         self.adapter_type = adapter_type
         self.lowrank_inner_dim = lowrank_inner_dim
@@ -151,13 +155,13 @@ class MultiheadFlashDiff1(LoggingLayer):
                 self.lowrank_inner_dim,
                 init_type,
                 init_scale,
-                output_dim=2 * self.head_dim * self.num_kv_heads,
+                output_dim=self.head_dim * self.num_kv_heads,
                 dtype=lowrank_dtype,
             )
         elif self.adapter_type == "additive":
             self.k_delta = nn.Parameter(
                 torch.zeros(
-                    2 * self.head_dim * self.num_kv_heads, dtype=torch.float32
+                    self.head_dim * self.num_kv_heads, dtype=torch.float32
                 ).normal_(mean=0, std=0.1)
             )
             self.q_delta = nn.Parameter(
@@ -168,7 +172,7 @@ class MultiheadFlashDiff1(LoggingLayer):
         elif self.adapter_type == "multiplicative":
             self.k_delta = nn.Parameter(
                 torch.zeros(
-                    2 * self.head_dim * self.num_kv_heads, dtype=torch.float32
+                    self.head_dim * self.num_kv_heads, dtype=torch.float32
                 ).normal_(mean=1, std=0.1)
             )
             self.q_delta = nn.Parameter(
@@ -179,7 +183,7 @@ class MultiheadFlashDiff1(LoggingLayer):
         elif self.adapter_type == "multiadd":
             self.k_delta_mult = nn.Parameter(
                 torch.zeros(
-                    2 * self.head_dim * self.num_kv_heads, dtype=torch.float32
+                    self.head_dim * self.num_kv_heads, dtype=torch.float32
                 ).normal_(mean=1, std=0.1)
             )
             self.q_delta_mult = nn.Parameter(
@@ -189,7 +193,7 @@ class MultiheadFlashDiff1(LoggingLayer):
             )
             self.k_delta_add = nn.Parameter(
                 torch.zeros(
-                    2 * self.head_dim * self.num_kv_heads, dtype=torch.float32
+                    self.head_dim * self.num_kv_heads, dtype=torch.float32
                 ).normal_(mean=0, std=0.1)
             )
             self.q_delta_add = nn.Parameter(
@@ -211,9 +215,14 @@ class MultiheadFlashDiff1(LoggingLayer):
             init_type=init_type,
             init_scale=init_scale,
         )
-        k_proj_dim = self.head_dim * 2 * self.num_kv_heads
+        if self.adapter_type == "none":
+            k_proj_dim = self.head_dim * 2 * self.num_kv_heads
+        else:
+            k_proj_dim = self.head_dim * self.num_kv_heads
+
         if self.reuse_positive_k:
             k_proj_dim //= 2
+
         self.k_proj = Linear(
             embed_dim,
             k_proj_dim,
@@ -221,9 +230,10 @@ class MultiheadFlashDiff1(LoggingLayer):
             init_type=init_type,
             init_scale=init_scale,
         )
+        self.v_dim = self.embed_dim // num_heads
         self.v_proj = Linear(
             embed_dim,
-            self.head_dim * 2 * self.num_kv_heads,
+            self.v_dim * self.num_kv_heads,
             bias=False,
             init_type=init_type,
             init_scale=init_scale,
@@ -237,13 +247,7 @@ class MultiheadFlashDiff1(LoggingLayer):
         self.seq_len = seq_len
         self.flip_negative_heads = flip_negative_heads
         self.roll_negative_heads = roll_negative_heads
-        if self.use_rope:
-            self.rotary_emb = RotaryEmbedding(
-                self.head_dim,
-                base=10000.0,
-                interleaved=True,
-            )
-            self.rotary_emb._update_cos_sin_cache(self.seq_len, dtype=torch.float32)
+
         self.lambda_q1 = nn.Parameter(
             torch.zeros(self.head_dim, dtype=torch.float32).normal_(mean=0, std=0.1)
         )
@@ -257,15 +261,19 @@ class MultiheadFlashDiff1(LoggingLayer):
             torch.zeros(self.head_dim, dtype=torch.float32).normal_(mean=0, std=0.1)
         )
 
-        self.subln = RMSNorm(2 * self.head_dim, eps=1e-5, elementwise_affine=True)
+        self.subln = RMSNorm(self.v_dim, eps=1e-5, elementwise_affine=True)
         self.use_qk_norm = use_qk_norm
         if self.use_qk_norm:
-            if self.adapter_type != "none":
-                qk_norm_dim = 2 * self.head_dim
-            else:
-                qk_norm_dim = self.head_dim
-            self.q_norm = RMSNorm(qk_norm_dim, eps=1e-5, elementwise_affine=True)
-            self.k_norm = RMSNorm(qk_norm_dim, eps=1e-5, elementwise_affine=True)
+            self.q_norm = RMSNorm(self.head_dim, eps=1e-5, elementwise_affine=True)
+            self.k_norm = RMSNorm(self.head_dim, eps=1e-5, elementwise_affine=True)
+
+        if self.use_rope:
+            self.rotary_emb = RotaryEmbedding(
+                self.head_dim,
+                base=10000.0,
+                interleaved=True,
+            )
+            self.rotary_emb._update_cos_sin_cache(self.seq_len, dtype=torch.float32)
 
     def forward(
         self,
@@ -286,48 +294,48 @@ class MultiheadFlashDiff1(LoggingLayer):
         if self.adapter_type == "lora":
             # self.lowrank_inner_dim > 0:
             q_negative = (q + self.lowrank_q(x)).view(
-                bsz, tgt_len, self.num_heads, 2 * self.head_dim
+                bsz, tgt_len, self.num_heads, self.head_dim
             )
             k_negative = (k + self.lowrank_k(x)).view(
-                bsz, src_len, self.num_kv_heads, 2 * self.head_dim
+                bsz, src_len, self.num_kv_heads, self.head_dim
             )
-            q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
-            k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+            q = q.view(bsz, tgt_len, self.num_heads, self.head_dim)
+            k = k.view(bsz, src_len, self.num_kv_heads, self.head_dim)
+            v = v.view(bsz, src_len, self.num_kv_heads, self.v_dim)
         elif self.adapter_type == "additive":
             q_negative = (q + self.q_delta).view(
-                bsz, tgt_len, self.num_heads, 2 * self.head_dim
+                bsz, tgt_len, self.num_heads, self.head_dim
             )
             k_negative = (k + self.k_delta).view(
-                bsz, src_len, self.num_kv_heads, 2 * self.head_dim
+                bsz, src_len, self.num_kv_heads, self.head_dim
             )
-            q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
-            k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+            q = q.view(bsz, tgt_len, self.num_heads, self.head_dim)
+            k = k.view(bsz, src_len, self.num_kv_heads, self.head_dim)
+            v = v.view(bsz, src_len, self.num_kv_heads, self.v_dim)
         elif self.adapter_type == "multiplicative":
             q_negative = (q * self.q_delta).view(
-                bsz, tgt_len, self.num_heads, 2 * self.head_dim
+                bsz, tgt_len, self.num_heads, self.head_dim
             )
             k_negative = (k * self.k_delta).view(
-                bsz, src_len, self.num_kv_heads, 2 * self.head_dim
+                bsz, src_len, self.num_kv_heads, self.head_dim
             )
-            q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
-            k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+            q = q.view(bsz, tgt_len, self.num_heads, self.head_dim)
+            k = k.view(bsz, src_len, self.num_kv_heads, self.head_dim)
+            v = v.view(bsz, src_len, self.num_kv_heads, self.v_dim)
         elif self.adapter_type == "multiadd":
             q_negative = (q * self.q_delta_mult + self.q_delta_add).view(
-                bsz, tgt_len, self.num_heads, 2 * self.head_dim
+                bsz, tgt_len, self.num_heads, self.head_dim
             )
             k_negative = (k * self.k_delta_mult + self.k_delta_add).view(
-                bsz, src_len, self.num_kv_heads, 2 * self.head_dim
+                bsz, src_len, self.num_kv_heads, self.head_dim
             )
-            q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
-            k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+            q = q.view(bsz, tgt_len, self.num_heads, self.head_dim)
+            k = k.view(bsz, src_len, self.num_kv_heads, self.head_dim)
+            v = v.view(bsz, src_len, self.num_kv_heads, self.v_dim)
         elif self.adapter_type == "identity":
-            q = q.view(bsz, tgt_len, self.num_heads, 2 * self.head_dim)
-            k = k.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
-            v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+            q = q.view(bsz, tgt_len, self.num_heads, self.head_dim)
+            k = k.view(bsz, src_len, self.num_kv_heads, self.head_dim)
+            v = v.view(bsz, src_len, self.num_kv_heads, self.v_dim)
             q_negative = q.clone()
             k_negative = k.clone()
         elif self.adapter_type == "none":
@@ -336,11 +344,14 @@ class MultiheadFlashDiff1(LoggingLayer):
                 k = k.view(bsz, src_len, self.num_kv_heads, self.head_dim)
             else:
                 k = k.view(bsz, src_len, 2 * self.num_kv_heads, self.head_dim)
-            v = v.view(bsz, src_len, self.num_kv_heads, 2 * self.head_dim)
+            v = v.view(bsz, src_len, self.num_kv_heads, self.v_dim)
 
         if self.use_qk_norm:
             q = self.q_norm(q)
             k = self.k_norm(k)
+            if self.adapter_type != "none":
+                q_negative = self.q_norm(q_negative)
+                k_negative = self.k_norm(k_negative)
 
         if self.use_rope:
             assert self.rotary_emb._cos_cached.dtype == torch.float32
@@ -456,7 +467,7 @@ class MultiheadFlashDiff1(LoggingLayer):
 
         attn = self.subln(attn)
         attn = attn * (1 - self.lambda_init)
-        attn = attn.reshape(bsz, tgt_len, self.num_heads * 2 * self.head_dim)
+        attn = attn.reshape(bsz, tgt_len, self.num_heads * self.v_dim)
 
         attn = self.out_proj(attn)
         return attn

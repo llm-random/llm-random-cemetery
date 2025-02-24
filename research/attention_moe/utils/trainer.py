@@ -1,9 +1,11 @@
 from collections import defaultdict
 import copy
+from math import copysign
 from time import time
 from types import SimpleNamespace as SN
 from typing import Callable, Iterable, Optional, Literal
 
+import numpy as np
 import torch
 from torch.profiler import profile, ProfilerActivity
 import torch.distributed as dist
@@ -309,6 +311,7 @@ class Trainer:
         # batches = [self.eval_dataloader.get_batch() for _ in range(self.n_eval_batches
         total_me_score = defaultdict(float)
         total_everyone_score = defaultdict(float)
+        concentration = defaultdict(list)
         # self.layer_manager.set_save_attention_weights(True)
         for layer in self.model.modules():
             if hasattr(layer, "save_attention_weights"):
@@ -344,15 +347,25 @@ class Trainer:
                             .item()
                         )
                         total_me_score[depth] += me_looking_at_me
+                        concentration[depth] = concentration[depth] + [
+                            me_looking_at_me
+                            / (
+                                me_looking_at_anyone
+                                + copysign(me_looking_at_anyone, 1e-5)
+                            )
+                        ]
 
         if self.is_logging_process:
             for d, me_score in total_me_score.items():
                 everyone_score = total_everyone_score[d]
-                # print(me_score)
-                # print(everyone_score)
                 self.logger.report_scalar(
                     title=f"attention_relevancy/{d}",
                     value=me_score / everyone_score,
+                    iteration=step,
+                )
+                self.logger.report_scalar(
+                    title=f"mean_concentration/{d}",
+                    value=float(np.mean(concentration[d])),
                     iteration=step,
                 )
 
