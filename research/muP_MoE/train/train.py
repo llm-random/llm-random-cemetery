@@ -219,6 +219,7 @@ def main(
         fsdp_param_precision = args.mixed_precision_dtype
         fsdp_mixed_precision_ignore_classes = get_mixed_precision_ignored_classes(args)
         fsdp_modules_to_wrap = get_classes_from_module_names(args.fsdp_modules_to_wrap)
+        print(f'FSDP modules to wrap: {fsdp_modules_to_wrap}')
     else:
         fsdp_param_precision = None
         fsdp_mixed_precision_ignore_classes = None
