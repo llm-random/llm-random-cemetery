@@ -5,7 +5,7 @@ from lizrd.core.initialization import get_init_weight
 from lizrd.core.misc import Linear
 from research.projected_distillation.llm import ProjectedPositionalEmbedding, ProjectedTokenEmbedding
 from research.projected_distillation.load_and_save_model import load_projected_weights
-from research.projected_distillation.utils import freeze_ln_params, freeze_projected_params, initialize_projections
+from research.projected_distillation.utils import freeze_ln_params, freeze_projected_params, initialize_compressor
 import torch
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
     apply_activation_checkpointing,
@@ -237,8 +237,8 @@ def get_model(
         
         if isinstance(projection, torch.Tensor):
             projection = projection.to(device) #dev to device projection reference 
-        load_projected_weights(model, projected_checkpoint["model"], projection, dm, projected_dmodel, init_scale, unprojected_embeddings, unprojected_attention, unprojected_ff)
-        initialize_projections(model, dm, projected_dmodel, projection, mask_1d) #dev
+        # load_projected_weights(model, projected_checkpoint["model"], projection, dm, projected_dmodel, init_scale, unprojected_embeddings, unprojected_attention, unprojected_ff)
+        initialize_compressor(model, projected_checkpoint["model"], dm, projected_dmodel, projection, mask_1d) #dev
         frozen_modules = freeze_projected_params(model, unprojected_ff)
 
     if no_layer_norm:
