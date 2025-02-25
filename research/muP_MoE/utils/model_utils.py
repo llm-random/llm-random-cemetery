@@ -332,16 +332,12 @@ def get_inner_expert(args):
 
 def get_ff_layer(args):
     if args.ff_mode == "vanilla":
-        return_fn = lambda: llm.FeedForward(
+        return_fn = lambda: mup_modules.FeedForward(
             args.dmodel,
             args.dff,
             init_type=args.init_type,
             init_scale=args.init_scale,
             bias="none",
-        )
-    elif args.ff_mode == "swi_glu":
-        return_fn = lambda: llm.SwiGLUFeedForward(
-            args.dmodel, args.dff, init_type=args.init_type, init_scale=args.init_scale
         )
     elif args.ff_mode == "token_choice":
         args = determine_moe_args(args)
@@ -380,7 +376,7 @@ def get_classes_from_module_names(
         elif name == "RoPE":
             classes.append(llm.RoPE)
         elif name == "FeedForward":
-            classes.append(llm.FeedForward)
+            classes.append(mup_modules.FeedForward)
         elif name == "Residual":
             classes.append(llm.Residual)
         elif name == "TransformerBlock":
@@ -510,21 +506,23 @@ def get_model(
         residual_fn=residual_fn,
     )
     if mup_config is not None:
-        print("---Unembedding init with muP---")
+        print("---TransformerTower init with muP---")
         transformer_init_dict = {
             "input_projection": (1 / mup_config["m_d"]),
             "output_projection": (1 / (mup_config["m_d"] * 2 * n_blocks)),
             "lin1_weight": (1 / mup_config["m_d"]),
             "lin2_weight": (1 / (mup_config["m_d"] * 2 * n_blocks)),
+            "pre_relu": (1 / mup_config["m_d"]),  # FF in, ver2
+            "post_relu": (1 / (mup_config["m_d"] * 2 * n_blocks)),  # FF out, ver2
         }
         for name, param in transformer_tower.named_parameters():
             scale = init_scale
             for keyword, value in transformer_init_dict.items():
                 if keyword in name:
                     scale *= value
+                    print(f"Initializing {name} with scale {scale}")
+                    torch.nn.init.normal_(param.data, mean=0.0, std=(scale) ** 0.5)
                     break
-            print(f"Initializing {name} with scale {scale}")
-            torch.nn.init.normal_(param.data, mean=0.0, std=(scale) ** 0.5)
 
     head = llm.PredictionHead(
         dm, vocab_size, init_type=init_type, init_scale=init_scale
