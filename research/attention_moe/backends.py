@@ -201,12 +201,12 @@ class EntropyBackend(MachineBackend):
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
-            return "/local_storage_2/llm-random/datasets/c4_train"
+            return "/storage_nvme_1/llm-random/datasets/c4/train"
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_default_validation_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
-            return "/local_storage_2/llm-random/datasets/c4_validation"
+            return "/storage_nvme_1/llm-random/datasets/c4/validation"
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_cemetery_directory(self):
