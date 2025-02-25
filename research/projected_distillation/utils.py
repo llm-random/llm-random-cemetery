@@ -161,15 +161,17 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
         DEEMBEDDING_P_T = []
         add_projections(model_grouped[head_tag], projection,  projection.T, DEEMBEDDING_P, DEEMBEDDING_P_T)
         BLOCK_P = [
-            "block.residual_attention.layer.attention.input_projection.input_projection_p11.weight",
+            "block.residual_attention.layer.attention.input_projection_q.input_projection.weight",
+            "block.residual_attention.layer.attention.input_projection_k.input_projection.weight",
+            "block.residual_attention.layer.attention.input_projection_q.input_projection.weight",
             "block.residual_attention.layer.attention.output_projection.output_projection_p21.weight",
             "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight",
             "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
         ]
         BLOCK_P_T = [
-            "block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight",
-            "block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight",
-            "block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight",
+            "block.residual_attention.layer.attention.input_projection_q.output_projection.weight",
+            "block.residual_attention.layer.attention.input_projection_k.output_projection.weight",
+            "block.residual_attention.layer.attention.input_projection_v.output_projection.weight",
             "block.residual_attention.layer.attention.output_projection.output_projection_p22.weight",
             "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
             "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight",
