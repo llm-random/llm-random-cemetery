@@ -516,15 +516,17 @@ def get_model(
             "output_projection": (1 / (mup_config["m_d"] * 2 * n_blocks)),
             "lin1_weight": (1 / mup_config["m_d"]),
             "lin2_weight": (1 / (mup_config["m_d"] * 2 * n_blocks)),
+            "pre_relu": (1 / mup_config["m_d"]),  # FF in, ver2
+            "post_relu": (1 / (mup_config["m_d"] * 2 * n_blocks)),  # FF out, ver2
         }
         for name, param in transformer_tower.named_parameters():
             scale = init_scale
             for keyword, value in transformer_init_dict.items():
                 if keyword in name:
                     scale *= value
+                    print(f"Initializing {name} with scale {scale}")
+                    torch.nn.init.normal_(param.data, mean=0.0, std=(scale) ** 0.5)
                     break
-            print(f"Initializing {name} with scale {scale}")
-            torch.nn.init.normal_(param.data, mean=0.0, std=(scale) ** 0.5)
 
     head = llm.PredictionHead(
         dm, vocab_size, init_type=init_type, init_scale=init_scale

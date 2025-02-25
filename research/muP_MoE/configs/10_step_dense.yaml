@@ -9,9 +9,9 @@ cpus_per_gpu: 16
 interactive_debug: false
 
 params:
-  name: "muP_MoE_10_step_new"
+  name: "muP_MoE_10_step_new_fix"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "10_step_new"]
+  tags: ["muP_MoE", "muTransfer", "10_step_new_fix"]
 
   mup_params:
     ^alpha_in: [10.0]
