@@ -30,6 +30,7 @@ params:
   model_type: gpt
   # dmodel: 32
   # ^dmodel: [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096]
+  # ^dmodel: [256, 512, 1024, 2048, 4096]
   ^dmodel: [256, 384, 512, 768, 1024]
   ^n_blocks: [2]
   dhead: 64
@@ -65,10 +66,10 @@ params:
   adam_beta2: 0.95
 
   # FSDP
-  fsdp_enabled: true
-  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,Attention,ExpertFF,TokenGating"
-  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
+  # fsdp_enabled: true
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,Attention,ExpertFF,TokenGating"
+  # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
 
   # other
   dataset_type: c4
