@@ -9,7 +9,9 @@ FREEZE_PARAMS_REGULES = [
     ".block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.", #FF
     ".block.residual_feedforward.layer.feedforward.logging_ff_post_relu.",
 
-    ".block.residual_attention.layer.attention.input_projection.input_projection.weight", #ATT
+    ".block.residual_attention.layer.attention.input_projection_q.projected_weight.weight", #ATT
+    ".block.residual_attention.layer.attention.input_projection_k.projected_weight.weight",
+    ".block.residual_attention.layer.attention.input_projection_v.projected_weight.weight",
     ".block.residual_attention.layer.attention.output_projection.output_projection.weight",
 
     "embedding_layer.layers.0.embedding.weight", #TE
@@ -107,7 +109,9 @@ def add_projections(parameters:dict[str, torch.Tensor], projection, projection_t
         else:
             print(f"Not projection: {name}, {params.shape}, {params.requires_grad}")
 
-def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:int, projection:Union[torch.Tensor, str], projection_mask:torch.Tensor):
+def initialize_compressor(model:torch.nn.Module, projected_weights:dict, dmodel:int, projected_dmodel:int, projection:Union[torch.Tensor, str], projection_mask:torch.Tensor):
+    print(list(projected_weights.keys()))
+
     weight_dependent_projections = None
 
     if projection is None:
@@ -149,31 +153,33 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
 
     print("------------------------------init projections------------------------") #dev
 
+    EMBEDDING_P = []
+    EMBEDDING_P_T = [
+        "layers.0.embedding_p.weight", 
+        "layers.1.projected_layer.pe_layer_p.weight", ]
+    DEEMBEDDING_P = [
+        "head_p.weight",]
+    DEEMBEDDING_P_T = []
+    BLOCK_P = [
+        "block.residual_attention.layer.attention.input_projection_q.input_projection.weight",
+        "block.residual_attention.layer.attention.input_projection_k.input_projection.weight",
+        "block.residual_attention.layer.attention.input_projection_q.input_projection.weight",
+        "block.residual_attention.layer.attention.output_projection.output_projection_p21.weight",
+        "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight",
+        "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
+    ]
+    BLOCK_P_T = [
+        "block.residual_attention.layer.attention.input_projection_q.output_projection.weight",
+        "block.residual_attention.layer.attention.input_projection_k.output_projection.weight",
+        "block.residual_attention.layer.attention.input_projection_v.output_projection.weight",
+        "block.residual_attention.layer.attention.output_projection.output_projection_p22.weight",
+        "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
+        "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight",
+    ]
 
     if not weight_dependent_projections:
-        EMBEDDING_P = []
-        EMBEDDING_P_T = [
-            "layers.0.embedding_p.weight", 
-            "layers.1.projected_layer.pe_layer_p.weight", ]
         add_projections(model_grouped[embedding_layer_tag], projection,  projection.T, EMBEDDING_P, EMBEDDING_P_T)
-        DEEMBEDDING_P = [
-            "head_p.weight",]
-        DEEMBEDDING_P_T = []
         add_projections(model_grouped[head_tag], projection,  projection.T, DEEMBEDDING_P, DEEMBEDDING_P_T)
-        BLOCK_P = [
-            "block.residual_attention.layer.attention.input_projection.input_projection_p11.weight",
-            "block.residual_attention.layer.attention.output_projection.output_projection_p21.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
-        ]
-        BLOCK_P_T = [
-            "block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight",
-            "block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight",
-            "block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight",
-            "block.residual_attention.layer.attention.output_projection.output_projection_p22.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight",
-        ]
         for block_id, block_params in model_grouped[encode_block_tag].items():
             print(f"Block: {block_id}")
             add_projections(block_params, projection,  projection.T, BLOCK_P, BLOCK_P_T)
@@ -183,45 +189,14 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
         projection = projection.masked_fill(mask, 1)
         projection = projection[:, projection_mask]
 
-        EMBEDDING_P = []
-        EMBEDDING_P_T = [
-            "layers.0.embedding_p.weight", 
-            "layers.1.projected_layer.pe_layer_p.weight", ]
         add_projections(model_grouped[embedding_layer_tag], projection,  projection.T, EMBEDDING_P, EMBEDDING_P_T)
-        DEEMBEDDING_P = [
-            "head_p.weight",]
-        DEEMBEDDING_P_T = []
         add_projections(model_grouped[head_tag], projection,  projection.T, DEEMBEDDING_P, DEEMBEDDING_P_T)
-
-        BLOCK_P = [
-            "block.residual_attention.layer.attention.input_projection.input_projection_p11.weight",
-            "block.residual_attention.layer.attention.output_projection.output_projection_p21.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight",
-        ]
-        BLOCK_P_T = [
-            "block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight",
-            "block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight",
-            "block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight",
-            "block.residual_attention.layer.attention.output_projection.output_projection_p22.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight",
-            "block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight",
-        ]
         for block_id, block_params in model_grouped[encode_block_tag].items():
             print(f"Preinit block: {block_id}")
             add_projections(block_params, projection,  projection.T, BLOCK_P, BLOCK_P_T)
     
         for block_id, block_params in model_grouped[encode_block_tag].items():
             print(f"Block: {block_id}")
-
-            # att_input_proj_w = block_params["block.residual_attention.layer.attention.input_projection.input_projection.weight"]
-            # print("--------------------", att_input_proj_w.shape, dmodel, projected_dmodel) #dev
-            # u, s, v = svd_init_truncated_sv(att_input_proj_w, dmodel, projected_dmodel)
-            # block_params["block.residual_attention.layer.attention.input_projection.input_projection_p11.weight"].data.copy_(u.T)
-            # block_params["block.residual_attention.layer.attention.input_projection.input_projection.weight"].data.copy_(s)
-            # block_params["block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight"].data.copy_(v)
-            # block_params["block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight"].data.copy_(v)
-            # block_params["block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight"].data.copy_(v)
 
             att_output_proj_w = block_params["block.residual_attention.layer.attention.output_projection.output_projection.weight"]
             u, s, v = svd_init_truncated_sv(att_output_proj_w, dmodel, projected_dmodel)
@@ -242,47 +217,43 @@ def initialize_projections(model:torch.nn.Module, dmodel:int, projected_dmodel:i
             block_params["block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight"].data.copy_(v)
     else:
         raise ValueError(f"Invalid `weight_dependent_projections` = {weight_dependent_projections}")
-
-
-
-
-
-
     print("------------------------------init projections end------------------------") #dev
+    print("------------------------------copy weights start------------------------") #dev
 
+    # "{partial_name_of_compressor_weight}": {transformations}
+    # embedding_layer.layers.0.weight
+    # embedding_layer.layers.0.embedding.weight
+        
+
+
+    EMBEDDING_TRANSFER = {
+        "embedding_layer.layers.0.embedding.weight": [("embedding_layer.layers.0.embedding.weight", "embedding_layer.layers.0.weight")],
+    }
+
+    # DEEMBEDDING_TRANSFER = [
+    #     "embedding_layer.layers.0.embedding.weight": [("embedding_layer.layers.0.embedding.weight", "embedding_layer.layers.0.weight")],
+    # ]
+
+    all_transfer_rules = {}
+    all_transfer_rules.update(EMBEDDING_TRANSFER)
+
+    for name, params in model.named_parameters():
+        for k, transfer_rules in all_transfer_rules.items():
+            if k in name:
+                copied_params_name = name
+                for transfer_tuple in transfer_rules:
+                    copied_params_name = copied_params_name.replace(transfer_tuple[0], transfer_tuple[1])
+                transfered_params = projected_weights.get(copied_params_name)
+                print(f" --- considering: {name}, {params.shape}") #dev
+                print(f"Transferred params name: {copied_params_name}, {transfered_params.shape}") #dev
+                if transfered_params is not None:
+                    print("TRANSFERRED")
+                    params.data.copy_(transfered_params)
+
+
+
+
+
+
+    print("------------------------------copy weights end------------------------") #dev
     
-    #    block.residual_attention.layer.attention.input_projection.input_projection_p11.weight
-    #    block.residual_attention.layer.attention.input_projection.input_projection.weight
-    #    block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight
-    #    block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight
-    #    block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight
-
-    #    block.residual_attention.layer.attention.output_projection.output_projection_p21.weight
-    #    block.residual_attention.layer.attention.output_projection.output_projection.weight
-    #    block.residual_attention.layer.attention.output_projection.output_projection_p22.weight
-
-    #    block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight
-    #    block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight
-    #    block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight
-
-    #    block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight
-    #    block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight
-    #    block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight
-
-    # projection: block.residual_attention.layer.attention.input_projection.input_projection_p11.weight, torch.Size([512, 256]), True
-    # Not projection: block.residual_attention.layer.attention.input_projection.input_projection.weight, torch.Size([1536, 512]), True
-    # projection_T: block.residual_attention.layer.attention.input_projection_out_projection_q.input_projection_p12_q.weight, torch.Size([256, 512]), True
-    # projection_T: block.residual_attention.layer.attention.input_projection_out_projection_k.input_projection_p12_k.weight, torch.Size([256, 512]), True
-    # projection_T: block.residual_attention.layer.attention.input_projection_out_projection_v.input_projection_p12_v.weight, torch.Size([256, 512]), True
-
-    # projection: block.residual_attention.layer.attention.output_projection.output_projection_p21.weight, torch.Size([512, 256]), True
-    # Not projection: block.residual_attention.layer.attention.output_projection.output_projection.weight, torch.Size([512, 512]), True
-    # projection_T: block.residual_attention.layer.attention.output_projection.output_projection_p22.weight, torch.Size([256, 512]), True
-
-    # projection: block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p11.weight, torch.Size([512, 256]), True
-    # Not projection: block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight, torch.Size([512, 512]), True
-    # projection_T: block.residual_feedforward.layer.feedforward.logging_ff_pre_relu_p12.weight, torch.Size([256, 512]), True
-
-    # projection: block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p21.weight, torch.Size([512, 256]), True
-    # Not projection: block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight, torch.Size([512, 512]), True
-    # projection_T: block.residual_feedforward.layer.feedforward.logging_ff_post_relu_p22.weight, torch.Size([256, 512]), True
