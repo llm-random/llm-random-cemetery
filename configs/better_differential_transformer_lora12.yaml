@@ -61,7 +61,7 @@ params:
   ^diff_transformer_lowrank_dim: [64]
   ^diff_transformer_negative_heads_permutation: [repeat, flip_repeat, roll_repeat]
 #  ^diff_transformer_adapter_type: [additive, multiplicative, lora, identity, multiadd]
-  ^diff_transformer_adapter_type: [none]
+  ^diff_transformer_adapter_type: [lora]
   use_qk_norm: true
   evaluate_attention_relevancy_interval: 5000
   # ^load_balancing_loss_weight: [0.01]

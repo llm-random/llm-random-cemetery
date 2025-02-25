@@ -162,6 +162,9 @@ class MultiheadFlashDiff1(LoggingLayer):
         # TODO optymalny vocab size -> inne rzeczy dla MFU?
         # TODO inżynierka setupu
 
+        
+        # TODO lora matematycznie?
+
 
         # self.n_kv_heads = n_kv_heads or n_heads
         # assert (
