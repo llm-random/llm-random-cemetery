@@ -1,4 +1,5 @@
 #!/bin/bash
+source ~/.bashrc
 # INSTRUCTIONS:
 # 1. needs to be called from somewhere in llm-random directory
 # 2. needs to be called with the host as the first argument (as configured in ~/.ssh/config, e.g. gpu_entropy)
