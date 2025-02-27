@@ -1,6 +1,6 @@
 
 parent: configs/projected_dis/1ff/common.yaml
-md5_parent_hash: 6bbc89126d738f215bf51745e143d6bc
+md5_parent_hash: 3493a4a04cbeb4e7debcc1192829e3d1
 time: 0-04:00:00
 # n_gpus: 2 #dev
 n_gpus: 1
@@ -8,7 +8,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm256"]
+  tags: ["projected_dis", "1ff", "compression", "dm256", "dev_3x3_implementation", "best"]
 
   dmodel: 256
   dff: 256
@@ -25,7 +25,7 @@ params:
   # attention_mode: vanilla
   # ff_mode: vanilla
 
-  projection_init_type: svd_half
+  projection_init_type: shared_att_in_half
   # ^projection_init_type: [half_var, half, head_half, head_half_var]
   # ^projection_init_type: [half, half_down, half_var, half_var, half_var, half_var, half_var]
  
@@ -37,8 +37,6 @@ params:
   # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
   # fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
 
-  logging_interval_heavy: 100
-  log_gradients_and_weights: true
   # unprojected_embeddings: true
   # unprojected_attention: true
   # unprojected_ff: true
