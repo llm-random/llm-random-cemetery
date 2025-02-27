@@ -201,12 +201,12 @@ class EntropyBackend(MachineBackend):
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
-            return "/local_storage_2/llm-random/datasets/c4_train"
+            return "/storage_nvme_1/llm-random/datasets/c4/train"
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_default_validation_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
-            return "/local_storage_2/llm-random/datasets/c4_validation"
+            return "/storage_nvme_1/llm-random/datasets/c4/validation"
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_cemetery_directory(self):
@@ -223,8 +223,8 @@ class EntropyBackend(MachineBackend):
     ):
         return [
             slurm_command,
-            "--partition=a100",
-            f"--gres=gpu:a100:{setup_args['n_gpus']}",
+            "--partition=h100",
+            f"--gres=gpu:h100:{setup_args['n_gpus']}",
             f"--array=0-{n_consecutive-1}%1",
             f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
             f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
