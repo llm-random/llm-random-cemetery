@@ -325,15 +325,7 @@ class ProjectedAttention(LoggingLayer):
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
-                )),
-                # ("input_projection_p12",
-                # Linear(
-                #     3 * heads * projected_dhead, #yb
-                #     3 * heads * dhead, #ys
-                #     bias=False,
-                #     init_type=init_type,
-                #     init_scale=init_scale,
-                # )),
+                ))
             ])
         )
 
@@ -376,7 +368,7 @@ class ProjectedAttention(LoggingLayer):
 
         self.output_projection = nn.Sequential(
             OrderedDict([
-                ("output_projection_p21_add",
+                ("output_projection_p21",
                 Linear(
                     heads * dhead, # xs
                     heads * projected_dhead, # xb
@@ -429,67 +421,6 @@ class ProjectedAttention(LoggingLayer):
         output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
 
         return output
-
-
-
-class ProjectedAttentionRoPE(LoggingLayer): #dev TODO: implement, may not be better
-    def __init__(
-        self,
-        dmodel,
-        heads,
-        causal,
-        length,
-        init_type: str,
-        init_scale: float,
-        dhead=None,
-        flash=False,
-    ):
-        super(ProjectedAttentionRoPE, self).__init__()
-        if dhead is None:
-            assert dmodel % heads == 0
-            dhead = dmodel // heads
-
-        self.heads = heads
-        self.dhead = dhead
-        self.causal = causal
-        self.flash = flash
-
-        self.input_projection = Linear(
-            dmodel,
-            3 * heads * dhead,
-            bias=False,
-            init_type=init_type,
-            init_scale=init_scale,
-        )
-        self.output_projection = Linear(
-            heads * dhead,
-            dmodel,
-            bias=False,
-            init_type=init_type,
-            init_scale=init_scale,
-        )
-        self.rope = RoPE(dhead, length=length)
-        self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
-
-    def forward(self, x):
-        projected = self.input_projection(x)
-
-        batch, seq_len = x.shape[:-1]
-        projected = projected.view(
-            batch, seq_len, self.heads, 3 * self.dhead
-        ).transpose(1, 2)
-        q, k, v = torch.chunk(projected, chunks=3, dim=-1)
-        q = self.rope(q)
-        k = self.rope(k)
-
-        attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
-        )
-
-        output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
-
-        return output
-
 
 def PreNormNoBiasBlock(dmodel, layer, name, norm_class=nn.LayerNorm):
     return Residual(
