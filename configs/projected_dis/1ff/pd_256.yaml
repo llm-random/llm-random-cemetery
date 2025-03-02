@@ -8,7 +8,8 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm256", "tune_08"]
+  # tags: ["projected_dis", "1ff", "compression", "dm256", "trapezoidal", "tune_08", "v2"]
+  tags: ["projected_dis", "1ff", "compression", "dm256", "dev", "reproduction"]
 
   dmodel: 256
   dff: 256
@@ -19,12 +20,14 @@ params:
 
   scheduler: trapezoidal
   # scheduler: cosine
-  ^lr_trapezoidal_decay_fraction: [0.7, 0.8, 0.9, 1.0]
+  # ^lr_trapezoidal_decay_fraction: [0.7, 0.8, 0.9, 1.0]
+  lr_trapezoidal_decay_fraction: 0.9
   # ^learning_rate: [0.001, 0.002, 0.004]
-  # ^learning_rate: [0.00025, 0.0005, 0.001, 0.0015]
+  # ^learning_rate: [0.0005, 0.00075, 0.0015, 0.002]
   # ^learning_rate: [0.000125, 0.00025]
   learning_rate: 0.001
-  ^lr_warmup_percent: [0.01, 0.02]
+  # ^lr_warmup_percent: [0.04, 0.08, 0.1, 0.16]
+  lr_warmup_percent: 0.02
   # ^final_lr_fraction: [0.025, 0.05, 0.075, 0.1]
   # ^final_lr_fraction: [0.0]
 
