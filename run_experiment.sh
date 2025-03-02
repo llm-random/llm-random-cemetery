@@ -1,2 +1,2 @@
 #!/bin/bash
-python3 -m lizrd.grid --config_path=configs/better_differential_transformer_none3.yaml --git_branch=diff_gda_adapters_grid_2025-02-22_19-46-35 --skip_copy_code --custom_backends_module=research.attention_moe.backends
+python3 -m lizrd.grid --config_path=configs/better_differential_transformer_additive_multiplicative.yaml --git_branch=diff_gda_adapters_grid_fix_2025-03-02_01-08-56 --skip_copy_code --custom_backends_module=research.attention_moe.backends

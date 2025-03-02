@@ -194,10 +194,10 @@ class EntropyBackend(MachineBackend):
         return "/home/jkrajewski_a100"
 
     def get_cache_path(self) -> str:
-        return "/local_storage_2/dataset_cache"
+        return "/storage_nvme_1/llm-random/cache/"
 
     def get_grid_entrypoint(self) -> str:
-        return "lizrd/grid/grid_entrypoint.sh"
+        return "research/attention_moe/entrypoints/entropy.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
