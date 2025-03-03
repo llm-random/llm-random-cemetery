@@ -629,7 +629,6 @@ class PredictionHead(Linear):
             embedding_dim, output_size, init_type=init_type, init_scale=init_scale
         )
 
-
 class LLM(nn.Module):
     def __init__(self, embedding_layer, encoder_tower, head):
         super(LLM, self).__init__()
