@@ -340,8 +340,17 @@ def initialize_compressor(model:torch.nn.Module, projected_weights:dict, dmodel:
         block_params.get("block.residual_attention.layer.attention.input_projection_k.projected_weight.weight").data.copy_(input_projections[1])
         block_params.get("block.residual_attention.layer.attention.input_projection_v.projected_weight.weight").data.copy_(input_projections[2])
         block_params.get("block.residual_attention.layer.attention.output_projection.output_projection.weight").data.copy_(projected_weights[encode_block_tag+block_id+"."+"block.residual_attention.layer.attention.output_projection.weight"])
-        block_params.get("block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight").data.copy_(projected_weights[encode_block_tag+block_id+"."+"block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight"])
-        block_params.get("block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight").data.copy_(projected_weights[encode_block_tag+block_id+"."+"block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight"])
+        
+        ff_in = block_params.get("block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight")
+        ff_out = block_params.get("block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight")
+        if ff_in is None or ff_out is None:
+            raise Exception("IDK")
+            # ff_in = block_params.get("block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight")
+            # ff_out = block_params.get("block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight")
+        ff_in.data.copy_(projected_weights[encode_block_tag+block_id+"."+"block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight"])
+        ff_out.data.copy_(projected_weights[encode_block_tag+block_id+"."+"block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight"])
+        
+        
         print(f'{block_id}, {input_projections[0].shape}, {input_projections[1].shape}, {input_projections[2].shape}, {projected_weights[encode_block_tag+block_id+"."+"block.residual_attention.layer.attention.output_projection.weight"].shape}, {projected_weights[encode_block_tag+block_id+"."+"block.residual_feedforward.layer.feedforward.logging_ff_pre_relu.weight"].shape}, {projected_weights[encode_block_tag+block_id+"."+"block.residual_feedforward.layer.feedforward.logging_ff_post_relu.weight"].shape}') #dev
         
 
