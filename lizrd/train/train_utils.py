@@ -3,7 +3,7 @@ from typing import Callable, Optional, Union, Type
 
 from lizrd.core.initialization import get_init_weight
 from lizrd.core.misc import Linear
-from research.projected_distillation.llm import ProjectedPositionalEmbedding, ProjectedTokenEmbedding
+from research.projected_distillation.llm import PredictionHeadRes, ProjectedPositionalEmbedding, ProjectedTokenEmbedding
 from research.projected_distillation.utils import freeze_ln_params, freeze_projected_params, initialize_compressor
 import torch
 from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
@@ -94,27 +94,31 @@ def get_model(
     )
 
     if projected_checkpoint and not no_projected_head and not unprojected_embeddings:
-        head = llm.PredictionHead(
-            projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
+        # head = llm.PredictionHead(
+        #     projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
+        # ).to(last_gpu)
+        # head = torch.nn.Sequential(
+        #     OrderedDict([
+        #         (
+        #             "head_p",
+        #             Linear(
+        #                 dm, #xs
+        #                 projected_dmodel, #xb
+        #                 bias=False,
+        #                 init_type=init_type,
+        #                 init_scale=init_scale,
+        #             ).to(last_gpu),
+        #         ),
+        #         (
+        #             "head",
+        #             head,
+        #         )
+        #     ])
+        # ) #dev
+        head = PredictionHeadRes( #dev
+            projected_dmodel, vocab_size, dm, init_type=init_type, init_scale=init_scale
         ).to(last_gpu)
-        head = torch.nn.Sequential(
-            OrderedDict([
-                (
-                    "head_p",
-                    Linear(
-                        dm, #xs
-                        projected_dmodel, #xb
-                        bias=False,
-                        init_type=init_type,
-                        init_scale=init_scale,
-                    ).to(last_gpu),
-                ),
-                (
-                    "head",
-                    head,
-                )
-            ])
-        )
+
     else:
         head = llm.PredictionHead(
             dm, vocab_size, init_type=init_type, init_scale=init_scale

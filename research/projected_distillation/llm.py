@@ -693,7 +693,7 @@ class ClassProejectedFeedForwardRes(nn.Module):
         *args, **kwargs
     ):
         super().__init__(*args, **kwargs)
-        
+
         self.ff_in = nn.Sequential(
             OrderedDict([
                 (
@@ -819,5 +819,46 @@ def ProjectedFeedForwardRes( #dev
     bias_first, bias_second = decode_bias_string(bias)
     return ClassProejectedFeedForwardRes(dmodel, dff, projected_dmodel, projected_dff, init_type, init_scale,bias_first, bias_second)
 
+
+class PredictionHeadRes(nn.Module):
+    def __init__(self, projected_dmodel, vocab_size, dm, init_type, init_scale, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # self.emb = Linear( 
+        #     projected_dmodel, vocab_size, init_type=init_type, init_scale=init_scale
+        # )
+        self.head = torch.nn.Sequential(
+            OrderedDict([
+                (
+                    "head_p",
+                    Linear(
+                        dm, #xs
+                        projected_dmodel, #xb
+                        bias=False,
+                        init_type=init_type,
+                        init_scale=init_scale,
+                    ),
+                ),
+                (
+                    "head",
+                    Linear( 
+                        projected_dmodel, 
+                        vocab_size, 
+                        init_type=init_type, 
+                        init_scale=init_scale
+                    ),
+                )
+            ])
+        )
+
+        self.head_res = Linear(
+            dm, # xs
+            vocab_size, # ys
+            bias=False,
+            init_type="zeros",
+            init_scale=None,
+        )
+    
+    def forward(self, x):
+        return self.head(x) + self.head_res(x)
 
 
