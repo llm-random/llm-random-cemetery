@@ -9,16 +9,16 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  # tags: ["projected_dis", "1ff", "compression", "dm256", "trapezoidal", "tune_08", "v2"]
-  tags: ["projected_dis", "1ff", "compression", "dm256", "residual", "dev", "embeddings+"] 
-# /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-03_23-11-21
+  tags: ["projected_dis", "1ff", "compression", "dm256", "residual", "range"]
+  # tags: ["projected_dis", "1ff", "compression", "dm256", "residual", "dev", "embeddings+"] 
+# /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-03_23-27-07
 
   dmodel: 256
   dff: 256
   projected_dmodel: 512
   projected_dff: 512
-  # ^n_steps: [4406] # 1, 0.9, 0.8, 0.7 ...
-  n_steps: 7050
+  ^n_steps: [6168] # 1, 0.9, 0.8, 0.7 ...
+  # n_steps: 7050
 
   scheduler: trapezoidal
   # scheduler: cosine
