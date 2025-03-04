@@ -1,8 +1,8 @@
 
 parent: configs/projected_dis/1ff/common.yaml
 md5_parent_hash: 3493a4a04cbeb4e7debcc1192829e3d1
-time: 0-02:00:00
-# time: 0-00:20:00
+# time: 0-02:00:00
+time: 0-00:20:00
 # n_gpus: 2 #dev
 n_gpus: 1
 cpus_per_gpu: 16
@@ -11,7 +11,6 @@ params:
   name: "PD"
   # tags: ["projected_dis", "1ff", "compression", "dm256", "trapezoidal", "tune_08", "v2"]
   tags: ["projected_dis", "1ff", "compression", "dm256", "residual", "dev", "embeddings+"] 
-# /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-03_23-11-21
 
   dmodel: 256
   dff: 256
