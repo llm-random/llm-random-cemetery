@@ -80,15 +80,19 @@ class ProjectedTokenEmbeddingRes(nn.Module):
                 ])
         )
         self.embedding_res = Linear(
-            vocab_size, # xs
             embedding_dim, # ys
+            vocab_size, # xs
             bias=False,
             init_type="zeros",
             init_scale=None,
         )
 
     def forward(self, x):
-        return self.embedding(x) + self.embedding_res(x)
+        h1 = self.embedding(x)
+        h2 = self.embedding_res(x)
+        # print(h1.shape) #dev 
+        # print(h2.shape) #dev 
+        return h1 + h2
 
 
 class ProjectedPositionalEmbedding(nn.Module):
