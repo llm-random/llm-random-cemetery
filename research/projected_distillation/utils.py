@@ -139,7 +139,7 @@ def initialize_compressor(model:torch.nn.Module, projected_weights:dict, dmodel:
         "layers.0.embedding_p.weight", 
         "layers.1.projected_layer.pe_layer_p.weight", ]
     DEEMBEDDING_P = [
-        "head_p.weight",]
+        "head.head_p.weight",]
     DEEMBEDDING_P_T = []
     BLOCK_P = [
         "block.residual_attention.layer.attention.input_projection_q.input_projection.weight",
@@ -163,17 +163,6 @@ def initialize_compressor(model:torch.nn.Module, projected_weights:dict, dmodel:
         "block.residual_feedforward.layer.feedforward.ff_in.logging_ff_pre_relu_p12.weight",
         "block.residual_feedforward.layer.feedforward.ff_out.logging_ff_post_relu_p22.weight",
     ]
-
-    # Not projection: block.residual_feedforward.layer.feedforward.ff_in.logging_ff_pre_relu_p11.weight, torch.Size([512, 256]), True
-    # # Not projection: block.residual_feedforward.layer.feedforward.ff_in.logging_ff_pre_relu.weight, torch.Size([512, 512]), True
-    # Not projection: block.residual_feedforward.layer.feedforward.ff_in.logging_ff_pre_relu_p12.weight, torch.Size([256, 512]), True
-    #
-    # Not projection: block.residual_feedforward.layer.feedforward.ff_out.logging_ff_post_relu_p21.weight, torch.Size([512, 256]), True
-    # # Not projection: block.residual_feedforward.layer.feedforward.ff_out.logging_ff_post_relu.weight, torch.Size([512, 512]), True
-    # Not projection: block.residual_feedforward.layer.feedforward.ff_out.logging_ff_post_relu_p22.weight, torch.Size([256, 512]), True
-    #
-    # Not projection: block.residual_feedforward.layer.feedforward.ff_in_res.weight, torch.Size([256, 256]), True
-    # Not projection: block.residual_feedforward.layer.feedforward.ff_out_res.weight, torch.Size([256, 256]), True
 
     if not weight_dependent_projections:
         add_projections(model_grouped[embedding_layer_tag], projection,  projection.T, EMBEDDING_P, EMBEDDING_P_T)
