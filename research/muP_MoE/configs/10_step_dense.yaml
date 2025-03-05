@@ -11,20 +11,20 @@ interactive_debug: false
 params:
   name: "muP_MoE_10_step"
   # tags: ["muP_MoE", "muTransfer", "norm_plot_3"]
-  tags: ["muP_MoE", "muTransfer", "10_step_fixin", "no_fsdp", "naples"]
+  tags: ["muP_MoE", "muTransfer", "10_step_fixing_20", "no_fsdp", "ato_remove_after_fix"]
 
   mup_params:
-    ^alpha_in: [1.0]
-    ^alpha_out: [1.0]
+    ^alpha_in: [10.0]
+    ^alpha_out: [0.1]
     # alpha_in: 5.0
     # alpha_out: 0.2
     base_dmodel: 256
 
   # training
-  n_steps: 10
+  n_steps: 20
   lr_warmup_steps: 0
-  batch_size: 8
-  cutoff: 1024
+  batch_size: 128
+  cutoff: 128
 
   # model
   model_type: gpt
@@ -69,7 +69,7 @@ params:
   # logging etc.
   logger_types: "neptune"
   project_name: "pmtest/llm-random"
-  logging_interval_heavy: 1
+  logging_interval_heavy: 2
   # logging_interval_light: 50
   # logging_interval_loss: 20
   # save_weights_interval: null
