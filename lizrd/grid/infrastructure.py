@@ -260,7 +260,7 @@ class EntropyBackend(MachineBackend):
     max_exp_time = 14 * 24 * 60 * 60
 
     def get_common_directory(self) -> str:
-        return "/home/jkrajewski_a100"
+        return "/local_storage_2/llm-random/"
 
     def get_cache_path(self) -> str:
         return "/local_storage_2/dataset_cache"

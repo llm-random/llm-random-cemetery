@@ -6,3 +6,7 @@ params:
   dff: 2048
   n_blocks: 8
   n_att_heads: 8
+
+  init_type: truncated_normal
+  init_scale: 0.1
+  learning_rate: 5e-4
