@@ -1,6 +1,6 @@
 
 parent: configs/projected_dis/1ff/common.yaml
-md5_parent_hash: 3493a4a04cbeb4e7debcc1192829e3d1
+md5_parent_hash: ba8618af2f2e0bb92c5a7aaa3ba1d2a7
 # time: 0-02:00:00
 time: 0-00:20:00
 # n_gpus: 2 #dev
@@ -9,9 +9,9 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm256", "trapezoidal", "tune_08", "v3", "cosine"]
-  # tags: ["projected_dis", "1ff", "compression", "dm256", "residual", "dev", "embeddings+"] 
- # /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-04_16-35-50
+  # tags: ["projected_dis", "1ff", "compression", "dm256", "trapezoidal", "tune_08", "v3", "cosine"]
+  tags: ["projected_dis", "1ff", "compression", "dm256", "residual", "dev", "embeddings+"] 
+#  /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-05_15-27-01
  
   dmodel: 256
   dff: 256
@@ -19,6 +19,11 @@ params:
   projected_dff: 512
   # ^n_steps: [7050, 6168, 5287] # 1, 0.9, 0.8, 0.7 ...
   n_steps: 7050
+
+  batch_size: 256
+  cutoff: 256
+  n_blocks: 8
+  n_att_heads: 8
 
   scheduler: trapezoidal
   # scheduler: cosine
