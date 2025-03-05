@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/test/template_test.yaml --git_branch=template_test_2025-03-05_13-43-59 --skip_copy_code
