@@ -273,7 +273,7 @@ def main(
             DEVICE if rank is None else torch.device("cpu")
         ),  # in case of  DDP/FSDP, we initialize the model on CPU and move it to the GPU later
         init_type=args.init_type,
-        init_scale=args.init_scale,
+        init_scale=args.init_scale / args.dmodel,
         ddp_enabled=args.ddp_enabled,
         fsdp_enabled=args.fsdp_enabled,
         fsdp_param_precision=fsdp_param_precision,
@@ -332,12 +332,21 @@ def main(
     #     )
     param_groups = get_muP_learning_rates(args, model, m_d=m_d)
 
-    optimizer = torch.optim.AdamW(
-        param_groups,
-        lr=args.learning_rate,
-        weight_decay=args.weight_decay,
-        betas=(args.adam_beta1, args.adam_beta2),
-    )
+    if args.optimizer == 'adamw':
+        optimizer = torch.optim.AdamW(
+            param_groups,
+            lr=args.learning_rate,
+            weight_decay=args.weight_decay,
+            betas=(args.adam_beta1, args.adam_beta2),
+        )
+    elif args.optimizer == 'adam':
+        optimizer = torch.optim.Adam(
+            param_groups,
+            lr=args.learning_rate,
+            weight_decay=args.weight_decay,
+            betas=(args.adam_beta1, args.adam_beta2),
+        )
+    
     if checkpoint is not None:
         load_optimizer_state(optimizer, checkpoint, model, rank)
 
