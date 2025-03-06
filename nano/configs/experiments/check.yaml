@@ -1,3 +1,7 @@
+hydra:
+    searchpath:
+        - file://${oc.env:PWD}
+
 defaults:
     - configs/clusters: ${__llmrandom_cluster_config:}
     - configs/defaults:
@@ -9,11 +13,6 @@ defaults:
       - model
       - training
     - _self_
-
-
-hydra:
-    searchpath:
-        - file://${oc.env:PWD}
 
 
 metric_logger:
