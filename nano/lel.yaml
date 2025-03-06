@@ -1,0 +1,105 @@
+defaults:
+    - configs@_here_: llmrandom_default
+    - configs@model: medium
+    # - override hydra/launcher: ${__llmrandom_cluster_config:}
+    - override hydra/callbacks: log
+    - _self_
+
+
+metric_logger:
+    project_name: "crewtool/mojtestproject"
+    heavy_metrics_calculation_interval: 100
+
+
+slurm: 
+    job-name: modeltraining
+    gres: gpu:1
+    partition: a100
+
+    # dgx
+    # gres: gpu:ampere:1
+    # time: "3-00:00:00"
+
+hydra:
+    verbose:
+        - __main__
+        - model
+            
+host: "entropia"
+
+
+model:
+    common:
+        _target_: token_reduction.model.CommonDroppingConfig
+        sequence_length: 256
+        dmodel: 1024             
+        dff: 4096
+        dropped_tokens: 7
+
+    tower_config:  
+        n_blocks: 16            
+
+        block_config: 
+            attention:
+                n_heads: 16
+
+    embedding:
+        _target_: token_reduction.model.create_token_dropping_function
+        config: null
+        common: ${model.common}
+  
+training:
+    n_steps: 30
+    dataloader:
+        num_workers: 4
+        total_batch_size: 256
+        use_new_sampling_method: true
+        shuffle: true
+
+
+    ^learning_rate: [2e-4, 2e-5] 
+
+    seed: 54352345
+    gradient_clipping: 0.5
+
+    scheduler: 
+        _target_: model.get_cosine_scheduler_with_warmup
+        _partial_: true
+        config:        
+            warmup_steps: 1900
+            n_steps: ${training.n_steps}
+            final_lr_fraction: 0.1
+            type: "cosine"
+
+
+    evaluation:
+        eval_interval: 100
+        n_eval_steps: 5
+
+git:
+    remote_name: "cemetery"
+    remote_url: "git@github.com:crewtool/onefiler_cemetery.git"
+
+checkpoint_config:
+    interval: 5
+    path: "checkpoints"
+
+venv_path: "~/onefiler/venv/bin/activate"
+
+
+dataloaders_factory:
+  _target_: token_reduction.model.get_reduction_dataloaders
+  _partial_: true
+  dataloader_config: ${training.dataloader}
+  sequence_length: ${model.common.sequence_length}
+  seed: ${training.seed}
+  dropped_tokens: ${model.common.dropped_tokens}
+
+trainer_factory: 
+    _target_: token_reduction.model.DroppingTrainer
+    gradient_accumulation_steps: ${training.gradient_accumulation_steps}
+    n_steps: ${training.n_steps}
+    eval_interval: ${training.evaluation.eval_interval}
+    n_eval_steps: ${training.evaluation.n_eval_steps}
+    gradient_clipping: ${training.gradient_clipping}
+    checkpoint_config: ${checkpoint_config}
