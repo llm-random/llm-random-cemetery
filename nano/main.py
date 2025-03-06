@@ -29,7 +29,7 @@ def dump_grid_configs(configs_grid, output_folder):
 
 
 logger = logging.getLogger(__name__)
-@hydra.main(version_base=None, config_path=".", config_name="experiment")
+@hydra.main(version_base=None, config_path="configs/experiments", config_name="check")
 def main(config):
 
     if config.get("_run_"):
