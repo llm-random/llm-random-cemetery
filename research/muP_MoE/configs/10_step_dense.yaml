@@ -47,7 +47,7 @@ params:
   final_lr_fraction: 0.1
   grad_clip: 1
   weight_decay: 0.1
-  init_scale: 0.0004
+  init_scale: 0.1
   init_type: truncated_normal
   capacity_factor: 1.0
   adam_beta1: 0.9
