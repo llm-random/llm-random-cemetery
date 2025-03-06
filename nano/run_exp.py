@@ -125,7 +125,7 @@ def get_experiment_config_path(
     return f"{config_path}/{config_name}.yaml"
 
 
-@hydra.main(version_base=None, config_path=".", config_name="experiment")
+@hydra.main(version_base=None, config_path="configs/experiments", config_name="check")
 def submit_experiment(
     cfg: OmegaConf,
 ):
