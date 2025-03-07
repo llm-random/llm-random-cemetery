@@ -11,8 +11,13 @@ from torch import nn
 from lizrd.core.misc import Linear, LoggingLayer
 
 from .kernel.rotary import apply_rotary_emb
-from flash_attn import flash_attn_func
-from flash_attn.layers.rotary import RotaryEmbedding
+
+try:
+    from flex_head_fa import flash_attn_func
+    from flex_head_fa.layers.rotary import RotaryEmbedding
+except ModuleNotFoundError:
+    from flash_attn import flash_attn_func
+    from flash_attn.layers.rotary import RotaryEmbedding
 
 try:
     from apex.normalization import FusedRMSNorm as RMSNorm
