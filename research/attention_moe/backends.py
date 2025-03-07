@@ -487,14 +487,13 @@ def get_env_var(connection: fabric.Connection, var_name: str):
 def get_machine_backend(
     node=None, connection: Optional[fabric.Connection] = None
 ) -> MachineBackend:
-    breakpoint()
     if node is None:
         node = platform.uname().node
     username = os.environ.get("USER") if connection is None else connection.user
     if node == "asusgpu0":
         is_a100 = os.environ.get("USE_A100") == "1"
         is_h100 = os.environ.get("USE_H100") == "1"
-        assert is_a100 ^ is_h100
+        assert is_a100 ^ is_h100, f"Got USE_A100={is_a100} and USE_H100={is_h100}"
         if is_a100:
             return EntropyA100Backend(username)
         elif is_h100:
