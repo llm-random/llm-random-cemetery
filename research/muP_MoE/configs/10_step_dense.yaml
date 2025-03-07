@@ -30,8 +30,8 @@ params:
   model_type: gpt
   # dmodel: 512
   # ^dmodel: [256, 384, 512, 768, 1024, 1536, 2048, 3072, 4096]
-  # ^dmodel: [256, 512, 1024, 2048, 4096]
-  ^dmodel: [256, 384, 512, 768, 1024, 1536, 2048]
+  ^dmodel: [256, 512, 1024, 2048]
+  # ^dmodel: [256, 384, 512, 768, 1024, 1536, 2048]
   n_blocks: 2
   dhead: 64
   attention_mode: 'vanilla'
@@ -47,7 +47,7 @@ params:
   final_lr_fraction: 0.1
   grad_clip: 1
   weight_decay: 0.1
-  init_scale: 0.0004
+  init_scale: 0.1
   init_type: truncated_normal
   capacity_factor: 1.0
   adam_beta1: 0.9
