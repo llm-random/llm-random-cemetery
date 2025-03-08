@@ -13,7 +13,8 @@ params:
   # ^learning_rate: [0.0000625, 0.000125, 0.00025, 0.0005] #+
   # ^learning_rate: [0.00075, 0.001, 0.002] # 0.0005
   ^learning_rate: [0.00025, 0.0005, 0.001]
-  ^final_lr_fraction: [0.1, 0.03, 0.01]
+  # ^learning_rate: [0.0015]
+  ^final_lr_fraction: [0.05]
 
   dmodel: 1024
   dff: 1024
