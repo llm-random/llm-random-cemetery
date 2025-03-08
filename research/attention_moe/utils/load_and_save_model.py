@@ -132,7 +132,12 @@ def save_checkpoint(
         #         ids.append(neptune_loggers._sys_id)
         #     logger_metadata = {"run_id": ids}
         # else:
-        logger_metadata = {"run_id": None}
+        run_ids = []
+        for logger in loggers:
+            assert isinstance(logger, NeptuneLogger)
+            logger.report_text(f"job/saved_checkpoint", str(full_path), step)
+            run_ids.append(logger.instance_logger["sys/id"].fetch())
+        logger_metadata = {"run_id": run_ids}
 
         checkpoint = {
             "model": model_state_dict,
