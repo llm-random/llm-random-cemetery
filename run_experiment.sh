@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/diff_attn_final/2025.03.08_save_checkpoint.yaml --git_branch=debug_diff_2025-03-08_02-57-03 --skip_copy_code --custom_backends_module=research.attention_moe.backends
