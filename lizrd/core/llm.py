@@ -49,6 +49,37 @@ class SwiGLUFeedForward(LoggingLayer):
         return self.w2(activation * gate)
 
 
+class SwiGLURepeatedActivationFeedForward(LoggingLayer):
+    def __init__(
+        self,
+        dmodel,
+        dff,
+        n,
+        init_type: ValidInitType,
+        init_scale: float,
+    ):
+        super().__init__()
+        desired_size = 3 * dmodel * dff
+        x = desired_size // (dmodel * (2 * n + 1))
+        self.n = n
+        self.w1 = Linear(
+            dmodel, x, init_type=init_type, init_scale=init_scale, bias=False
+        )
+        self.w2 = Linear(
+            dmodel, n * x, init_type=init_type, init_scale=init_scale, bias=False
+        )
+        self.w3 = Linear(
+            n * x, dmodel, init_type=init_type, init_scale=init_scale, bias=False
+        )
+
+    def forward(self, x):
+        activation = nn.functional.silu(self.w1(x)).repeat_interleave(
+            repeats=self.n, dim=-1
+        )
+        gate = self.w2(x)
+        return self.w3(activation * gate)
+
+
 def FeedForward(
     dmodel,
     dff,
