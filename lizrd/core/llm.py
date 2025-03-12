@@ -305,7 +305,7 @@ class Attention(LoggingLayer):
             dmodel,
             bias=False,
             init_type=init_type,
-            init_scale=init_scale,
+            init_scale=init_scale / (2 * 12),
         )
         if rope:
             self.rope = RoPE(dhead, length=seq_len)
