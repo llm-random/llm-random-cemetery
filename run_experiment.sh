@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/tiled_swiglu/2025.03.10_first_try.yaml --git_branch=debug_diff_2025-03-12_13-00-02 --skip_copy_code --custom_backends_module=research.attention_moe.backends
