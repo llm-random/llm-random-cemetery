@@ -507,7 +507,7 @@ def get_model(
 
     if mup_config is not None:
         scale = (
-            init_scale / mup_config["base_dmodel"]
+            (init_scale ** 2) / mup_config["base_dmodel"]
         )  # this is a normal init undercover xd
         print("---Embedding init with muP---")
         for name, param in embedding_layer.named_parameters():
