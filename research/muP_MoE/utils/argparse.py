@@ -58,7 +58,7 @@ def introduce_parser_arguments(
     parser.add_argument(
         "--init_type",
         type=str,
-        choices=["kaiming_uniform", "truncated_normal", "truncated_normal_fixed"],
+        choices=["kaiming_uniform", "truncated_normal", "truncated_normal_fixed", "normal"],
         required=True,
     )
     parser.add_argument("--init_scale", type=float, required=True)

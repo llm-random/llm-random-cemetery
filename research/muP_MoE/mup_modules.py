@@ -80,7 +80,7 @@ class FeedForward(LoggingLayer):
         dff,
         init_type: ValidInitType,
         init_scale: float,
-        bias: Literal["both", "first", "second", "none"] = "both",
+        bias: Literal["both", "first", "second", "none"] = "none",
     ):
         super().__init__()
         bias_first, bias_second = decode_bias_string(bias)
@@ -97,7 +97,7 @@ class FeedForward(LoggingLayer):
             dmodel,
             bias=bias_second,
             init_type=init_type,
-            init_scale=init_scale,
+            init_scale=init_scale / ((2 * 12) ** 0.5),
         )
 
     def forward(self, x):

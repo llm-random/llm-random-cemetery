@@ -312,6 +312,12 @@ class muP_Trainer:
         self.logger.report_scalar(
             title="lr", value=self.lr_scheduler.get_lr(step=step), iteration=step
         )
+        for i, param_group in enumerate(self.optimizer.param_groups):
+            name = param_group.get('name', f'Group {i}')  # Default to index if no name
+            print(f"{name} learning rate: {param_group['lr']}")
+            self.logger.report_scalar(
+                title=f"param_groups_lr/{name}", value=param_group['lr'], iteration=step
+            )
         if self.dataset_type == "c4":
             self._log_fraction_dataset_processed(step)
         for name, stats in self.loss_accumulators.items():
