@@ -126,6 +126,7 @@ class Residual(LoggingLayer):
 
         # muP
         mean_abs_update = torch.mean(torch.abs(updates))
+        matrix_variance = torch.var(updates)
         # muP
 
         update_norms = torch.norm(updates, dim=-1)
@@ -142,12 +143,23 @@ class Residual(LoggingLayer):
 
         return {
             "muP/mean_abs_update": mean_abs_update,
+            "muP/variance": matrix_variance,
             "update_norms/mean": update_norms_mean,
             "update_norms/std": update_norms_std,
             "residual_norms/mean": residual_norms_mean,
             "residual_norms/std": residual_norms_std,
             "update_to_residual_ratio/mean": update_to_residual_ratio_mean,
             "update_to_residual_ratio/std": update_to_residual_ratio_std,
+        }
+
+    def log_spectral(self):
+        updates = self.logging_cache["update"]
+
+        # muP
+        spectral_norm = torch.linalg.svdvals(updates).max()  # muP
+
+        return {
+            "muP/spectral_norm": spectral_norm,
         }
 
 
