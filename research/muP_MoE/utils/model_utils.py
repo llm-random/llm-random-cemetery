@@ -506,9 +506,9 @@ def get_model(
     ).to(last_gpu)
 
     if mup_config is not None:
-        scale = (
-            init_scale / mup_config["base_dmodel"]
-        )  # this is a normal init undercover xd
+        scale = (init_scale**2) / mup_config[
+            "base_dmodel"
+        ]  # this is a normal init undercover xd
         print("---Embedding init with muP---")
         for name, param in embedding_layer.named_parameters():
             # if "0" in name:
