@@ -379,6 +379,8 @@ class LoggingLayer(nn.Module):
             return self.log_light()
         elif verbosity_level == 2:
             return self.log_heavy()
+        elif verbosity_level == 3:
+            return self.log_spectral()
         else:
             raise Exception("Invalid verbosity level")
 
@@ -386,6 +388,9 @@ class LoggingLayer(nn.Module):
         return {}
 
     def log_heavy(self):
+        return {}
+
+    def log_spectral(self):
         return {}
 
     def log_time(self):

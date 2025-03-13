@@ -27,6 +27,7 @@ class LayerManager:
         model,
         logging_interval_light,
         logging_interval_heavy,
+        logging_interval_spectral,
         steps_until_start_temperature_learn,
     ):
         self._layers = []
@@ -35,6 +36,7 @@ class LayerManager:
         self.logger = get_current_logger()
         self.logging_interval_light = logging_interval_light
         self.logging_interval_heavy = logging_interval_heavy
+        self.logging_interval_spectral = logging_interval_spectral
         self.steps_until_start_temperature_learn = steps_until_start_temperature_learn
 
     def _register_layers(self, model):
@@ -61,6 +63,8 @@ class LayerManager:
             and step % self.logging_interval_light == 0
             or self.logging_interval_heavy > 0
             and step % self.logging_interval_heavy == 0
+            or self.logging_interval_spectral > 0
+            and step % self.logging_interval_spectral == 0
         ):
             for block_name, layer in self._logable_layers:
                 if hasattr(layer, "prepare_for_logging"):
@@ -68,7 +72,14 @@ class LayerManager:
 
     def log(self, step):
         verbosity_levels = []
-        if self.logging_interval_heavy > 0 and step % self.logging_interval_heavy == 0:
+        if (
+            self.logging_interval_spectral > 0
+            and step % self.logging_interval_spectral == 0
+        ):
+            verbosity_levels = [3, 2, 1, 0]
+        elif (
+            self.logging_interval_heavy > 0 and step % self.logging_interval_heavy == 0
+        ):
             verbosity_levels = [2, 1, 0]
         elif (
             self.logging_interval_light > 0 and step % self.logging_interval_light == 0
