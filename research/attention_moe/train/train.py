@@ -1,5 +1,6 @@
 import argparse
 from collections import defaultdict
+import datetime
 import os
 import random
 from typing import Callable, Optional
@@ -139,7 +140,12 @@ def main(
         os.environ["MASTER_ADDR"] = "localhost"
         os.environ["MASTER_PORT"] = port
 
-        init_process_group("nccl", rank=rank, world_size=args.n_gpus)
+        init_process_group(
+            "nccl",
+            rank=rank,
+            world_size=args.n_gpus,
+            timeout=datetime.timedelta(seconds=5400),
+        )
         torch.cuda.set_device(rank)
 
     if args.deterministic_experiment:
