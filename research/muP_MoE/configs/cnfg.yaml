@@ -1,0 +1,75 @@
+runner: "research.muP_MoE.train.train"
+
+time: '00:20:00'
+
+n_gpus: 1
+cpus_per_gpu: 16
+
+interactive_debug: false
+
+params:
+  name: muP_MoE_small
+  tags: ["muP_MoE", "muTransfer", "remove", "small_muP4"]
+
+  mup_params:
+    alpha_in: 1.0
+    alpha_out: 1.0
+    base_dmodel: 256
+
+  # training
+  n_steps: 1000
+  final_lr_step: 1000
+  lr_warmup_steps: 100
+  batch_size: 256
+  cutoff: 256
+
+  # model
+  model_type: gpt
+  dmodel: 256
+  n_blocks: 4
+  dhead: 64
+  attention_mode: 'vanilla'
+  attention_normalization: 'dhead'
+  use_torch_bmm: true
+
+  ff_mode: vanilla
+  dff_ratio: 4
+  activation_type: relu
+
+  # learning
+  scheduler: cosine
+  learning_rate: 5e-3
+  final_lr_fraction: 0.1
+  grad_clip: 0.5
+  weight_decay: 0.1
+  init_scale: 0.1
+  init_type: normal
+
+  # # FSDP
+  # fsdp_enabled: true
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
+
+  dataset_type: c4
+  mixed_precision: true
+  flash_attention: true
+  mixed_precision_dtype: bfloat16
+  ^data_seed: [21, 22, 23, 24, 25, 26]
+
+  # logging etc.
+  logger_types: neptune
+  project_name: "pmtest/llm-random"
+  logging_interval_heavy: 100
+  logging_spectral_norm: true
+  log_gradients_and_weights: true
+
+  # debug
+  # logger_types: "stdout"
+  # n_steps: 100
+  # batch_size: 8
+  # cutoff: 16
+  # use_dummy_dataset: true
+  # n_blocks: 2
+  # dmodel: 16
+  # n_att_heads: 2
