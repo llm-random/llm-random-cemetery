@@ -1,35 +1,32 @@
 runner: "research.muP_MoE.train.train"
 
-time: '2-00:00:00'
+time: '00:20:00'
 
-n_gpus: 4
+n_gpus: 1
 cpus_per_gpu: 16
 
 interactive_debug: false
 
 params:
-  name: muP_MoE_lr_grid_dense_fixed
-  tags: ["muP_MoE", "muTransfer", "lr_grid_dense_fixed", "with_mup"]
+  name: muP_MoE_small
+  tags: ["muP_MoE", "muTransfer", "remove", "small_muP4"]
 
   mup_params:
-    # alpha_in: 10.0
-    # alpha_out: 0.1
-
     alpha_in: 1.0
     alpha_out: 1.0
-    base_dmodel: 64
+    base_dmodel: 256
 
   # training
-  n_steps: 60000
-  final_lr_step: 60000
-  lr_warmup_steps: 600
-  batch_size: 512
-  cutoff: 512
+  n_steps: 10
+  final_lr_step: 1000
+  lr_warmup_steps: 100
+  batch_size: 256
+  cutoff: 256
 
   # model
   model_type: gpt
-  ^dmodel: [768, 1024]
-  n_blocks: 24
+  dmodel: 256
+  n_blocks: 4
   dhead: 64
   attention_mode: 'vanilla'
   attention_normalization: 'dhead'
@@ -41,29 +38,31 @@ params:
 
   # learning
   scheduler: cosine
-  ^learning_rate: [1e-2, 5e-3, 2e-3, 1e-3, 5e-4]
+  learning_rate: 5e-3
   final_lr_fraction: 0.1
   grad_clip: 0.5
   weight_decay: 0.1
   init_scale: 0.1
   init_type: normal
 
-  # FSDP
-  fsdp_enabled: true
-  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
+  # # FSDP
+  # fsdp_enabled: true
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
 
   dataset_type: c4
   mixed_precision: true
   flash_attention: true
   mixed_precision_dtype: bfloat16
-  data_seed: 17
+  ^data_seed: [21, 22, 23, 24, 25, 26]
 
   # logging etc.
   logger_types: neptune
   project_name: "pmtest/llm-random"
-  logging_interval_heavy: 3000
+  logging_interval_heavy: 100
+  logging_spectral_norm: true
+  log_gradients_and_weights: true
 
   # debug
   # logger_types: "stdout"
