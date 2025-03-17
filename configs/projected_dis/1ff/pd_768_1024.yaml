@@ -1,23 +1,26 @@
 
 parent: configs/projected_dis/1ff/common.yaml
 md5_parent_hash: ba8618af2f2e0bb92c5a7aaa3ba1d2a7
-time: 0-10:00:00
-# time: 0-00:20:00
-n_gpus: 2
+# time: 0-05:00:00
+time: 0-00:50:00
+n_gpus: 4
 cpus_per_gpu: 16
 
 params:
   name: "PD"
   # tags: ["projected_dis", "1ff", "compression", "dm256", "trapezoidal", "tune_08", "v3", "cosine"]
-  tags: ["projected_dis", "1ff", "compression", "dm768_1024", "cosine_tune"] 
-#  /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-08_19-15-12
- 
+  tags: ["projected_dis", "1ff", "compression", "dm768_1024", "test"] 
+  # /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-17_15-58-13
+  # t0036 is bad
+  # /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-17_17-03-19 - ??
+  batch_size: 512
+
   dmodel: 768
   dff: 768
   projected_dmodel: 1024
   projected_dff: 1024
-  ^n_steps: [6108, 10179]
-  # n_steps: 10179
+  # ^n_steps: [6108, 10179]
+  n_steps: 10179
 
   # scheduler: trapezoidal
   scheduler: cosine
