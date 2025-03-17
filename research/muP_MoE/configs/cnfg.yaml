@@ -1,6 +1,6 @@
 runner: "research.muP_MoE.train.train"
 
-time: '2-00:00:00'
+time: '00:30:00'
 
 n_gpus: 4
 cpus_per_gpu: 16
@@ -8,8 +8,8 @@ cpus_per_gpu: 16
 interactive_debug: false
 
 params:
-  name: muP_MoE_lr_grid_dense_fixed
-  tags: ["muP_MoE", "muTransfer", "lr_grid_dense_fixed", "with_mup"]
+  name: muP_MoE_MFU_fixing
+  tags: ["muP_MoE", "muTransfer", "muP_MoE_MFU_fixing"]
 
   mup_params:
     # alpha_in: 10.0
@@ -23,12 +23,12 @@ params:
   n_steps: 60000
   final_lr_step: 60000
   lr_warmup_steps: 600
-  batch_size: 512
+  batch_size: 1024
   cutoff: 512
 
   # model
   model_type: gpt
-  ^dmodel: [1536]
+  dmodel: 1536
   n_blocks: 24
   dhead: 64
   attention_mode: 'vanilla'
@@ -41,7 +41,7 @@ params:
 
   # learning
   scheduler: cosine
-  ^learning_rate: [1e-2, 5e-3, 2e-3, 1e-3, 5e-4]
+  learning_rate: 1e-3
   final_lr_fraction: 0.1
   grad_clip: 0.5
   weight_decay: 0.1
