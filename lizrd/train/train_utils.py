@@ -220,7 +220,7 @@ def get_model(
             print(mask_1d) #dev
             projection = projection[:, torch.concat([mask_1d]*n_att_heads)]
         elif projection_init_type == "head_half":
-            print("Projection initialization: head_half_var")
+            print("Projection initialization: head_half")
             assert (projected_dmodel/n_att_heads)%2 == 0
             
             projection = torch.zeros(projected_dmodel, projected_dmodel)
@@ -228,7 +228,8 @@ def get_model(
             projection = projection.masked_fill(mask, 1)
 
             mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
-            mask_1d[int(len(mask_1d)/2):] = False #dev
+            # mask_1d[int(len(mask_1d)/2):] = False #dev
+            mask_1d[int(dm/n_att_heads):] = False #dev
             print(mask_1d) #dev
             projection = projection[:, torch.concat([mask_1d]*n_att_heads)]
         elif projection_init_type == "svd_half":
