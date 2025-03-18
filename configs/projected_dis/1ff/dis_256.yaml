@@ -20,8 +20,8 @@ params:
   
   n_steps: 7050
 
-  # batch_size: 256
-  batch_size: 64
+  batch_size: 256
+  # batch_size: 64
   cutoff: 256
   n_blocks: 8
   n_att_heads: 8
