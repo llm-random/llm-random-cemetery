@@ -408,6 +408,8 @@ def get_attention_layer(args):
             seq_len=args.cutoff,
             init_type=args.init_type,
             init_scale=args.init_scale,
+            lowrank_scaling=args.diff_transformer_lowrank_scaling,
+            lowrank_bias=args.diff_transformer_lowrank_bias,
             lowrank_inner_dim=args.diff_transformer_lowrank_dim,
             flip_negative_heads=args.diff_transformer_flip_negative_heads,
             roll_negative_heads=args.diff_transformer_roll_negative_heads,
@@ -442,7 +444,9 @@ def get_attention_layer(args):
             n_negative_heads=args.diff_transformer_n_negative_heads,
             rms_norm_eps=args.rms_norm_eps,
             rope_theta=args.rope_theta,
-            repeat_or_interleave=args.diff_transformer_repeat_or_interleave,
+            # repeat_or_interleave=args.diff_transformer_repeat_or_interleave,
+            negative_heads_permutation=args.diff_transformer_negative_heads_permutation,
+            adapter_type=args.diff_transformer_adapter_type,
         )
     else:
         raise NotImplementedError(
