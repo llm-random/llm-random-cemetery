@@ -11,7 +11,7 @@ params:
   # /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-18_11-56-22 - broken 036 cluster
 
   # ^learning_rate: [0.000125, 0.00025, 0.0005, 0.001]
-  ^learning_rate: [0.000125]
+  ^learning_rate: [0.002, 0.0015]
   # learning_rate: 0.001
 
   dmodel: 768
