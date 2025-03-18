@@ -400,7 +400,6 @@ def get_attention_layer(args):
             use_qk_norm=args.use_qk_norm,
             reuse_positive_k=args.diff_transformer_reuse_positive_k,
         )
-    elif args.attention_mode == "adapter_differential":
         attention_layer_fun = lambda: AdapterDifferentialAttention(
             dmodel=args.dmodel,
             n_heads=args.n_att_heads,
@@ -408,6 +407,7 @@ def get_attention_layer(args):
             seq_len=args.cutoff,
             init_type=args.init_type,
             init_scale=args.init_scale,
+            lowrank_scaling=args.diff_transformer_lowrank_scaling,
             lowrank_inner_dim=args.diff_transformer_lowrank_dim,
             flip_negative_heads=args.diff_transformer_flip_negative_heads,
             roll_negative_heads=args.diff_transformer_roll_negative_heads,
@@ -417,6 +417,8 @@ def get_attention_layer(args):
             rms_norm_eps=args.rms_norm_eps,
             rope_theta=args.rope_theta,
         )
+    elif args.attention_mode == "adapter_differential":
+        pass
     elif args.attention_mode == "differential":
         attention_layer_fun = lambda: DifferentialAttention(
             dmodel=args.dmodel,
@@ -442,7 +444,9 @@ def get_attention_layer(args):
             n_negative_heads=args.diff_transformer_n_negative_heads,
             rms_norm_eps=args.rms_norm_eps,
             rope_theta=args.rope_theta,
-            repeat_or_interleave=args.diff_transformer_repeat_or_interleave,
+            # repeat_or_interleave=args.diff_transformer_repeat_or_interleave,
+            negative_heads_permutation=args.diff_transformer_negative_heads_permutation,
+            adapter_type=args.diff_transformer_adapter_type,
         )
     else:
         raise NotImplementedError(
