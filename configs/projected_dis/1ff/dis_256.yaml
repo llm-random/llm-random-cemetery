@@ -16,12 +16,12 @@ params:
   dff: 256
   distilled_dmodel: 512
   distilled_dff: 512
-  distillation_temperature: 1.0
+  distillation_temperature: 2.0
   
   n_steps: 7050
 
-  # batch_size: 256
-  batch_size: 64
+  batch_size: 256
+  # batch_size: 64
   cutoff: 256
   n_blocks: 8
   n_att_heads: 8
