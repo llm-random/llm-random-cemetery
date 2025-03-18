@@ -302,8 +302,8 @@ def calculate_llm_distillation_loss_and_gradient(
             reduction="none"
         ) * (distillation_temperature ** 2)
         # mask_loss = mask_loss.sum(dim=-1)  #dev Sum over vocab dimension
-        print(f"kl_div: {mask_loss.shape}") #dev
-        print(f"kl_div: {mask.reshape(-1).shape}") #dev
+        # print(f"kl_div: {mask_loss.shape}") #dev
+        # print(f"kl_div: {mask.reshape(-1).shape}") #dev
         mask_loss = mask_loss[mask.reshape(-1) == 1]
         loss = mask_loss.mean() / num_checkpoint_accumulation_steps
 
