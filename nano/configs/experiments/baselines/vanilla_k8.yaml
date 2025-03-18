@@ -45,4 +45,6 @@ training:
 
 venv_path: '$HOME/onefiler/venv/bin/activate' 
 
-server: vpn
+server: entropy
+
+# server: vpn
