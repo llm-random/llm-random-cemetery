@@ -4,7 +4,8 @@ n_gpus: 4
 time: 04:00:00
 
 params:
-  ^neptune_id: ['LLMRANDOM-30165']
+  # ^neptune_id: ['LLMRANDOM-30587', 'LLMRANDOM-30588', 'LLMRANDOM-30589', 'LLMRANDOM-30590', 'LLMRANDOM-30591', 'LLMRANDOM-30592', 'LLMRANDOM-30593']
+  ^neptune_id: ['LLMRANDOM-30594', 'LLMRANDOM-30595', 'LLMRANDOM-30596', 'LLMRANDOM-30597', 'LLMRANDOM-30598', 'LLMRANDOM-30599', 'LLMRANDOM-30600'] 
   ^final_eval_step: [Null]
   n_blocks: 1
   dmodel: 1
