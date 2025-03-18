@@ -302,11 +302,18 @@ def calculate_llm_distillation_loss_and_gradient(
         #     reduction="none"
         # ) * (distillation_temperature ** 2)
 
-        mask_loss = F.cross_entropy(
-            model_output.flatten(0, -2),
-            tutor_target.flatten(0, -2),
-            reduction="none"
-        )
+        # Convert logits to soft probabilities using softmax with temperature
+        teacher_probs = F.log_softmax(tutor_target / distillation_temperature, dim=1)  # Log prob for KL div
+        student_probs = F.softmax(model_output / distillation_temperature, dim=1)
+
+        # Compute KL Divergence Loss (reduce mean over batch)
+        mask_loss = F.kl_div(teacher_probs, student_probs, reduction="batchmean") * (distillation_temperature**2)
+
+        # mask_loss = F.cross_entropy(
+        #     model_output.flatten(0, -2),
+        #     tutor_target.flatten(0, -2),
+        #     reduction="none"
+        # )
 
         # print(f"kl_div: {mask_loss.shape}") #dev
         # print(f"kl_div: {mask.reshape(-1).shape}") #dev
