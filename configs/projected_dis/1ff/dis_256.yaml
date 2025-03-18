@@ -9,15 +9,13 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  # tags: ["projected_dis", "1ff", "compression", "dm256"] 
-  tags: ["projected_dis", "1ff", "compression", "dm256", "doners_ot", "doner_20"] 
+  tags: ["projected_dis", "1ff", "distillation", "dm256"] 
  
   dmodel: 256
   dff: 256
-  projected_dmodel: 512
-  projected_dff: 512
-  # ^n_steps: [8812, 7931, 7050, 6168, 5287, 4406, 3525, 2644, 1762, 881]
-  # ^n_steps: [7050, 8812]
+  distilled_dmodel: 512
+  distilled_dff: 512
+  
   n_steps: 7050
 
   batch_size: 256
@@ -27,6 +25,8 @@ params:
 
   # scheduler: trapezoidal
   scheduler: cosine
+  # ^lr_trapezoidal_decay_fraction: [0.2, 0.4, 0.6, 0.8, 1.0]
+  # lr_trapezoidal_decay_fraction: 0.9
   # ^learning_rate: [0.001, 0.002, 0.004]
   # ^learning_rate: [0.0005, 0.00075, 0.001, 0.0015, 0.002]
   # ^learning_rate: [0.00075, 0.0015]
@@ -52,17 +52,5 @@ params:
   # ^projection_init_type: [half_var, half, head_half, head_half_var]
   # ^projection_init_type: [half, half_down, half_var, half_var, half_var, half_var, half_var]
  
-  projected_distillation: True
-  # projected_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-02-10_12-54-15/None/1195464/19545.pt # cosine - old
-  # projected_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-17_14-39-57/None/1238307/19545.pt # 20tpp
-  projected_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-17_14-39-57/None/1238308/40000.pt # 40tpp
-  # projected_weights_path:  # 80tpp
-
-  # fsdp_use_orig_params: True
-  # fsdp_enabled: True
-  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  # fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
-
-  # unprojected_embeddings: true
-  # unprojected_attention: true
-  # unprojected_ff: true
+  distillation: True
+  distillation_weights_path: /net/pr2/projects/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-02-10_12-54-15/None/1195464/19545.pt
