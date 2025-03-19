@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/attn_scaling/2025.03.19_first.yaml --git_branch=debug_diff_2025-03-19_16-39-42 --skip_copy_code --custom_backends_module=research.context_scaling.backends
