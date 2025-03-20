@@ -52,7 +52,7 @@ class ConditionalTrainer:
     mixed_precision_dtype: torch.dtype
     logger: Optional[AbstractLogger]
     model_type: Literal["bert", "gpt"]
-    dataset_type: Literal["wikibook", "c4"]
+    dataset_type: Literal["wikibook", "c4", "fineweb-edu"]
     logging_interval_loss: int
     logging_interval_light: int
     logging_interval_heavy: int
