@@ -256,28 +256,25 @@ def calculate_llm_loss_and_gradient(
     return loss.item(), aux_info
 
 
-def build_causal_window_mask(context_window, cutoff):
+def build_causal_window_mask(context_window, cutoff, mixed_precision_dtype):
     T = cutoff
     i_idx = torch.arange(T).unsqueeze(1)
     j_idx = torch.arange(T).unsqueeze(0)
     mask = ((i_idx - j_idx) < 0) | ((i_idx - j_idx) >= context_window)
-    return mask.float() * torch.finfo(torch.float32).min  # shape: (T, T)
+    return mask.to(mixed_precision_dtype) * torch.finfo(mixed_precision_dtype).min  # shape: (T, T)
 
 
 def get_attention_layer(args):
     causal = args.model_type == "gpt"
-    if args.context_window is None:
-        attn_mask = None
-    else:
-        attn_mask = build_causal_window_mask(
-            context_window=args.context_window, cutoff=args.cutoff
-        )
+    if args.context_window is not None:
+        causal = False
+
     if args.attention_mode == "vanilla":
         attention_layer_fun = lambda: llm.Attention(
             dmodel=args.dmodel,
             heads=args.n_att_heads,
             causal=causal,
-            attn_mask=attn_mask,
+            context_length=args.context_window,
             dhead=args.dhead,
             flash=args.flash_attention,
             init_type=args.init_type,
