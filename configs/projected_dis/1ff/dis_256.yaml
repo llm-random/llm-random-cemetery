@@ -1,10 +1,10 @@
 
 parent: configs/projected_dis/1ff/common.yaml
 md5_parent_hash: 916b89348a6cb0465eafe8f681ca5542
-# time: 0-02:00:00
-time: 0-01:30:00
-# n_gpus: 2 #dev
-n_gpus: 2
+time: 0-00:30:00
+n_gpus: 1 #dev
+# time: 0-01:30:00 # debug
+# n_gpus: 2 # debug
 cpus_per_gpu: 16
 
 params:
@@ -20,8 +20,8 @@ params:
   
   n_steps: 7050
 
-  batch_size: 256
-  # batch_size: 64
+  # batch_size: 256
+  batch_size: 64 # debug
   cutoff: 256
   n_blocks: 8
   n_att_heads: 8
