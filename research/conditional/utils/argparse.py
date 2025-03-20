@@ -222,6 +222,7 @@ def introduce_parser_arguments(
     )
     parser.add_argument("--detect_anomaly", action="store_true")
     parser.add_argument("--flash_attention", action="store_true")
+    parser.add_argument("--context_window", type=int, default=None)
 
     # other parameters usually not changed for experiments
 

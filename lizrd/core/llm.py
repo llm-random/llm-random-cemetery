@@ -197,8 +197,10 @@ def attention_mechanism(
     dhead: int,
     causal: bool,
     flash: bool,
+    attn_mask: torch.Tensor = None,
 ):
     if flash:
+        # print(f'____attn_mask____: {attn_mask}')
         with torch.backends.cuda.sdp_kernel(
             enable_flash=True, enable_math=False, enable_mem_efficient=False
         ):
@@ -206,7 +208,7 @@ def attention_mechanism(
                 query=query.contiguous(),
                 key=key.contiguous(),
                 value=value.contiguous(),
-                attn_mask=None,
+                attn_mask=attn_mask,
                 is_causal=causal,
             )
     else:
@@ -221,6 +223,8 @@ def attention_mechanism(
             a.masked_fill_(
                 torch.tril(torch.ones_like(a)) == 0, float("-inf")
             )  # mask out future tokens
+        elif attn_mask is not None:
+            a += attn_mask
         a = torch.softmax(a, dim=-1)
         output = torch.einsum("... h l L, ... L h d -> ... l h d", a, value)
         output = output.transpose(1, 2)
@@ -240,6 +244,7 @@ class AttentionMechanism(nn.Module):
         value: torch.Tensor,
         dhead: int,
         causal: bool,
+        attn_mask: torch.Tensor = None,
         *args,
         **kwargs,
     ):
@@ -250,6 +255,7 @@ class AttentionMechanism(nn.Module):
             dhead=dhead,
             causal=causal,
             flash=self.use_flash_attention,
+            attn_mask=attn_mask,
         )
 
 
@@ -261,6 +267,7 @@ class Attention(LoggingLayer):
         causal,
         init_type: str,
         init_scale: float,
+        attn_mask: torch.Tensor = None,
         dhead=None,
         flash=False,
     ):
@@ -272,6 +279,7 @@ class Attention(LoggingLayer):
         self.heads = heads
         self.dhead = dhead
         self.causal = causal
+        self.attn_mask = attn_mask
         self.flash = flash
 
         self.input_projection = Linear(
@@ -300,7 +308,12 @@ class Attention(LoggingLayer):
         q, k, v = torch.chunk(projected, chunks=3, dim=-1)
 
         attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
+            query=q,
+            key=k,
+            value=v,
+            dhead=self.dhead,
+            causal=self.causal,
+            attn_mask=self.attn_mask,
         )
 
         output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
