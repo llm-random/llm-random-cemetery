@@ -3,6 +3,7 @@ from functools import partial
 # import json
 # from diskcache import Cache
 from typing import Optional, Type, Union, Callable
+from research.conditional.utils.distillation_losses import get_distill_loss
 from research.projected_distillation.llm import PreNormNoBiasBlock, ProjectedAttention, ProjectedAttentionRes, ProjectedFeedForward, ProjectedFeedForwardRes
 import torch
 import torch.nn as nn
@@ -269,49 +270,45 @@ def calculate_llm_distillation_loss_and_gradient(
     def hack_for_python_garbage_collection():
         """we want to have no reference to model output while backpropagating to allow torch to free memory,
         so we wrap loss calculation in a function"""
-        input_tokens = batch.input_ids
-        gt_tokens = batch.target_ids
-        mask = batch.should_calculate_loss
+        input_tokens = batch.input_ids # (batch, context)
+        gt_tokens = batch.target_ids # (batch, context)
+        mask = batch.should_calculate_loss # (batch, context)
 
         with torch.autocast(
             device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
         ):
-            model_output = model(input_tokens)
+            model_output = model(input_tokens)  # (batch, context, vocab)
             with torch.no_grad():
-                tutor_target = distilled_model(input_tokens)
+                tutor_output = distilled_model(input_tokens)  # (batch, context, vocab)
 
         # # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
-        # gt_tokens = gt_tokens.to(model_output.device) #dev
-        tutor_target = tutor_target.to(model_output.device)
+        gt_tokens = gt_tokens.to(model_output.device)
+        tutor_output = tutor_output.to(model_output.device)
         mask = mask.to(model_output.device)
 
-        with torch.no_grad():
-            mask_loss = F.cross_entropy(
-                model_output.flatten(0, -2),
-                gt_tokens.reshape(-1).long(),
-                reduction="none",
-            )
-            print(f"cross_entropy: {mask_loss.shape}") #dev
-            print(f"cross_entropy: {mask.reshape(-1).shape}") #dev
-            mask_loss = mask_loss[mask.reshape(-1) == 1]
-            cross_entropy_loss = mask_loss.mean() / num_checkpoint_accumulation_steps
+        mask_loss = F.cross_entropy(
+            model_output.flatten(0, -2), # (batch*context, vocab)
+            gt_tokens.reshape(-1).long(), # (batch*context)
+            reduction="none",
+        ) # (batch*context)
+        mask_loss = mask_loss[mask.reshape(-1) == 1]
+        cross_entropy_loss = mask_loss.mean() / num_checkpoint_accumulation_steps
+        
+        KD_RATIO = 0.5
+        distill_loss = get_distill_loss(model_output.flatten(0, -2), tutor_output.flatten(0, -2), "skl", mask.reshape(-1))
+        loss = (1 - KD_RATIO) * cross_entropy_loss + KD_RATIO * distill_loss
 
         # mask_loss = F.kl_div(
         #     F.log_softmax(model_output.flatten(0, -2) / distillation_temperature, dim=-1),
         #     F.softmax(tutor_target.flatten(0, -2) / distillation_temperature, dim=-1),
         #     reduction="none"
         # ) * (distillation_temperature ** 2)
+        # teacher_probs = F.log_softmax(tutor_target / distillation_temperature, dim=1)  # Log prob for KL div
+        # student_probs = F.softmax(model_output / distillation_temperature, dim=1)
+        # mask_loss = F.kl_div(teacher_probs, student_probs, reduction="none") * (distillation_temperature**2)
 
-        mask_loss = F.cross_entropy(
-            model_output.flatten(0, -2),
-            tutor_target.flatten(0, -2),
-            reduction="none"
-        )
-
-        # print(f"kl_div: {mask_loss.shape}") #dev
-        # print(f"kl_div: {mask.reshape(-1).shape}") #dev
-        mask_loss = mask_loss[mask.reshape(-1) == 1]
-        loss = mask_loss.mean() / num_checkpoint_accumulation_steps
+        # mask_loss = mask_loss[mask.reshape(-1) == 1]
+        # loss = mask_loss.mean() / num_checkpoint_accumulation_steps
 
 
         correct_tokens = gt_tokens.long() == model_output.argmax(dim=-1)
@@ -324,6 +321,7 @@ def calculate_llm_distillation_loss_and_gradient(
             "total_masked_tokens": total_masked_tokens,
             "losses": retrieve_additional_losses(model),
         }
+        aux_info["losses"]["distill_loss"] = loss
         return loss, aux_info, cross_entropy_loss
 
     loss, aux_info, cross_entropy_loss = hack_for_python_garbage_collection()
