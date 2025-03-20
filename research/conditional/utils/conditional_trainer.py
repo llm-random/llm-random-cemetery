@@ -379,7 +379,7 @@ class ConditionalTrainer:
                     scaler=self.scaler,
                 )
             else:
-                cross_entropy_loss, aux_info = self._calculate_loss_and_gradient(
+                kl_loss, aux_info, cross_entropy_loss = self._calculate_loss_and_gradient(
                     batch=batch_copy,
                     model=self.model,
                     distilled_model=self.distilled_model,
