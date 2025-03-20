@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/better_differential_transformer.yaml --git_branch=diff_layer_norm_2025-03-20_22-42-29 --skip_copy_code --custom_backends_module=research.attention_moe.backends
