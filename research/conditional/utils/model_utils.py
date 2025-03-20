@@ -269,44 +269,47 @@ def calculate_llm_distillation_loss_and_gradient(
     def hack_for_python_garbage_collection():
         """we want to have no reference to model output while backpropagating to allow torch to free memory,
         so we wrap loss calculation in a function"""
-        input_tokens = batch.input_ids
-        gt_tokens = batch.target_ids
-        mask = batch.should_calculate_loss
+        input_tokens = batch.input_ids # (batch, tokens)
+        gt_tokens = batch.target_ids # (asd, asd)
+        mask = batch.should_calculate_loss # (asd, asd)
 
         with torch.autocast(
             device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
         ):
-            model_output = model(input_tokens)
+            model_output = model(input_tokens)  # (asd, asd)
             with torch.no_grad():
-                tutor_target = distilled_model(input_tokens)
+                tutor_target = distilled_model(input_tokens)  # (asd, asd)
 
         # # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
-        # gt_tokens = gt_tokens.to(model_output.device) #dev
+        gt_tokens = gt_tokens.to(model_output.device)
         tutor_target = tutor_target.to(model_output.device)
         mask = mask.to(model_output.device)
 
-        with torch.no_grad():
-            mask_loss = F.cross_entropy(
-                model_output.flatten(0, -2),
-                gt_tokens.reshape(-1).long(),
-                reduction="none",
-            )
-            print(f"cross_entropy: {mask_loss.shape}") #dev
-            print(f"cross_entropy: {mask.reshape(-1).shape}") #dev
-            mask_loss = mask_loss[mask.reshape(-1) == 1]
-            cross_entropy_loss = mask_loss.mean() / num_checkpoint_accumulation_steps
-
-        # mask_loss = F.kl_div(
-        #     F.log_softmax(model_output.flatten(0, -2) / distillation_temperature, dim=-1),
-        #     F.softmax(tutor_target.flatten(0, -2) / distillation_temperature, dim=-1),
-        #     reduction="none"
-        # ) * (distillation_temperature ** 2)
-
+        # with torch.no_grad():
         mask_loss = F.cross_entropy(
             model_output.flatten(0, -2),
-            tutor_target.flatten(0, -2),
-            reduction="none"
+            gt_tokens.reshape(-1).long(),
+            reduction="none",
         )
+        print(f"model_output.shape: {model_output.shape}") #dev
+        print(f"gt_tokens.shape: {gt_tokens.shape}") #dev
+        print(f"model_output.flatten(0, -2).shape: {model_output.flatten(0, -2).shape}") #dev
+        print(f"gt_tokens.reshape(-1).shape: {gt_tokens.reshape(-1).shape}") #dev
+        print(f"mask_loss.shape: {mask_loss.shape}") #dev
+        print(f"mask.shape: {mask.shape}") #dev
+        print(f"mask.reshape(-1).shape: {mask.reshape(-1).shape}") #dev
+        mask_loss = mask_loss[mask.reshape(-1) == 1]
+        cross_entropy_loss = mask_loss.mean() / num_checkpoint_accumulation_steps
+
+        mask_loss = F.kl_div(
+            F.log_softmax(model_output.flatten(0, -2) / distillation_temperature, dim=-1),
+            F.softmax(tutor_target.flatten(0, -2) / distillation_temperature, dim=-1),
+            reduction="none"
+        ) * (distillation_temperature ** 2)
+
+        # teacher_probs = F.log_softmax(tutor_target / distillation_temperature, dim=1)  # Log prob for KL div
+        # student_probs = F.softmax(model_output / distillation_temperature, dim=1)
+        # mask_loss = F.kl_div(teacher_probs, student_probs, reduction="none") * (distillation_temperature**2)
 
         # print(f"kl_div: {mask_loss.shape}") #dev
         # print(f"kl_div: {mask.reshape(-1).shape}") #dev
