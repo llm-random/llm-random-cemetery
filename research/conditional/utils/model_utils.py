@@ -281,20 +281,25 @@ def calculate_llm_distillation_loss_and_gradient(
                 tutor_target = distilled_model(input_tokens)
 
         # # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
-        # gt_tokens = gt_tokens.to(model_output.device) #dev
+        gt_tokens = gt_tokens.to(model_output.device) #dev
         tutor_target = tutor_target.to(model_output.device)
         mask = mask.to(model_output.device)
 
-        with torch.no_grad():
-            mask_loss = F.cross_entropy(
-                model_output.flatten(0, -2),
-                gt_tokens.reshape(-1).long(),
-                reduction="none",
-            )
-            print(f"cross_entropy: {mask_loss.shape}") #dev
-            print(f"cross_entropy: {mask.reshape(-1).shape}") #dev
-            mask_loss = mask_loss[mask.reshape(-1) == 1]
-            cross_entropy_loss = mask_loss.mean() / num_checkpoint_accumulation_steps
+        # with torch.no_grad():
+        mask_loss = F.cross_entropy(
+            model_output.flatten(0, -2),
+            gt_tokens.reshape(-1).long(),
+            reduction="none",
+        )
+        print(f"model_output.shape: {model_output.shape}") #dev
+        print(f"gt_tokens.shape: {gt_tokens.shape}") #dev
+        print(f"model_output.flatten(0, -2).shape: {model_output.flatten(0, -2).shape}") #dev
+        print(f"gt_tokens.reshape(-1).shape: {gt_tokens.reshape(-1).shape}") #dev
+        print(f"mask_loss.shape: {mask_loss.shape}") #dev
+        print(f"mask.shape: {mask.shape}") #dev
+        print(f"mask.reshape(-1).shape: {mask.reshape(-1).shape}") #dev
+        mask_loss = mask_loss[mask.reshape(-1) == 1]
+        cross_entropy_loss = mask_loss.mean() / num_checkpoint_accumulation_steps
 
         # mask_loss = F.kl_div(
         #     F.log_softmax(model_output.flatten(0, -2) / distillation_temperature, dim=-1),
@@ -302,11 +307,18 @@ def calculate_llm_distillation_loss_and_gradient(
         #     reduction="none"
         # ) * (distillation_temperature ** 2)
 
-        mask_loss = F.cross_entropy(
-            model_output.flatten(0, -2),
-            tutor_target.flatten(0, -2),
-            reduction="none"
-        )
+        # Convert logits to soft probabilities using softmax with temperature
+        teacher_probs = F.log_softmax(tutor_target / distillation_temperature, dim=1)  # Log prob for KL div
+        student_probs = F.softmax(model_output / distillation_temperature, dim=1)
+
+        # Compute KL Divergence Loss (reduce mean over batch)
+        mask_loss = F.kl_div(teacher_probs, student_probs, reduction="none") * (distillation_temperature**2)
+
+        # mask_loss = F.cross_entropy(
+        #     model_output.flatten(0, -2),
+        #     tutor_target.flatten(0, -2),
+        #     reduction="none"
+        # )
 
         # print(f"kl_div: {mask_loss.shape}") #dev
         # print(f"kl_div: {mask.reshape(-1).shape}") #dev
