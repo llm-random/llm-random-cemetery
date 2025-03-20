@@ -223,7 +223,7 @@ def translate_to_argparse(param_set: dict):
     return runner_params
 
 
-def check_for_argparse_correctness(grid: list[dict[str, str]]):
+def check_for_argparse_correctness(grid: List[dict[str, str]]):
     for setup_args, trainings_args in grid:
         for i, training_args in enumerate(trainings_args):
             runner_params = translate_to_argparse(training_args)
