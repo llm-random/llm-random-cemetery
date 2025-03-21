@@ -299,7 +299,7 @@ def calculate_llm_distillation_loss_and_gradient(
           
         # KD_RATIO = 0.5 #dev
         # METHOD_LAM = 0.9 #dev
-        distill_loss = get_distill_loss(model_output.flatten(0, -2), tutor_output.flatten(0, -2), distill_loss_type, mask.reshape(-1), method_lam)
+        distill_loss = get_distill_loss(model_output.flatten(0, -2), tutor_output.flatten(0, -2), mask.reshape(-1), distill_loss_type, method_lam)
         loss = (1 - kd_ratio) * cross_entropy_loss + kd_ratio * distill_loss
 
         # mask_loss = F.kl_div(
@@ -324,8 +324,11 @@ def calculate_llm_distillation_loss_and_gradient(
         distill_losses["distill_loss"] = loss
         AVAILABLE_DISTILL_LOSSES = ["sfkl", "srkl", "tvd", "fkl", "rkl", "skl"]
         with torch.no_grad():
-            for e in AVAILABLE_DISTILL_LOSSES:
-                distill_losses[e]  = get_distill_loss(model_output.flatten(0, -2), tutor_output.flatten(0, -2), e, mask.reshape(-1), method_lam)
+            model_output_cpu = model_output.flatten(0, -2).to("cpu")
+            tutor_output_cpu = tutor_output.flatten(0, -2).to("cpu")
+            mask_cpu = mask.reshape(-1).to("cpu")
+            for loss_type_i in AVAILABLE_DISTILL_LOSSES:
+                distill_losses[e]  = get_distill_loss(model_output_cpu, tutor_output_cpu, mask_cpu, loss_type_i, method_lam)
 
         aux_info = {
             "correct_tokens": correct_tokens,
