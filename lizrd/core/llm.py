@@ -190,6 +190,9 @@ def LowRank(dinput, doutput, dlowrank):
     )
 
 
+import torch
+import torch.nn.functional as F
+
 def attention_mechanism(
     query: torch.Tensor,
     key: torch.Tensor,
@@ -197,19 +200,33 @@ def attention_mechanism(
     dhead: int,
     causal: bool,
     flash: bool,
-    attn_mask: torch.Tensor = None,
+    context_length: int = None,
 ):
-    if flash:
-        # print(f'____attn_mask____: {attn_mask}')
-        with torch.backends.cuda.sdp_kernel(
-            enable_flash=True, enable_math=False, enable_mem_efficient=False
-        ):
+    seq_len = query.shape[-2]
+    if context_length is not None:
+        attn_mask = torch.ones(seq_len, seq_len, dtype=torch.bool, device=query.device)
+        attn_mask = torch.tril(attn_mask) & ~torch.tril(attn_mask, diagonal=-context_length)
+    else:
+        attn_mask = None
+
+    # If we have a custom attn_mask, flash kernels won't work. Fall back to normal attention.
+    if flash and (attn_mask is None):
+        with torch.backends.cuda.sdp_kernel(enable_flash=True, enable_math=False, enable_mem_efficient=False):
+            output = F.scaled_dot_product_attention(
+                query=query.contiguous(),
+                key=key.contiguous(),
+                value=value.contiguous(),
+                attn_mask=None,  # No mask here
+                is_causal=causal,
+            )
+    elif not flash:
+        with torch.backends.cuda.sdp_kernel(enable_flash=False, enable_math=True, enable_mem_efficient=False):
             output = F.scaled_dot_product_attention(
                 query=query.contiguous(),
                 key=key.contiguous(),
                 value=value.contiguous(),
                 attn_mask=attn_mask,
-                is_causal=causal,
+                is_causal=False,
             )
     else:
         # implementation without flash assumes other dim order
@@ -224,6 +241,7 @@ def attention_mechanism(
                 torch.tril(torch.ones_like(a)) == 0, float("-inf")
             )  # mask out future tokens
         elif attn_mask is not None:
+            attn_mask = attn_mask.masked_fill(~attn_mask, float('-inf')).to(query.dtype)
             a += attn_mask
         a = torch.softmax(a, dim=-1)
         output = torch.einsum("... h l L, ... L h d -> ... l h d", a, value)
@@ -244,7 +262,7 @@ class AttentionMechanism(nn.Module):
         value: torch.Tensor,
         dhead: int,
         causal: bool,
-        attn_mask: torch.Tensor = None,
+        context_length: int=None,
         *args,
         **kwargs,
     ):
@@ -255,7 +273,7 @@ class AttentionMechanism(nn.Module):
             dhead=dhead,
             causal=causal,
             flash=self.use_flash_attention,
-            attn_mask=attn_mask,
+            context_length=context_length,
         )
 
 
@@ -267,7 +285,7 @@ class Attention(LoggingLayer):
         causal,
         init_type: str,
         init_scale: float,
-        attn_mask: torch.Tensor = None,
+        context_length: int = None,
         dhead=None,
         flash=False,
     ):
@@ -279,8 +297,8 @@ class Attention(LoggingLayer):
         self.heads = heads
         self.dhead = dhead
         self.causal = causal
-        self.attn_mask = attn_mask
         self.flash = flash
+        self.context_length = context_length
 
         self.input_projection = Linear(
             dmodel,
@@ -313,7 +331,7 @@ class Attention(LoggingLayer):
             value=v,
             dhead=self.dhead,
             causal=self.causal,
-            attn_mask=self.attn_mask,
+            context_length=self.context_length,
         )
 
         output = self.output_projection(attention_output.transpose(1, 2).flatten(-2))
