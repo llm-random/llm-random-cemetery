@@ -325,7 +325,7 @@ def calculate_llm_distillation_loss_and_gradient(
         AVAILABLE_DISTILL_LOSSES = ["sfkl", "srkl", "tvd", "fkl", "rkl", "skl"]
         with torch.no_grad():
             for e in AVAILABLE_DISTILL_LOSSES:
-                distill_losses[e]  = get_distill_loss(model_output.flatten(0, -2), tutor_output.flatten(0, -2), e, mask.reshape(-1), method_lam)
+                distill_losses[e]  = get_distill_loss(model_output.flatten(0, -2).to("cpu"), tutor_output.flatten(0, -2).to("cpu"), mask.reshape(-1).to("cpu"), method_lam)
 
         aux_info = {
             "correct_tokens": correct_tokens,
