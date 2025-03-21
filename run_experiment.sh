@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/better_differential_transformer_baseline.yaml --git_branch=diff_baseline_adam_beta_2025-03-21_17-16-46 --skip_copy_code --custom_backends_module=research.attention_moe.backends
