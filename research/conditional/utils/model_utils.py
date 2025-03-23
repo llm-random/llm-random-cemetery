@@ -334,8 +334,8 @@ def calculate_llm_distillation_loss_and_gradient(
             tutor_output_cpu = tutor_output.flatten(0, -2).requires_grad_(False)
             mask_cpu = mask.reshape(-1).requires_grad_(False)
 
-            for loss_type_i, method_lam in AVAILABLE_DISTILL_LOSSES:
-                distill_losses[loss_type_i]  = get_distill_loss(model_output_cpu, tutor_output_cpu, mask_cpu, loss_type_i, method_lam)
+            # for loss_type_i, method_lam in AVAILABLE_DISTILL_LOSSES:
+            #     distill_losses[loss_type_i]  = get_distill_loss(model_output_cpu, tutor_output_cpu, mask_cpu, loss_type_i, method_lam)#.item()
 
         aux_info = {
             "correct_tokens": correct_tokens,
