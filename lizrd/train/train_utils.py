@@ -156,7 +156,7 @@ def get_model(
             assert (projected_dmodel/n_att_heads)%2 == 0
             assert (dm/n_att_heads)%2 == 0
             
-            projection, mask_1d = get_var_head_projection(dm, projected_dmodel, n_att_heads)
+            projection, mask_1d = get_var_head_projection(dm, projected_dmodel, n_att_heads*2)
             print(mask_1d)
         elif projection_init_type == "head_half":
             print("Projection initialization: head_half")
