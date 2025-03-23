@@ -158,7 +158,7 @@ class AthenaBackend(MachineBackend):
             *singularity_env_arguments,
             make_singularity_mount_paths(setup_args, training_args),
             "--nv",
-            setup_args["singularity_image"],
+            setup_args["singularity_image"],s
             *self.get_runner_command(setup_args["runner"], runner_params, setup_args),
         ]
 
@@ -215,7 +215,7 @@ class HeliosBackend(MachineBackend):
             f"--array=0-{n_consecutive-1}%1",
             "--partition=plgrid-gpu-gh200",
             "--exclusive",  # request all non-gpu resources on node
-            "--account=plgllmefficont-gpu-gh200",
+            "--account=plgllmefficont2-gpu-gh200",
             f"--job-name={training_args['name']}",
             f"--time={setup_args['time']}",
             f"{setup_args['grid_entrypoint']}",
