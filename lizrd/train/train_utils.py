@@ -14,7 +14,10 @@ from lizrd.core import llm
 from lizrd.core.distributed import wrap_in_fsdp, wrap_in_ddp
 from lizrd.train.checkpointing import make_checkpoint_wrapper_function
 from lizrd.train.load_and_save_model import load_model_weights
-
+from torch.distributed import (
+    broadcast_object_list,
+    barrier,
+)
 
 def get_model(
     max_length: int,
@@ -137,7 +140,7 @@ def get_model(
 
     frozen_modules = []
     mask_1d = None
-    if projected_checkpoint is not None:
+    if projected_checkpoint is not None and (local_rank == 0 or local_rank is None):
         if not projection_init_type:
             projection = None
             print("No projection initialization")
@@ -221,6 +224,15 @@ def get_model(
         # load_projected_weights(model, projected_checkpoint["model"], projection, dm, projected_dmodel, init_scale, unprojected_embeddings, unprojected_attention, unprojected_ff)
         initialize_compressor(model, projected_checkpoint["model"], dm, projected_dmodel, n_att_heads, projection, mask_1d) #dev
         frozen_modules = freeze_projected_params(model, unprojected_ff)
+
+    if local_rank is not None:
+        if local_rank == 0:
+            projection = [projection]
+        else:
+            projection = [None]
+        barrier()
+        broadcast_object_list(projection, src=0)
+        projection = projection[0]
 
     if no_layer_norm:
         ln_frozen_modules = freeze_ln_params(model)
