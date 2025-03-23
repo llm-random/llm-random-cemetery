@@ -166,10 +166,10 @@ def get_model(
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
 
-            mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
-            mask_1d[int(dm/n_att_heads):] = False #dev
+            mask_1d = torch.ones(int(projected_dmodel/(n_att_heads*8*4)), dtype=torch.bool)
+            mask_1d[int(dm/(n_att_heads*8*4)):] = False #dev
             print(mask_1d) #dev
-            projection = projection[:, torch.concat([mask_1d]*n_att_heads)]
+            projection = projection[:, torch.concat([mask_1d]*(n_att_heads*8*4))]
         elif projection_init_type == "svd_half":
             print("Projection initialization: svd_half")
             assert (projected_dmodel/n_att_heads)%2 == 0
