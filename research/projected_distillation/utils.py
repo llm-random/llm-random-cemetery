@@ -14,7 +14,8 @@ def get_var_head_projection(dm, pdm, n_heads):
     mask_1d = torch.zeros(int(pdm/n_heads), dtype=torch.bool)
     mask_1d[columns_to_chose] = True
 
-    projection = projection[:, torch.concat([mask_1d]*n_heads)]
+    # projection = projection[:, torch.concat([mask_1d]*n_heads)]
+    projection = torch.concat([torch.Tensor([True, False])]*8*8*4)
     return projection, mask_1d
 
 
