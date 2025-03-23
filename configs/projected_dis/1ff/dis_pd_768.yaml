@@ -14,14 +14,16 @@ params:
   dff: 768
   distilled_dmodel: 1024
   distilled_dff: 1024
-  
-  batch_size: 256 # dev debug
+  projected_dmodel: 1024
+  projected_dff: 1024
+
+  # batch_size: 256 # dev debug
 
   n_steps: 10_179
 
   scheduler: cosine
   # ^learning_rate: [asd, asd, asd, asd, asd]
-  learning_rate: 0.0015
+  learning_rate: 0.00025
   # ^lr_warmup_percent: [asd, asd, asd, asd, asd]
   lr_warmup_percent: 0.01
   # ^final_lr_fraction: [asd, asd, asd, asd, asd]
@@ -42,6 +44,12 @@ params:
   distillation: True
   distillation_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-15-49/None/118520/15533.pt # helios
   
+  attention_mode: projected_vanilla_res
+  ff_mode: projected_vanilla_res
+  projection_init_type: head_half
+  projected_distillation: True
+  projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-15-49/None/118520/15533.pt
+
   fsdp_use_orig_params: True
   fsdp_enabled: True
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
