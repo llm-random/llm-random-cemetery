@@ -166,10 +166,24 @@ def get_model(
             mask = torch.eye(projected_dmodel).bool()
             projection = projection.masked_fill(mask, 1)
 
-            mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
-            mask_1d[int(dm/n_att_heads):] = False #dev
-            print(mask_1d) #dev
-            projection = projection[:, torch.concat([mask_1d]*n_att_heads)]
+            mask_1d = torch.ones(int(projected_dmodel/(n_att_heads*8*4)), dtype=torch.bool)
+            mask_1d[int(dm/(n_att_heads*8*4)):] = False #dev
+            print(f"head_half {mask_1d}") #dev
+            _, mask_1d2 = get_var_head_projection(dm, projected_dmodel, n_att_heads*8*4)
+            print(f"get_var_head_projection {mask_1d}") #dev
+            projection = projection[:, torch.concat([True, False]*n_att_heads*8*4)]
+        # elif projection_init_type == "head_half":
+        #     print("Projection initialization: head_half")
+        #     assert (projected_dmodel/n_att_heads)%2 == 0
+            
+        #     projection = torch.zeros(projected_dmodel, projected_dmodel)
+        #     mask = torch.eye(projected_dmodel).bool()
+        #     projection = projection.masked_fill(mask, 1)
+
+        #     mask_1d = torch.ones(int(projected_dmodel/(n_att_heads*8*4)), dtype=torch.bool)
+        #     mask_1d[int(dm/(n_att_heads*8*4)):] = False #dev
+        #     print(mask_1d) #dev
+        #     projection = projection[:, torch.concat([mask_1d]*(n_att_heads*8*4))]
         elif projection_init_type == "svd_half":
             print("Projection initialization: svd_half")
             assert (projected_dmodel/n_att_heads)%2 == 0
