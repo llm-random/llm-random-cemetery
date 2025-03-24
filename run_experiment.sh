@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/diff_attn_final/2025.03.24_grad_acc_adapter.yaml --git_branch=diff_adam_beta_small_kv_cache_2025-03-24_13-24-25 --skip_copy_code --custom_backends_module=research.attention_moe.backends
