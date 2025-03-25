@@ -129,6 +129,9 @@ def run(cfg):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     model = instantiate(cfg.model, _convert_="all").to(device)
+    print(f"model type: {type(model)}")
+    print(f"mtp modules: {len(model.mtp_modules)}")
+    print(f"model:\n{model}")
 
     if "distributed" in cfg and cfg.distributed is not None:
         if torch.cuda.is_available():
@@ -137,6 +140,7 @@ def run(cfg):
             logger.info("FSDP is not supported with CPU. Running DDP instead")
             model = DDP(model)
 
+    print(f"model after DDP:\n{model}")
     optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=cfg.training.learning_rate,
