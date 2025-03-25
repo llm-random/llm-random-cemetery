@@ -189,7 +189,8 @@ def submit_experiment(
             pwd = os.getcwd()
             relative_path = os.path.relpath(config_path, pwd)
             connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "python main.py --config-path={relative_path} --config-name={config_name}" ENTER'
+                # f'tmux send -t {experiment_branch_name}.0 "python main.py --config-path={relative_path} --config-name={config_name}" ENTER'
+                f'tmux send -t {experiment_branch_name}.0 "python token_reduction/tests/test_mtp.py" ENTER'
             )
             connection.run(
                 f'tmux send -t {experiment_branch_name}.0 "sbatch exp.job" ENTER'
