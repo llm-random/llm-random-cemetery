@@ -55,8 +55,10 @@ checkpoint_config:
     path: null
 
 slurm:
-  gres: gpu:1
-  time: 10:00:00
+    gres: gpu:1
+    time: 00:10:00
+    partition: h100
+
 
 venv_path: '$HOME/llm-random/nano/venv/bin/activate' 
 server: entropy
