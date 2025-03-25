@@ -10,6 +10,8 @@ from hydra import initialize, compose
 import logging
 from omegaconf import OmegaConf
 
+from token_reduction.tests.test_mtp import costam
+
 def dump_grid_configs(configs_grid, output_folder):
     os.makedirs(output_folder, exist_ok=True)
 
@@ -33,6 +35,7 @@ logger = logging.getLogger(__name__)
 def main(config):
 
     if config.get("_run_"):
+        # costam(config)
         run(config)
         return
 
@@ -46,7 +49,8 @@ def main(config):
         training_config, overrides = configs_grid[0]
         training_config["overrides"] = overrides
         training_config = OmegaConf.create(training_config)
-        run(training_config)
+        # run(training_config)
+        costam(training_config)
 
 if __name__ == "__main__":
     main()

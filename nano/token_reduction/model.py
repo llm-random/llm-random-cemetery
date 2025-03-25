@@ -372,13 +372,13 @@ class TrainerMTP(Trainer):
             if self.step == 0:
                 print(f"input_ids: {input_ids[0, :]}")
                 print(f"target_ids: {target_ids[0, :]}")
-
+            # model_body = self.model.module
             mtp_losses = []
             for i in range(self.n_mtp):
-                mtp_module_output = self.model.mtp_modules[i](
+                mtp_module_output = self.model.module.mtp_modules[i](
                     encoder_embeddings_detatched
                 )
-                predicted_ids = self.model.head(mtp_module_output)
+                predicted_ids = self.model.module.head(mtp_module_output)
                 mtp_target_ids = target_ids[
                     :, i : target_len + i - self.n_mtp + 1
                 ].detach()
