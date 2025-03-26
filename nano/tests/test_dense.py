@@ -95,7 +95,7 @@ class TestDense(unittest.TestCase):
         if (
             current_version.major == 3
             and current_version.minor == 10
-            and current_version.micro == 12
+            and current_version.micro == 11
         ):
             # if the version is 3.10.12 we know the exact values
             self.assertListEqual(target_losses, metric_logger.data["steps/train/loss"])
