@@ -47,6 +47,7 @@ training:
     evaluation:
         eval_interval: 100
         n_eval_steps: 5
+        seed: 123
 
 model:
     common: 
