@@ -1147,7 +1147,7 @@ class Trainer:
     def _should_evaluate(self) -> bool:
         return (
             self.eval_interval > 0
-            and self.step % self.eval_interval == 0
+            and (self.step + 1) % self.eval_interval == 0   #TODO consult with MK
             and self.step != 0
         )
 
@@ -1155,7 +1155,7 @@ class Trainer:
     def _should_save_checkpoint(self) -> bool:
         return (
             self.checkpoint_config.interval > 0
-            and (self.step) % self.checkpoint_config.interval == 0
+            and (self.step + 1) % self.checkpoint_config.interval == 0  #TODO consult with MK
             and self.step != 0
             and self.checkpoint_config.path is not None
         )

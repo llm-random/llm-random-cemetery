@@ -47,7 +47,7 @@ training:
         world_size_independent: true
 
     evaluation:
-        eval_interval: 20
+        eval_interval: 10
         n_eval_steps: 3
 
 
