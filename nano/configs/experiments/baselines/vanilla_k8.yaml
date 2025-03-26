@@ -34,7 +34,6 @@ slurm:
 training:
   dataloader:
       total_batch_size: 256
-  seed: 234234
   n_steps: 50001
   learning_rate: 5e-4
 
