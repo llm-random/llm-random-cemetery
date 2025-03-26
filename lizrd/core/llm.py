@@ -323,6 +323,8 @@ class RoPE(nn.Module):
     def forward(self, x):
         [y1, y2] = torch.chunk(x, chunks=2, dim=-1)
         x_rotated = torch.cat([-y2, y1], dim=-1)
+        print("x.shape, self.cos.shape", x.shape, self.cos.shape)
+        print("x_rotated.shape, self.sin.shape", x_rotated.shape, self.sin.shape)
         return x * self.cos + x_rotated * self.sin
 
 
