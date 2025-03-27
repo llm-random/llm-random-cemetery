@@ -42,8 +42,9 @@ params:
   distillation_temperature: 1.0 #not implemented
  
   distillation: True
+  distillation_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-31-55/None/118538/62132.pt # helios
   # distillation_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-31-55/None/118538/62132.pt # helios
-  distillation_weights_path: /home/ubuntu/mstefaniak/checkpoints/dm_1024_80.pt
+  # distillation_weights_path: /home/ubuntu/mstefaniak/checkpoints/dm_1024_80.pt
     
   attention_mode: projected_vanilla_res
   ff_mode: projected_vanilla_res
