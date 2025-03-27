@@ -69,7 +69,8 @@ def version_code(
         ensure_remote_config_exist(repo, remote_name, remote_url)
 
         repo.git.add(all=True)
-        repo.git.add(experiment_config_path, force=True)
+        if os.path.exists(experiment_config_path):
+            repo.git.add(experiment_config_path, force=True)
         commit_pending_changes(repo)
 
         repo.git.checkout(b=experiment_branch_name)
