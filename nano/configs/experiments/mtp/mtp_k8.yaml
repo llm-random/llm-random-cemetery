@@ -62,4 +62,4 @@ checkpoint_config:
     path: null
 
 venv_path: '$HOME/llm-random/nano/venv/bin/activate' 
-server: entropy
+server: entropia
