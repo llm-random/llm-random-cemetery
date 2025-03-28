@@ -76,6 +76,9 @@ def prepare_configs(
     configs, all_config_paths = load_with_inheritance(config_path)
 
     for config in configs:
+        # print(f'___config___')
+        # print(f'{config}')
+        # print(f'___config___')
         config["params"]["git_branch"] = git_branch
         config["params"]["path_to_entry_config"] = config_path
         config["params"]["all_config_paths"] = ",".join(all_config_paths)
@@ -89,6 +92,8 @@ def prepare_configs(
         # Here we should be confident that all the necessary keys are present in the config
         # Arguments below are used both in the runner and in the infrastructure
         config["params"]["n_gpus"] = config["n_gpus"]
+        if 'n_nodes' not in config:
+            config['n_nodes'] = 1
         config["params"]["n_nodes"] = config["n_nodes"]
         config["params"].setdefault("train_dataset_path", config["train_dataset_path"])
         config["params"].setdefault(
