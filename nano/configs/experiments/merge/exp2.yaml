@@ -1,0 +1,8 @@
+defaults:
+  - merge_k16_drop_0_1
+  - _self_
+
+
+model:
+  common:
+    ^dropped_tokens: [77, 128]
