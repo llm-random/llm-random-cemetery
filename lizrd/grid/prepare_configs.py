@@ -76,6 +76,9 @@ def prepare_configs(
     configs, all_config_paths = load_with_inheritance(config_path)
 
     for config in configs:
+        print(f'___config___')
+        print(f'{config}')
+        print(f'___config___')
         config["params"]["git_branch"] = git_branch
         config["params"]["path_to_entry_config"] = config_path
         config["params"]["all_config_paths"] = ",".join(all_config_paths)
