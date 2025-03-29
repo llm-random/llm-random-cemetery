@@ -1,0 +1,28 @@
+hydra:
+  searchpath: 
+    - file://${oc.env:PWD}/configs/experiments/merge
+
+
+training:
+  dataloader:
+      eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+      training_dataset_path: /storage_nvme_1/llm-random/datasets/c4/train
+
+
+
+server: entropia
+slurm:
+  gres: gpu:1
+  time: 2-00:00:00
+  partition: h100
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+checkpoint_config:
+  path: "/storage_nvme_1/crewtool/checkpoints/both_merge_k16"
+
+
+defaults:
+  # - merge_reduce_0_1
+  - both_merge_r_0_1
+  - _self_
