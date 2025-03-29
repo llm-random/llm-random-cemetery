@@ -198,7 +198,7 @@ def submit_experiment(
                 f'tmux send -t {experiment_branch_name}.0 "sbatch exp.job" ENTER'
             )
             logger.info("=" * 38 + "TMUX" + "=" * 38)
-            time.sleep(3)
+            time.sleep(7)
             output = connection.run(
                 f"tmux capture-pane -t {experiment_branch_name}.0 -p", hide=True
             ).stdout
