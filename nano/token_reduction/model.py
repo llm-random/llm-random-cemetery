@@ -188,6 +188,186 @@ class TokenMergingEmbedding(torch.nn.Module):
         return x
 
 
+class TokenMergingEmbeddingBothTokens(torch.nn.Module):
+    def __init__(self, normal_embedding, common: CommonDroppingConfig):
+        super().__init__()
+        self.normal_embedding = normal_embedding
+        self.linear = Linear(
+            common.dmodel * 2,
+            common.dmodel,
+            init_type=common.init_type,
+            init_scale=common.init_scale,
+        )
+
+    def forward(self, x, keep_indexes, merge_indexes):
+        x = self.normal_embedding(x)
+        if self.training:
+            merge_tokens_a = batch_index_select(x, merge_indexes)
+            merge_tokens_b = batch_index_select(x, merge_indexes + 1)
+            merge_tokens = torch.cat((merge_tokens_a, merge_tokens_b), dim=-1)
+
+            merge_tokens = self.linear(merge_tokens)
+
+            # It can happend that if we pick for merge last token from sequence, we do not have next token to merge it with, so we add zero vector
+            batch_size, _, dmodel = x.shape
+            additional = torch.zeros(
+                batch_size, 1, dmodel, device=x.device, dtype=x.dtype
+            )
+            x = torch.cat([x, additional], dim=1)
+            x[torch.arange(merge_indexes.size(0)).unsqueeze(-1), merge_indexes + 1] = (
+                merge_tokens
+            )
+
+            x = batch_index_select(x, keep_indexes)
+        return x
+
+
+class TokenMergingEmbeddingBothTokens(torch.nn.Module):
+    def __init__(self, normal_embedding, common: CommonDroppingConfig):
+        super().__init__()
+        self.normal_embedding = normal_embedding
+        self.linear = Linear(
+            common.dmodel * 2,
+            common.dmodel,
+            init_type=common.init_type,
+            init_scale=common.init_scale,
+        )
+
+    def forward(self, x, keep_indexes, merge_indexes):
+        x = self.normal_embedding(x)
+        print("PRO", x.dtype)
+        if self.training:
+            merge_tokens_a = batch_index_select(x, merge_indexes)
+            merge_tokens_b = batch_index_select(x, merge_indexes + 1)
+            merge_tokens = torch.cat((merge_tokens_a, merge_tokens_b), dim=-1)
+
+            print("DD", merge_tokens.dtype)
+
+            merge_tokens = self.linear(merge_tokens)
+
+            print("PO", merge_tokens.dtype)
+            # It can happend that if we pick for merge last token from sequence, we do not have next token to merge it with, so we add zero vector
+            batch_size, _, dmodel = x.shape
+            additional = torch.zeros(
+                batch_size, 1, dmodel, device=x.device, dtype=x.dtype
+            )
+            print("AA", additional.dtype)
+            x = torch.cat([x, additional], dim=1)
+            print("DW", x.dtype)
+
+            x[torch.arange(merge_indexes.size(0)).unsqueeze(-1), merge_indexes + 1] = (
+                merge_tokens
+            )
+
+            x = batch_index_select(x, keep_indexes)
+        return x
+
+
+class TokenMergingEmbeddingBothTokens(torch.nn.Module):
+    # def __init__(self, normal_embedding, dmodel, init_type, init_scale):
+    def __init__(self, normal_embedding, common: CommonDroppingConfig):
+        super().__init__()
+        self.normal_embedding = normal_embedding
+        self.linear = Linear(
+            common.dmodel * 2,
+            common.dmodel,
+            init_type=common.init_type,
+            init_scale=common.init_scale,
+        )
+
+    def forward(self, x, keep_indexes, merge_indexes):
+        x = self.normal_embedding(x)
+        print("PRO", x.dtype)
+        if self.training:
+            merge_tokens_a = batch_index_select(x, merge_indexes)
+            merge_tokens_b = batch_index_select(x, merge_indexes + 1)
+            merge_tokens = torch.cat((merge_tokens_a, merge_tokens_b), dim=-1)
+
+            print("DD", merge_tokens.dtype)
+
+            merge_tokens = self.linear(merge_tokens)
+
+            print("PO", merge_tokens.dtype)
+            # It can happend that if we pick for merge last token from sequence, we do not have next token to merge it with, so we add zero vector
+            batch_size, _, dmodel = x.shape
+            additional = torch.zeros(batch_size, 1, dmodel, device=x.device, dtype=x.dtype)
+            print("AA", additional.dtype)
+            x = torch.cat([x, additional], dim=1)
+            print("DW", x.dtype)
+
+            x[torch.arange(merge_indexes.size(0)).unsqueeze(-1), merge_indexes + 1] = (
+                merge_tokens
+            )
+
+            x = batch_index_select(x, keep_indexes)
+        return x
+
+
+# class TokenMergingEmbeddingBothTokens(torch.nn.Module):
+#     def __init__(self, normal_embedding, common: CommonDroppingConfig):
+#         super().__init__()
+#         self.normal_embedding = normal_embedding
+#         self.linear = Linear(
+#             common.dmodel * 2,
+#             common.dmodel,
+#             init_type=common.init_type,
+#             init_scale=common.init_scale,
+#         )
+
+#     def forward(self, x, keep_indexes, merge_indexes):
+#         device = x.device  # Get the device of the input tensor
+#         x = self.normal_embedding(x)
+#         if self.training:
+#             merge_tokens_a = batch_index_select(x, merge_indexes).to(device)
+#             merge_tokens_b = batch_index_select(x, merge_indexes + 1).to(device)
+#             merge_tokens = torch.cat((merge_tokens_a, merge_tokens_b), dim=-1).to(device)
+
+#             merge_tokens = self.linear(merge_tokens).to(device)
+
+#             batch_size, _, dmodel = x.shape
+#             additional = torch.zeros(batch_size, 1, dmodel, device=device)
+#             x = torch.cat([x, additional], dim=1)
+
+#             x[torch.arange(merge_indexes.size(0)).unsqueeze(-1), merge_indexes + 1] = (
+#                 merge_tokens
+#             )
+
+#             x = batch_index_select(x, keep_indexes)
+#         return x
+
+
+# class TokenMergingEmbeddingBothTokens(torch.nn.Module):
+#     def __init__(self, normal_embedding, dmodel, init_type, init_scale):
+#         super().__init__()
+#         self.normal_embedding = normal_embedding
+#         self.linear = Linear(
+#             dmodel * 2,
+#             dmodel,
+#             init_type=init_type,
+#             init_scale=init_scale,
+#         )
+
+#     def forward(self, x, keep_indexes, merge_indexes):
+#         x = self.normal_embedding(x)
+#         if self.training:
+#             merge_tokens_a = batch_index_select(x, merge_indexes)
+#             merge_tokens_b = batch_index_select(x, merge_indexes + 1)
+#             merge_tokens = torch.cat((merge_tokens_a, merge_tokens_b), dim=-1)
+#             merge_tokens = self.linear(merge_tokens)
+
+#             # It can happend that if we pick for merge last token from sequence, we do not have next token to merge it with, so we add zero vector
+#             batch_size, _, dmodel = x.shape
+#             additional = torch.zeros(batch_size, 1, dmodel, device=x.device)
+#             x = torch.cat([x, additional], dim=1)
+
+#             x[
+#                 torch.arange(merge_indexes.size(0)).unsqueeze(-1), merge_indexes + 1
+#             ] = merge_tokens
+
+#             x = batch_index_select(x, keep_indexes)
+#         return x
+
+
 def create_token_merging_function(config, common: CommonDroppingConfig):
     normal_embedding = EmbeddingLayer(
         *[
@@ -513,7 +693,7 @@ def get_dropping_dataloader(
             else dataloader_config.eval_dataset_path
         )
         dataset = C4Dataset(
-            sequence_length=sequence_length + dropped_tokens + 1,
+            sequence_length=sequence_length + dropped_tokens + 2,
             path=path,
             seed=seed,
             use_new_sampling_method=dataloader_config.use_new_sampling_method,
@@ -574,7 +754,7 @@ def get_dropping_standard_embedding(
             init_scale,
         ),
         PositionalEmbedding(
-            sequence_length + reduction_tokens,
+            sequence_length + reduction_tokens + 1,
             dmodel,
             init_type,
             init_scale,
