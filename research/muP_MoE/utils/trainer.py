@@ -178,11 +178,12 @@ class muP_Trainer:
         self.lr_scheduler.set_lr(step=step, optimizer=self.optimizer)
         loss, aux_info = self.calculate_loss_and_gradient(processed_batch)
         self._apply_gradient()
+        self._log_weights_and_gradients(step)
+
         if self.is_logging_process:
             self._log_train_stats(loss, step)
             self._log_accuracy(aux_info, step)
             self.layer_manager.log(step)
-            self._log_weights_and_gradients(step)
             self._log_auxiliary_losses(aux_info["losses"], step)
         self._save_weights(step)
 
@@ -342,9 +343,9 @@ class muP_Trainer:
                     self.logging_spectral_norm and value.grad.dim() >= 2
                 ):  # Ensure it's at least 2D
                     spectral_norm = torch.linalg.svdvals(value.grad.float()).max()
-                    g_norms[
-                        f"spectral_norms/{name.replace('.', '/')}/grad"
-                    ] = spectral_norm
+                    g_norms[f"spectral_norms/{name.replace('.', '/')}/grad"] = (
+                        spectral_norm
+                    )
             if value.requires_grad:
                 norm = torch.linalg.norm(value)
                 variance = torch.var(value)
@@ -354,9 +355,9 @@ class muP_Trainer:
                     self.logging_spectral_norm and value.dim() >= 2
                 ):  # Ensure it's at least 2D
                     spectral_norm = torch.linalg.svdvals(value.float()).max()
-                    g_norms[
-                        f"spectral_norms/{name.replace('.', '/')}/weight"
-                    ] = spectral_norm
+                    g_norms[f"spectral_norms/{name.replace('.', '/')}/weight"] = (
+                        spectral_norm
+                    )
         g_norms[f"weight_norms/grad_norm_total"] = torch.linalg.norm(
             torch.tensor(list(g_norms.values()))
         )
@@ -377,9 +378,12 @@ class muP_Trainer:
                 with FSDP.summon_full_params(
                     self.model, with_grads=True, rank0_only=True, writeback=False
                 ):
-                    self._log_weights_and_gradients_loop(step)
+                    # we need to get here in all processes, even if we only summon on rank 0
+                    if self.is_logging_process:
+                        self._log_weights_and_gradients_loop(step)
             else:
-                self._log_weights_and_gradients_loop(step)
+                if self.is_logging_process:
+                    self._log_weights_and_gradients_loop(step)
 
     def _log_fraction_dataset_processed(self, step):
         processed = step * self.batch_size * self.max_sequence_length
