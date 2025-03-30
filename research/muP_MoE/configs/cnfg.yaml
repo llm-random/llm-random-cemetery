@@ -1,6 +1,6 @@
 runner: "research.muP_MoE.train.train"
 
-time: '00:05:00'
+time: '01:00:00'
 
 n_gpus: 4
 cpus_per_gpu: 16

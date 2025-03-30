@@ -342,9 +342,9 @@ class muP_Trainer:
                     self.logging_spectral_norm and value.grad.dim() >= 2
                 ):  # Ensure it's at least 2D
                     spectral_norm = torch.linalg.svdvals(value.grad.float()).max()
-                    g_norms[
-                        f"spectral_norms/{name.replace('.', '/')}/grad"
-                    ] = spectral_norm
+                    g_norms[f"spectral_norms/{name.replace('.', '/')}/grad"] = (
+                        spectral_norm
+                    )
             if value.requires_grad:
                 norm = torch.linalg.norm(value)
                 variance = torch.var(value)
@@ -354,9 +354,9 @@ class muP_Trainer:
                     self.logging_spectral_norm and value.dim() >= 2
                 ):  # Ensure it's at least 2D
                     spectral_norm = torch.linalg.svdvals(value.float()).max()
-                    g_norms[
-                        f"spectral_norms/{name.replace('.', '/')}/weight"
-                    ] = spectral_norm
+                    g_norms[f"spectral_norms/{name.replace('.', '/')}/weight"] = (
+                        spectral_norm
+                    )
         g_norms[f"weight_norms/grad_norm_total"] = torch.linalg.norm(
             torch.tensor(list(g_norms.values()))
         )
@@ -375,7 +375,11 @@ class muP_Trainer:
         ):
             if isinstance(self.model, FSDP):
                 with FSDP.summon_full_params(
-                    self.model, with_grads=True, rank0_only=True, writeback=False
+                    self.model,
+                    with_grads=True,
+                    rank0_only=True,
+                    writeback=False,
+                    offload_to_cpu=True,
                 ):
                     self._log_weights_and_gradients_loop(step)
             else:
