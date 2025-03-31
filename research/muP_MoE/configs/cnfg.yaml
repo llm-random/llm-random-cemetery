@@ -49,11 +49,11 @@ params:
   init_scale: 0.1
   init_type: normal
 
-  # FSDP
-  fsdp_enabled: true
-  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
-  fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
+  # # FSDP
+  # fsdp_enabled: true
+  # fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # activation_checkpointing_modules: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  # fsdp_selective_precision_modules: "AttentionMechanism,RoPE"
 
   dataset_type: c4
   mixed_precision: true
@@ -67,14 +67,14 @@ params:
   logging_interval_heavy: 10
   log_gradients_and_weights: true
 
-  # # debug
-  # logger_types: "stdout"
-  # n_steps: 100
-  # batch_size: 8
-  # cutoff: 16
-  # use_dummy_dataset: true
-  # n_blocks: 2
-  # dmodel: 16
-  # n_att_heads: 2
-  # logging_interval_heavy: 5
-  # log_gradients_and_weights: true
+  # debug
+  logger_types: "stdout"
+  n_steps: 5
+  batch_size: 8
+  cutoff: 16
+  use_dummy_dataset: true
+  n_blocks: 2
+  dmodel: 16
+  n_att_heads: 2
+  logging_interval_heavy: 5
+  log_gradients_and_weights: true
