@@ -296,7 +296,8 @@ def main(
         if args.model_type == "bert"
         else tokenizers.GPTTokenizer.VOCAB_SIZE
     )
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    # DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device("cpu")
 
     if args.detect_anomaly:
         torch.autograd.set_detect_anomaly(True)
