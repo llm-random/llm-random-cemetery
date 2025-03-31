@@ -19,6 +19,13 @@ from torch.distributed import (
     barrier,
 )
 
+def prune_every_second_block(encoder_tower: torch.nn.Module):
+    assert isinstance(encoder_tower.blocks, torch.nn.Sequential), "Expected nn.Sequential block container"
+    pruned_blocks = OrderedDict(
+        (name, block) for i, (name, block) in enumerate(encoder_tower.blocks.items()) if i % 2 == 0
+    )
+    encoder_tower.blocks = torch.nn.Sequential(pruned_blocks)
+
 def get_model(
     max_length: int,
     vocab_size: int,
@@ -51,8 +58,8 @@ def get_model(
     unprojected_embeddings:bool = False,
     unprojected_attention:bool = False,
     unprojected_ff:bool = False,
-    n_att_heads:int=None
-    
+    n_att_heads:int=None,
+    distillation_type:Optional[str]=None
 ):
     if model_fragmentation is None or device == torch.device("cpu"):
         first_gpu = device
@@ -137,6 +144,12 @@ def get_model(
 
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
+    
+    if distillation_type =="distilgpt":
+        print("Prunning every second block! #dev") #dev
+        print(f"loaded: {checkpoint}") #dev
+        prune_every_second_block(model.encoder_tower)
+
 
     frozen_modules = []
     mask_1d = None
