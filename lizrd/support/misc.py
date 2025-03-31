@@ -233,6 +233,8 @@ def get_ith_chunk(tensor, chunks, i):
     import torch
 
     list_of_chunks = torch.chunk(tensor, chunks, dim=0)
+    print(f'len list_of_chunks: {len(list_of_chunks)}')
+    print(f'i: {i}')
     return list_of_chunks[i]
 
 
