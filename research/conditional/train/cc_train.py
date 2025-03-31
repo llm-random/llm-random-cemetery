@@ -438,7 +438,7 @@ def main(
         local_rank=local_rank,
         include_positional_embedding=(not args.no_positional_embedding)
         and (args.attention_mode != "rope"),
-        checkpoint=checkpoint,
+        checkpoint=get_checkpoint_from_path(args.distillation_weights_path) if (checkpoint is None and args.distillation_type == "distilgpt" and args.distillation_weights_path) else None,
         projected_checkpoint = get_checkpoint_from_path(args.projected_weights_path) if args.projected_weights_path else None,
         projected_dmodel = args.projected_dmodel,
         projection_init_type = args.projection_init_type,
@@ -449,6 +449,7 @@ def main(
         unprojected_attention = args.unprojected_attention,
         unprojected_ff = args.unprojected_ff,
         n_att_heads = args.n_att_heads,
+        distillation_type = args.distillation_type
     ) 
 
     if args.distillation:
