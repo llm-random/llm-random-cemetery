@@ -106,6 +106,11 @@ def skewed_reverse_kl(logits, teacher_logits, mask, lam=0.1):
     distill_loss = torch.sum(prod_probs, dim=-1).view(-1)
     return -distill_loss.mean()
 
+def distilbert(logits, teacher_logits, mask, ce_loss, temperature=2.0, alpha=5.0, beta=1.0, gamma=2.0):
+    logits = logits[mask == 1]
+    teacher_logits = teacher_logits[mask == 1]
+    [...]
+
 def get_distill_loss(logits, teacher_logits, loss_mask, loss_type, method_lam=None):
     if "sfkl" == loss_type: #dev
         assert method_lam
