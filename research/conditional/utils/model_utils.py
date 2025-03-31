@@ -3,12 +3,15 @@ from functools import partial
 # import json
 # from diskcache import Cache
 from typing import Optional, Type, Union, Callable
+import copy
 import torch
 import torch.nn as nn
 from torch.nn import LayerNorm
 import torch.nn.functional as F
 from torch.nn.modules.batchnorm import _BatchNorm
 from torch.profiler import ProfilerAction
+from torch.utils.flop_counter import FlopCounterMode
+
 import numpy as np
 
 from lizrd.core import llm
@@ -217,8 +220,10 @@ def calculate_llm_loss_and_gradient(
         with torch.autocast(
             device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
         ):
-            model_output = model(input_tokens)
-
+            with FlopCounterMode(model) as flop_counter_forward:
+                model_output = model(input_tokens)
+            flops_forward = flop_counter_forward.get_total_flops()
+            print(f'flops_forward: {flops_forward / 512e6:.1f} MFLOPS per token')
         # move the gt tokens and mask to the same device as the model output - they should be on the same device for loss calculation
         gt_tokens = gt_tokens.to(model_output.device)
         mask = mask.to(model_output.device)
