@@ -280,7 +280,7 @@ def calculate_llm_distillation_loss_and_gradient(
         with torch.autocast(
             device_type="cuda", enabled=mixed_precision, dtype=mixed_precision_dtype
         ):
-            model_output = model(input_tokens)  # (batch, context, vocab)
+            model_output = model(input_tokens, output_hidden_states=True)  # (batch, context, vocab)
             with torch.no_grad():
                 tutor_output = distilled_model(input_tokens)  # (batch, context, vocab)
 
@@ -288,6 +288,11 @@ def calculate_llm_distillation_loss_and_gradient(
         gt_tokens = gt_tokens.to(model_output.device)
         tutor_output = tutor_output.to(model_output.device)
         mask = mask.to(model_output.device)
+
+        print(f"student_hidden------------------------------------") #dev
+        student_hidden = model_output.hidden_states
+        print(f"student_hidden {student_hidden.shape}") #dev
+        raise Exception(student_hidden.shape)
 
         mask_loss = F.cross_entropy(
             model_output.flatten(0, -2), # (batch*context, vocab)
@@ -299,6 +304,11 @@ def calculate_llm_distillation_loss_and_gradient(
           
         # KD_RATIO = 0.5 #dev
         # METHOD_LAM = 0.9 #dev
+        # if distill_loss_type == "distilgpt":
+        #     logits = model_output.flatten(0, -2)[mask == 1]
+        #     log_student = F.log_softmax( / self.T, dim=-1)
+
+        # else:
         distill_loss = get_distill_loss(model_output.flatten(0, -2), tutor_output.flatten(0, -2), mask.reshape(-1), distill_loss_type, method_lam)
         loss = (1 - kd_ratio) * cross_entropy_loss + kd_ratio * distill_loss
 
