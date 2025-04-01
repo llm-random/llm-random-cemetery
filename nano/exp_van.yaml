@@ -1,0 +1,35 @@
+hydra:
+  searchpath: 
+    # - file://${oc.env:PWD}/configs/experiments/mtp_merge
+    - file://${oc.env:PWD}/configs/experiments/baselines
+
+
+training:
+  dataloader:
+    # eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train" #TODO
+    # training_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation" #TODO
+
+    eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+  learning_rate: 1e-4 #TODO
+
+slurm:
+  gres: gpu:1
+  # gres: gpu:ampere:1
+  time: 2-00:00:00
+  partition: h100 #TODO
+
+venv_path: '$HOME/onefiler/venv/bin/activate' #TODO
+
+checkpoint_config:
+  path: "/storage_nvme_2/crewtool/van_k16_1e4" #TODO
+
+# model:
+#   common:
+#     dropped_tokens: 128
+
+defaults:
+  - vanilla_k16
+  - _self_
+
+server: entropia #TODO
