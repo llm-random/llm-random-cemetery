@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/muP_MoE/configs/cnfg.yaml --git_branch=muP_MoE_MFU_fixing_2025-04-01_10-08-58 --skip_copy_code --custom_backends_module=research.muP_MoE.utils.backends
