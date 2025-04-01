@@ -5,25 +5,25 @@ hydra:
 
 training:
   dataloader:
-    eval_dataset_path: #TODO
-    training_dataset_path: #TODO
+    eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train" #TODO
+    training_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation" #TODO
 
 slurm:
-  gres: gpu:1
-  time: 2-00:00:00
-  partition: h100 #TODO
+  gres: gpu:ampere:1
+  time: 3-00:00:00
+  # partition: h100 #TODO
 
-venv_path: #TODO
+venv_path: '$HOME/onefiler/venv/bin/activate' #TODO
 
 checkpoint_config:
-  path: #TODO
+  path: "ckpts" #TODO
 
 model:
   common:
-    dropped_tokens: 26
+    dropped_tokens: 77
 
 defaults:
-  - #TODO
+  - common
   - _self_
 
-server: #TODO
+server: vpn #TODO
