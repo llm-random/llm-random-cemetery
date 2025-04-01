@@ -11,12 +11,9 @@ training:
 
     # eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train" #TODO
     # training_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation" #TODO
-  learning_rate: 1e-4 #TODO
+  learning_rate: 2e-4 #TODO
 
 # slurm:
-#   gres: gpu:ampere:1
-#   time: 3-00:00:00
-#   # partition: h100 #TODO
 
 slurm:
   gres: gpu:1
@@ -33,10 +30,10 @@ checkpoint_config:
 
 model:
   common:
-    dropped_tokens: 128
+    dropped_tokens: 77
 
 defaults:
   - common
   - _self_
 
-server: vpn #TODO
+server: entropia #TODO
