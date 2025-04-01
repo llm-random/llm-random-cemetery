@@ -1,6 +1,6 @@
 hydra:
   searchpath: 
-    - file://${oc.env:PWD}/configs/experiments/mtp_merge
+    - file://${oc.env:PWD}/configs/experiments/merge
 
 
 training:
@@ -11,12 +11,9 @@ training:
 
     # eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train" #TODO
     # training_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation" #TODO
-  learning_rate: 1e-4 #TODO
+  learning_rate: 5e-4 #TODO
 
 # slurm:
-#   gres: gpu:ampere:1
-#   time: 3-00:00:00
-#   # partition: h100 #TODO
 
 slurm:
   gres: gpu:1
@@ -28,15 +25,15 @@ venv_path: '$HOME/onefiler/venv/bin/activate' #TODO
 
 checkpoint_config:
   # path: "ckpts" #TODO
-    path: "/storage_nvme_2/crewtool/van_k16_1e4" #TODO
+    path: "/storage_nvme_2/crewtool/merge_k16_5e4_77" #TODO
 
 
 model:
   common:
-    dropped_tokens: 128
+    dropped_tokens: 77
 
 defaults:
-  - common
+  - merge_common
   - _self_
 
-server: vpn #TODO
+server: entropia #TODO
