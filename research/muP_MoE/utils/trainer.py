@@ -337,7 +337,9 @@ class muP_Trainer:
     def _log_weights_and_gradients_loop(self, step):
         g_norms, w_norms = {}, {}
         for name, value in self.model.named_parameters():
+            print(f'name: {name}')
             if value.grad is not None:
+                print('\tin grad')
                 norm = torch.linalg.norm(value.grad)
                 g_norms[f"weight_norms/{name.replace('.', '/')}/grad"] = norm
                 if (
@@ -348,6 +350,7 @@ class muP_Trainer:
                         f"spectral_norms/{name.replace('.', '/')}/grad"
                     ] = spectral_norm
             if value.requires_grad:
+                print('\tin weight')
                 norm = torch.linalg.norm(value)
                 variance = torch.var(value)
                 w_norms[f"weight_norms/{name.replace('.', '/')}/weight"] = norm
