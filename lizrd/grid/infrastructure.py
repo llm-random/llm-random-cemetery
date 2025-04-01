@@ -487,7 +487,8 @@ def get_machine_backend(node=None, connection=None) -> MachineBackend:
         node = platform.uname().node
     username = os.environ.get("USER") if connection is None else connection.user
     if node == "asusgpu0":
-        return EntropyBackend(username)
+        # return EntropyBackend(username)
+        return EntropyH100Backend(username)
     elif "athena" in node:
         return AthenaBackend(username)
     elif node == "login01":
@@ -518,3 +519,51 @@ def resolve_get_machine_backend_function(
         return alternative_get_machine_backend
     else:
         return get_machine_backend
+
+
+class EntropyH100Backend(MachineBackend):
+    max_exp_time = 14 * 24 * 60 * 60
+
+    def get_common_directory(self) -> str:
+        return "/storage_nvme_1/llm-random"
+
+    def get_cache_path(self) -> str:
+        return "/storage_nvme_1/llm-random/dataset_cache"
+
+    def get_grid_entrypoint(self) -> str:
+        return "lizrd/grid/grid_entrypoint_entropy.sh"
+
+    def get_default_train_dataset_path(self, dataset_type: str):
+        if dataset_type == "c4":
+            return "/storage_nvme_1/llm-random/datasets/c4/train"
+        return super().get_default_train_dataset_path(dataset_type)
+
+    def get_default_validation_dataset_path(self, dataset_type: str):
+        if dataset_type == "c4":
+            return "/storage_nvme_1/llm-random/datasets/c4/validation"
+        return super().get_default_train_dataset_path(dataset_type)
+
+    def get_cemetery_directory(self):
+        return f"~/llm_random_cemetery"
+
+    def get_subprocess_args(
+        self,
+        slurm_command,
+        setup_args,
+        training_args,
+        singularity_env_arguments,
+        runner_params,
+        n_consecutive: int = 1,
+    ):
+        return [
+            slurm_command,
+            "--partition=h100",
+            f"--gres=gpu:h100:{setup_args['n_gpus']}",
+            f"--array=0-{n_consecutive-1}%1",
+            f"--cpus-per-gpu={setup_args['cpus_per_gpu']}",
+            f"--mem={max(125, setup_args['mem_per_gpu']*setup_args['n_gpus'])}G",
+            f"--job-name={training_args['name']}",
+            f"--time={setup_args['time']}",
+            f"{setup_args['grid_entrypoint']}",
+            *self.get_runner_command(setup_args["runner"], runner_params, setup_args),
+        ]
