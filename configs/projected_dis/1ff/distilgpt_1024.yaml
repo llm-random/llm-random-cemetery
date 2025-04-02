@@ -30,8 +30,8 @@ params:
   # ^learning_rate: [0.000125, 0.00025, 0.001]
   # ^learning_rate: [0.0000625, 3.125e-05]
   # ^learning_rate: [1.5625e-05, 7.8125e-06]
-  # learning_rate: 0.0005
-  ^learning_rate: [0.00025, 0.0005, 0.001]
+  learning_rate: 0.0005
+  # ^learning_rate: [0.00025, 0.0005, 0.001]
   # ^learning_rate: [0.00025] #??
   # ^lr_warmup_percent: [0.05, 0.1, 0.2]
   # ^final_lr_fraction: [0.01, 0.03]
@@ -41,10 +41,10 @@ params:
   # ^method_lam: [0.2]
 
   ^distill_loss_type: [distilgpt] 
-  ^distilgpt_alpha: [5.0]
-  # ^distilgpt_alpha: [0, 2.5, 5.0, 10]
+  # ^distilgpt_alpha: [5.0]
+  ^distilgpt_alpha: [0.0, 2.5, 5.0, 10.0]
   # # ^distilgpt_alpha: [0.0, 3.33, 5.0, 7.5]
-  # ^distilgpt_beta: [1.0]
+  ^distilgpt_beta: [1.0]
   # ^distilgpt_beta: [0.0, 0.5, 2.0]
   # # ^distilgpt_beta: [0.0, 0.75, 1.5]
   ^distilgpt_gamma: [2.0]
@@ -59,9 +59,10 @@ params:
   distillation: True
   distillation_type: distilgpt
   # distillation_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-03-24_12-19-09/None/125762/15533.pt # 20
-  # distillation_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-31-55/None/118538/62132.pt # helios
+  distillation_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-31-55/None/118538/62132.pt # 80 helios
   # distillation_weights_path: /home/ubuntu/mstefaniak/checkpoints/dm_1024_20.pt
-  distillation_weights_path: /home/ubuntu/mstefaniak/checkpoints/dm_1024_80.pt
+  # distillation_weights_path: /home/ubuntu/mstefaniak/checkpoints/dm_1024_80.pt
+  # distillation_weights_path: /home/mstefaniak/checkpoints/dm_1024_80.pt
   
   fsdp_use_orig_params: True
   fsdp_enabled: True
