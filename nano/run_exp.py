@@ -200,7 +200,7 @@ def submit_experiment(
             logger.info("=" * 38 + "TMUX" + "=" * 38)
             time.sleep(3)
             output = connection.run(
-                f"tmux capture-pane -t {experiment_branch_name}.0 -p", hide=True
+                f"tmux capture-pane -t -J {experiment_branch_name}.0 -p", hide=True
             ).stdout
             logger.info(output)
         except Exception as e:
