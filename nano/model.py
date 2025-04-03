@@ -98,6 +98,7 @@ def distributed_setup():
 
     if torch.cuda.is_available():
         dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+        logger.info(f"Using GPU {local_rank} for process {rank} and initialized!!!!!!!!")
         torch.cuda.set_device(local_rank)
     else:
         logger.warning("CUDA is not available. Running on CPU and 'gloo' backend.")

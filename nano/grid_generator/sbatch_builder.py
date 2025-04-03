@@ -32,6 +32,7 @@ def create_master_node_configuration() -> list[str]:
 
 
 def create_distributed_variables() -> list[str]:
+    print("NO HALO")
     return [
         "export WORLD_SIZE=$((${SLURM_NNODES} * ${SLURM_NTASKS_PER_NODE}))",
         'echo "Running on ${WORLD_SIZE} nodes"',
@@ -49,6 +50,7 @@ def generate_sbatch_script(
     lines.extend(slurm_parameters)
 
     lines.extend(create_master_node_configuration())
+    lines.extend(create_distributed_variables())
 
     lines.append(f"source {venv_path}")
     lines.append(
