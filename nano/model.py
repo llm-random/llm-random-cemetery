@@ -98,6 +98,7 @@ def distributed_setup():
 
     if torch.cuda.is_available():
         dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
+        logger.info(f"Using GPU {local_rank} for process {rank} and initialized!!!!!!!!")
         torch.cuda.set_device(local_rank)
     else:
         logger.warning("CUDA is not available. Running on CPU and 'gloo' backend.")
@@ -1025,7 +1026,7 @@ def get_metric_logger(
                         project=metric_logger_config.project_name,
                         with_id=neptune_run_id,
                         monitoring_namespace=f"monitoring/gpu_{rank}",
-                        name=metric_logger_config,
+                        name=metric_logger_config.name,
                         tags=metric_logger_config.tags,
                     )
                     if neptune_run_id is None:
