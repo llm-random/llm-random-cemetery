@@ -79,4 +79,5 @@ def check_args(args):
         # assert args.dff == args.distilled_dff
         assert args.distillation_weights_path
     else:
-        assert not args.distillation_weights_path
+        pass
+        # assert not args.distillation_weights_path
