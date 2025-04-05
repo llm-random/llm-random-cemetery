@@ -1,0 +1,41 @@
+# hydra:
+#   searchpath: 
+#     - file://${oc.env:PWD}/configs/experiments/merge
+hydra:
+  searchpath: 
+    # - file://${oc.env:PWD}/configs/experiments/mtp_merge
+    - file://${oc.env:PWD}/configs/experiments/baselines
+
+
+
+defaults:
+  # - normal_exp_merge_entropy
+  - exp_van
+  - _self_
+
+model:
+  tower_config:
+    n_blocks: 2
+    block_config:
+      attention:
+        n_heads: 2
+  common:
+    sequence_length: 12
+    dff: 256
+    dmodel: 64
+    dropped_tokens: 12
+
+training:
+  dataloader:
+    total_batch_size: 2
+    training_dataset_path: "data"
+    eval_dataset_path: "data_eval"
+  evaluation:
+    eval_interval: 3
+
+checkpoint_config:
+  # path: "ckpts" #TODO
+    path: "hih"
+
+metric_logger:
+    project_name: "crewtool/mojtestproject"
