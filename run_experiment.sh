@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/relu2/2025.04.04_relu2.yaml --git_branch=relu2_test_2025-04-05_14-06-47 --skip_copy_code --custom_backends_module=research.attention_moe.backends
