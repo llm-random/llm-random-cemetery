@@ -1,0 +1,66 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - factories
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/reduction_defaults:
+      - merge_model
+      - merge_factories
+    - configs/defaults/model_sizes:
+      - k8
+    - _self_
+
+model:
+  common:
+    sequence_length: 256
+    dropped_tokens: 128
+
+
+training:
+  dataloader:
+    total_batch_size: 256
+    # eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    # training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+
+    training_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train"
+    eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation"
+
+  n_steps: 50001
+  learning_rate: 1e-3
+
+
+  scheduler: 
+    config:
+      warmup_steps: 500
+
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "tr_m_05_k8"
+  gres: gpu:ampere:1
+  time: 0-10:00:00
+  # partition: a100
+  # ntasks-per-node: 2
+
+checkpoint_config:
+    interval: 0
+    path: "ckpts"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: vpn
+
+metric_logger:
+  name: "tr_v_k8"
+  tags: 
+    - "merge" 
+    - "lr=1e-3"
+    - "k8"
+    - "r=0.5"
