@@ -1,0 +1,57 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - factories
+      - infrastructure
+      - metric_logger
+      - model
+      - training
+    - configs/defaults/model_sizes:
+      - k24
+    - _self_
+
+model:
+  common:
+    sequence_length: 512
+
+training:
+  dataloader:
+    total_batch_size: 512
+    eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+
+  n_steps: 125001
+  learning_rate: 1e-4
+
+
+  scheduler: 
+    config:
+      warmup_steps: 1250
+
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "tr_v_k24"
+  gres: gpu:8
+  time: "2-00:00:00"
+  partition: h100
+  ntasks-per-node: 8
+
+checkpoint_config:
+    interval: 25000
+    path: "/storage_nvme_1/crewtool/checkpoints/tr_v_k24/1e4"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
+
+metric_logger:
+  name: "tr_v_k24"
+  tags: 
+    - "vanilla" 
+    - "lr=1e-4"
