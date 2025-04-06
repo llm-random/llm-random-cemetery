@@ -30,14 +30,13 @@ slurm:
 training:
   dataloader:
       total_batch_size: 256
-  seed: 123432423
-  n_steps: 100001
+  n_steps: 200001
   learning_rate: 2e-4
 
 
   scheduler: 
     config:
-      warmup_steps: 1000
+      warmup_steps: 2000
 
 venv_path: '$HOME/onefiler/venv/bin/activate' 
 
@@ -45,5 +44,5 @@ server: entropia
 
 checkpoint_config:
     interval: 20000
-    path: "/storage_ssd_1/crewtool/checkpoints/k16_baseline"
+    path: "/storage_ssd_1/crewtool/checkpoints/k16_baseline_200k"
 
