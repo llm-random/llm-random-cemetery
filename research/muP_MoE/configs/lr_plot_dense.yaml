@@ -2,7 +2,7 @@ runner: "research.muP_MoE.train.train"
 
 time: '2-00:00:00'
 
-n_gpus: 2
+n_gpus: 1
 cpus_per_gpu: 16
 
 interactive_debug: false
@@ -17,7 +17,7 @@ params:
 
     alpha_in: 1.0
     alpha_out: 1.0
-    base_dmodel: 64
+    base_dmodel: 128
 
   # training
   n_steps: 60000
@@ -29,7 +29,7 @@ params:
   # model
   model_type: gpt
   # ^dmodel: [64, 128, 256, 512, 768, 1024, 1536]
-  ^dmodel: [64]
+  ^dmodel: [128, 512, 768]
   n_blocks: 24
   dhead: 64
   attention_mode: 'vanilla'
