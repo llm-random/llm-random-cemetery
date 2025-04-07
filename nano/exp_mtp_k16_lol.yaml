@@ -1,0 +1,70 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - factories
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/reduction_defaults:
+      - mtp_model
+      - mtp_factories
+    - configs/defaults/model_sizes:
+      - k16
+    - _self_
+
+model:
+  common:
+    sequence_length: 256
+  mtp_config:
+    _target_: token_reduction.model.MTPConfig
+    n_mtp: 2
+
+training:
+  dataloader:
+    total_batch_size: 256
+    eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+
+    # training_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train"
+    # eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation"
+
+  n_steps: 200001
+  learning_rate: 1e-4
+
+
+  scheduler: 
+    config:
+      warmup_steps: 2000
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "tr_mtp_k16"
+  time: "2-00:00:00"
+
+  # gres: gpu:ampere:1
+
+  gres: gpu:1
+  partition: h100
+
+checkpoint_config:
+    interval: 20000
+    # path: "ckpts"
+    path: "/storage_nvme_1/crewtool/tr_mtp_k16/iyuituyi"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
+
+metric_logger:
+  name: "tr_mtp_k16"
+  tags: 
+    - "mtp" 
+    - "lr=1e-4"
+    - "k16"
+
+
