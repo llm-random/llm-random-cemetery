@@ -1,0 +1,65 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/experiments/mtp_merge:
+      - mtp_w_merge
+    - configs/defaults/model_sizes:
+      - k8
+    - _self_
+
+model:
+  common:
+    sequence_length: 256
+    # dropped_tokens: 26
+    # dropped_tokens: 77
+    dropped_tokens: 128
+    # dropped_tokens: 256 
+
+
+training:
+  dataloader:
+    total_batch_size: 256
+    eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+
+
+  n_steps: 50001
+  learning_rate: 1e-3
+
+
+  scheduler: 
+    config:
+      warmup_steps: 500
+
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "${metric_logger.name}"
+  gres: gpu:1
+  time: 0-10:00:00
+  partition: a100
+  # ntasks-per-node: 2
+
+checkpoint_config:
+    interval: 0
+    path: "/storage_nvme_1/crewtool/checkpoints/tr_extra_k8/dfsgsdfgdfg"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
+
+metric_logger:
+  name: "tr_extra_1_k8"
+  tags: 
+    - "mtp+merge" 
+    - "lr=1e-3"
+    - "k8"
+    - "r=0.5"
