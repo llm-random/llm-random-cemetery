@@ -187,7 +187,7 @@ def submit_experiment(
                 f'tmux send -t {experiment_branch_name}.0 "cd {experiment_dir}/nano" ENTER'
             )
             connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "source {cfg.venv_path}" ENTER'
+                f'tmux send -t {experiment_branch_name}.0 "source /net/storage/pr3/plgrid/plggllmeffi/tr_venv/bin/activate" ENTER'
             )
             pwd = os.getcwd()
             relative_path = os.path.relpath(config_path, pwd)
