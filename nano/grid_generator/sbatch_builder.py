@@ -39,7 +39,7 @@ def create_distributed_variables() -> list[str]:
 
 
 def generate_sbatch_script(
-    slurm_config, config_folder, n_experiments, venv_path
+    slurm_config, config_folder, n_experiments, venv_path, modules_to_add
 ) -> list[str]:
     lines = ["#!/bin/bash", ""]
 
@@ -50,6 +50,10 @@ def generate_sbatch_script(
 
     lines.extend(create_master_node_configuration())
     lines.extend(create_distributed_variables())
+
+    if modules_to_add is not None:
+        for module in modules_to_add:
+            lines.append(f"module load {module}")
 
     lines.append(f"source {venv_path}")
     lines.append(
