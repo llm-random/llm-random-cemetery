@@ -51,7 +51,7 @@ params:
   # ^learning_rate: [5e-4, 1e-3, 2e-3, 5e-3]
 
   adam_beta1: 0.9
-  adam_beta2: 0.95
+  adam_beta2: 0.999
   grad_clip: Null
   weight_decay: 0.1
   rms_norm_eps: 0.000001
@@ -62,7 +62,7 @@ params:
 
   ^attention_mode: [gda]
   ^diff_transformer_n_negative_heads: [2, 3]
-  ^diff_transformer_negative_heads_permutation: [repeat, interleave, flip_repeat, flip_interleave, roll_repeat, repeat_roll, roll_interleave]
+#  ^diff_transformer_negative_heads_permutation: [repeat, interleave, flip_repeat, flip_interleave, roll_repeat, repeat_roll, roll_interleave]
   ^learning_rate: [1e-3, 2e-3]
   ^diff_transformer_adapter_type: [identity]
   ^dff: [2048]

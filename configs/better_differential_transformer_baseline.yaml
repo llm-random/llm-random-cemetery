@@ -63,7 +63,7 @@ params:
   ^attention_mode: [differential]
 #  ^diff_transformer_n_negative_heads: [1, 2, 3, 6]
 #  ^diff_transformer_negative_heads_permutation: [repeat, interleave, flip_repeat, flip_interleave, roll_repeat, repeat_roll, roll_interleave]
-  ^learning_rate: [1e-3, 2e-3]
+  ^learning_rate: [5e-4, 5e-3]
 #  ^diff_transformer_adapter_type: [identity]
 #  ^dff: [2048]
   ^dff: [1856]
