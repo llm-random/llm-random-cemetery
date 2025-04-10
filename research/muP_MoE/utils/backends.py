@@ -99,7 +99,7 @@ class AthenaBackend(MachineBackend):
         return f"/net/tscratch/people/{self.username}/.cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "research/muP_MoE/entrypoints/athena.sh"
+        return "research/attention_moe/entrypoints/athena.sh"
 
     def get_cemetery_directory(self):
         return (
@@ -202,7 +202,7 @@ class EntropyA100Backend(MachineBackend):
         return "/storage_nvme_1/llm-random/dataset_cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "research/muP_MoE/entrypoints/entropy_a100.sh"
+        return "research/attention_moe/entrypoints/entropy_a100.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
@@ -250,7 +250,7 @@ class EntropyH100Backend(MachineBackend):
         return "/storage_nvme_1/llm-random/dataset_cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "research/muP_MoE/entrypoints/entropy_h100.sh"
+        return "research/attention_moe/entrypoints/entropy_h100.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
@@ -298,7 +298,7 @@ class WriterBackend(MachineBackend):
         return "/home/ubuntu/.cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "research/muP_MoE/entrypoints/writer.sh"
+        return "research/attention_moe/entrypoints/writer.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
@@ -359,7 +359,7 @@ class HeliosBackend(MachineBackend):
         return f"/net/scratch/hscra/plgrid/plgmaciejpioro/{self.username}/.cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "research/muP_MoE/entrypoints/helios.sh"
+        return "research/attention_moe/entrypoints/helios.sh"
 
     def get_cemetery_directory(self):
         return (
