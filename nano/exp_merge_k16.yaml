@@ -1,0 +1,67 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - factories
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/reduction_defaults:
+      - merge_model
+      - merge_factories
+    - configs/defaults/model_sizes:
+      - k16
+    - _self_
+
+model:
+  common:
+    sequence_length: 256
+    dropped_tokens: 26
+
+
+training:
+  dataloader:
+    total_batch_size: 256
+    eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+
+    # training_dataset_path: "/raid/NFS_SHARE/datasets/c4/train/c4_train"
+    # eval_dataset_path: "/raid/NFS_SHARE/datasets/c4/validation/c4_validation"
+
+  n_steps: 200001
+  learning_rate: 2e-4
+
+
+  scheduler: 
+    config:
+      warmup_steps: 2000
+
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  # job-name: "tr_m_1_k8"
+  # gres: gpu:ampere:1
+  time: "2-00:00:00"
+  gres: gpu:1
+  partition: h100
+  # ntasks-per-node: 2
+
+checkpoint_config:
+    interval: 0
+    path: "/storage_nvme_1/crewtool/checkpoints/tr_merge_k16/sdfsdf"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
+
+metric_logger:
+  name: "tr_merge_k16"
+  tags: 
+    - "merge" 
+    - "lr=2e-4"
+    - "k16"
+    - "r=0.1"
