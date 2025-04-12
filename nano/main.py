@@ -44,7 +44,7 @@ def main(config):
     dump_grid_configs(configs_grid, output_folder)
 
     generate_sbatch_script(
-        config.slurm, output_folder, len(configs_grid), config.venv_path
+        config.slurm, output_folder, len(configs_grid), config.venv_path, config.modules_to_add
     )
 
     if config.get("_debug_"):
