@@ -517,16 +517,16 @@ class GroupedDifferentialAttention(LoggingLayer):
         self.dmodel = dmodel
         self.save_attention_weights = False
         self.attention_weights = None
-        self.n_positive_heads = n_heads if double_kv_cache else n_heads // 2
+        self.n_positive_heads = n_heads // 2
         self.negative_heads_permutation = negative_heads_permutation
 
-        self.n_positive_kv_heads = (n_kv_heads or n_heads) if double_kv_cache else (n_kv_heads or n_heads) // 2
+        self.n_positive_kv_heads = (n_kv_heads or n_heads) // 2
         assert n_negative_heads <= self.n_positive_kv_heads
         self.n_negative_heads = n_negative_heads
         self.n_rep_kv = self.n_positive_heads // self.n_positive_kv_heads
         self.n_rep_negative = self.n_positive_heads // self.n_negative_heads
 
-        self.dhead = dmodel // n_heads if adapter_type != "identity" else 2 * dmodel // n_heads
+        self.dhead = 2 * dmodel // n_heads if adapter_type == "identity" or (adapter_type == "lora" and double_kv_cache) else dmodel // n_heads
 
         self.plus_q_proj_out_dim = self.dhead * self.n_positive_heads
         self.plus_k_proj_out_dim = self.dhead * self.n_positive_kv_heads
