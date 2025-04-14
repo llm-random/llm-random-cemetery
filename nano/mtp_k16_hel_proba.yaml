@@ -1,0 +1,89 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/experiments/mtp_merge:
+      - mtp_w_merge
+    - configs/defaults/model_sizes:
+      - k24
+    - _self_
+
+model:
+  common:
+    sequence_length: 512
+    # dropped_tokens: 51
+    dropped_tokens: 153
+    # dropped_tokens: 128
+    # dropped_tokens: 256 
+
+  mtp_config:
+    _target_: token_reduction.model.MTPConfig
+    n_mtp: 2
+
+training:
+  dataloader:
+    total_batch_size: 512
+    training_dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train"
+    eval_dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation"
+    num_workers: 4
+
+  gradient_accumulation_steps: 2
+
+  n_steps: 125001
+  learning_rate: 3.5e-4
+
+
+  scheduler: 
+    config:
+      warmup_steps: 1250
+
+
+##### INFRASTRUCTURE #####
+
+checkpoint_config:
+    interval: 0
+    path: "/net/storage/pr3/plgrid/plggllmeffi/crewtool_checkpoints/tr_mtp_k24/gdfgsdfgsdfgs"
+
+server: helios
+
+metric_logger:
+  name: "tr_mtp_k24"
+  tags: 
+    - "k24"
+    - "mtp+merge"
+    - "lr=3.5e-4"
+    - "r=0.1"
+
+
+slurm:
+  gres: gpu:4
+  time: "2-00:00:00"
+  partition: "plgrid-gpu-gh200"
+  cpus-per-gpu: "72"
+  mem-per-gpu: "100G"
+  account: "plgllmefficont2-gpu-gh200"
+  nodes: 1
+  ntasks-per-node: 4
+  job-name: "tr_mtp_k24"
+
+
+modules_to_add: 
+  - "ML-bundle/24.06a"
+
+
+cemetery_experiments_dir: "/net/storage/pr3/plgrid/plggllmeffi/tr_proba/cemetery"
+
+
+venv_path: '/net/storage/pr3/plgrid/plggllmeffi/venv_crew/bin/activate'
+
+hydra:
+  callbacks:
+    log_job_return:
+      _target_: hydra.experimental.callbacks.LogJobReturnCallback
+  verbose:
+      - __main__
+      - model
