@@ -24,6 +24,7 @@ class TokenChoiceFF(LoggingLayer):
         get_router_values_from: str = "weights",
         moe_values_exp: Optional[int] = 1,
         detach_gate: bool = False,
+        mup_config: dict = None,
         **_,
     ):
         """
@@ -55,6 +56,7 @@ class TokenChoiceFF(LoggingLayer):
             expert_inner_function=self.expert_inner_function,
             moe_values_exp=moe_values_exp,
             zloss_weight=zloss_weight,
+            mup_config=mup_config,
         )
 
     @time_measured("assign_tokens_to_input")
