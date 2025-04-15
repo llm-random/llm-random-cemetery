@@ -9,8 +9,8 @@ interactive_debug: false
 backends_module: research.muP_MoE.utils.backends
 
 params:
-  name: muP_MoE_MFU_fixing
-  tags: ["muP_MoE", "muTransfer", "muP_MoE_MFU_fixing"]
+  name: muP_MoE_moe_debug
+  tags: ["muP_MoE", "muTransfer", "remove"]
 
   mup_params:
     # alpha_in: 10.0
@@ -19,6 +19,8 @@ params:
     alpha_in: 1.0
     alpha_out: 1.0
     base_dmodel: 64
+
+  ^use_mup_router: [true, false]
 
   # training
   n_steps: 100
@@ -36,9 +38,15 @@ params:
   attention_normalization: 'dhead'
   use_torch_bmm: true
 
-  ff_mode: vanilla
-  dff_ratio: 4
+  effective_dff_x: 4  # went from 4 -> 3
+  expansion_rate: 8
+  granularity: 1
+  ff_mode: token_choice
+  moe_inner_expert: ff
   activation_type: relu
+  softmax_over: experts
+  group_granular_moe_by_batch: true
+  granular_moe_one_hot_impl: true
 
   # learning
   scheduler: cosine
@@ -59,7 +67,7 @@ params:
   mixed_precision: true
   flash_attention: true
   mixed_precision_dtype: bfloat16
-  data_seed: 17
+  ^data_seed: [18, 19, 20]
 
   # logging etc.
   logger_types: neptune
@@ -69,7 +77,7 @@ params:
 
   # # debug
   # logger_types: "stdout"
-  # n_steps: 100
+  # n_steps: 10
   # batch_size: 8
   # cutoff: 16
   # use_dummy_dataset: true

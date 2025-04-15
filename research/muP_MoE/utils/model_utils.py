@@ -353,6 +353,8 @@ def get_ff_layer(args):
             routing_top_k=args.routing_top_k,
             init_scale=args.init_scale,
             init_type=args.init_type,
+            mup_config=args.mup_params,
+            use_mup_router=args.use_mup_router,
         )
     else:
         raise NotImplementedError(f"FF mode {args.ff_mode} not implemented")
