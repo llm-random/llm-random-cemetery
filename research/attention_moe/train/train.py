@@ -419,6 +419,7 @@ def main(
         if args.repeater_mode
         else None,
         evaluate_attention_relevancy_interval=args.evaluate_attention_relevancy_interval,
+        evaluate_attention_sparsity_interval=args.evaluate_attention_sparsity_interval,
         should_log_update_norm=args.should_log_update_norm,
     )
     trainer.train(args.n_steps)
