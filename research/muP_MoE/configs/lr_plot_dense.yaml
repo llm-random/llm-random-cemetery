@@ -1,6 +1,6 @@
 runner: "research.muP_MoE.train.train"
 
-time: '1-00:00:00'
+time: '2-00:00:00'
 
 n_gpus: 4
 cpus_per_gpu: 16
@@ -43,7 +43,7 @@ params:
 
   # learning
   scheduler: cosine
-  ^learning_rate: [5e-4, 2e-4, 1e-4, 5e-5, 2e-5]
+  ^learning_rate: [1e-3, 2e-3]
   final_lr_fraction: 0.1
   grad_clip: 1.0
   weight_decay: 0.1
