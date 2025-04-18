@@ -1,0 +1,87 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      # - distributed
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/reduction_defaults:
+      - mtp_model
+      - mtp_factories
+    - _self_
+
+training:
+    _target_: model.TrainingConfig
+    n_steps: 100
+    ^learning_rate: [5e-4]
+    weight_decay: 0.1
+    gradient_accumulation_steps: 1
+    seed: 46768
+    gradient_clipping: 1.0
+
+    scheduler: 
+        _target_: model.get_cosine_scheduler_with_warmup
+        _partial_: true
+        config:        
+            warmup_steps: 10
+            n_steps: ${training.n_steps}
+            final_lr_fraction: 0.1
+            type: "cosine"
+
+    # dataloader:
+    #     training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+    #     eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    #     batch_size: 256
+
+    dataloader:
+        training_dataset_path: "data"
+        eval_dataset_path: "data_eval"
+        total_batch_size: 8
+    
+    evaluation:
+        eval_interval: 3
+        n_eval_steps: 2
+        seed: 123
+
+trainer_factory: 
+    _target_: token_reduction.model.TrainerDeepSeekMTP
+
+model:
+  _target_: token_reduction.model.LLM_DeepSeekMTP   
+  embedding:
+    _target_: model.get_deepseek_embedding
+    common: ${model.common}
+    n_mtp: ${model.mtp_config.n_mtp}
+  common:
+    sequence_length: 16
+    dff: 64
+    dmodel: 16
+  tower_config:
+    n_blocks: 4
+    block_config:
+      attention:
+        n_heads: 4
+  mtp_config:
+    _target_: token_reduction.model.MTPConfig
+    n_mtp: 3
+    mtp_block_config: ${model.tower_config.block_config}
+
+slurm:
+    # gres: gpu:0
+    time: "00:15:00"
+    # partition: a100
+
+checkpoint_config:
+    interval: 0
+    path: null
+
+metric_logger:
+    type: "neptune"
+    heavy_metrics_calculation_interval: 5
+    project_name: "pmtest/llm-random"
+    name: "metric_logger_testing"
+    tags: ["nano", "remove", "jm_debug"]
+
+venv_path: '$HOME/llm-random/nano/venv/bin/activate' 
+server: local
