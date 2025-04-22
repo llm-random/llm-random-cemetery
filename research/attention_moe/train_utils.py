@@ -83,6 +83,10 @@ def get_model(
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
 
+    for m in model.modules():
+        if getattr(m, "post_load_hook", None) is not None:
+            m.post_load_hook()
+
     if ddp_enabled:
         model = wrap_in_ddp(module=model, rank=rank)
     elif fsdp_enabled:
