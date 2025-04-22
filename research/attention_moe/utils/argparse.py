@@ -434,6 +434,9 @@ def introduce_parser_arguments(
         "--evaluate_attention_relevancy_interval", type=int, default=500
     )
     parser.add_argument(
+        "--evaluate_attention_sparsity_interval", type=int, default=500
+    )
+    parser.add_argument(
         "--lowrank_dtype",
         type=str,
         choices=["float16", "float32", "bfloat16"],
