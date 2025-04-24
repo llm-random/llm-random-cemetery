@@ -236,7 +236,7 @@ def main(
         ]
 
     checkpoint = (
-        get_checkpoint_from_path(args.load_weights_path, args.repeater_mode)
+        get_checkpoint_from_path(args.load_weights_path)#, args.repeater_mode)
         if args.load_weights_path is not None
         else None
     )
@@ -344,7 +344,7 @@ def main(
         dataset_path=args.validation_dataset_path,
     )
 
-    if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
+    if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"] and not args.checkpoint_separate_logger_run:
         logger_run_id = checkpoint["logger"]["run_id"]
     else:
         logger_run_id = None
@@ -419,6 +419,7 @@ def main(
         if args.repeater_mode
         else None,
         evaluate_attention_relevancy_interval=args.evaluate_attention_relevancy_interval,
+        evaluate_attention_sparsity_interval=args.evaluate_attention_sparsity_interval,
         should_log_update_norm=args.should_log_update_norm,
     )
     trainer.train(args.n_steps)
