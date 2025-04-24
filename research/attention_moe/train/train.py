@@ -96,7 +96,8 @@ def make_param_groups_and_lr_ratios(args, model):
     return param_grops, ratios_in_group_order
 
 
-def rescale_params_after_init(args, model):
+def rescale_params_after_init
+from collections import defaultdict(args, model):
     relative_scale: dict[str, float] = args.relative_init_scale
     verbose = args.verbose_relative_init_scale
 
@@ -236,12 +237,12 @@ def main(
         ]
 
     checkpoint = (
-        get_checkpoint_from_path(args.load_weights_path, args.repeater_mode)
+        get_checkpoint_from_path(args.load_weights_path)#, args.repeater_mode)
         if args.load_weights_path is not None
         else None
     )
 
-    model = get_model(
+    model, optimizer, ratios_in_group_order = get_model(
         max_length=args.cutoff,
         vocab_size=VOCAB_SIZE,
         block_modules=block_modules,
@@ -270,6 +271,7 @@ def main(
         checkpoint=checkpoint,
         use_final_norm=args.use_final_norm,
         norm_fn=norm_fn,
+        args=args,
     )
 
     n_learnable_parameters = get_n_learnable_parameters(model)
@@ -295,15 +297,6 @@ def main(
     if args.print_parameter_names:
         for name, param in model.named_parameters():
             print(name, param.shape)
-
-    param_grops, ratios_in_group_order = make_param_groups_and_lr_ratios(args, model)
-
-    optimizer = torch.optim.AdamW(
-        param_grops,
-        lr=args.learning_rate,
-        weight_decay=args.weight_decay,
-        betas=(args.adam_beta1, args.adam_beta2),
-    )
 
     if checkpoint is not None:
         load_optimizer_state(optimizer, checkpoint, model, rank)
@@ -344,7 +337,7 @@ def main(
         dataset_path=args.validation_dataset_path,
     )
 
-    if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"]:
+    if checkpoint and "logger" in checkpoint and "run_id" in checkpoint["logger"] and not args.checkpoint_separate_logger_run:
         logger_run_id = checkpoint["logger"]["run_id"]
     else:
         logger_run_id = None
@@ -419,6 +412,7 @@ def main(
         if args.repeater_mode
         else None,
         evaluate_attention_relevancy_interval=args.evaluate_attention_relevancy_interval,
+        evaluate_attention_sparsity_interval=args.evaluate_attention_sparsity_interval,
         should_log_update_norm=args.should_log_update_norm,
     )
     trainer.train(args.n_steps)

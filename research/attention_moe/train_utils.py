@@ -32,6 +32,7 @@ def get_model(
     activation_checkpointing_modules: Union[tuple[Type[torch.nn.Module]], None],
     is_logging_process: bool,
     use_final_norm: bool,
+    args,
     rank=None,
     model_fragmentation: Optional[list[int]] = None,
     residual_fn: Callable[[], torch.nn.Module] = None,
@@ -83,6 +84,19 @@ def get_model(
     if checkpoint is not None:
         load_model_weights(model, checkpoint)
 
+    for m in model.modules():
+        if getattr(m, "post_load_hook", None) is not None:
+            m.post_load_hook()
+
+    param_grops, ratios_in_group_order = make_param_groups_and_lr_ratios(args, model)
+
+    optimizer = torch.optim.AdamW(
+        param_grops,
+        lr=args.learning_rate,
+        weight_decay=args.weight_decay,
+        betas=(args.adam_beta1, args.adam_beta2),
+    )
+
     if ddp_enabled:
         model = wrap_in_ddp(module=model, rank=rank)
     elif fsdp_enabled:
@@ -107,4 +121,28 @@ def get_model(
             checkpoint_wrapper_fn=make_checkpoint_wrapper_function(),
         )
 
-    return model
+    return model, optimizer, ratios_in_group_order
+
+
+from collections import defaultdict
+
+def make_param_groups_and_lr_ratios(args, model):
+    lr = args.learning_rate
+    if args.relative_lr is None:
+        return [{"params": model.parameters(), "lr": lr}], [1.0]
+
+    relative_lr: dict = args.relative_lr
+
+    lr_to_params = defaultdict(list)
+    for name, param in model.named_parameters():
+        ratio = 1.0
+        for possible_name in relative_lr.keys():
+            if possible_name in name:
+                ratio = relative_lr[possible_name]
+                break
+        lr_to_params[ratio * lr].append(param)
+    param_grops = [
+        {"params": params, "lr": lr_group} for lr_group, params in lr_to_params.items()
+    ]
+    ratios_in_group_order = [param_group["lr"] / lr for param_group in param_grops]
+    return param_grops, ratios_in_group_order

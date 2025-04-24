@@ -83,6 +83,7 @@ class Trainer:
     start_step: int = 0
     checkpoint: Optional[dict[str, torch.Tensor]] = None
     evaluate_attention_relevancy_interval: int = -1
+    evaluate_attention_sparsity_interval: int = -1
 
     def __attrs_post_init__(self):
         if self.mixed_precision_dtype == torch.float16:
@@ -251,6 +252,11 @@ class Trainer:
                     or step == n_steps
                 ):
                     self.evaluate_attention(step)
+                if self.evaluate_attention_sparsity_interval > 0 and (
+                    step % self.evaluate_attention_sparsity_interval == 0
+                    or step == n_steps
+                ):
+                    self.evaluate_attention_sparsity(step)
                 if self._repeater_rerun(step, self.repeater_job_end_time):
                     break
                 if self.profiler_enabled:
@@ -373,6 +379,11 @@ class Trainer:
             if hasattr(layer, "save_attention_weights"):
                 layer.save_attention_weights = False
                 layer.attention_weights = None
+
+    @torch.no_grad()
+    def evaluate_attention_sparsity(self, step):
+        self.model.eval()
+        batch = self.eval_dataloader.get_batch()
 
     def calculate_loss_and_gradient(self, processed_batch: LLMBatch):
         """gradient accumulation: slice the batch into minibatches, get gradients from each, then average and apply them
