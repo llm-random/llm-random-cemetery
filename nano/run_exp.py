@@ -156,7 +156,8 @@ def submit_experiment(
 
         cluster_config = OmegaConf.load(f"configs/clusters/{cluster_name}.yaml")
 
-        cemetery_dir = cluster_config.cemetery_experiments_dir
+        # cemetery_dir = cluster_config.cemetery_experiments_dir
+        cemetery_dir = "/net/storage/pr3/plgrid/plggllmeffi/tr_proba/cemetery"
         connection.run(f"mkdir -p {cemetery_dir}")
 
         if "NEPTUNE_API_TOKEN" in os.environ:
@@ -187,16 +188,16 @@ def submit_experiment(
                 f'tmux send -t {experiment_branch_name}.0 "cd {experiment_dir}/nano" ENTER'
             )
             connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "source {cfg.venv_path}" ENTER'
+                f'tmux send -t {experiment_branch_name}.0 "source {cfg.experiment_prepare_venv_path}" ENTER'
             )
             pwd = os.getcwd()
             relative_path = os.path.relpath(config_path, pwd)
             connection.run(
                 f'tmux send -t {experiment_branch_name}.0 "python main.py --config-path={relative_path} --config-name={config_name}" ENTER'
             )
-            connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "sbatch exp.job" ENTER'
-            )
+            # connection.run(
+            #     f'tmux send -t {experiment_branch_name}.0 "sbatch exp.job" ENTER'
+            # )
             logger.info("=" * 38 + "TMUX" + "=" * 38)
             time.sleep(3)
             output = connection.run(
