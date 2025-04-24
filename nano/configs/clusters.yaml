@@ -11,3 +11,7 @@
 - name: "athena"
   hosts: 
     - "t00*"
+
+- name: "helios"
+  hosts: 
+    - "login01.helios*"
