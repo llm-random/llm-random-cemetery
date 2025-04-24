@@ -430,8 +430,13 @@ def introduce_parser_arguments(
     parser.add_argument("--diff_transformer_lowrank_bias", action="store_true")
     parser.add_argument("--diff_transformer_double_kv_cache", action="store_true")
     parser.add_argument("--use_final_norm", action="store_true")
+    parser.add_argument("--checkpoint_separate_logger_run", action="store_true")
+    parser.add_argument("--reset_optimizer", action="store_true")
     parser.add_argument(
         "--evaluate_attention_relevancy_interval", type=int, default=500
+    )
+    parser.add_argument(
+        "--evaluate_attention_sparsity_interval", type=int, default=500
     )
     parser.add_argument(
         "--lowrank_dtype",
