@@ -121,6 +121,7 @@ def run(cfg):
     if "distributed" in cfg and cfg.distributed is not None:
         distributed_setup()
     training_state = load_training_state(cfg.checkpoint_config)
+    training_state["run_id"] = None #REMOVE
     metric_logger = get_metric_logger(
         metric_logger_config=instantiate(cfg.metric_logger, _convert_="all"),
         neptune_run_id=training_state["run_id"],
