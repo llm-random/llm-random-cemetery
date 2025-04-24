@@ -294,7 +294,7 @@ def get_attention_layer(args):
 
     from research.attention_moe.moe_layers.attentions_cc import TokenChoiceMoMQA
 
-    if args.attention_mode == "vanilla":
+    if args.attention_mode == "vanilla" or args.attention_mode == "transition_tuning":
         # attention_layer_fun = lambda: CausalSelfAttention(
         #     n_embd=args.dmodel, n_head=args.n_att_heads, block_size=args.cutoff
         # )
