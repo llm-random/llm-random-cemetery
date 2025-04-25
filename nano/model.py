@@ -120,7 +120,9 @@ def run(cfg):
 
     if "distributed" in cfg and cfg.distributed is not None:
         distributed_setup()
-    training_state = load_training_state(cfg.checkpoint_config)
+    # training_state = load_training_state(cfg.checkpoint_config)
+    # training_state["run_id"] = None #REMOVE
+    training_state = {"next_step": 0, "run_id": None, "processed_tokens": 0}
     metric_logger = get_metric_logger(
         metric_logger_config=instantiate(cfg.metric_logger, _convert_="all"),
         neptune_run_id=training_state["run_id"],
@@ -1587,6 +1589,8 @@ class TrainingState(Stateful):
         model_state_dict, optimizer_state_dict = get_state_dict(
             self.model, self.optimizer
         )
+        print("hahah", model_state_dict)
+        
         return {
             "model": model_state_dict,
             "optim": optimizer_state_dict,
@@ -1594,6 +1598,8 @@ class TrainingState(Stateful):
         }
 
     def load_state_dict(self, state_dict):
+        print("model", state_dict["model"])
+        print("optim",state_dict["optim"])
         set_state_dict(
             self.model,
             self.optimizer,
@@ -1709,7 +1715,10 @@ def load_checkpoint(checkpoint_config, model, optimizer, scheduler):
 
         if isinstance(model, FSDP):
             # Sharded load
-            state_dict = {"app": TrainingState(model, optimizer, scheduler)}
+            print("LTST< CKPT", latest_checkpoint_folder)
+            state =   TrainingState(model, optimizer, scheduler)
+            state_dict = {"app": state}
+            print("state_dict", state_dict)
             dcp.load(state_dict=state_dict, checkpoint_id=latest_checkpoint_folder)
             logger.debug(f"Loaded sharded checkpoint from '{latest_checkpoint_folder}'")
         else:
