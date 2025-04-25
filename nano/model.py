@@ -121,6 +121,8 @@ def run(cfg):
     if "distributed" in cfg and cfg.distributed is not None:
         distributed_setup()
     training_state = load_training_state(cfg.checkpoint_config)
+    training_state["run_id"] = None #REMOVE
+    # training_state = {"next_step": 0, "run_id": None, "processed_tokens": 0}
     metric_logger = get_metric_logger(
         metric_logger_config=instantiate(cfg.metric_logger, _convert_="all"),
         neptune_run_id=training_state["run_id"],
@@ -155,6 +157,7 @@ def run(cfg):
     train_dataloader, eval_dataloader = dataloaders_factory()
 
     load_checkpoint(cfg.checkpoint_config, model, optimizer, scheduler)
+    print("YESSSSSSS!!!!!")
     trainer_factory = instantiate(cfg.trainer_factory)
     trainer_factory(
         model=model,
@@ -1175,13 +1178,15 @@ class Trainer:
         self.loss_interval_100 = 0.0
         self.eval_iterator = iter(self.eval_dataloader)
 
-        if self.start_step > 0:
-            n_skip_eval_batches = (
-                (self.start_step - 1) // self.eval_interval * self.n_eval_steps
-            )
-            logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
-            for _ in range(n_skip_eval_batches):
-                next(self.eval_iterator)
+        # if self.start_step > 0:
+        #     n_skip_eval_batches = (
+        #         (self.start_step - 1) // self.eval_interval * self.n_eval_steps
+        #     )
+        #     logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
+        #     for i in range(n_skip_eval_batches):
+        #         logger.info(f"Skipping eval batch {i}")
+        #         next(self.eval_iterator)
+
     @property
     def _should_evaluate(self) -> bool:
         return (
