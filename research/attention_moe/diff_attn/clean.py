@@ -517,16 +517,16 @@ class GroupedDifferentialAttention(LoggingLayer):
         self.dmodel = dmodel
         self.save_attention_weights = False
         self.attention_weights = None
-        self.n_positive_heads = n_heads if double_kv_cache else n_heads // 2
+        self.n_positive_heads = n_heads // 2
         self.negative_heads_permutation = negative_heads_permutation
 
-        self.n_positive_kv_heads = (n_kv_heads or n_heads) if double_kv_cache else (n_kv_heads or n_heads) // 2
+        self.n_positive_kv_heads = (n_kv_heads or n_heads) // 2
         assert n_negative_heads <= self.n_positive_kv_heads
         self.n_negative_heads = n_negative_heads
         self.n_rep_kv = self.n_positive_heads // self.n_positive_kv_heads
         self.n_rep_negative = self.n_positive_heads // self.n_negative_heads
 
-        self.dhead = dmodel // n_heads if adapter_type != "identity" else 2 * dmodel // n_heads
+        self.dhead = 2 * dmodel // n_heads if adapter_type == "identity" or (adapter_type == "lora" and double_kv_cache) else dmodel // n_heads
 
         self.plus_q_proj_out_dim = self.dhead * self.n_positive_heads
         self.plus_k_proj_out_dim = self.dhead * self.n_positive_kv_heads
@@ -1058,3 +1058,240 @@ class DifferentialAttention(LoggingLayer):
         return {
             "lambda": self.logging_cache["lambda"],
         }
+
+
+class TransitionTuningDifferentialAttention(LoggingLayer):
+    """
+    (Recommended)
+    DiffAttn implemented with FlashAttention, for packages that support different qk/v dimensions
+    e.g., our customized-flash-attention (https://aka.ms/flash-diff) and xformers (https://github.com/facebookresearch/xformers)
+    """
+
+    def __init__(
+        self,
+        # args,
+        dmodel,
+        # depth,
+        n_heads,
+        use_rope,
+        seq_len,
+        init_type,
+        init_scale,
+        n_kv_heads=None,
+        use_qk_norm: bool = False,
+        rms_norm_eps: float = 1e-6,
+        rope_theta: float = 10000.0,
+    ):
+        super().__init__()
+        # self.args = args
+        self.dmodel = dmodel
+        self.save_attention_weights = False
+        self.attention_weights = None
+
+        self.n_heads = n_heads
+        self.n_kv_heads = n_kv_heads or n_heads
+        self.n_rep = self.n_heads // self.n_kv_heads
+
+        self.dhead = dmodel // n_heads
+
+        v_proj_out_dim = k_proj_out_dim = self.dhead * self.n_kv_heads
+
+        self.q_proj = Linear(
+            dmodel,
+            dmodel,
+            bias=True,
+            init_type=init_type,
+            init_scale=init_scale,
+        )
+
+        self.k_proj = Linear(
+            dmodel,
+            k_proj_out_dim,
+            bias=True,
+            init_type=init_type,
+            init_scale=init_scale,
+        )
+        self.v_proj = Linear(
+            dmodel,
+            v_proj_out_dim,
+            bias=True,
+            init_type=init_type,
+            init_scale=init_scale,
+        )
+        self.out_proj = Linear(
+            dmodel, dmodel, bias=False, init_type=init_type, init_scale=init_scale
+        )
+
+        self.use_rope = use_rope
+        self.seq_len = seq_len
+
+        self.use_qk_norm = use_qk_norm
+        if self.use_qk_norm:
+            self.q_norm = RMSNorm(
+                self.dhead, eps=rms_norm_eps, elementwise_affine=True
+            )
+            self.k_norm = RMSNorm(
+                self.dhead, eps=rms_norm_eps, elementwise_affine=True
+            )
+
+        if self.use_rope:
+            self.rotary_emb = RotaryEmbedding(
+                self.dhead,
+                base=rope_theta,
+                interleaved=True,
+            )
+            self.rotary_emb._update_cos_sin_cache(self.seq_len, dtype=torch.float32)
+
+        self.attention_checked = False
+
+    def post_load_hook(self):
+        self.n_positive_heads = self.n_heads // 2
+        self.n_positive_kv_heads = (self.n_kv_heads or self.n_heads) // 2
+        self.n_rep = self.n_positive_heads // self.n_positive_kv_heads
+        # self.adapter_type = self.adapter_type
+
+        self.lambda_q1 = nn.Parameter(
+            torch.zeros(self.dhead, dtype=torch.float32).normal_(mean=0, std=0.1)
+        )
+        self.lambda_k1 = nn.Parameter(
+            torch.zeros(self.dhead, dtype=torch.float32).normal_(mean=0, std=0.1)
+        )
+        self.lambda_q2 = nn.Parameter(
+            torch.zeros(self.dhead, dtype=torch.float32).normal_(mean=0, std=0.1)
+        )
+        self.lambda_k2 = nn.Parameter(
+            torch.zeros(self.dhead, dtype=torch.float32).normal_(mean=0, std=0.1)
+        )
+
+        self.lambda_init = lambda_init_fn(self.block_number + 1)
+
+        self.v_dim = self.dmodel // self.n_positive_heads
+
+        # self.subln = RMSNorm(self.v_dim, eps=rms_norm_eps, elementwise_affine=True)
+        self.subln = RMSNorm(self.v_dim, eps=0.000001, elementwise_affine=True) #FIXME
+
+    def forward(
+            self,
+            x,
+            rel_pos=None,
+            attn_mask=None,
+    ):
+        bsz, _, _ = x.size()
+
+        q = self.q_proj(x).view(
+            bsz, self.seq_len, self.n_positive_heads, 2 * self.dhead
+        )
+        q, q_negative = q.chunk(2, dim=-1)
+        k = self.k_proj(x).view(
+            bsz, self.seq_len, self.n_positive_kv_heads, 2 * self.dhead
+        )
+        k, k_negative = k.chunk(2, dim=-1)
+        v = self.v_proj(x).view(bsz, self.seq_len, self.n_positive_kv_heads, self.v_dim)
+
+        if self.use_qk_norm:
+            q = self.q_norm(q)
+            k = self.k_norm(k)
+            q_negative = self.q_norm(q_negative)
+            k_negative = self.k_norm(k_negative)
+
+        if self.use_rope:
+            assert self.rotary_emb._cos_cached.dtype == torch.float32
+            rel_pos = (
+                self.rotary_emb._cos_cached.to(x.device),
+                self.rotary_emb._sin_cached.to(x.device),
+            )
+            q = apply_rotary_emb(
+                q.to(dtype=torch.float32), *rel_pos, interleaved=True
+            ).to(x)
+            k = apply_rotary_emb(
+                k.to(dtype=torch.float32), *rel_pos, interleaved=True
+            ).to(x)
+            q_negative = apply_rotary_emb(
+                q_negative.to(dtype=torch.float32), *rel_pos, interleaved=True
+            ).to(x)
+            k_negative = apply_rotary_emb(
+                k_negative.to(dtype=torch.float32), *rel_pos, interleaved=True
+            ).to(x)
+
+        # if self.adapter_type != "none":
+        q1 = q
+        q2 = q_negative
+        k1 = k
+        k2 = k_negative
+        if self.n_positive_kv_heads != self.n_positive_heads:
+            k1 = k1.repeat_interleave(self.n_rep, dim=2)
+            k2 = k2.repeat_interleave(self.n_rep, dim=2)
+            v = v.repeat_interleave(self.n_rep, dim=2)
+            assert (
+                    k1.shape == k2.shape == q1.shape == q2.shape
+            ), f"Shapes don't match: {k1.shape}, {k2.shape}, {q1.shape}, {q2.shape}"
+
+        lambda_1 = torch.exp(
+            torch.sum(self.lambda_q1 * self.lambda_k1, dim=-1).float()
+        ).type_as(q)
+        lambda_2 = torch.exp(
+            torch.sum(self.lambda_q2 * self.lambda_k2, dim=-1).float()
+        ).type_as(q)
+        lambda_full = lambda_1 - lambda_2 + self.lambda_init
+
+        self.update_cache_for_logging("lambda", lambda_full)
+
+        if self.save_attention_weights:
+            attn1, attn1_scores = manual_attention(
+                q1.transpose(1, 2),
+                k1.transpose(1, 2),
+                v.transpose(1, 2),
+                causal=True,
+            )
+            attn1 = attn1.transpose(1, 2)
+            attn2, attn2_scores = manual_attention(
+                q2.transpose(1, 2),
+                k2.transpose(1, 2),
+                v.transpose(1, 2),
+                causal=True,
+            )
+            attn2 = attn2.transpose(1, 2)
+            if False and self.attention_checked == False:
+                reference_attn1 = flash_attn_func(
+                    q1,
+                    k1,
+                    v,
+                    causal=True,
+                )
+                reference_attn2 = flash_attn_func(
+                    q2,
+                    k2,
+                    v,
+                    causal=True,
+                )
+                assert torch.allclose(
+                    attn1, reference_attn1, atol=1e-2
+                ), f"Manual attn1 does not match reference attn1: {attn1 - reference_attn1}"
+                assert torch.allclose(
+                    attn2, reference_attn2, atol=1e-2
+                ), f"Manual attn2 does not match reference attn2"
+
+            differential_scores = attn1_scores - lambda_full * attn2_scores
+            self.attention_weights = differential_scores
+        else:
+            attn1 = flash_attn_func(
+                q1,
+                k1,
+                v,
+                causal=True,
+            )
+            attn2 = flash_attn_func(
+                q2,
+                k2,
+                v,
+                causal=True,
+            )
+
+        attn = attn1 - lambda_full * attn2
+
+        attn = self.subln(attn)
+        attn = attn * (1 - self.lambda_init)
+        attn = attn.reshape(bsz, self.seq_len, self.n_positive_heads * self.v_dim)
+
+        attn = self.out_proj(attn)
+        return attn
