@@ -121,6 +121,8 @@ def run(cfg):
     if "distributed" in cfg and cfg.distributed is not None:
         distributed_setup()
     training_state = load_training_state(cfg.checkpoint_config)
+    training_state["run_id"] = None #REMOVE
+    # training_state = {"next_step": 0, "run_id": None, "processed_tokens": 0}
     metric_logger = get_metric_logger(
         metric_logger_config=instantiate(cfg.metric_logger, _convert_="all"),
         neptune_run_id=training_state["run_id"],
@@ -1180,8 +1182,10 @@ class Trainer:
                 (self.start_step - 1) // self.eval_interval * self.n_eval_steps
             )
             logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
-            for _ in range(n_skip_eval_batches):
+            for i in range(n_skip_eval_batches):
+                logger.info(f"Skipping eval batch {i}")
                 next(self.eval_iterator)
+
     @property
     def _should_evaluate(self) -> bool:
         return (
@@ -1587,6 +1591,8 @@ class TrainingState(Stateful):
         model_state_dict, optimizer_state_dict = get_state_dict(
             self.model, self.optimizer
         )
+        print("hahah", model_state_dict)
+        
         return {
             "model": model_state_dict,
             "optim": optimizer_state_dict,
@@ -1594,6 +1600,8 @@ class TrainingState(Stateful):
         }
 
     def load_state_dict(self, state_dict):
+        print("model", state_dict["model"])
+        print("optim",state_dict["optim"])
         set_state_dict(
             self.model,
             self.optimizer,
