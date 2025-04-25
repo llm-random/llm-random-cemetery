@@ -13,6 +13,7 @@ from torch.utils.data import DataLoader
 from torch.nn import (
     LayerNorm as LayerNorm,
 )  # used by FSDP, but it keeps getting removed during file formatting
+from torchdata.stateful_dataloader import StatefulDataLoader
 import torch.distributed as dist
 from dataclasses import dataclass
 from model import (
@@ -547,7 +548,7 @@ def get_dropping_dataloader(
             shuffle=dataloader_config.shuffle,
             world_size_independent=dataloader_config.world_size_independent,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset,
             batch_size=batch_size_per_device,
             collate_fn=partial(collate_reduction, sequence_length, dropped_tokens),
@@ -664,7 +665,7 @@ def get_mtp_dataloader(
             shuffle=dataloader_config.shuffle,
             world_size_independent=dataloader_config.world_size_independent,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset,
             batch_size=batch_size_per_device,
             collate_fn=collate_wrapper,
@@ -920,7 +921,7 @@ def get_extra_dataloader(
             shuffle=dataloader_config.shuffle,
             world_size_independent=dataloader_config.world_size_independent,
         )
-        dataloader = DataLoader(
+        dataloader = StatefulDataLoader(
             dataset,
             batch_size=batch_size_per_device,
             collate_fn=partial(collate_reduction, sequence_length, dropped_tokens),
