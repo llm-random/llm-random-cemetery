@@ -436,6 +436,7 @@ def introduce_parser_arguments(
     parser.add_argument("--diff_transformer_double_kv_cache", action="store_true")
     parser.add_argument("--diff_transformer_share_q_or_k", type=str, default=None)
     parser.add_argument("--use_final_norm", action="store_true")
+    parser.add_argument("--params_to_freeze", type=str, default=None, nargs="+")
     parser.add_argument(
         "--evaluate_attention_relevancy_interval", type=int, default=500
     )
