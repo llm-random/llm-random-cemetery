@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/frozen_matrices/2025.04.26_first_try.yaml --git_branch=debug_diff_2025-04-26_23-20-11 --skip_copy_code --custom_backends_module=research.attention_moe.backends
