@@ -270,6 +270,7 @@ def main(
         checkpoint=checkpoint,
         use_final_norm=args.use_final_norm,
         norm_fn=norm_fn,
+        params_to_freeze=args.params_to_freeze,
     )
 
     n_learnable_parameters = get_n_learnable_parameters(model)
