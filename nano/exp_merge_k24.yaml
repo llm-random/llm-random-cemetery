@@ -1,0 +1,55 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - factories
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/reduction_defaults:
+      - merge_model
+      - merge_factories
+    - configs/defaults/model_sizes:
+      - k24
+    - _self_
+
+model:
+  common:
+    sequence_length: 512
+    dropped_tokens: 153
+
+
+training:
+  dataloader:
+    total_batch_size: 512
+
+  n_steps: 125001
+  learning_rate: 3.5e-4
+
+
+  scheduler: 
+    config:
+      warmup_steps: 1250
+
+
+
+##### INFRASTRUCTURE #####
+checkpoint_config:
+    interval: 25000
+    path: "/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/ckpts/k24_merge_0.3_3.5e-4"
+
+
+
+server: "mojhelios"
+
+metric_logger:
+  name: "tr_merge_k24"
+  tags: 
+    - "merge" 
+    - "lr=3.5e-4"
+    - "k24"
+    - "r=0.3"
+
+venv_path: '/net/storage/pr3/plgrid/plggllmeffi/venv_crew/bin/activate'
+experiment_prepare_venv_path: '/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/login_venv/bin/activate'
