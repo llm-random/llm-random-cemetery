@@ -6,7 +6,7 @@ backends_module: research.attention_moe.backends
 
 # train params
 params:
-  name: "diff_fixed_config_lora_gda"
+  name: "diff_fixed_config_double_lora"
 
   # base bass
   mixed_precision: true
@@ -20,7 +20,7 @@ params:
   logging_interval_loss: 1000
   # save_weights_path: "model_ckpt"
   save_weights_interval: 15000
-  tags: ["diff_neurips", "diff_fixed_config_lora_gda"]
+  tags: ["diff_neurips", "diff_fixed_config_double_lora"]
 
 
   cutoff: 2048
@@ -60,18 +60,18 @@ params:
   ff_mode: swi_glu
   use_final_norm: true
 
-  ^attention_mode: [gda]
-  ^diff_transformer_n_negative_heads: [6]
+  ^attention_mode: [adapter_differential]
+#  ^diff_transformer_n_negative_heads: [6]
 #  ^diff_transformer_negative_heads_permutation: [repeat, interleave, flip_repeat, flip_interleave, roll_repeat, repeat_roll, roll_interleave]
-  ^learning_rate: [1e-3]
+  ^learning_rate: [1e-3, 2e-3]
   ^diff_transformer_adapter_type: [lora]
   ^diff_transformer_lowrank_dim: [64]
-  ^dff: [2240]
+  ^dff: [1963]
 #  ^dff: [1814]
 #  ^diff_transformer_lowrank_scaling: [0.5, 1.0, 2.0, 4.0]
   ^diff_transformer_lowrank_scaling: [1.0, 2.0]
   ^diff_transformer_lowrank_bias: [false]
-  ^diff_transformer_double_kv_cache: [false]
+  ^diff_transformer_double_kv_cache: [true]
 
 
 
