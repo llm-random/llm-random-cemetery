@@ -4,3 +4,6 @@ checkpoint_config:
     path: "checkpoints"
     training_state_filename: __training_state__.pt
     model_checkpoint_filename: __model_optim_scheduler__.pt
+
+    load_path: ${checkpoint_config.path}
+    save_path: ${checkpoint_config.path}

@@ -1015,6 +1015,8 @@ def get_metric_logger(
     metric_logger_config: Optional[MetricLoggerConfig] = None,
     neptune_run_id: Optional[str] = None,
 ):
+    if "new_neptune_job" in metric_logger_config:
+        neptune_run_id = None if metric_logger_config["new_neptune_job"] else neptune_run_id
     global _metric_logger
     if _metric_logger is None:
         if metric_logger_config.type == "neptune":
@@ -1200,7 +1202,7 @@ class Trainer:
             self.checkpoint_config.interval > 0
             and (self.step) % self.checkpoint_config.interval == 0
             and self.step != 0
-            and self.checkpoint_config.path is not None
+            and self.checkpoint_config.save_path is not None
         )
 
     def train(self):
@@ -1633,7 +1635,7 @@ def broadcast_message(rank, message=None):
 
 
 def step_checkpoint_path(checkpoint_config, step):
-    full_config_path = get_full_checkpoint_path(checkpoint_config)
+    full_config_path = get_full_checkpoint_save_path(checkpoint_config)
     return f"{full_config_path}/step_{step}"
 
 
@@ -1656,25 +1658,25 @@ def save_training_state(
     )
 
     logger.info(
-        f"Saved training state in '{checkpoint_config.path}/{checkpoint_config.training_state_filename}'"
+        f"Saved training state in '{checkpoint_config.save_path}/{checkpoint_config.training_state_filename}'"
     )
 
 
-def get_full_checkpoint_path(checkpoint_config):
+def get_full_checkpoint_save_path(checkpoint_config):
     slurm_array_task_id = os.getenv("SLURM_ARRAY_TASK_ID")
     return (
-        f"{checkpoint_config.path}/{slurm_array_task_id}"
+        f"{checkpoint_config.save_path}/{slurm_array_task_id}"
         if slurm_array_task_id is not None
-        else checkpoint_config.path
+        else checkpoint_config.save_path
     )
 
 
 def load_training_state(checkpoint_config):
     training_start_config = {"next_step": 0, "run_id": None, "processed_tokens": 0}
-    if checkpoint_config.path is None:
+    if checkpoint_config.load_path is None:
         return training_start_config
 
-    full_checkpoint_path = get_full_checkpoint_path(checkpoint_config)
+    full_checkpoint_path = checkpoint_config.load_path
     os.makedirs(full_checkpoint_path, exist_ok=True)
     latest_checkpoint = _find_latest_checkpoint(full_checkpoint_path)
     if latest_checkpoint is None:
@@ -1699,10 +1701,10 @@ def _find_latest_checkpoint(path: str) -> str:
 
 
 def load_checkpoint(checkpoint_config, model, optimizer, scheduler):
-    if checkpoint_config.path is None:
+    if checkpoint_config.load_path is None:
         return
 
-    full_checkpoint_path = get_full_checkpoint_path(checkpoint_config)
+    full_checkpoint_path = get_full_checkpoint_save_path(checkpoint_config)
     latest_checkpoint_folder = _find_latest_checkpoint(full_checkpoint_path)
 
     if latest_checkpoint_folder is not None:
