@@ -17,7 +17,9 @@ slurm:
   nodes: 1
   ntasks-per-node: 4
 
-cemetery_experiments_dir:  "/net/storage/pr3/plgrid/plggllmeffi/tr_proba/cemetery"
+# cemetery_experiments_dir:  "/net/storage/pr3/plgrid/plggllmeffi/tr_proba/cemetery"
+
+cemetery_experiments_dir:  "/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/cemetery"
 
 modules_to_add: 
   - "ML-bundle/24.06a"
