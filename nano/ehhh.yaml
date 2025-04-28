@@ -1,0 +1,204 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - infrastructure
+      - metric_logger
+      - training
+    # - configs/experiments/mtp_merge:
+    #   - mtp_w_merge
+    - _self_
+    - configs/defaults/model_sizes:
+      - k24
+    # - _self_
+
+# model:
+#   common:
+#     sequence_length: 512
+#     # dropped_tokens: 51
+#     dropped_tokens: 153
+#     # dropped_tokens: 128
+#     # dropped_tokens: 256 
+
+#   mtp_config:
+#     _target_: token_reduction.model.MTPConfig
+#     n_mtp: 2
+#     mtp_block_config: ${model.tower_config.block_config}
+
+training:
+  dataloader:
+    total_batch_size: 512
+    training_dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train"
+    eval_dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation"
+    num_workers: 4
+
+  gradient_accumulation_steps: 2
+
+  n_steps: 125001
+  learning_rate: 3.5e-4
+
+
+  scheduler: 
+    config:
+      warmup_steps: 1250
+
+  seed: 87654
+
+
+##### INFRASTRUCTURE #####
+
+checkpoint_config:
+    interval: 125000
+    path: "/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/ckpts/k24_mtp_merge_0.3_3.5e-4_full_reduction"
+
+
+server: mojhelios
+
+metric_logger:
+  name: "go_tr_mtp_k24"
+  tags: 
+    - "k24"
+    - "mtp+merge"
+    - "lr=3.5e-4"
+    - "r=0.1"
+    - "tokens_decay=0.2"
+
+
+slurm:
+  gres: gpu:4
+  time: "2-00:00:00"
+  partition: "plgrid-gpu-gh200"
+  cpus-per-gpu: "72"
+  mem-per-gpu: "100G"
+  account: "plgllmefficont2-gpu-gh200"
+  nodes: 1
+  ntasks-per-node: 4
+  job-name: "go_tr_mtp_k24"
+
+
+modules_to_add: 
+  - "ML-bundle/24.06a"
+
+
+cemetery_experiments_dir: "/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/cemetery"
+
+
+venv_path: '/net/storage/pr3/plgrid/plggllmeffi/venv_crew/bin/activate'
+experiment_prepare_venv_path: '/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/login_venv/bin/activate'
+
+hydra:
+  callbacks:
+    log_job_return:
+      _target_: hydra.experimental.callbacks.LogJobReturnCallback
+  verbose:
+      - __main__
+      - model
+
+
+dataloaders_factory:
+    _target_: token_reduction.model.get_ultimate_dataloaders
+    _partial_: true
+    dataloader_config: ${training.dataloader}
+    train_sequence_length: ${eval:'${model.common.sequence_length} + ${model.mtp_config.n_mtp} + ${model.common.dropped_tokens}'}
+    eval_sequence_length: ${model.common.sequence_length} 
+    train_seed: ${training.seed}
+    eval_seed: ${training.evaluation.seed}
+
+trainer_factory: 
+    _target_: token_reduction.model.TrainerMTPWithMergingUltimate
+    _partial_: true
+    gradient_accumulation_steps: ${training.gradient_accumulation_steps}
+    n_steps: ${training.n_steps}
+    eval_interval: ${training.evaluation.eval_interval}
+    n_eval_steps: ${training.evaluation.n_eval_steps}
+    gradient_clipping: ${training.gradient_clipping}
+    checkpoint_config: ${checkpoint_config}
+    n_reduced_tokens: ${model.common.dropped_tokens}
+    sequence_length: ${model.common.sequence_length}
+    # token_reducing_scheduler:
+    #   _target_: token_reduction.model.ReductionScheduler      
+    #   schedule_config:
+    #       - type: linear
+    #         percentage: 1.0
+    #         start_scale: 1.0
+    #         end_scale: 0.0
+    #   total_steps: ${training.n_steps}
+
+    token_reducing_scheduler:
+      _target_: token_reduction.model.ReductionScheduler      
+      # schedule_config:
+      #     - type: constant
+      #       percentage: 0.8
+      #       start_scale: 1.0
+      #       end_scale: 1.0
+      #     - type: linear
+      #       percentage: 0.2
+      #       start_scale: 1.0
+      #       end_scale: 0.0
+      schedule_config:
+          - type: constant
+            percentage: 1.0
+            start_scale: 1.0
+            end_scale: 1.0
+      total_steps: ${training.n_steps}
+
+
+model:
+    _target_: token_reduction.model.LLM_MTP    
+
+    embedding:
+        _target_: token_reduction.model.TokenMergingEmbedding
+        normal_embedding:
+            _target_: token_reduction.model.get_dropping_standard_embedding
+            sequence_length: ${model.common.sequence_length}
+            dmodel: ${model.common.dmodel}
+            init_type: ${model.common.init_type}
+            init_scale: ${model.common.init_scale}
+            vocab_size: ${model.common.vocab_size}
+            reduction_tokens: ${model.common.dropped_tokens}
+        common: ${model.common}
+
+    tower_config:
+        _target_: model.TowerConfig
+        mode: "same" # is every block in tower the same
+        n_blocks: ???
+
+        block_config:
+            _target_: model.BlockConfig
+            attention:
+                _target_: model.AttentionConfig
+                mode: "vanilla"
+                n_heads: ???
+
+            feedforward:
+                _target_: model.FeedForwardConfig
+                mode: vanilla
+
+            residual_mode: "pre_norm"
+            norm_class_mode: "layer_norm"
+
+    common: 
+        _target_: token_reduction.model.CommonDroppingConfig
+        model_type: "gpt"
+        sequence_length: 512
+        dmodel: ???
+        dff: ???
+        init_type: truncated_normal_fixed
+        init_scale: 0.1
+        vocab_size: 50257
+        dropped_tokens: 51
+
+    mtp_config:
+        _target_: token_reduction.model.MTPConfig
+        n_mtp: 2
+        mtp_block_config: ${model.tower_config.block_config}
+
+
+# model:
+#   common:
+#     sequence_length: 512
+#     # dropped_tokens: 51
+#     dropped_tokens: 153
+#     # dropped_tokens: 128
+#     # dropped_tokens: 256 
