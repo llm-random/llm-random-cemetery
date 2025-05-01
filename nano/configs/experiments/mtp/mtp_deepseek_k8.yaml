@@ -15,10 +15,11 @@ defaults:
 training:
   _target_: model.TrainingConfig
   n_steps: 50000
-  ^learning_rate: [2e-3]
+  ^learning_rate: [1e-3]
   weight_decay: 0.1
-  gradient_accumulation_steps: 1
-  seed: 46768
+  gradient_accumulation_steps: 2
+  # ^seed: [40, 41, 42]
+  seed: 123456
   gradient_clipping: 1.0
 
   scheduler: 
@@ -31,12 +32,13 @@ training:
       type: "cosine"
 
   dataloader:
+    total_batch_size: 512
     training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
 
 model:
   common:
-    sequence_length: 256
+    sequence_length: 512
     dff: 2048
     dmodel: 512
   tower_config:
@@ -49,6 +51,7 @@ model:
     n_mtp: 2
 
 slurm:
+  job-name: ${metric_logger.name}
   gres: gpu:1
   time: "20:00:00"
   partition: a100
@@ -62,7 +65,7 @@ metric_logger:
   heavy_metrics_calculation_interval: 1000
   project_name: "pmtest/llm-random"
   name: "mtp_deepseek"
-  tags: ["nano", "remove", "jm_debug", "mtp_deepseek"]
+  tags: ["nano", "mtp_deepseek", "k8", "upperbound_check", "vanilla", "remove"]
 
 venv_path: '$HOME/llm-random/nano/venv/bin/activate' 
 server: entropy
