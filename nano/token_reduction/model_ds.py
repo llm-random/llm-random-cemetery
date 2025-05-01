@@ -505,46 +505,44 @@ class TrainerMTP(Trainer):
             if self._should_evaluate:
                 self.eval()
 
-    def calculate_loss(self, batch, n_mtp):
-        def _hack_for_python_garbage_collection(input_ids, target_ids, n_mtp):
-            """we want to have no reference to model output while backpropagating to allow torch to free memory,
-            so we wrap loss calculation in a function"""
-            tower_outputs = self.model(input_ids)
-            tower_outputs_detatched = tower_outputs.detach()
-            tower_outputs_detatched.requires_grad = True
+    def mtp_loop(self, tower_outputs_detatched, target_ids, n_mtp):
+        target_len = target_ids.shape[-1]
+        mtp_losses = []
+        for i in range(n_mtp):
+            mtp_module_output = self.model.mtp_modules[i](tower_outputs_detatched)
+            predicted_ids = self.model.head(mtp_module_output)
+            mtp_target_ids = target_ids[:, i : target_len + i - n_mtp + 1].detach()
 
-            # Tensors should be on the same device for loss calculation #TODO check
-            target_ids = target_ids.to(tower_outputs.device)
-            target_len = target_ids.shape[-1]
-            mtp_losses = []
-            for i in range(n_mtp):
-                if isinstance(self.model, dist.fsdp.FullyShardedDataParallel):
-                    mtp_module_output = self.model.module.mtp_modules[i](
-                        tower_outputs_detatched
-                    )
-                    predicted_ids = self.model.module.head(mtp_module_output)
-                else:
-                    mtp_module_output = self.model.mtp_modules[i](
-                        tower_outputs_detatched
-                    )
-                    predicted_ids = self.model.head(mtp_module_output)
-                mtp_target_ids = target_ids[:, i : target_len + i - n_mtp + 1].detach()
-                mtp_loss = F.cross_entropy(
-                    predicted_ids.flatten(0, -2),
-                    mtp_target_ids.reshape(-1).long(),
-                    reduction="none",
-                )
-                mtp_loss = mtp_loss.mean() / self.gradient_accumulation_steps
-                if self.model.training:
-                    mtp_loss.backward()
-                mtp_losses.append(mtp_loss)
-
+            mtp_loss = F.cross_entropy(
+                predicted_ids.flatten(0, -2),
+                mtp_target_ids.reshape(-1).long(),
+                reduction="none",
+            )
+            mtp_loss = mtp_loss.mean() / self.gradient_accumulation_steps
             if self.model.training:
-                mtp_grad = tower_outputs_detatched.grad
-                return mtp_losses, tower_outputs, mtp_grad
-            else:
-                return mtp_losses, None, None
+                mtp_loss.backward()
+            mtp_losses.append(mtp_loss)
+        return mtp_losses
 
+    def hack_for_python_garbage_collection(self, input_ids, target_ids, n_mtp):
+        """we want to have no reference to model output while backpropagating to allow torch to free memory,
+        so we wrap loss calculation in a function"""
+        tower_outputs = self.model(input_ids)
+        tower_outputs_detatched = tower_outputs.detach()
+        tower_outputs_detatched.requires_grad = True
+
+        # Tensors should be on the same device for loss calculation #TODO check
+        target_ids = target_ids.to(tower_outputs.device)
+
+        mtp_losses = self.mtp_loop(tower_outputs_detatched, target_ids, n_mtp)
+
+        if self.model.training:
+            mtp_grad = tower_outputs_detatched.grad
+            return mtp_losses, tower_outputs, mtp_grad
+        else:
+            return mtp_losses, None, None
+
+    def calculate_loss(self, batch, n_mtp):
         losses = []
         for batch_chunk in batch.chunk(self.gradient_accumulation_steps):
             input_ids, target_ids = self._preprocess_input_mtp(batch_chunk, n_mtp)
@@ -552,9 +550,11 @@ class TrainerMTP(Trainer):
             if self.model.training:
                 self._update_processed_tokens(input_ids)
 
-            mtp_losses, tower_outputs, mtp_grad = _hack_for_python_garbage_collection(
-                input_ids, target_ids, n_mtp
-            )
+            (
+                mtp_losses,
+                tower_outputs,
+                mtp_grad,
+            ) = self.hack_for_python_garbage_collection(input_ids, target_ids, n_mtp)
             if self.model.training:
                 tower_outputs.backward(gradient=mtp_grad)
             losses.append(mtp_losses)  # TODO handle other mtp losses
