@@ -12,10 +12,10 @@ defaults:
 
 training:
     _target_: model.TrainingConfig
-    n_steps: 120001
-    learning_rate: 1e-4
+    n_steps: 40001
+    ^learning_rate: [5e-4, 2e-4, 1e-4]
     weight_decay: 0.1
-    gradient_accumulation_steps: 1
+    gradient_accumulation_steps: 2
     seed: 53
     gradient_clipping: 1.0
 
@@ -36,29 +36,29 @@ training:
 model:
   common:
     sequence_length: 512
-    dff: 6144
-    dmodel: 1536
+    dff: 4096
+    dmodel: 1024
     head_norm: false
 
   tower_config:
-    n_blocks: 24
+    n_blocks: 16
     block_config:
       attention:
-        n_heads: 24
+        n_heads: 16
 
 metric_logger:
     type: "neptune"
-    heavy_metrics_calculation_interval: 1200
+    heavy_metrics_calculation_interval: 800
     project_name: "pmtest/llm-random"
     name: "nano_head_norm"
-    tags: ["nano", "head_norm", "k24", "hnorm=False"]
+    tags: ["nano", "head_norm_lrgrid", "k16", "hnorm=False"]
 
 slurm:
     job-name: ${metric_logger.name}
     gres: gpu:${slurm.ntasks-per-node}
-    ntasks-per-node: 4
-    time: "80:00:00"
-    partition: h100
+    ntasks-per-node: 2
+    time: "48:00:00"
+    partition: a100
 
 checkpoint_config:
     interval: 0
