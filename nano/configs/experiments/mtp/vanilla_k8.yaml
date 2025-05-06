@@ -12,8 +12,8 @@ defaults:
 
 training:
     _target_: model.TrainingConfig
-    n_steps: 50000
-    ^learning_rate: [2e-3, 1e-3, 5e-4]
+    n_steps: 8001
+    ^learning_rate: [5e-4, 1e-3, 2e-3, 5e-4]
     weight_decay: 0.1
     gradient_accumulation_steps: 1
     seed: 46768
@@ -23,20 +23,22 @@ training:
         _target_: model.get_cosine_scheduler_with_warmup
         _partial_: true
         config:        
-            warmup_steps: 500
+            warmup_steps: 80
             n_steps: ${training.n_steps}
             final_lr_fraction: 0.1
             type: "cosine"
 
     dataloader:
+        total_batch_size: 512
         training_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
         eval_dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
 
 model:
   common:
-    sequence_length: 256
+    sequence_length: 512
     dff: 2048
     dmodel: 512
+    head_norm: true
   tower_config:
     n_blocks: 8
     block_config:
