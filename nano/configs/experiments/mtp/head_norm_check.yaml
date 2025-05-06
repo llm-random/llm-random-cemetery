@@ -48,7 +48,7 @@ model:
 
 metric_logger:
     type: "neptune"
-    heavy_metrics_calculation_interval: 1200
+    heavy_metrics_calculation_interval: 2400
     project_name: "pmtest/llm-random"
     name: "nano_head_norm"
     tags: ["nano", "head_norm", "k24", "hnorm=False"]
@@ -57,7 +57,7 @@ slurm:
     job-name: ${metric_logger.name}
     gres: gpu:${slurm.ntasks-per-node}
     ntasks-per-node: 4
-    time: "80:00:00"
+    time: "96:00:00"
     partition: h100
 
 checkpoint_config:
