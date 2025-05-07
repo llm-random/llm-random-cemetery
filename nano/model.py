@@ -311,7 +311,11 @@ def get_dataloaders(
     sequence_length: int,
     train_seed: int,
     eval_seed: int,
+    eval_sequence_length: Optional[int]=None,
 ):
+
+    if not eval_sequence_length:
+        eval_sequence_length = sequence_length
 
     world_size = int(os.environ["WORLD_SIZE"])
     batch_size_per_device = dataloader_config.total_batch_size // world_size
@@ -329,7 +333,7 @@ def get_dataloaders(
     eval_dataloader = get_dataloader(
         dataloader_config=dataloader_config,
         batch_size_per_device=batch_size_per_device,
-        sequence_length=sequence_length,
+        sequence_length=eval_sequence_length,
         seed=eval_seed,
         dataset_split="validation",
     )
