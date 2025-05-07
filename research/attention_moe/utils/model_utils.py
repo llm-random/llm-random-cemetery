@@ -18,7 +18,7 @@ from research.attention_moe.diff_attn.clean import (
     AdapterDifferentialAttention,
     DifferentialAttention,
     GroupedDifferentialAttention,
-    VanillaAttention,
+    VanillaAttention, TransitionTuningDifferentialAttention,
 )
 from research.attention_moe.diff_attn.fast import (
     Lowrank,
@@ -309,6 +309,20 @@ def get_attention_layer(args):
             n_kv_heads=args.n_kv_heads,
             rms_norm_eps=args.rms_norm_eps,
             rope_theta=args.rope_theta,
+        )
+    elif args.attention_mode == "transition_tuning":
+        attention_layer_fun = lambda: TransitionTuningDifferentialAttention(
+            dmodel=args.dmodel,
+            n_heads=args.n_att_heads,
+            use_rope=args.use_rope,
+            seq_len=args.cutoff,
+            init_type=args.init_type,
+            init_scale=args.init_scale,
+            n_kv_heads=args.n_kv_heads,
+            rms_norm_eps=args.rms_norm_eps,
+            rope_theta=args.rope_theta,
+            adapter_type=args.diff_transformer_adapter_type,
+
         )
     elif args.attention_mode == "mqa":
         # attention_layer_fun = lambda: CausalMQA(
