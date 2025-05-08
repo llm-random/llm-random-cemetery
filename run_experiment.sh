@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/private/intra_layer_balancing/2025.05.07_first_try.yaml --git_branch=intra_layer_balancing_2025-05-08_20-01-53 --skip_copy_code --custom_backends_module=research.attention_moe.backends
