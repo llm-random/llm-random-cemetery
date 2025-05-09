@@ -44,9 +44,9 @@ def main(config):
     dump_grid_configs(configs_grid, output_folder)
 
     modules_to_add = config.get("modules_to_add", None)
-    generate_sbatch_script(
-        config.slurm, output_folder, len(configs_grid), config.venv_path, modules_to_add
-    )
+    # generate_sbatch_script(
+    #     config.slurm, output_folder, len(configs_grid), config.venv_path, modules_to_add
+    # )
 
     if config.get("_debug_"):
         training_config, overrides = configs_grid[0]
