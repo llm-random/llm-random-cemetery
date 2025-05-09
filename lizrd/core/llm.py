@@ -377,9 +377,30 @@ class AttentionRoPE(LoggingLayer):
         self.causal = causal
         self.flash = flash
 
-        self.input_projection = Linear(
+        # self.input_projection = Linear(
+        #     dmodel,
+        #     3 * heads * dhead,
+        #     bias=False,
+        #     init_type=init_type,
+        #     init_scale=init_scale,
+        # )
+        self.input_projection_q = Linear(
             dmodel,
-            3 * heads * dhead,
+            heads * dhead,
+            bias=False,
+            init_type=init_type,
+            init_scale=init_scale,
+        )
+        self.input_projection_k = Linear(
+            dmodel,
+            heads * dhead,
+            bias=False,
+            init_type=init_type,
+            init_scale=init_scale,
+        )
+        self.input_projection_v = Linear(
+            dmodel,
+            heads * dhead,
             bias=False,
             init_type=init_type,
             init_scale=init_scale,
@@ -395,15 +416,30 @@ class AttentionRoPE(LoggingLayer):
         self.attention_mechanism = AttentionMechanism(use_flash_attention=flash)
 
     def forward(self, x):
-        projected = self.input_projection(x)
+        # projected = self.input_projection(x)
+        
 
+        # batch, seq_len = x.shape[:-1]
+        # projected = projected.view(
+        #     batch, seq_len, self.heads, 3 * self.dhead
+        # ).transpose(1, 2)
+        # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+
+        q = self.input_projection_q(x)
+        k = self.input_projection_k(x)
+        v = self.input_projection_v(x)
+
+        projected = torch.concat((q,k,v), dim=-1)
         batch, seq_len = x.shape[:-1]
         projected = projected.view(
             batch, seq_len, self.heads, 3 * self.dhead
         ).transpose(1, 2)
         q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        # common_device = v.dtype
         q = self.rope(q)
         k = self.rope(k)
+
+        print(f"dtypes: q {q.dtype} k {k.dtype} v {v.dtype} -----------------") #dev
 
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, dhead=self.dhead, causal=self.causal
