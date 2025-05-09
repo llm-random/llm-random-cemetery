@@ -12,8 +12,8 @@ defaults:
 
 training:
     _target_: model.TrainingConfig
-    n_steps: 50000
-    ^learning_rate: [2e-3, 1e-3, 5e-4]
+    ^n_steps: [20, 30]
+    learning_rate: 2e-3
     weight_decay: 0.1
     gradient_accumulation_steps: 1
     seed: 46768
@@ -37,6 +37,7 @@ model:
     sequence_length: 256
     dff: 2048
     dmodel: 512
+    ^head_norm: [true, false]
   tower_config:
     n_blocks: 8
     block_config:
@@ -46,7 +47,7 @@ model:
 slurm:
     gres: gpu:1
     time: "20:00:00"
-    partition: h100
+    partition: a100
 
 checkpoint_config:
     interval: 0
