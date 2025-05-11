@@ -1,13 +1,13 @@
 
 parent: configs/projected_dis/1ff/common.yaml
 md5_parent_hash: 41ba87a56e92ea289913b5a7ffea8f9b
-time: 8-00:00:00
+time: 2-00:00:00
 n_gpus: 4
 cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "dm1024", "doner", "COMP2"]
+  tags: ["projected_dis", "1ff", "dm1024", "doner", "rope", "COMP2", "COMP"] # , "all_head_ln" , "head_ln"
 
   # ^learning_rate: [0.0000625, 0.000125, 0.00025, 0.0005] #+
   # ^learning_rate: [0.00075, 0.001, 0.002] # 0.0005
@@ -24,13 +24,19 @@ params:
   dff: 1024
   # ^n_steps: [15_533, 31_066, 62_132]  # 20T/ap
   # ^n_steps: [31_066, 62_132]
-  ^n_steps: [124_264]
-  # n_steps: 15_533
+  # ^n_steps: [124_264]
+  n_steps: 15_533
+  # n_steps: 62_132
+
+  attention_mode: "rope"
+  no_positional_embedding: True
+  head_layer_norm: True
 
   dont_save_final_model: False
   # save_weights_path: /local_storage_1/ms_tmp/models/ #dev entropy models dir
 
   fsdp_use_orig_params: True
-  fsdp_enabled: True
+  # fsdp_enabled: False #dev
+  fsdp_enabled: True #dev
   fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
   fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
