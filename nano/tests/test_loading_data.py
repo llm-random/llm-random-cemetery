@@ -80,7 +80,7 @@ class TestC4Dataset(unittest.TestCase):
                 tokenizer="dummy_tokenizer",
             )
 
-            dataset.data_generator = self.mock_data_generator
+            dataset._get_data_generator = lambda: iter(self.mock_tokens)
 
             returned_samples = list(itertools.islice(iter(dataset), num_samples))
 
@@ -102,10 +102,6 @@ class TestC4Dataset(unittest.TestCase):
         }
 
         for rank in [0, 1]:
-            self.mock_data_generator = Mock()  # Reset the mock data generator
-            self.mock_data_generator.__iter__ = Mock(
-                return_value=iter(self.mock_tokens)
-            )
             with patch.dict("os.environ", {"WORLD_SIZE": "2", "RANK": str(rank)}):
                 num_samples = 2
                 mock_randint.side_effect = [1, 0, 1, 4]
@@ -118,7 +114,7 @@ class TestC4Dataset(unittest.TestCase):
                     world_size_independent=True,
                 )
 
-                dataset.data_generator = self.mock_data_generator
+                dataset._get_data_generator = lambda: iter(self.mock_tokens)
 
                 returned_samples = list(itertools.islice(iter(dataset), num_samples))
                 self.assertListEqual(returned_samples, expected_samples[rank])
