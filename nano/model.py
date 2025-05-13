@@ -12,7 +12,7 @@ from pydantic import (
 )
 import torch.nn as nn
 from dataclasses import dataclass
-from typing import Callable, Literal
+from typing import Callable, Iterator, Literal
 from attr import define
 import torch
 import torch.nn.functional as F
@@ -131,7 +131,7 @@ def run(cfg, metric_logger=None):
         metric_logger.run["job_config"] = cfg
         upload_config_file(metric_logger)
 
-    torch.manual_seed(cfg.trainer_factory.train_dataloader.seed)
+    torch.manual_seed(5)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -188,22 +188,128 @@ def _process_document(document, encode_fn, eot_str):
         )
     }
 
+# class C4Dataset(IterableDataset):
+#     BUFFER_SIZE = 10000
+#     NUM_SHARDS = 64
+
+#     def __init__(
+#         self,
+#         sequence_length,
+#         path: Optional[str] = None,
+#         split: Optional[str] = None,
+#         tokenizer: Optional[PreTrainedTokenizerBase] = None,
+#         seed: Optional[int] = None,
+#         eot_str: str = "<|endoftext|>",
+#         use_new_sampling_method: bool = True,
+#         shuffle: bool = True,
+#         world_size_independent: bool = False,
+#     ):
+#         self.world_size = int(os.environ.get("WORLD_SIZE", 1))
+#         self.rank = int(os.environ.get("RANK", 0))
+#         self.use_new_sampling_method = use_new_sampling_method
+#         self.world_size_independent = world_size_independent
+#         self.sequence_length = sequence_length
+#         self.seed = seed
+#         self.shuffle = shuffle
+#         self.eot_str = eot_str
+#         self.rng = random.Random(seed)
+
+#         if tokenizer is None:
+#             tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
+
+#         self.tokenizer = tokenizer
+#         self._load_dataset(path, split)
+
+#     def _load_dataset(self, path, split):
+#         if path is None:
+#             logger.debug(f"Loading 'allenai/c4' from HuggingFace with split={split}")
+#             hf_dataset = load_dataset(
+#                 "allenai/c4",
+#                 "en",
+#                 split=split,
+#                 streaming=True,
+#                 trust_remote_code=True,
+#             )
+#         else:
+#             logger.debug(f"Loading dataset from disk path: {path}")
+#             hf_dataset = load_from_disk(path)
+#             hf_dataset = hf_dataset.to_iterable_dataset(num_shards=self.NUM_SHARDS)
+
+#         if not self.world_size_independent:
+#             hf_dataset = split_dataset_by_node(
+#                 hf_dataset, rank=self.rank, world_size=self.world_size
+#             )
+
+#         if self.shuffle:
+#             hf_dataset = hf_dataset.shuffle(buffer_size=self.BUFFER_SIZE, seed=self.seed)
+
+#         self.base_dataset = hf_dataset
+
+#     def _get_data_generator(self):
+#         hf_dataset = self.base_dataset
+
+#         return hf_dataset.map(
+#             _process_document,
+#             fn_kwargs={
+#                 "encode_fn": self.tokenizer.encode,
+#                 "eot_str": self.eot_str,
+#             },
+#         )
+
+#     def get_infinite_sampler(self):
+#         epoch = 0
+#         while True:
+#             data_generator = self._get_data_generator()
+#             for sample in data_generator:
+#                 yield sample
+#             epoch += 1
+
+#     def sample_packer(self):
+#         buffer: List[int] = []
+#         sampler = iter(self.get_infinite_sampler())
+#         if self.use_new_sampling_method:
+#             while True:
+#                 sample = next(sampler)["tokens"]
+
+#                 if len(buffer) == 0:
+#                     rand_num = self.rng.randint(0, len(sample) - 1)
+#                     sample = sample[rand_num:]
+
+#                 buffer.extend(sample)
+
+#                 if len(buffer) >= self.sequence_length:
+#                     yield buffer[: self.sequence_length]
+#                     buffer = []
+#         else:
+#             document_lengths: List[int] = []
+#             while True:
+#                 tokens = next(sampler)["tokens"]
+#                 buffer.extend(tokens)
+
+#                 document_lengths.append(len(tokens))
+#                 if (
+#                     sum(document_lengths) - max(document_lengths)
+#                 ) > self.sequence_length:
+#                     sample_start = self.rng.randint(0, len(buffer) - 1)
+#                     sample_end = sample_start + self.sequence_length
+#                     input_ids = list(take_circular(buffer, sample_start, sample_end))
+#                     yield input_ids
+#                     buffer, document_lengths = [], []
+
+#     def __iter__(self):
+#         packer = self.sample_packer()
+#         if self.world_size_independent:
+#             return itertools.islice(packer, self.rank, None, self.world_size)
+#         else:
+#             return packer
 
 class C4Dataset(IterableDataset):
-    """
-    world_size_independent - if True, we take the whole dataset and take every 'mod rank' element. If world_size == 1 it does not matter.
-    shuffle - if True, we shuffle the dataset independently on each rank part (unless world_size_independent is True)
-
-
-    world_size_independent should be 'True' for tests and eval
-    """
-
     BUFFER_SIZE = 10000
     NUM_SHARDS = 64
 
     def __init__(
         self,
-        sequence_length,
+        sequence_length: int,
         path: Optional[str] = None,
         split: Optional[str] = None,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
@@ -213,94 +319,105 @@ class C4Dataset(IterableDataset):
         shuffle: bool = True,
         world_size_independent: bool = False,
     ):
-        self.world_size = int(os.environ.get("WORLD_SIZE"))
-        self.rank = int(os.environ.get("RANK"))
+        self.sequence_length = sequence_length
+        self.path = path
+        self.split = split
+        self.seed = seed
+        self.shuffle = shuffle
+        self.eot_str = eot_str
         self.use_new_sampling_method = use_new_sampling_method
         self.world_size_independent = world_size_independent
-        if tokenizer is None:
-            tokenizer = GPT2TokenizerFast.from_pretrained("gpt2")
-        self._load_dataset(path, split, seed, tokenizer, eot_str, shuffle)
-        self.sequence_length = sequence_length
+
+        self.world_size = int(os.environ.get("WORLD_SIZE", 1))
+        self.rank = int(os.environ.get("RANK", 0))
         self.rng = random.Random(seed)
 
-    def _load_dataset(self, path, split, seed, tokenizer, eot_str, shuffle: bool):
-        if path is None:
-            logger.debug(
-                f"Loading 'allenai/c4' dataset from HuggingFace with split={split}"
-            )
-            hf_dataset = load_dataset(
+        self.tokenizer = tokenizer or GPT2TokenizerFast.from_pretrained("gpt2")
+        self.base_dataset = None  # Will be lazily loaded
+
+    def _load_dataset(self):
+        """Load and optionally shard/shuffle the dataset."""
+        if self.base_dataset is not None:
+            return
+
+        if self.path is None:
+            dataset = load_dataset(
                 "allenai/c4",
                 "en",
-                split=split,
+                split=self.split,
                 streaming=True,
                 trust_remote_code=True,
             )
         else:
-            logger.debug(f"Loading dataset from path '{path}'")
-            hf_dataset = load_from_disk(path)
-            hf_dataset = hf_dataset.to_iterable_dataset(num_shards=self.NUM_SHARDS)
+            dataset = load_from_disk(self.path).to_iterable_dataset(num_shards=self.NUM_SHARDS)
 
         if not self.world_size_independent:
-            hf_dataset = split_dataset_by_node(
-                hf_dataset, rank=self.rank, world_size=self.world_size
-            )
+            dataset = split_dataset_by_node(dataset, rank=self.rank, world_size=self.world_size)
 
-        if shuffle:
-            hf_dataset = hf_dataset.shuffle(buffer_size=self.BUFFER_SIZE, seed=seed)
+        if self.shuffle:
+            dataset = dataset.shuffle(buffer_size=self.BUFFER_SIZE, seed=self.seed)
 
-        self.data_generator = hf_dataset.map(
-            _process_document,
-            fn_kwargs={"encode_fn": tokenizer.encode, "eot_str": eot_str},
-        )
+        self.base_dataset = dataset
 
-    def get_infinite_sampler(self):
-        epoch = 0
-        while True:
-            self.data_generator.set_epoch(epoch)
-            for next_sample in self.data_generator:
-                yield next_sample
-            epoch += 1
+    def _tokenize_document(self, example):
+        """Tokenize document and add end-of-text token."""
+        tokens = self.tokenizer.encode(example["text"] + self.eot_str,             truncation=False,
+            max_length=int(1e10))
+        return {"tokens": tokens}
 
-    def sample_packer(self):
+    def _get_data_generator(self):
+        """Return dataset generator with tokenized documents."""
+        self._load_dataset()
+        return self.base_dataset.map(self._tokenize_document)
+
+    def _new_sampling(self, sampler: Iterator[dict]) -> Iterator[List[int]]:
+        """New sampling strategy: truncate at random offset, fill buffer."""
         buffer: List[int] = []
-        sampler = iter(self.get_infinite_sampler())
+        lel = iter(sampler)
+        while True:
+            tokens = next(lel)["tokens"]
+            if not buffer:
+                start = self.rng.randint(0, len(tokens) - 1)
+                tokens = tokens[start:]
+
+            buffer.extend(tokens)
+
+            if len(buffer) >= self.sequence_length:
+                yield buffer[: self.sequence_length]
+                buffer = []
+
+    def _old_sampling(self, sampler: Iterator[dict]) -> Iterator[List[int]]:
+        """Old sampling strategy: accumulate documents, cut random chunk."""
+        buffer: List[int] = []
+        doc_lengths: List[int] = []
+
+        while True:
+            tokens = next(sampler)["tokens"]
+            buffer.extend(tokens)
+            doc_lengths.append(len(tokens))
+
+            if sum(doc_lengths) - max(doc_lengths) > self.sequence_length:
+                start = self.rng.randint(0, len(buffer) - 1)
+                end = start + self.sequence_length
+                yield list(take_circular(buffer, start, end))
+                buffer.clear()
+                doc_lengths.clear()
+
+    def sample_packer(self) -> Iterator[List[int]]:
+        """Yield sequences of fixed length using selected strategy."""
+        sampler = iter(self._get_data_generator())
         if self.use_new_sampling_method:
-
-            while True:
-                sample = next(sampler)["tokens"]
-
-                if len(buffer) == 0:
-                    rand_num = self.rng.randint(0, len(sample) - 1)
-                    sample = sample[rand_num:]
-
-                buffer.extend(sample)
-
-                if len(buffer) >= self.sequence_length:
-                    yield buffer[: self.sequence_length]
-                    buffer = []
+            return self._new_sampling(sampler)
         else:
-            document_lengths: List[int] = []
-            while True:
-                tokens = next(sampler)["tokens"]
-                buffer.extend(tokens)
+            return self._old_sampling(sampler)
 
-                document_lengths.append(len(tokens))
-                if (
-                    sum(document_lengths) - max(document_lengths)
-                ) > self.sequence_length:
-                    sample_start = self.rng.randint(0, len(buffer) - 1)
-                    sample_end = sample_start + self.sequence_length
-                    input_ids = list(take_circular(buffer, sample_start, sample_end))
-                    yield input_ids
-                    buffer, document_lengths = [], []
-
-    def __iter__(self):
+    def __iter__(self) -> Iterator[List[int]]:
+        """Main dataset iterator."""
+        packer = self.sample_packer()
+        self.rng.seed(self.seed)
         if self.world_size_independent:
-            return itertools.islice(
-                self.sample_packer(), self.rank, None, self.world_size
-            )
-        else:
-            return self.sample_packer()
+            return itertools.islice(packer, self.rank, None, self.world_size)
+        return packer
 
 
 def collate_wrapper(examples):
@@ -340,6 +457,7 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            prefetch_factor=4,
         )
     else:
         raise ValueError(f"Unsupported dataset type: '{dataset_type}'")
@@ -1720,3 +1838,46 @@ def load_checkpoint(checkpoint_config, model, optimizer, scheduler):
             logger.debug(
                 f"Loaded non-sharded checkpoint from '{latest_checkpoint_folder}'"
             )
+
+
+class CustomCombinedLoader:
+    def __init__(self, loader1, loader2, final_seq_len=None, final_batch_size=None):
+        self.loader1 = loader1
+        self.loader2 = loader2
+        self.final_seq_len = final_seq_len
+        self.final_batch_size = final_batch_size
+
+    def __iter__(self):
+        self.iter1 = iter(self.loader1)
+        self.iter2 = iter(self.loader2)
+        return self
+
+    def __next__(self):
+        batch1 = next(self.iter1)
+        batch2 = next(self.iter2)
+
+        return self._combine_batches(batch1, batch2)
+
+    def _combine_batches(self, batch1, batch2):
+        def truncate(tensor):
+            # Apply batch size truncation
+            if self.final_batch_size is not None:
+                tensor = tensor[:self.final_batch_size]
+            # Apply sequence length truncation (assuming sequences are at dim 1)
+            if self.final_seq_len is not None and tensor.ndim > 1:
+                tensor = tensor[:, :self.final_seq_len]
+            return tensor
+
+        if isinstance(batch1, tuple):
+            combined = tuple(torch.cat([b1, b2]) for b1, b2 in zip(batch1, batch2))
+            return tuple(truncate(t) for t in combined)
+        elif isinstance(batch1, dict):
+            combined = {k: torch.cat([batch1[k], batch2[k]]) for k in batch1}
+            return {k: truncate(v) for k, v in combined.items()}
+        else:
+            combined = torch.cat([batch1, batch2])
+            return truncate(combined)
+        
+def trunc_collate(batch, seq_len=None, batch_size=None):
+    truncated = [sequence[:seq_len] for sequence in batch[:batch_size]]
+    return torch.from_numpy(np.array(truncated))
