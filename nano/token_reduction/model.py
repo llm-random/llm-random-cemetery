@@ -729,6 +729,7 @@ class TrainerMTPWithMerging(Trainer):
             n_mtp = len(self.model.mtp_modules)
         return n_mtp
 
+
 class ReductionScheduler:
     def __init__(self, schedule_config, total_steps):
         self.schedule_config = schedule_config
@@ -988,3 +989,44 @@ class TrainerMTPWithMergingUltimate(Trainer):
         else:
             n_mtp = len(self.model.mtp_modules)
         return n_mtp
+
+
+class CustomCombinedLoader:
+    def __init__(
+        self,
+        loader1,
+        loader2,
+    ):
+        self.loader1 = loader1
+        self.loader2 = loader2
+
+    def __iter__(self):
+        self.iter1 = iter(self.loader1)
+        self.iter2 = iter(self.loader2)
+        return self
+
+    def __next__(self):
+        try:
+            batch1 = next(self.iter1)
+        except StopIteration:
+            batch1 = None
+        try:
+            batch2 = next(self.iter2)
+        except StopIteration:
+            batch2 = None
+
+        if batch1 is None or batch2 is None:
+            raise StopIteration
+
+        return self._combine_batches(batch1, batch2)
+
+    def _combine_batches(self, batch1, batch2):
+        if isinstance(batch1, tuple):
+            return tuple(torch.cat([b1, b2]) for b1, b2 in zip(batch1, batch2))
+        elif isinstance(batch1, dict):
+            return {k: torch.cat([batch1[k], batch2[k]]) for k in batch1}
+        else:
+            return torch.cat([batch1, batch2])
+
+    def __len__(self):
+        return min(len(self.loader1), len(self.loader2))
