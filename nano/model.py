@@ -12,7 +12,7 @@ from pydantic import (
 )
 import torch.nn as nn
 from dataclasses import dataclass
-from typing import Callable, Literal
+from typing import Callable, Iterator, Literal
 from attr import define
 import torch
 import torch.nn.functional as F
@@ -131,7 +131,7 @@ def run(cfg, metric_logger=None):
         metric_logger.run["job_config"] = cfg
         upload_config_file(metric_logger)
 
-    torch.manual_seed(cfg.trainer_factory.train_dataloader.seed)
+    torch.manual_seed(5)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -340,6 +340,7 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            prefetch_factor=4,
         )
     else:
         raise ValueError(f"Unsupported dataset type: '{dataset_type}'")
