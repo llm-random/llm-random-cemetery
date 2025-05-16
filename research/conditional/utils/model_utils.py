@@ -447,6 +447,17 @@ def get_attention_layer(args):
             init_type=args.init_type,
             init_scale=args.init_scale,
         )
+    elif args.attention_mode == "projected_vanilla_rope_res": #dev
+        attention_layer_fun = lambda: ProjectedAttentionRes(
+            dmodel=args.dmodel,
+            projected_dmodel=args.projected_dmodel,
+            heads=args.n_att_heads,
+            causal=causal,
+            dhead=args.dhead,
+            flash=args.flash_attention,
+            init_type=args.init_type,
+            init_scale=args.init_scale,
+        )
     else:
         raise NotImplementedError(
             f"Attention type {args.attention_mode} not implemented"
