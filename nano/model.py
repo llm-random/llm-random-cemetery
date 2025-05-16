@@ -343,6 +343,7 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            # prefetch_factor=4,
         )
     else:
         raise ValueError(f"Unsupported dataset type: '{dataset_type}'")
