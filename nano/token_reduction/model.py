@@ -28,6 +28,7 @@ from model import (
     PredictionHead,
     RMSNorm,
 )
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -1166,3 +1167,7 @@ class TrainerMTPWithMergingUltimate(Trainer):
                     "steps/train/loss_100", self.step, self.loss_interval_100 / 100.0
                 )
                 self.loss_interval_100 = 0.0
+
+def trunc_collate(batch, seq_len=None, batch_size=None):
+    truncated = [sequence[:seq_len] for sequence in batch[:batch_size]]
+    return torch.from_numpy(np.array(truncated))
