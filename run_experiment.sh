@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/muP_MoE/configs/lr_plot_moe_exprate.yaml --git_branch=muP_MoE_lr_plot_moe_exprate_2025-05-16_20-42-07 --skip_copy_code --custom_backends_module=research.muP_MoE.utils.backends
