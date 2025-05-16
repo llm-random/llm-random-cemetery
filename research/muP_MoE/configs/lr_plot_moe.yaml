@@ -1,9 +1,9 @@
 runner: "research.muP_MoE.train.train"
 
 # time: "05:00:00"
-time: "02:00:00"
+time: "04:00:00"
 
-n_gpus: 4
+n_gpus: 2
 cpus_per_gpu: 16
 
 interactive_debug: false
@@ -20,7 +20,7 @@ params:
     # alpha_in: 5.0
     # alpha_out: 0.2
     base_dmodel: 64
-  ^use_mup_router: [true, false]
+  ^use_mup_router: [false]
 
   # training
   n_steps: 15000
@@ -57,7 +57,7 @@ params:
 
   # learning
   scheduler: cosine
-  ^learning_rate: [2e-2, 5e-2]
+  ^learning_rate: [2e-3]
   final_lr_fraction: 0.1
   grad_clip: 1.0
   weight_decay: 0.1
