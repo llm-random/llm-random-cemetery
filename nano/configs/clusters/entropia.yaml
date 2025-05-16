@@ -2,12 +2,12 @@
 cluster_name: "entropia"
 
 
-trainer_factory:
-  train_dataloader:
-    dataset_path: "/storage_ssd_1/llm-random-data/train"
+# trainer_factory:
+#   train_dataloader:
+#     dataset_path: "/storage_ssd_1/llm-random-data/train"
 
-  eval_dataloader:
-    dataset_path: "/storage_ssd_1/llm-random-data/validation"
+#   eval_dataloader:
+#     dataset_path: "/storage_ssd_1/llm-random-data/validation"
 
 slurm:
   partition: "h100"
