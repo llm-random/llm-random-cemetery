@@ -27,6 +27,7 @@ from model import (
     TransformerBlock,
     PredictionHead,
 )
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -988,3 +989,46 @@ class TrainerMTPWithMergingUltimate(Trainer):
         else:
             n_mtp = len(self.model.mtp_modules)
         return n_mtp
+
+
+class CustomCombinedLoader:
+    def __init__(self, loader1, loader2, final_seq_len=None, final_batch_size=None):
+        self.loader1 = loader1
+        self.loader2 = loader2
+        self.final_seq_len = final_seq_len
+        self.final_batch_size = final_batch_size
+
+    def __iter__(self):
+        self.iter1 = iter(self.loader1)
+        self.iter2 = iter(self.loader2)
+        return self
+
+    def __next__(self):
+        batch1 = next(self.iter1)
+        batch2 = next(self.iter2)
+
+        return self._combine_batches(batch1, batch2)
+
+    def _combine_batches(self, batch1, batch2):
+        def truncate(tensor):
+            # Apply batch size truncation
+            if self.final_batch_size is not None:
+                tensor = tensor[:self.final_batch_size]
+            # Apply sequence length truncation (assuming sequences are at dim 1)
+            if self.final_seq_len is not None and tensor.ndim > 1:
+                tensor = tensor[:, :self.final_seq_len]
+            return tensor
+
+        if isinstance(batch1, tuple):
+            combined = tuple(torch.cat([b1, b2]) for b1, b2 in zip(batch1, batch2))
+            return tuple(truncate(t) for t in combined)
+        elif isinstance(batch1, dict):
+            combined = {k: torch.cat([batch1[k], batch2[k]]) for k in batch1}
+            return {k: truncate(v) for k, v in combined.items()}
+        else:
+            combined = torch.cat([batch1, batch2])
+            return truncate(combined)
+        
+def trunc_collate(batch, seq_len=None, batch_size=None):
+    truncated = [sequence[:seq_len] for sequence in batch[:batch_size]]
+    return torch.from_numpy(np.array(truncated))
