@@ -207,33 +207,6 @@ def get_model(
 
                 projection, mask_1d = get_var_head_projection(dm, projected_dmodel, n_att_heads)
                 projection = "shared_block"
-            elif projection_init_type == "shared_att_in_half":
-                print("Projection initialization: shared_att_in_half")
-                assert (projected_dmodel/n_att_heads)%2 == 0
-                
-                mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
-                mask_1d[int(len(mask_1d)/2):] = False
-                mask_1d = torch.concat([mask_1d]*n_att_heads)
-                print(mask_1d) #dev
-                projection = "shared_att_in"
-            elif projection_init_type == "shared_att_out_half":
-                print("Projection initialization: shared_att_out_half")
-                assert (projected_dmodel/n_att_heads)%2 == 0
-                
-                mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
-                mask_1d[int(len(mask_1d)/2):] = False
-                mask_1d = torch.concat([mask_1d]*n_att_heads)
-                print(mask_1d) #dev
-                projection = "shared_att_out"
-            elif projection_init_type == "shared_att_in_out_half":
-                print("Projection initialization: shared_att_in_out_half")
-                assert (projected_dmodel/n_att_heads)%2 == 0
-                
-                mask_1d = torch.ones(int(projected_dmodel/n_att_heads), dtype=torch.bool)
-                mask_1d[int(len(mask_1d)/2):] = False
-                mask_1d = torch.concat([mask_1d]*n_att_heads)
-                print(mask_1d) #dev
-                projection = "shared_att_in_out"
             else:
                 raise Exception("Wrong projection init type")
             
