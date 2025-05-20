@@ -1,0 +1,96 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/reduction_defaults:
+      - merge_model
+      - merge_factories
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - infrastructure
+      - metric_logger
+      - training
+    - configs/defaults/model_sizes:
+      - k8
+    - _self_
+
+model:
+  common:
+    sequence_length: 256
+    dropped_tokens: 96
+
+training:
+
+  n_steps: 50000
+  ^learning_rate: [5e-3, 5e-4]
+
+
+  scheduler: 
+    config:
+      warmup_steps: 500
+
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "comp"
+  gres: gpu:1
+  time: 0-10:00:00
+  partition: a100
+  cpus-per-task: 32
+  mem_per_gpu: 125G
+  nodes: 1
+  # ntasks-per-node: 2
+
+checkpoint_config:
+    interval: 0
+    path: "/storage_nvme_1/crewtool/checkpoints/speed_test"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
+
+metric_logger:
+  name: "tune_vanilla_merge"
+  tags: 
+    - "nano"
+    - "k8"
+    - vanilla
+
+
+
+trainer_factory: 
+    train_dataloader:
+        _target_: model.get_dataloader
+        dataset_type: "c4"
+        dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+        dataset_split: "train"
+        total_batch_size: 1024
+        sequence_length: 1024
+        num_workers: 32
+        seed: 10001
+        shuffle: true
+        use_new_sampling_method: true
+        world_size_independent: false
+        collate_fn: 
+            _target_: token_reduction.model.collate_trunc_reduction
+            _partial_: true
+            trunc_seq_len: ${eval:'${model.common.sequence_length} + ${model.common.dropped_tokens} + 1'}
+            result_seq_len: ${model.common.sequence_length}
+            trunc_batch_size: 256
+            n_dropped_tokens: ${model.common.dropped_tokens}
+
+
+    eval_dataloader:
+        _target_: model.get_dataloader
+        dataset_type: "c4"
+        dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+        dataset_split: "validation"
+        total_batch_size: 256
+        sequence_length: 256
+        num_workers: 4
+        seed: 123
+        shuffle: true
+        use_new_sampling_method: true
+        world_size_independent: false
