@@ -810,14 +810,6 @@ class ProjectedAttentionRopeRes(LoggingLayer):
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
-                )),
-                ("output_projection",
-                Linear(
-                    projected_dmodel, # xb
-                    dmodel, # xs
-                    bias=False,
-                    init_type=init_type,
-                    init_scale=init_scale,
                 ))
             ])
         )
@@ -836,14 +828,6 @@ class ProjectedAttentionRopeRes(LoggingLayer):
                 Linear(
                     projected_dmodel, # xb
                     heads * projected_dhead, # yb
-                    bias=False,
-                    init_type=init_type,
-                    init_scale=init_scale,
-                )),
-                ("output_projection",
-                Linear(
-                    projected_dmodel, # xb
-                    dmodel, # xs
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
@@ -868,34 +852,26 @@ class ProjectedAttentionRopeRes(LoggingLayer):
                     bias=False,
                     init_type=init_type,
                     init_scale=init_scale,
-                )),
-                ("output_projection",
-                Linear(
-                    projected_dmodel, # xb
-                    dmodel, # xs
-                    bias=False,
-                    init_type=init_type,
-                    init_scale=init_scale,
                 ))
             ])
         )
         self.input_projection_q_res = Linear(
             dmodel, # xs
-            heads * dhead, # ys
+            heads * projected_dhead, # ys
             bias=False,
             init_type="zeros",
             init_scale=None,
         )
         self.input_projection_k_res = Linear(
             dmodel, # xs
-            heads * dhead, # ys
+            heads * projected_dhead, # ys
             bias=False,
             init_type="zeros",
             init_scale=None,
         )
         self.input_projection_v_res = Linear(
             dmodel, # xs
-            heads * dhead, # ys
+            heads * projected_dhead, # ys
             bias=False,
             init_type="zeros",
             init_scale=None,
@@ -903,14 +879,6 @@ class ProjectedAttentionRopeRes(LoggingLayer):
 
         self.output_projection = nn.Sequential(
             OrderedDict([
-                ("output_projection_p21",
-                Linear(
-                    heads * dhead, # xs
-                    heads * projected_dhead, # xb
-                    bias=False,
-                    init_type=init_type,
-                    init_scale=init_scale,
-                )),
                 ("output_projection",
                 Linear(
                     heads * projected_dhead, # xb
@@ -930,7 +898,7 @@ class ProjectedAttentionRopeRes(LoggingLayer):
             ])
         )
         self.output_projection_res = Linear(
-            heads * dhead, # xs
+            heads * projected_dhead, # xs
             dmodel, # ys
             bias=False,
             init_type="zeros",
@@ -946,7 +914,6 @@ class ProjectedAttentionRopeRes(LoggingLayer):
         v = self.input_projection_v(x) + self.input_projection_v_res(x)
 
         projected = torch.concat((q,k,v), dim=-1)
-
         batch, seq_len = x.shape[:-1]
         projected = projected.view(
             batch, seq_len, self.heads, 3 * self.dhead
@@ -955,7 +922,6 @@ class ProjectedAttentionRopeRes(LoggingLayer):
 
         q = self.rope(q)
         k = self.rope(k)
-
         common_device = v.dtype #dev
         q = q.to(common_device) #dev
         k = k.to(common_device) #dev
