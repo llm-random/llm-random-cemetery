@@ -1,0 +1,27 @@
+
+parent: configs/projected_dis/4ff_large/common.yaml
+md5_parent_hash: ce7eb30390c65fc8d47d91509403961d
+time: 0-02:00:00
+n_gpus: 4
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  tags: ["projected_dis", "4ff", "dm1536", "doner", "COMP"]
+
+  learning_rate: 0.001 #dev
+  final_lr_fraction: 0.03 #dev
+  lr_warmup_percent: 0.01 #dev
+
+  batch_size: 1024
+  cutoff: 1024
+  dmodel: 1536
+  dff: 6144
+  n_steps: 63_559 # 20T/ap
+
+  dont_save_final_model: True
+
+  fsdp_use_orig_params: True
+  fsdp_enabled: True
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
