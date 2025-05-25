@@ -28,6 +28,7 @@ from model import (
     PredictionHead,
     RMSNorm,
 )
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -498,6 +499,7 @@ class TrainerMTP(Trainer):
                 ]
                 for i in range(self.model.n_mtp + 1)
             ]
+            input_ids = input_ids.to(self.device)
         else:
             input_ids = [batch[:, :-1]]
             mtp_target_ids = [batch[:, 1:]]
@@ -514,6 +516,7 @@ class TrainerMTP(Trainer):
 
         mtp_losses = []
         for predicted_ids, target_ids in zip(mtp_outputs, mtp_target_ids):
+            target_ids = target_ids.to(self.device)
             mask_loss = F.cross_entropy(
                 predicted_ids.flatten(0, -2),
                 target_ids.reshape(-1).long(),
@@ -769,3 +772,20 @@ class TrainerMTPMerge(TrainerMTP):
             input_ids = [batch[:, :-1]]
             mtp_target_ids = [batch[:, 1:]]
         return input_ids, mtp_target_ids
+    
+
+def trunc_collate(batch, seq_len=None, batch_size=None):
+    truncated = [sequence[:seq_len] for sequence in batch[:batch_size]]
+    return torch.from_numpy(np.array(truncated))
+
+
+def collate_trunc_reduction(
+    batch, trunc_seq_len, trunc_batch_size, result_seq_len, n_dropped_tokens
+):
+    truncated = [sequence[:trunc_seq_len] for sequence in batch[:trunc_batch_size]]
+    batch = torch.from_numpy(np.array(truncated))
+    batch_size, seq_len = batch.shape
+    return (
+        batch,
+        batched_split_indexes(batch_size, seq_len, result_seq_len, n_dropped_tokens),
+    )
