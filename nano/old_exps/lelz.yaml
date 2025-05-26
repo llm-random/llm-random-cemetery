@@ -1,0 +1,6 @@
+
+
+model:
+  common:
+    sequence_length: 1
+    ^sequence_length: [32, 14]
