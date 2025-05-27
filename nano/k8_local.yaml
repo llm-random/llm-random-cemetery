@@ -1,0 +1,73 @@
+defaults:
+    - k8_merge
+    - _self_
+
+model:
+  common:
+    sequence_length: 8
+    dropped_tokens: 3
+
+training:
+
+  n_steps: 100
+  ^learning_rate: [2e-3, 5e-3, 1e-3]
+
+
+  scheduler: 
+    config:
+      warmup_steps: 10
+
+
+
+##### INFRASTRUCTURE #####
+
+# slurm:
+#   job-name: "comp"
+#   gres: gpu:1
+#   time: 0-10:00:00
+#   partition: a100
+#   cpus-per-task: 32
+#   mem_per_gpu: 125G
+#   nodes: 1
+#   # ntasks-per-node: 2
+
+checkpoint_config:
+    path: "ckpts"
+
+
+# venv_path: '$HOME/onefiler/venv/bin/activate'
+
+# server: entropia
+
+metric_logger:
+  project_name: "crewtool/mojtestproject"
+  name: "xd"
+  tags: 
+    - "nano"
+    - "k8"
+    - vanilla
+
+
+trainer_factory: 
+    train_dataloader:
+        dataset_path: "data"
+        total_batch_size: 4
+        sequence_length: 13
+        num_workers: 0
+        shuffle: false
+        collate_fn: 
+            _target_: token_reduction.model.collate_trunc_reduction
+            _partial_: true
+            trunc_seq_len: ${eval:'${model.common.sequence_length} + ${model.common.dropped_tokens} + 1'}
+            result_seq_len: ${model.common.sequence_length}
+            trunc_batch_size: 2
+            n_dropped_tokens: ${model.common.dropped_tokens}
+
+
+    eval_dataloader:
+        dataset_path: "data_eval"
+        total_batch_size: 4
+        sequence_length: 4
+        num_workers: 0
+        seed: 123
+        shuffle: false
