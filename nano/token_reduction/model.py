@@ -28,6 +28,7 @@ from model import (
     PredictionHead,
     RMSNorm,
 )
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -253,9 +254,11 @@ class LLM_DeepSeekMTP(nn.Module):
         for name, model in self.named_modules():
             model.log_name = _get_metric_log_name(name)
 
-    def forward(self, x):
-        seq_len = x.shape[1] - self.n_mtp
-        embedding_out = self.embedding_layer(x)
+    def forward(self, *args, **kwargs):
+        # args[0]: [bsz, seq_len + n_dropped + n_mtp, dmodel]
+        embedding_out = self.embedding_layer(*args, **kwargs)
+        # Embedding out shoud be: [batch_size, seq_len + n_mtp, dmodel]
+        seq_len = embedding_out.shape[1] - self.n_mtp
         if self.training:
             transformer_tower_input = embedding_out[:, :seq_len]
         else:
@@ -589,7 +592,7 @@ class TrainerMTP(Trainer):
 
 @define(slots=False)
 class TrainerDeepSeekMTP(TrainerMTP):
-    mtp_lambda: float = 0.6
+    mtp_lambda: float
 
     def prepare_input_output(self, batch):
         if self.model.training:
@@ -727,3 +730,49 @@ class TrainerMTPMerge(TrainerMTP):
             input_ids = [batch[:, :-1]]
             mtp_target_ids = [batch[:, 1:]]
         return input_ids, mtp_target_ids
+    
+@define(slots=False)
+class TrainerDeepSeekMTPMerge(TrainerDeepSeekMTP):
+    sequence_length: int
+    n_reduced_tokens: int
+    # token_reducing_scheduler: ReductionScheduxler = None
+
+    def prepare_input_output(self, batch):
+        if self.model.training:
+            input_ids = [batch[:, :-1].to(self.device)]
+            keep_pos_ids, reduce_pos_ids = batched_split_indexes(
+                batch.shape[0], None, self.sequence_length, self.n_reduced_tokens
+            )
+            mtp_target_ids = [
+                batch_index_select(batch, keep_pos_ids + 1 + i)
+                for i in range(self.model.n_mtp + 1)
+            ]
+            
+            start_mtp_indexes = self.sequence_length + self.n_reduced_tokens
+            end_mtp_indexes = start_mtp_indexes + self.model.n_mtp
+            mtp_indexes = torch.tensor(range(start_mtp_indexes, end_mtp_indexes)).repeat(len(keep_pos_ids), 1)
+
+            keep_pos_ids = torch.cat( (keep_pos_ids, mtp_indexes), dim=1)
+
+            input_ids.extend([keep_pos_ids, reduce_pos_ids])
+        else:
+            input_ids = [batch[:, :-1]]
+            mtp_target_ids = [batch[:, 1:]]
+        return input_ids, mtp_target_ids
+    
+
+def trunc_collate(batch, seq_len=None, batch_size=None):
+    truncated = [sequence[:seq_len] for sequence in batch[:batch_size]]
+    return torch.from_numpy(np.array(truncated))
+
+
+def collate_trunc_reduction(
+    batch, trunc_seq_len, trunc_batch_size, result_seq_len, n_dropped_tokens
+):
+    truncated = [sequence[:trunc_seq_len] for sequence in batch[:trunc_batch_size]]
+    batch = torch.from_numpy(np.array(truncated))
+    batch_size, seq_len = batch.shape
+    return (
+        batch,
+        batched_split_indexes(batch_size, seq_len, result_seq_len, n_dropped_tokens),
+    )
