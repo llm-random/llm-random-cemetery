@@ -9,21 +9,16 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "1ff", "compression", "dm768_1024", "COMP"] 
-  # tags: ["projected_dis", "1ff", "compression", "dm768_1024", "wide_head", "dmodel_focus", "plus_emb_magnitude", "separate_dff_magnitude", "n_chunks_select=int(projected_dmodel/4)"] # , "global_dff_magnitude", "plus_dff_magnitude", "L16", "n_chunks_select=1"
-  # tags: ["projected_dis", "1ff", "compression", "dm768_1024", "tune_lr_scheduler"]
-
-  batch_size: 512
+  tags: ["projected_dis", "4ff", "compression", "dm768_1536", "COMP"] 
+  # tags: ["projected_dis", "4ff", "compression", "dm768_1536", "tune_lr"]
 
   dmodel: 768
-  dff: 768
-  projected_dmodel: 1024
-  projected_dff: 1024
+  dff: 3072
+  projected_dmodel: 1536
+  projected_dff: 6144
   
-  # ^learning_rate: [0.000125, 0.00025, 0.0005]
-  # ^learning_rate: [0.00025, 0.0005, 0.00075]
-  # ^learning_rate: [0.000125, 0.0005]
-  learning_rate: 0.000125 #new best
+  ^learning_rate: [0.00003125, 0.0000625, 0.000125, 0.00025]
+  # learning_rate: 0.000125 #dev
 
   scheduler: cosine
   # lr_warmup_percent: 0.1 #compression
@@ -33,8 +28,8 @@ params:
 
   # ^n_steps: [509, 764, 1018, 2036, 3054, 4072, 5090, 6107, 7125, 8143, 9161, 10179]
   # ^n_steps: [10179, 20358, 30537, 40716]
-  ^n_steps: [20358, 30537, 40716]
-  # ^n_steps: [10179]
+  # ^n_steps: [20358, 30537, 40716]
+  ^n_steps: [10179]
 
   attention_mode: projected_vanilla_rope_res
   ff_mode: projected_vanilla_res
@@ -46,8 +41,8 @@ params:
   # projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmaciejpioro/llm_random_cemetery/PD_2025-03-20_14-31-55/None/118538/62132.pt # 80 helios #old
   # projected_weights_path: /home/ubuntu/mstefaniak/checkpoints/dm_1024_80.pt # ? #old
 
-  # projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_1ff_62132.pt # 80 helios
-  projected_weights_path: /home/ubuntu/llm-random-group/llm-random-cemetery/PD_2025-05-16_11-35-31/None/10656/62132.pt # writer 80
+  projected_weights_path: asd # helios 20
+  # projected_weights_path: asd # writer 20
 
 
   fsdp_use_orig_params: True
