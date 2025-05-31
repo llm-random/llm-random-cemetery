@@ -1,0 +1,161 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - infrastructure
+      - metric_logger
+      - model
+      - training
+    - configs/defaults/model_sizes:
+      - k8
+    - _self_
+
+model:
+  _target_: token_reduction.model.LLM_DeepSeekMTP   
+  embedding:
+      _target_: token_reduction.model.TokenMergingEmbedding
+      normal_embedding:
+          _target_: token_reduction.model.get_dropping_standard_embedding
+          sequence_length: ${eval:'${model.common.sequence_length} + ${model.mtp_config.n_mtp}'}
+          dmodel: ${model.common.dmodel}
+          init_type: ${model.common.init_type}
+          init_scale: ${model.common.init_scale}
+          vocab_size: ${model.common.vocab_size}
+          reduction_tokens: ${model.common.dropped_tokens}
+      common: ${model.common}
+  common:
+    _target_: token_reduction.model.CommonDroppingConfig
+    # dropped_tokens: 1
+    # ^dropped_tokens: [32, 64, 96]
+    dropped_tokens: 96
+    ^sequence_length: [256]
+
+  mtp_config:
+      _target_: token_reduction.model.MTPConfig
+      n_mtp: 1
+      mtp_block_config: ${model.tower_config.block_config}
+
+training:
+
+  n_steps: 50001
+  # ^learning_rate: [5e-4, 1e-3, 2e-3]
+  learning_rate: 1e-3
+
+
+  scheduler: 
+    config:
+      warmup_steps: 500
+
+
+metric_logger:
+  name: "k8_mtp_deepseek_merge"
+  tags: 
+    - "nano"
+    - "k8"
+    - "mtp"
+    - "deepseek"
+    - "merge"
+  new_neptune_job: true
+
+
+
+trainer_factory: 
+    _target_: token_reduction.model.TrainerDeepSeekMTPMerge
+    _partial_: true
+    gradient_accumulation_steps: ${training.gradient_accumulation_steps}
+    n_steps: ${training.n_steps}
+    eval_interval: ${training.evaluation.eval_interval}
+    n_eval_steps: ${training.evaluation.n_eval_steps}
+    gradient_clipping: ${training.gradient_clipping}
+    checkpoint_config: ${checkpoint_config}
+    mtp_lambda: 0.6
+    n_reduced_tokens: ${model.common.dropped_tokens}
+    sequence_length: ${model.common.sequence_length}
+    # schedule_config:
+    #     - type: constant
+    #       percentage: 1.0
+    #       start_scale: 1.0
+    #       end_scale: 1.0
+    #     # - type: cosine
+    #     #   percentage: 0.15
+    #     #   start_scale: 1.0
+    #     #   end_scale: 0.0
+    #     # - type: constant
+    #     #   percentage: 0.05
+    #     #   start_scale: 0.0
+    #     #   end_scale: 0.0
+    # total_steps: ${training.n_steps}
+  
+    token_reducing_scheduler:
+      _target_: token_reduction.model.ReductionScheduler      
+      schedule_config:
+          - type: constant
+            percentage: 0.75
+            start_scale: 1.0
+            end_scale: 1.0
+          - type: cosine
+            percentage: 0.2
+            start_scale: 1.0
+            end_scale: 0.0
+          - type: constant
+            percentage: 0.05
+            start_scale: 0.0
+            end_scale: 0.0
+      total_steps: ${training.n_steps}
+
+
+    train_dataloader:
+        _target_: model.get_dataloader
+        dataset_type: "c4"
+        dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+        dataset_split: "train"
+        total_batch_size: 1024
+        sequence_length: 1024
+        num_workers: 32
+        # ^seed: [10001, 10002, 10003]
+        seed: 20001
+        shuffle: true
+        use_new_sampling_method: true
+        world_size_independent: false
+        collate_fn: 
+            _target_: token_reduction.model.trunc_collate
+            _partial_: true
+            seq_len: ${eval:'${model.common.sequence_length} + ${model.mtp_config.n_mtp} + ${model.common.dropped_tokens} + 1'}
+            batch_size: 256
+
+    eval_dataloader:
+        _target_: model.get_dataloader
+        dataset_type: "c4"
+        dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+        dataset_split: "validation"
+        total_batch_size: 256
+        sequence_length: 256
+        num_workers: 4
+        seed: 123
+        shuffle: true
+        use_new_sampling_method: true
+        world_size_independent: false
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "k8mtp"
+  gres: gpu:1
+  time: 0-10:00:00
+  partition: a100
+  cpus-per-task: 32
+  mem_per_gpu: 125G
+  nodes: 1
+  # ntasks-per-node: 2
+
+checkpoint_config:
+    interval: 40000
+    load_path: "/storage_nvme_1/crewtool/checkpoints/deepseek/7/step_40000"
+    save_path: "/storage_nvme_1/crewtool/checkpoints/tutaj_inny_run_2"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
