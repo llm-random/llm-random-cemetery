@@ -347,7 +347,8 @@ class WriterBackend(MachineBackend):
         return "/home/ubuntu/.cache"
 
     def get_grid_entrypoint(self) -> str:
-        return "lizrd/grid/grid_entrypoint_writer.sh"
+        # return "lizrd/grid/grid_entrypoint_writer.sh"
+        return "lizrd/grid/grid_entrypoint.sh"
 
     def get_default_train_dataset_path(self, dataset_type: str):
         if dataset_type == "c4":
