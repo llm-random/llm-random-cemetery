@@ -18,8 +18,7 @@ params:
   projected_dff: 6144
   
   # ^learning_rate: [0.00003125, 0.0000625, 0.000125]
-  ^learning_rate: [0.000015625]
-  # learning_rate: 0.0000625 #dev
+  learning_rate: 0.0000625 #best
 
   # ^n_steps: [31624, 63248, 94872, 126496]
   ^n_steps: [31624]
