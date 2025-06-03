@@ -81,3 +81,10 @@ def check_args(args):
     else:
         pass
         # assert not args.distillation_weights_path
+
+    if args.pruning != None:
+        assert not ((args.projected_dmodel is None) and (args.projected_ff is None))
+        if args.projected_dmodel * 4 != args.projected_ff:
+            print(f"WARNING - not standard hidden dmodel/dff ratio: {args.projected_dmodel}/{args.projected_ff}")
+    else:
+        assert (args.projected_dmodel is None) and (args.projected_ff is None)
