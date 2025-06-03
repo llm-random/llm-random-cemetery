@@ -13,8 +13,8 @@ params:
 
   # learning_rate: 0.001 #dev
   # ^learning_rate: [0.0001, 0.0002, 0.0004] #dev
-  ^learning_rate: [0.0004, 0.0008] #dev
-  # learning_rate: 0.0004 #dev
+  # ^learning_rate: [0.0004, 0.0008] #dev
+  learning_rate: 0.0004 #dev
 
   # ^batch_size: [256, 512]
 
