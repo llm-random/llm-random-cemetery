@@ -1,0 +1,93 @@
+defaults:
+    - override hydra/launcher: common
+    - _self_
+
+model:
+    _target_: model.LLM
+
+    embedding_config:
+        _target_: model.EmbeddingConfig
+        mode: "vanilla"
+    
+    tower_config:  
+        _target_: model.TowerConfig
+        mode: "same" # is every block in tower the same
+        n_blocks: 2            
+
+        block_config: 
+            _target_: model.BlockConfig
+            attention:
+                _target_: model.AttentionConfig
+                mode: "vanilla"
+                n_heads: 2
+                flash: true
+
+            feedforward:
+                _target_: model.FeedForwardConfig
+                mode: vanilla
+
+            residual_mode: "pre_norm"
+            norm_class_mode: "layer_norm"
+
+    common: 
+        _target_: model.Common
+        model_type: "gpt"
+        sequence_length: 7
+        dmodel: 16            
+        dff: 64               
+        init_type: truncated_normal_fixed
+        init_scale: 1
+        vocab_size: 50257
+
+training:
+    _target_: model.TrainingConfig
+    learning_rate: 1e-4
+    weight_decay: 0.1
+    gradient_accumulation_steps: 1
+    n_steps: 20
+    seed: 45
+    gradient_clipping: 0.1
+    dataloader:
+        num_workers: 0
+        dataset: "c4"
+        total_batch_size: 8
+        training_dataset_path: ${hydra:launcher.training_dataset_path}
+        eval_dataset_path: ${hydra:launcher.eval_dataset_path}
+        world_size_independent: true
+        use_new_sampling_method: true
+        shuffle: false
+
+    evaluation:
+        eval_interval: 0
+        n_eval_steps: 0
+
+    scheduler: 
+        _target_: model.CosineSchedulerConfig
+        type: "cosine"
+        warmup_steps: 2
+        n_steps: ${training.n_steps}
+        final_lr_fraction: 0.1
+
+metric_logger:
+    _target_: model.MetricLoggerConfig
+    type: "record"
+    project_name: "test_project"
+    tags: []
+    heavy_metrics_calculation_interval: -1
+
+hydra:
+    launcher:
+        training_dataset_path: data
+        eval_dataset_path: data
+
+    callbacks:
+        log_job_return:
+            _target_: hydra.experimental.callbacks.LogJobReturnCallback
+    searchpath:
+        - file://${oc.env:PWD} # to override launcher
+
+checkpoint_config:
+    interval: 7
+    path: "__tmp__"
+    training_state_filename: __test_training_state__.pt
+    model_checkpoint_filename: __test_model_optim_scheduler__.pt
