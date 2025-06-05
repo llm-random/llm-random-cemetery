@@ -1,0 +1,38 @@
+
+parent: configs/projected_dis/1ff/common.yaml
+md5_parent_hash: 3b35737a38c2db680bf1325d719b5504
+time: 2-00:00:00
+# time: 0-00:50:00
+n_gpus: 4
+# n_gpus: 1
+cpus_per_gpu: 16
+
+params:
+  name: "PD"
+  # tags: ["projected_dis", "1ff", "compression", "pruning", "dm768_1024", "COMP"] 
+  tags: ["projected_dis", "1ff", "compression", "pruning", "dm768_1024", "tune_lr"]
+
+  dmodel: 768
+  dff: 768
+  dhead: 64 #dev
+  projected_dmodel: 1024
+  projected_dff: 1024
+
+  ^learning_rate: [0.000125, 0.00025, 0.0005, 0.001, 0.002]
+  # learning_rate: 0.0005 #dev 0015
+
+  # ^n_steps: [20358, 30537, 40716, 81432]
+  ^n_steps: [10179]
+
+  pruning: random
+ 
+  projected_distillation: True
+  # projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_1ff_62132.pt # 80 helios
+  projected_weights_path: /home/ubuntu/llm-random-group/llm-random-cemetery/PD_2025-05-16_11-35-31/None/10656/62132.pt # writer 80
+
+
+  fsdp_use_orig_params: True
+  fsdp_enabled: True
+  fsdp_modules_to_wrap: "EmbeddingLayer,PredictionHead,TransformerBlock"
+  fsdp_selective_precision_modules: "AttentionMechanism,MoeGating,RoPE"
+
