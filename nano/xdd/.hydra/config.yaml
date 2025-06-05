@@ -1,0 +1,211 @@
+cluster_name: local
+trainer_factory:
+  train_dataloader:
+    dataset_path: /storage_nvme_1/llm-random/datasets/c4/train
+    _target_: model.get_dataloader
+    dataset_type: c4
+    dataset_split: train
+    total_batch_size: 1024
+    sequence_length: 1024
+    num_workers: 32
+    seed: 20001
+    shuffle: true
+    use_new_sampling_method: true
+    world_size_independent: false
+    collate_fn:
+      _target_: token_reduction.model.trunc_collate
+      _partial_: true
+      seq_len: ${eval:'${model.common.sequence_length} + ${model.mtp_config.n_mtp}
+        + ${model.common.dropped_tokens} + 1'}
+      batch_size: 256
+  eval_dataloader:
+    dataset_path: /storage_nvme_1/llm-random/datasets/c4/validation
+    _target_: model.get_dataloader
+    dataset_type: c4
+    dataset_split: validation
+    total_batch_size: 256
+    sequence_length: 256
+    num_workers: 4
+    seed: 123
+    shuffle: true
+    use_new_sampling_method: true
+    world_size_independent: false
+  _target_: token_reduction.model.TrainerMTPMerge
+  _partial_: true
+  gradient_accumulation_steps: ${training.gradient_accumulation_steps}
+  n_steps: ${training.n_steps}
+  eval_interval: ${training.evaluation.eval_interval}
+  n_eval_steps: ${training.evaluation.n_eval_steps}
+  gradient_clipping: ${training.gradient_clipping}
+  checkpoint_config: ${checkpoint_config}
+  n_reduced_tokens: ${model.common.dropped_tokens}
+  sequence_length: ${model.common.sequence_length}
+  ^token_reducing_scheduler:
+  - _target_: token_reduction.model.ReductionScheduler
+    schedule_config:
+    - type: constant
+      percentage: 0.75
+      start_scale: 1.0
+      end_scale: 1.0
+    - type: cosine
+      percentage: 0.2
+      start_scale: 1.0
+      end_scale: 0.0
+    - type: constant
+      percentage: 0.05
+      start_scale: 0.0
+      end_scale: 0.0
+    total_steps: ${training.n_steps}
+  - _target_: token_reduction.model.ReductionScheduler
+    schedule_config:
+    - type: constant
+      percentage: 0.75
+      start_scale: 1.0
+      end_scale: 1.0
+    - type: linear
+      percentage: 0.2
+      start_scale: 1.0
+      end_scale: 0.0
+    - type: constant
+      percentage: 0.05
+      start_scale: 0.0
+      end_scale: 0.0
+    total_steps: ${training.n_steps}
+  - _target_: token_reduction.model.ReductionScheduler
+    schedule_config:
+    - type: constant
+      percentage: 1.0
+      start_scale: 1.0
+      end_scale: 1.0
+    total_steps: ${training.n_steps}
+  - _target_: token_reduction.model.ReductionScheduler
+    schedule_config:
+    - type: constant
+      percentage: 0.75
+      start_scale: 1.0
+      end_scale: 1.0
+    - type: linear
+      percentage: 0.25
+      start_scale: 1.0
+      end_scale: 0.0
+    total_steps: ${training.n_steps}
+  - _target_: token_reduction.model.ReductionScheduler
+    schedule_config:
+    - type: constant
+      percentage: 0.75
+      start_scale: 1.0
+      end_scale: 1.0
+    - type: cosine
+      percentage: 0.25
+      start_scale: 1.0
+      end_scale: 0.0
+    total_steps: ${training.n_steps}
+cemetery_experiments_dir: ~/llmrandom_cemetery
+checkpoint_config:
+  interval: 12500
+  training_state_filename: __training_state__.pt
+  model_checkpoint_filename: __model_optim_scheduler__.pt
+  path: checkpoints
+  load_path: /storage_nvme_1/crewtool/checkpoints/k8_mtp_test/0/step_37500
+  save_path: /storage_nvme_1/crewtool/checkpoints/sdfafedsfa_k8_mtp_merge
+distributed:
+  fsdp:
+    modules_to_wrap:
+    - TransformerBlock
+    - EmbeddingLayer
+    - PredictionHead
+    mixed_precision:
+      dtype: bfloat16
+      ignored_classes:
+      - LayerNorm
+      - AttentionMechanism
+git:
+  remote_name: cemetery
+  remote_url: git@github.com:llm-random/llm-random-cemetery.git
+slurm:
+  job-name: k8mtp_merge64
+  gres: gpu:1
+  time: 0-3:00:00
+  partition: a100
+  cpus-per-task: 32
+  mem_per_gpu: 125G
+  nodes: 1
+venv_path: $HOME/onefiler/venv/bin/activate
+experiment_prepare_venv_path: ${venv_path}
+metric_logger:
+  _target_: model.MetricLoggerConfig
+  type: neptune
+  heavy_metrics_calculation_interval: 100
+  project_name: pmtest/llm-random
+  name: k8_mtp
+  tags:
+  - nano
+  - k8
+  - mtp
+  - merge
+  - final_decay
+  new_neptune_job: false
+model:
+  _target_: token_reduction.model.LLM_MTP
+  embedding:
+    _target_: token_reduction.model.TokenMergingEmbedding
+    common: ${model.common}
+    normal_embedding:
+      _target_: token_reduction.model.get_dropping_standard_embedding
+      sequence_length: ${model.common.sequence_length}
+      dmodel: ${model.common.dmodel}
+      init_type: ${model.common.init_type}
+      init_scale: ${model.common.init_scale}
+      vocab_size: ${model.common.vocab_size}
+      reduction_tokens: ${model.common.dropped_tokens}
+  tower_config:
+    _target_: model.TowerConfig
+    mode: same
+    n_blocks: 8
+    block_config:
+      _target_: model.BlockConfig
+      attention:
+        _target_: model.AttentionConfig
+        mode: vanilla
+        n_heads: 8
+      feedforward:
+        _target_: model.FeedForwardConfig
+        mode: vanilla
+      residual_mode: pre_norm
+      norm_class_mode: layer_norm
+  common:
+    _target_: model.Common
+    model_type: gpt
+    sequence_length: 256
+    dmodel: 512
+    dff: 2048
+    init_type: truncated_normal_fixed
+    init_scale: 0.1
+    vocab_size: 50257
+    head_norm: true
+    dropped_tokens: 96
+  mtp_config:
+    _target_: token_reduction.model.MTPConfig
+    n_mtp: 1
+    mtp_block_config: ${model.tower_config.block_config}
+training:
+  _target_: model.TrainingConfig
+  n_steps: 50001
+  learning_rate: 0.0001
+  weight_decay: 0.1
+  gradient_accumulation_steps: 1
+  gradient_clipping: 1.0
+  scheduler:
+    _target_: model.get_cosine_scheduler_with_warmup
+    _partial_: true
+    config:
+      warmup_steps: 500
+      n_steps: ${training.n_steps}
+      final_lr_fraction: 0.1
+      type: cosine
+  evaluation:
+    eval_interval: 100
+    n_eval_steps: 5
+  ^learning_rate:
+  - 0.001
+server: entropia
