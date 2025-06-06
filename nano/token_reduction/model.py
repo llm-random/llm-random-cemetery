@@ -28,6 +28,7 @@ from model import (
     PredictionHead,
     RMSNorm,
 )
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -868,3 +869,18 @@ class TrainerMerge(Trainer):
         return avg_mtp_losses / float(os.environ["WORLD_SIZE"])
 
 
+def trunc_collate(batch, seq_len=None, batch_size=None):
+    truncated = [sequence[:seq_len] for sequence in batch[:batch_size]]
+    return torch.from_numpy(np.array(truncated))
+
+
+def collate_trunc_reduction(
+    batch, trunc_seq_len, trunc_batch_size, result_seq_len, n_dropped_tokens
+):
+    truncated = [sequence[:trunc_seq_len] for sequence in batch[:trunc_batch_size]]
+    batch = torch.from_numpy(np.array(truncated))
+    batch_size, seq_len = batch.shape
+    return (
+        batch,
+        batched_split_indexes(batch_size, seq_len, result_seq_len, n_dropped_tokens),
+    )
