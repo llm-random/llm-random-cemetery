@@ -1,0 +1,53 @@
+defaults:
+    - configs/clusters: ${__llmrandom_cluster_config:}
+    - configs/defaults:
+      - checkpoints
+      - distributed
+      - trainer
+      - infrastructure
+      - metric_logger
+      - model
+      - training
+    - configs/defaults/model_sizes:
+      - k8
+    - _self_
+
+model:
+  common:
+    sequence_length: 32
+
+
+##### INFRASTRUCTURE #####
+
+slurm:
+  job-name: "tr_v_k8"
+  gres: gpu:1
+  time: 0-06:00:00
+  partition: a100
+  # ntasks-per-node: 2
+
+checkpoint_config:
+    interval: 0
+    path: "ckpts"
+
+
+venv_path: '$HOME/onefiler/venv/bin/activate'
+
+server: entropia
+
+metric_logger:
+  name: "tr_v_k8"
+  tags: 
+    - "vanilla" 
+    - "lr=1e-3"
+    - "k8"
+  # type: "stdout"
+
+
+
+trainer_factory:
+  train_dataloader: 
+    total_batch_size: 16
+
+  eval_dataloader: 
+    total_batch_size: 16
