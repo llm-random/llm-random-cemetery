@@ -1,0 +1,9 @@
+# @package model
+tower_config:
+  n_blocks: 2
+  block_config:
+    attention:
+      n_heads: 2
+common:
+  dff: 64
+  dmodel: 16
