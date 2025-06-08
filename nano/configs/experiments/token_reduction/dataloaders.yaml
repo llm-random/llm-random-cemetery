@@ -1,0 +1,31 @@
+
+train_dataloader:
+    _target_: model.get_dataloader
+    dataset_type: "c4"
+    dataset_path: ???
+    dataset_split: "train"
+    total_batch_size: 1024
+    sequence_length: 1024
+    num_workers: 32
+    seed: ???
+    shuffle: true
+    use_new_sampling_method: true
+    world_size_independent: false
+    collate_fn: 
+        _target_: token_reduction.model.trunc_collate
+        _partial_: true
+        seq_len: ${eval:'${model.common.sequence_length} +  ${model.mtp_config.n_mtp} + 1'}
+        batch_size: 256
+
+eval_dataloader:
+    _target_: model.get_dataloader
+    dataset_type: "c4"
+    dataset_path: ???
+    dataset_split: "validation"
+    total_batch_size: 256
+    sequence_length: 256
+    num_workers: 4
+    seed: 123
+    shuffle: true
+    use_new_sampling_method: true
+    world_size_independent: false
