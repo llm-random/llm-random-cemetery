@@ -26,7 +26,7 @@ params:
   # ^n_steps: [10179]
 
   pruning: random
- 
+  
   projected_distillation: True
   # projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-05-31_20-00-21/None/674845/63559.pt # helios 20
   # projected_weights_path: /home/mstefaniak/checkpoints/dm_1536_63559.pt # entropy 20
@@ -35,7 +35,7 @@ params:
   projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_1536_254236.pt # helios 80
 
 
-
+  dont_save_final_model: False
   gradient_accumulation_steps: 2 #dev
   fsdp_use_orig_params: True
   fsdp_enabled: True
