@@ -1,7 +1,7 @@
 
 parent: configs/projected_dis/4ff_large/common.yaml
 md5_parent_hash: 0f5bbfd1acb29b5088f1f320eda7bea6
-time: 0-10:00:00
+time: 2-00:00:00
 # time: 0-00:50:00
 n_gpus: 4
 # n_gpus: 1
@@ -9,18 +9,17 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  # tags: ["projected_dis", "4ff", "compression", "dm640_1024", "1ot"] 
-  tags: ["projected_dis", "4ff", "compression", "dm640_1024", "tune_lr"]
+  # tags: ["projected_dis", "4ff", "compression", "dm512_1024", "1ot"] 
+  tags: ["projected_dis", "4ff", "compression", "dm512_1024", "tune_lr"]
 
   n_blocks: 16
   n_att_heads: 16 
-  dmodel: 640
-  dff: 2560
+  dmodel: 512
+  dff: 2048
   projected_dmodel: 1024
   projected_dff: 4096
   
-  # ^learning_rate: [0.001, 0.0005, 0.002, 0.00025, 0.000125] # ?0.0015 ; 0.000125
-  ^learning_rate: [0.00025, 0.000125]
+  ^learning_rate: [0.001, 0.0005, 0.002, 0.00025, 0.000125]
   # learning_rate: asd #dev
 
   # ^n_steps: [10179, 20358, 30537, 40716, 81432]
