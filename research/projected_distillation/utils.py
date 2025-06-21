@@ -315,18 +315,18 @@ def initialize_compressor(model:torch.nn.Module, projected_weights:dict, dmodel:
     elif weight_dependent_projections == "magnitude":
         dm_scores = []
         dm_scores.append(calculate_scores(model_grouped[EMBEDDING_LAYER_TAG].get(P_EMB).T, False), dmodel)
-        dm_scores.append(calculate_scores(model_grouped[HEAD_TAG].get(P_HEAD), True), dmodel)
+        dm_scores.append(calculate_scores(model_grouped[HEAD_TAG].get(P_HEAD), True, dmodel))
         ff_scores = []
         for block_id, block_params in model_grouped[ENCODE_BLOCK_TAG].items():
             block_ff_scores = []
-            dm_scores.append(calculate_scores(block_params.get(P_ATT_Q), True), dmodel)
-            dm_scores.append(calculate_scores(block_params.get(P_ATT_K), True), dmodel)
-            dm_scores.append(calculate_scores(block_params.get(P_ATT_V), True), dmodel)
+            dm_scores.append(calculate_scores(block_params.get(P_ATT_Q), True, dmodel))
+            dm_scores.append(calculate_scores(block_params.get(P_ATT_K), True, dmodel))
+            dm_scores.append(calculate_scores(block_params.get(P_ATT_V), True, dmodel))
 
-            dm_scores.append(calculate_scores(block_params.get(P_ATT_OUT), False), dmodel)
+            dm_scores.append(calculate_scores(block_params.get(P_ATT_OUT), False, dmodel))
 
-            dm_scores.append(calculate_scores(block_params.get(P_FF_IN), True), dmodel)
-            dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), False), dmodel)
+            dm_scores.append(calculate_scores(block_params.get(P_FF_IN), True, dmodel))
+            dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), False, dmodel))
 
             # dm_scores.append(calculate_scores(block_params.get(P_FF_IN), False), dmodel) #dev SWITCH
             # dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), True), dmodel) #dev SWITCH
