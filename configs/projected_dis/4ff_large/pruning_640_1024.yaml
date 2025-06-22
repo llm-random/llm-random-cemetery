@@ -9,20 +9,23 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "4ff", "compression", "pruning", "dm640_1024", "1ot"] 
+  tags: ["projected_dis", "4ff", "compression", "pruning", "dm640_1024", "4ot"] 
   # tags: ["projected_dis", "4ff", "compression", "pruning", "dm640_1024", "tune_lr"]
 
+  n_blocks: 16
+  n_att_heads: 16 
   dmodel: 640
   dff: 2560
   dhead: 64
   projected_dmodel: 1024
   projected_dff: 4096
 
-  ^learning_rate: [0.0005, 0.001, 0.002] # /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-21_12-32-58
-  # learning_rate: asd #dev
+  # ^learning_rate: [0.0005, 0.001, 0.002] # 
+  learning_rate: 0.001 #best
 
-  # ^n_steps: [20358, 30537, 40716] # 
-  ^n_steps: [10179] # 
+  # ^n_steps: [20358, 30537, 40716] # /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-22_23-30-22
+  # ^n_steps: [10179] # 
+  ^n_steps: [40716] # /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-22_23-28-47
 
   pruning: random
  
