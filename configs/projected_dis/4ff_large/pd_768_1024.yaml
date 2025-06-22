@@ -19,12 +19,12 @@ params:
   projected_dmodel: 1024
   projected_dff: 4096
   
-  ^learning_rate: [0.00025, 0.000125]
-  # learning_rate: asd #dev
+  # ^learning_rate: [0.00025, 0.000125, 0.0000625]
+  learning_rate: 0.000125 #best
 
   # ^n_steps: [10179, 20358, 30537, 40716]
-  # ^n_steps: [20358, 30537, 40716]
-  ^n_steps: [10179] # /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-21_12-06-45
+  ^n_steps: [20358, 30537, 40716]
+  # ^n_steps: [10179]
 
   attention_mode: projected_vanilla_rope_res
   ff_mode: projected_vanilla_res
