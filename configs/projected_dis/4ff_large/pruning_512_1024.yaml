@@ -12,6 +12,8 @@ params:
   tags: ["projected_dis", "4ff", "compression", "pruning", "dm512_1024", "1ot"] 
   # tags: ["projected_dis", "4ff", "compression", "pruning", "dm512_1024", "tune_lr"]
 
+  n_blocks: 16
+  n_att_heads: 16 
   dmodel: 512
   dff: 2048
   dhead: 64
