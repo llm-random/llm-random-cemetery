@@ -494,22 +494,22 @@ def initialize_pruned(pruning_method:str, model_weights:torch.nn.Module, project
     elif pruning_method == "magnitude":
         raise Exception
         # dm_scores = []
-        # dm_scores.append(calculate_scores(model_grouped[EMBEDDING_LAYER_TAG].get(P_EMB).T, False), dmodel)
-        # dm_scores.append(calculate_scores(model_grouped[HEAD_TAG].get(P_HEAD), True), dmodel)
+        # dm_scores.append(calculate_scores(model_weights[T_EMB].T, False, projected_dmodel))
+        # dm_scores.append(calculate_scores(model_weights[T_HEAD], True, projected_dmodel))
         # ff_scores = []
-        # for block_id, block_params in model_grouped[ENCODE_BLOCK_TAG].items():
+        # for i in range(n_layers):
+        #     bid = str(i)
         #     block_ff_scores = []
-        #     dm_scores.append(calculate_scores(block_params.get(P_ATT_Q), True), dmodel)
-        #     dm_scores.append(calculate_scores(block_params.get(P_ATT_K), True), dmodel)
-        #     dm_scores.append(calculate_scores(block_params.get(P_ATT_V), True), dmodel)
+        #     dm_scores.append(calculate_scores(model_weights.get(ENCODE_BLOCK_TAG+bid+"."+T_ATT_Q), True, projected_dmodel))
+        #     dm_scores.append(calculate_scores(model_weights.get(ENCODE_BLOCK_TAG+bid+"."+T_ATT_K), True, projected_dmodel))
+        #     dm_scores.append(calculate_scores(model_weights.get(ENCODE_BLOCK_TAG+bid+"."+T_ATT_V), True, projected_dmodel))
+        #     dm_scores.append(calculate_scores(model_weights.get(ENCODE_BLOCK_TAG+bid+"."T_ATT_OUT), False, projected_dmodel))
 
-        #     dm_scores.append(calculate_scores(block_params.get(P_ATT_OUT), False), dmodel)
+        #     dm_scores.append(calculate_scores(block_params.get(P_FF_IN), True, projected_dmodel))
+        #     dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), False, projected_dmodel))
 
-        #     dm_scores.append(calculate_scores(block_params.get(P_FF_IN), True), dmodel)
-        #     dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), False), dmodel)
-
-        #     # dm_scores.append(calculate_scores(block_params.get(P_FF_IN), False), dmodel) #dev SWITCH
-        #     # dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), True), dmodel) #dev SWITCH
+        #     # dm_scores.append(calculate_scores(block_params.get(P_FF_IN), False), projected_dmodel) #dev SWITCH
+        #     # dm_scores.append(calculate_scores(block_params.get(P_FF_OUT), True), projected_dmodel) #dev SWITCH
 
         #     block_ff_scores.append(calculate_scores(block_params.get(P_FF_IN), False, projected_dff))
         #     block_ff_scores.append(calculate_scores(block_params.get(P_FF_OUT), True, projected_dff))
@@ -524,11 +524,11 @@ def initialize_pruned(pruning_method:str, model_weights:torch.nn.Module, project
         # projection = projection[:, indices]
         # print(f"global indicies all ranks {indices}")#dev
 
-        # if local_rank==0:
+        # if is_logging_worker:
         #     print("global magnitude initialized projection -------------------") #dev
         #     print(projection) #dev
-        # add_projections(model_grouped[EMBEDDING_LAYER_TAG], projection,  projection.T, EMBEDDING_P, EMBEDDING_P_T, local_rank==0)
-        # add_projections(model_grouped[HEAD_TAG], projection,  projection.T, DEEMBEDDING_P, DEEMBEDDING_P_T, local_rank==0)
+        # add_projections(model_grouped[EMBEDDING_LAYER_TAG], projection,  projection.T, EMBEDDING_P, EMBEDDING_P_T, is_logging_worker)
+        # add_projections(model_grouped[HEAD_TAG], projection,  projection.T, DEEMBEDDING_P, DEEMBEDDING_P_T, is_logging_worker)
 
         # for (block_id, block_params), block_ff_scores in zip(model_grouped[ENCODE_BLOCK_TAG].items(), ff_scores):
         #     block_params[P_ATT_Q_1].data.copy_(projection)
@@ -542,7 +542,7 @@ def initialize_pruned(pruning_method:str, model_weights:torch.nn.Module, project
         #     block_ff_indices = topk_from_equal_subsets(block_ff_importance, dff, 1)
         #     block_ff_projection = block_ff_projection[:, block_ff_indices]
 
-        #     if local_rank==0:
+        #     if is_logging_worker:
         #         print(f"projection.shape {projection.shape}") #dev
         #         print(f"block_ff_projection.shape {block_ff_projection.shape}") #dev
 
