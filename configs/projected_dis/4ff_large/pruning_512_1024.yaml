@@ -1,7 +1,8 @@
 
 parent: configs/projected_dis/4ff_large/common.yaml
 md5_parent_hash: 0f5bbfd1acb29b5088f1f320eda7bea6
-time: 2-00:00:00
+# time: 2-00:00:00
+time: 0-10:00:00
 # time: 0-00:50:00
 n_gpus: 4
 # n_gpus: 1
@@ -9,7 +10,7 @@ cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "4ff", "compression", "pruning", "dm512_1024", "4ot"] 
+  tags: ["projected_dis", "4ff", "compression", "pruning", "dm512_1024"] 
   # tags: ["projected_dis", "4ff", "compression", "pruning", "dm512_1024", "tune_lr"]
 
   n_blocks: 16
@@ -23,16 +24,18 @@ params:
   # ^learning_rate: [0.001, 0.002, 0.004] # 
   learning_rate: 0.002 #best
 
-  ^n_steps: [10179, 20358, 30537, 40716] # 
+  # ^n_steps: [10179, 20358, 30537, 40716] # 
   # ^n_steps: [10179] # 
+  ^n_steps: [5090] # 
 
   pruning: random
  
   projected_distillation: True
   # projected_weights_path: /home/ubuntu/llm-random-group/llm-random-cemetery/PD_2025-06-19_18-19-07/None/10894/23172.pt # writer 20
-  
+
   # projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_4ff_1024_23172.pt # helios 20
-  projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-20_17-23-08/None/759700/92688.pt # helios 80
+  # projected_weights_path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-20_17-23-08/None/759700/92688.pt # helios 80
+  ^projected_weights_path: [/net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-20_17-23-08/None/759700/92688.pt, /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_4ff_1024_23172.pt]
 
   # projected_weights_path: /home/mstefaniak/checkpoints/def_4ff_1024_23172.pt # entropy 20
   # projected_weights_path: /home/mstefaniak/checkpoints/def_4ff_1024_92688.pt # entropy 80
