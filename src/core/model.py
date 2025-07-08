@@ -613,12 +613,14 @@ def get_classes_from_globals(names):
 def wrap_model(model, fsdp_config):
 
     classes_to_wrap = get_classes_from_globals(fsdp_config.modules_to_wrap)
+    print(f"Wrapping model with classes: {classes_to_wrap}")
     igonore_mixed_precision_classes = get_classes_from_globals(
         fsdp_config.mixed_precision.ignored_classes
     )
     mixed_precision_dtype = getattr(
         sys.modules["torch"], fsdp_config.mixed_precision.dtype
     )
+    print(f"Using mixed precision dtype: {mixed_precision_dtype}")
 
     wrapped_model = FSDP(
         model,
