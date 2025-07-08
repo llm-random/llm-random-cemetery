@@ -1,16 +1,16 @@
-_run_: true
+# _run_: true
 
 model:
   _target_: src.core.model.LLM
   common:
     _target_: src.definitions.Common
-    dff: 256
-    dmodel: 64
+    dff: 4096
+    dmodel: 1024
     head_norm: true
-    init_scale: 0.1
+    init_scale: 0.15
     init_type: truncated_normal_fixed
     model_type: gpt
-    sequence_length: 32
+    sequence_length: 512
     vocab_size: 50257
   embedding:
     _target_: src.core.model.get_vanilla_embedding
@@ -22,64 +22,64 @@ model:
       attention:
         _target_: src.definitions.AttentionConfig
         mode: vanilla
-        n_heads: 2
+        n_heads: ${model.tower_config.n_blocks}
       feedforward:
         _target_: src.definitions.FeedForwardConfig
         mode: vanilla
       norm_class_mode: layer_norm
       residual_mode: pre_norm
     mode: same
-    n_blocks: 2
+    n_blocks: 16
 
 trainer:
   _partial_: true
   _target_: src.core.trainer.Trainer
 
   checkpoint:
-    interval: 12500
+    interval: 1_000_000
     load_path: null
     model_checkpoint_filename: __model_optim_scheduler__.pt
     path: checkpoints
     save_path: checkpoints
     training_state_filename: __training_state__.pt
 
-  eval_interval: 100
+  eval_interval: 1000
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
-  gradient_clipping: 1.0
-  n_steps: 100
+  gradient_clipping: 0.5
+  n_steps: 23172
 
-  learning_rate: 0.001
+  learning_rate: 0.0008
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
-    final_lr_fraction: 0.1
-    warmup_steps: 500
+    final_lr_fraction: 0.03
+    warmup_steps: 231
 
   weight_decay: 0.1
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
-    num_workers: 0 # Change me!
-    seed: 20001
-    sequence_length: 32
+    num_workers: 16 # Change me!
+    seed: 27
+    sequence_length: ${model.common.sequence_length}
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: 512
     use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data_eval
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
     num_workers: 0 # Change me!
-    seed: 123
-    sequence_length: 32
+    seed: 327
+    sequence_length: ${model.common.sequence_length}
     shuffle: true
     total_batch_size: 32
     use_new_sampling_method: true
@@ -101,16 +101,17 @@ trainer:
 
 infrastructure:
   slurm:
-    cpus-per-task: 32
-    gres: gpu:2
-    job-name: test
+    cpus-per-task: 20
+    gres: gpu:4
+    job-name: ${infrastructure.metric_logger.name}
     mem_per_gpu: 125G
     nodes: 1
     partition: h100
-    time: "0-1:00:00"
-    ntasks-per-node: 2
+    time: "0-5:00:00"
+    ntasks-per-node: 4
   
-  venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  # venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  venv_path: /dev/null
   experiment_prepare_venv_path: ${infrastructure.venv_path}
   
   cemetery_experiments_dir: ~/llmrandom_cemetery
@@ -118,20 +119,19 @@ infrastructure:
   metric_logger:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
-    name: test
+    name: test_200M
     new_neptune_job: false
     project_name: pmtest/llm-random
     tags:
-    - nano
-    - k8
-    - merge
-    - final_decay
+    - mas
+    - dm1024
+    - test
     type: neptune
 
   git:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy
 
   generated_configs_path: generated_configs
