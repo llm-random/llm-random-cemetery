@@ -137,8 +137,8 @@ def submit_experiment(
     experiment_config_path = f"{config_path}/{config_name}.yaml"
 
     experiment_branch_name = version_code(
-        cfg.git.remote_name,
-        cfg.git.remote_url,
+        cfg.infrastructure.git.remote_name,
+        cfg.infrastructure.git.remote_url,
         experiment_config_path,
         hydra_config.job.name,
     )
