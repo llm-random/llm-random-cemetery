@@ -1,4 +1,4 @@
-# _run_: true
+_run_: true
 
 model:
   _target_: src.core.model.LLM
