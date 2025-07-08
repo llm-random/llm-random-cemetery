@@ -1,16 +1,16 @@
-_run_: true
+# _run_: true
 
 model:
   _target_: src.core.model.LLM
   common:
     _target_: src.definitions.Common
-    dff: 256
-    dmodel: 64
+    dff: 4096
+    dmodel: 1024
     head_norm: true
-    init_scale: 0.1
+    init_scale: 0.15
     init_type: truncated_normal_fixed
     model_type: gpt
-    sequence_length: 32
+    sequence_length: 512
     vocab_size: 50257
   embedding:
     _target_: src.core.model.get_vanilla_embedding
@@ -22,14 +22,14 @@ model:
       attention:
         _target_: src.definitions.AttentionConfig
         mode: vanilla
-        n_heads: 2
+        n_heads: ${model.n_blocks}
       feedforward:
         _target_: src.definitions.FeedForwardConfig
         mode: vanilla
       norm_class_mode: layer_norm
       residual_mode: pre_norm
     mode: same
-    n_blocks: 2
+    n_blocks: 16
 
 trainer:
   _partial_: true
@@ -61,7 +61,7 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
     num_workers: 0 # Change me!
@@ -74,7 +74,7 @@ trainer:
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data_eval
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
     num_workers: 0 # Change me!
@@ -110,7 +110,8 @@ infrastructure:
     time: "0-1:00:00"
     ntasks-per-node: 2
   
-  venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  # venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  venv_path: /dev/null
   experiment_prepare_venv_path: ${infrastructure.venv_path}
   
   cemetery_experiments_dir: ~/llmrandom_cemetery
@@ -132,6 +133,6 @@ infrastructure:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy
 
   generated_configs_path: generated_configs
