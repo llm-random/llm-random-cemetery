@@ -53,7 +53,6 @@ class Common(BaseModel):
     head_norm: bool
 
 class CommonCompression(Common):
-    mode: str
     base_dmodel: int
     base_dff: int
 
