@@ -182,4 +182,6 @@ def main(config):
 
 
 if __name__ == "__main__":
+    print("RUNNING main.py")
     main()
+    print("FINISHED main.py")
