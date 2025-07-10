@@ -182,4 +182,7 @@ def main(config):
 
 
 if __name__ == "__main__":
+    raise Exception("HEY>")
+    print("RUNNING main.py")
     main()
+    print("FINISHED main.py")
