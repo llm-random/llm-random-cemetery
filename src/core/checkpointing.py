@@ -80,7 +80,7 @@ def load_training_state(load_config):
     training_start_config = {"next_step": 0, "run_id": None, "processed_tokens": 0}
 
     load_path = load_config.path
-    if load_path is None:
+    if load_path is None or load_config.get("training_state_filename") is None:
         logger.warning(
             "Checkpoint save path is not set. Starting training from scratch."
         )
