@@ -526,6 +526,6 @@ def wrap_model_distributed(model, distributed_config):
         if torch.cuda.is_available():
             model = wrap_model_fsdp(model, distributed_config.fsdp)
         else:
-            logger.info("FSDP is not supported with CPU. Running DDP instead")
+            logger.info("FSDP is not supported with CPU. Running DDP instead") #dev TODO why? i might want to use DDP on GPU
             model = DDP(model)
     return model
