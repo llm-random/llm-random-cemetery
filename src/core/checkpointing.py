@@ -41,6 +41,7 @@ class TrainingState(Stateful):
 
 def step_checkpoint_path(path, step):
     full_config_path = get_full_checkpoint_path(path)
+    # step_tag = str(step) if step >= 0 else "new"
     return f"{full_config_path}/step_{step}"
 
 
@@ -80,9 +81,9 @@ def load_training_state(load_config):
     training_start_config = {"next_step": 0, "run_id": None, "processed_tokens": 0}
 
     load_path = load_config.path
-    if load_path is None:
+    if load_path is None or load_config.get("training_state_filename") is None:
         logger.warning(
-            "Checkpoint save path is not set. Starting training from scratch."
+            "Training_state_filename save path is not set. Starting training from scratch."
         )
         return training_start_config
     load_path = get_full_checkpoint_path(
