@@ -105,27 +105,27 @@ def load_training_state(load_config):
     return training_start_config
 
 
-def _find_latest_checkpoint(path: str) -> str:
-    files = [os.path.join(path, f) for f in os.listdir(path)]
+def _find_latest_checkpoint(path: str) -> str:  #dev TODO used twice, once for model and once for state dict - redundancy to remove
+    files = [os.path.join(path, f) for f in os.listdir(path)] #dev TODO doesnt it loads any file in dir for comparison - even state_dicts? 
     if not files:
         logger.info(f"No checkpoints in '{path}'")
         return
 
-    return max(files, key=os.path.getmtime)
+    return max(files, key=os.path.getmtime) #dev TODO not fool-proof method for measuring time created (what if someone "touches" file in some way or another unaware of consequences, or copy whole exp folder to archive but still want to rerun on it (me recently)) - swotch to file name analisis
 
 
-def load_checkpoint_from_file(load_config, model, optimizer, scheduler):    
+def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
     checkpoint_path = load_config.path
     if checkpoint_path is None:
         return 
 
-    checkpoint_path = get_full_checkpoint_path(
-        load_config.path
-    )
+    # checkpoint_path = get_full_checkpoint_path( #dev doesnt needed for loading, mixies independent loading job with saving job 
+    #     load_config.path
+    # )
     checkpoint_path = _find_latest_checkpoint(checkpoint_path)
 
     if checkpoint_path is not None:
-        if isinstance(model, FSDP):
+        if isinstance(model, FSDP): #dev TODO - function is called "from_file"
             # Sharded load
             state_dict = {"app": TrainingState(model, optimizer, scheduler)}
             dcp.load(state_dict=state_dict, checkpoint_id=checkpoint_path)
@@ -133,7 +133,7 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
         else:
             # Non-sharded load
             checkpoint_model = (
-                f"{checkpoint_path}/{load_config.model_checkpoint_filename}"
+                f"{checkpoint_path}/{load_config.model_checkpoint_filename}" #dev TODO autoamte, do we need model_checkpoint_filename always provided?
             )
             checkpoint = torch.load(checkpoint_model)
             if type(model) is DDP:
