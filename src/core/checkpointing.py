@@ -105,7 +105,7 @@ def load_training_state(load_config):
     return training_start_config
 
 
-def _find_latest_checkpoint(path: str) -> str:
+def _find_latest_checkpoint(path: str) -> str:  #dev TODO used twice, once for model and once for state dict - redundancy to remove
     files = [os.path.join(path, f) for f in os.listdir(path)]
     if not files:
         logger.info(f"No checkpoints in '{path}'")
@@ -119,9 +119,9 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
     if checkpoint_path is None:
         return 
 
-    checkpoint_path = get_full_checkpoint_path(
-        load_config.path
-    )
+    # checkpoint_path = get_full_checkpoint_path( #dev doesnt needed for loading, mixies independent loading job with saving job 
+    #     load_config.path
+    # )
     checkpoint_path = _find_latest_checkpoint(checkpoint_path)
 
     if checkpoint_path is not None:
