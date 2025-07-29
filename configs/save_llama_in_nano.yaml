@@ -76,14 +76,17 @@ trainer:
 
    load:
     type: huggingface
-    path: "meta-llama/Llama-3.2-1B"
+    # path: "meta-llama/Llama-3.2-1B"
+    # path: "/home/mstefaniak/checkpoints/llama_1b" # entropy
+    path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_1b" # helios
+    
 
   eval_interval: 100
-  n_eval_steps: 5
+  n_eval_steps: 20
 
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 8
   gradient_clipping: 1.0
-  n_steps: 0
+  n_steps: 2000
 
   learning_rate: 0.001
   scheduler:
@@ -96,20 +99,22 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+    # dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train" # entropy
+    dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train" # helios
     dataset_split: train
     dataset_type: c4
     num_workers: 0 # Change me!
     seed: 20001
-    sequence_length: 32
+    sequence_length: 512
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: 512
     use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    # dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation" # entropy
+    dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation" # helios
     dataset_split: validation
     dataset_type: c4
     num_workers: 0 # Change me!
@@ -134,16 +139,18 @@ trainer:
 
 infrastructure:
   slurm:
-    cpus-per-task: 32
-    gres: gpu:2
+    cpus-per-task: 16
+    gres: gpu:4
     job-name: test
-    mem_per_gpu: 125G
+    mem_per_gpu: 32G
     nodes: 1
-    partition: h100
-    time: "0-1:00:00"
-    ntasks-per-node: 2
+    # partition: h100 # entropy
+    partition: plgrid-gpu-gh200 # helios
+    time: "0-2:00:00"
+    ntasks-per-node: 4
 
-  venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  venv_path: $HOME/nano/.venv/bin/activate # mik entropy; mas helios
+  # venv_path: /dev/null
   experiment_prepare_venv_path: ${infrastructure.venv_path}
 
   cemetery_experiments_dir: ~/llmrandom_cemetery
@@ -152,7 +159,7 @@ infrastructure:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
     name: test
-    new_neptune_job: false
+    new_neptune_job: true
     project_name: pmtest/llm-random
     tags:
       - test
@@ -162,6 +169,12 @@ infrastructure:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: helios # helios
+  # server: entropy # entropy
+  # server: entropy_c
 
   generated_configs_path: generated_configs
+
+
+# /home/mstefaniak/llmrandom_cemetery/run_exp_2025-07-29_13-15-11 # 2gpu ft entropy
+# /home/mstefaniak/llmrandom_cemetery/run_exp_2025-07-29_13-18-24 # 4gpu ft entropy
