@@ -362,7 +362,18 @@ def attention_mechanism(
     value: torch.Tensor,
     causal: bool,
 ):
+    
     # https://github.com/pytorch/pytorch/blob/ce503c1b40207dab770c28cbd4568cd9e105277b/aten/src/ATen/native/transformers/cuda/sdp_utils.cpp#L556
+
+    # print("QKV peints ========================================================") #dev
+
+    # print(query.shape) #dev
+    # print(key.shape) #dev
+    # print(value.shape) #dev
+
+    # print(query.dtype) #dev
+    # print(key.dtype) #dev
+    # print(value.dtype) #dev
     with torch.nn.attention.sdpa_kernel(
         [SDPBackend.FLASH_ATTENTION, SDPBackend.EFFICIENT_ATTENTION, SDPBackend.MATH]
     ):
@@ -489,43 +500,3 @@ def get_vanilla_embedding(vocab_size, dmodel, init_type, init_scale, sequence_le
             init_scale=init_scale,
         ),
     )
-
-
-def get_classes_from_globals(names):
-    return [globals().get(name) for name in names]
-
-
-def wrap_model_fsdp(model, fsdp_config):
-
-    classes_to_wrap = get_classes_from_globals(fsdp_config.modules_to_wrap)
-    print(f"Wrapping model with classes: {classes_to_wrap}")
-    igonore_mixed_precision_classes = get_classes_from_globals(
-        fsdp_config.mixed_precision.ignored_classes
-    )
-    print(f"Ignoring mixed precision for classes: {igonore_mixed_precision_classes}")
-    mixed_precision_dtype = getattr(
-        sys.modules["torch"], fsdp_config.mixed_precision.dtype
-    )
-    print(f"Using mixed precision dtype: {mixed_precision_dtype}")
-
-    wrapped_model = FSDP(
-        model,
-        device_id=int(os.environ["RANK"]),
-        mixed_precision=MixedPrecision(
-            param_dtype=mixed_precision_dtype,
-            cast_forward_inputs=True,
-            _module_classes_to_ignore=igonore_mixed_precision_classes,
-        ),
-        auto_wrap_policy=ModuleWrapPolicy(classes_to_wrap),
-    )
-    return wrapped_model
-
-
-def wrap_model_distributed(model, distributed_config):
-    if distributed_config is not None:
-        if torch.cuda.is_available():
-            model = wrap_model_fsdp(model, distributed_config.fsdp)
-        else:
-            logger.info("FSDP is not supported with CPU. Running DDP instead")
-            model = DDP(model)
-    return model
