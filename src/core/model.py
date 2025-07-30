@@ -362,7 +362,18 @@ def attention_mechanism(
     value: torch.Tensor,
     causal: bool,
 ):
+    
     # https://github.com/pytorch/pytorch/blob/ce503c1b40207dab770c28cbd4568cd9e105277b/aten/src/ATen/native/transformers/cuda/sdp_utils.cpp#L556
+
+    print("QKV peints ========================================================") #dev
+
+    print(query.shape) #dev
+    print(key.shape) #dev
+    print(value.shape) #dev
+
+    print(query.dtype) #dev
+    print(key.dtype) #dev
+    print(value.dtype) #dev
     with torch.nn.attention.sdpa_kernel(
         [SDPBackend.FLASH_ATTENTION, SDPBackend.EFFICIENT_ATTENTION, SDPBackend.MATH]
     ):
