@@ -8,7 +8,7 @@ common:
   init_scale: 0.1
   init_type: truncated_normal_fixed
   model_type: gpt
-  sequence_length: 32
+  sequence_length: 512
   vocab_size: 128256
   
 model:
@@ -69,22 +69,42 @@ trainer:
 
   checkpoint:
    save:
-    interval: 12500
-    model_checkpoint_filename: __model_optim_scheduler__.pt
-    training_state_filename: __training_state__.pt
-    path: checkpoints # Change me!
+    path: null # Change me!
 
    load:
     type: huggingface
-    path: "meta-llama/Llama-3.2-1B"
+    # path: "meta-llama/Llama-3.2-1B"
+    path: "/home/mstefaniak/checkpoints/llama_1b" # entropy
+    # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_1b" # helios
+    
 
-  eval_interval: 100
-  n_eval_steps: 5
+  eval_interval: 500
+  n_eval_steps: 20
 
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 4
+  # gradient_accumulation_steps: 64
+  # gradient_accumulation_steps: 16
+  # gradient_accumulation_steps: 32
+  # gradient_accumulation_steps: 8
+  # ^gradient_accumulation_steps: 
+  #   - 4
+  #   - 8
+  #   - 16
+  #   - 32
+  #   - 64
+  #   - 128
+
   gradient_clipping: 1.0
-  n_steps: 0
+  # n_steps: 2000
+  ^n_steps: 
+    - 2000
+    - 2000
+    - 2000
+    - 2000
+    - 2000
+    - 2000
 
+  # learning_rate: 0.00005
   learning_rate: 0.001
   scheduler:
     _partial_: true
@@ -96,27 +116,29 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train" # entropy
+    # dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train" # helios
     dataset_split: train
     dataset_type: c4
     num_workers: 0 # Change me!
     seed: 20001
-    sequence_length: 32
+    sequence_length: ${common.sequence_length}
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: ${common.sequence_length}
     use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation" # entropy
+    # dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation" # helios
     dataset_split: validation
     dataset_type: c4
     num_workers: 0 # Change me!
     seed: 123
-    sequence_length: 32
+    sequence_length: ${common.sequence_length}
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: ${common.sequence_length}
     use_new_sampling_method: true
     world_size_independent: false
 
@@ -126,7 +148,8 @@ trainer:
         dtype: bfloat16
         ignored_classes:
           - LayerNorm
-          - AttentionMechanism
+          # - AttentionMechanism
+          - LlamaAttention
       modules_to_wrap:
         - TransformerBlock
         - EmbeddingLayer
@@ -134,34 +157,48 @@ trainer:
 
 infrastructure:
   slurm:
-    cpus-per-task: 32
-    gres: gpu:2
+    cpus-per-task: 16
+    gres: gpu:4
     job-name: test
-    mem_per_gpu: 125G
+    mem_per_gpu: 90G
     nodes: 1
-    partition: h100
-    time: "0-1:00:00"
-    ntasks-per-node: 2
+    partition: h100 # entropy
+    # partition: plgrid-gpu-gh200 # helios
+    time: "1-00:00:00"
+    ntasks-per-node: 4
 
-  venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  # venv_path: $HOME/nano/.venv/bin/activate # mik entropy; mas helios
+  venv_path: /dev/null
   experiment_prepare_venv_path: ${infrastructure.venv_path}
 
   cemetery_experiments_dir: ~/llmrandom_cemetery
 
   metric_logger:
     _target_: src.definitions.MetricLoggerConfig
-    heavy_metrics_calculation_interval: 100
+    heavy_metrics_calculation_interval: 500
     name: test
-    new_neptune_job: false
+    new_neptune_job: true
     project_name: pmtest/llm-random
     tags:
-      - test
+      - dev
+      - save
+      - ft
+      - llama_1b
+      - mas
+      - acc_grad_debug
+      - repeater
     type: neptune
 
   git:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  # server: helios # helios
+  server: entropy # entropy
+  # server: entropy_c
 
   generated_configs_path: generated_configs
+
+
+# /home/mstefaniak/llmrandom_cemetery/run_exp_2025-07-29_13-15-11 # 2gpu ft entropy
+# /net/home/plgrid/plgmstefaniak/llmrandom_cemetery/run_exp_2025-07-29_15-03-52 # helios 4gpu
