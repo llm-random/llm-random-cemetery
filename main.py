@@ -17,7 +17,8 @@ import logging
 
 from src.core.checkpointing import load_checkpoint_from_file, load_training_state
 from src.core.metric_loggers import NeptuneLogger, get_metric_logger
-from src.core.model import Residual, wrap_model_distributed
+from src.core.model import Residual
+from src.core.utils import wrap_model_distributed 
 
 logger = logging.getLogger(__name__)
 
