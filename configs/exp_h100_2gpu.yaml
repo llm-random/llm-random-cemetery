@@ -70,7 +70,8 @@ trainer:
     interval: 12500
     model_checkpoint_filename: __model_optim_scheduler__.pt
     training_state_filename: __training_state__.pt
-    path: checkpoints # Change me!
+    # path: checkpoints # Change me!
+    path: null
 
    load:
     type: "normal"
@@ -163,6 +164,6 @@ infrastructure:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy 
 
   generated_configs_path: generated_configs
