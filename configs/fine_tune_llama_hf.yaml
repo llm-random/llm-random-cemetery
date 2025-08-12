@@ -15,6 +15,14 @@ trainer:
   learning_rate: 0.00005
   gradient_accumulation_steps: 4
 
+  train_dataloader:
+    ^seed: 
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+
 infrastructure:
   metric_logger:
     name: test
@@ -23,4 +31,4 @@ infrastructure:
       - pc
       - nano
       - test_configs
-      - final
+      - fine_tune_hf
