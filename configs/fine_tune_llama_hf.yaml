@@ -23,4 +23,4 @@ infrastructure:
       - pc
       - nano
       - test_configs
-      - final
+      - fine_tune_hf
