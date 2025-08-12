@@ -78,7 +78,20 @@ class TrainingConfig(BaseModel):
     n_steps: PositiveInt
     gradient_clipping: PositiveFloat
     evaluation: dict
+    # TODO missing checkpoint
 
+# TODO missing checkpoint class
+# EXAMPLE: 
+# save:
+#     interval: 1000000
+#     model_checkpoint_filename: __model_optim_scheduler__.pt
+#     training_state_filename: __training_state__.pt
+#     path: checkpoints # Change me!
+
+#    load:
+#     type: nano
+#     path: "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-07-28_11-00-53/checkpoints/0/step_-1"
+#     model_checkpoint_filename: "__training_state__.pt"
 
 class MetricLoggerConfig(BaseModel):
     type: Optional[str]
