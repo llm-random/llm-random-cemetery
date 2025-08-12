@@ -1,0 +1,10 @@
+trainer:
+  checkpoint:
+   save:
+    path: null
+    interval: -1
+
+   load:
+    type: huggingface
+    path: "/home/mstefaniak/checkpoints/llama_1b" # entropy
+    # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_1b" # helios
