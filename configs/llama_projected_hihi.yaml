@@ -1,15 +1,15 @@
 common:
   _target_: src.definitions.Common
-  dff: 192
-  dmodel: 48
+  dff: 486
+  dmodel: 96
   head_norm: true
-  init_scale: 0.1
+  init_scale: 1.0
   init_type: truncated_normal_fixed
   model_type: gpt
   sequence_length: 32
-  vocab_size: 50257
-  base_dmodel: 64
-  base_dff: 256
+  vocab_size: 128256
+  base_dmodel: 128
+  base_dff: 512
   
 model:
   _target_: src.projected_compression.model.LLM
@@ -30,12 +30,12 @@ model:
 
   encoder:
     _target_: src.projected_compression.model.TransformerEncoder
-    n_blocks: 4
+    n_blocks: 2
     block_fn:
       _target_: src.projected_compression.model.TransformerBlock
       _partial_: true
       norm_fn: 
-        _target_: src.core.model.LayerNorm
+        _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.base_dmodel}
@@ -46,7 +46,7 @@ model:
         _partial_: true
         dmodel: ${common.base_dmodel}
         q_heads: 4
-        kv_heads: 4
+        kv_heads: 2
         seq_len: ${common.sequence_length}
         q_proj_fn:
           _target_: src.projected_compression.model.ProjectedLinear
@@ -62,7 +62,7 @@ model:
           result_in_features: ${common.dmodel} 
           result_out_features: null
           base_in_features: ${common.base_dmodel}
-          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.q_heads} // ${model.encoder.block_fn.attention_fn.kv_heads} * ${common.base_dmodel}'}
+          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads} * (${common.base_dmodel} // ${model.encoder.block_fn.attention_fn.q_heads})'}
 
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
@@ -78,10 +78,9 @@ model:
         rope_scale_freqs: false
 
 
-
       ff_layer_fn:
-        _target_: src.projected_compression.model.FeedForward
-        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        _partial_: true 
         ff_pre_act_fn:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
@@ -96,7 +95,7 @@ model:
           result_out_features: ${common.dmodel} 
           base_in_features: ${common.base_dff}
           base_out_features: ${common.base_dmodel}
-
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
 
   head:
     _target_: src.projected_compression.model.TransformerHead
@@ -108,7 +107,7 @@ model:
       base_in_features: ${common.base_dmodel}
       base_out_features: ${common.vocab_size}
     norm_fn: 
-        _target_: src.core.model.LayerNorm
+        _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.base_dmodel}
@@ -126,66 +125,62 @@ trainer:
       path: checkpoints # Change me!
 
     load:
-      type: "llm-random"
-      path: "/Users/crewtool/testms/llm-random/tosciezka2/0.pt" # Change me!
+      type: huggingface
+      path: "src/core/crewtool_small" # Change me!
 
   eval_interval: 100
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
   gradient_clipping: 0.5 # 1.0
-  n_steps: 100
+  n_steps: 10
 
   learning_rate: 0.001
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
     final_lr_fraction: 0.1
-    warmup_steps: 500
+    warmup_steps: 3
 
   weight_decay: 0.1
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
-    tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
     num_workers: 0 # Change me!
     seed: 20001
-    sequence_length: 32
+    seq_len: ${common.sequence_length}
     shuffle: false
-    total_batch_size: 32
+    total_batch_size: 512
     use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data_eval
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
-    tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
     num_workers: 0 # Change me!
     seed: 123
-    sequence_length: 32
+    seq_len: ${common.sequence_length}
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: 512
     use_new_sampling_method: true
     world_size_independent: false
 
-  distributed: null
-    # fsdp:
-    #   mixed_precision:
-    #     dtype: bfloat16
-    #     ignored_classes:
-    #       - LayerNorm
-    #       - AttentionMechanism
-    #   modules_to_wrap:
-    #     - TransformerBlock
-    #     - EmbeddingLayer
-    #     - PredictionHead
+  distributed:
+    fsdp:
+      mixed_precision:
+        dtype: bfloat16
+        ignored_classes:
+          - RMSNorm
+          - AttentionMechanism
+      modules_to_wrap:
+        - ProjectedEmbedding
+        - TransformerBlock
+        - TransformerHead
 
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
@@ -203,6 +198,7 @@ infrastructure:
     partition: h100
     time: "0-1:00:00"
     ntasks-per-node: 2
+    export: "ALL,HF_HUB_CACHE="
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
   experiment_prepare_venv_path: ${infrastructure.venv_path}
@@ -213,7 +209,7 @@ infrastructure:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
     name: test
-    # new_neptune_job: false
+    new_neptune_job: true
     project_name: pmtest/llm-random
     tags:
       - test
@@ -227,3 +223,4 @@ infrastructure:
   server: entropia
 
   generated_configs_path: generated_configs
+
