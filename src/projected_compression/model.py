@@ -225,7 +225,7 @@ class RoPEAttention(nn.Module):
 
         self.q_heads = q_heads
         self.kv_heads = kv_heads
-        self.dhead = dmodel // self.q_heads
+        self.dhead = self.q_proj.weight.shape[0] // self.q_heads
         self.dmodel = dmodel
 
         self.rope = RoPE(
@@ -250,6 +250,25 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        # q  = self.q_proj(x)
+        # k  = self.k_proj(x)
+        # v  = self.v_proj(x)
+
+        # projected = torch.concat((q,k,v), dim=-1)
+
+        # batch, seq_len = x.shape[:-1]
+        # projected = projected.view(
+        #     batch, seq_len, self.q_heads, 3 * self.dhead
+        # ).transpose(1, 2)
+        # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        # q = self.rope(q)
+        # k = self.rope(k)
+        
+        q = q.contiguous()
+        k = k.contiguous()
+        v = v.contiguous()
+
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
@@ -493,8 +512,6 @@ class ProjectedLinear(nn.Module):
 
         return F.linear(input, weight, bias=None)
 
-        return F.linear(input, self.weight, bias=None)
-
     def extra_repr(self) -> str:
         if self.result_in_features is not None:
             result = f"(projection_in_weight) ({self.base_in_features}, {self.result_in_features})\n"
@@ -504,7 +521,6 @@ class ProjectedLinear(nn.Module):
         if self.result_out_features is not None:
             result += f"\n(projection_out_weight) ({self.result_out_features}, {self.base_out_features})"
         return result
-
 
 class ProjectedEmbedding(nn.Module):
     def __init__(
