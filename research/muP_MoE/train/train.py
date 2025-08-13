@@ -86,6 +86,10 @@ def convert_args(args):
 
 def get_muP_learning_rates(args, model, m_d=1.0):
     lr = args.learning_rate
+    if args.ff_mode == "token_choice":
+        granularity = args.granularity
+    else:
+        granularity = 1
 
     key_lr_dict = {
         "embedding_layer": 1.0,
@@ -97,7 +101,7 @@ def get_muP_learning_rates(args, model, m_d=1.0):
         "lin2_weight": (1 / m_d),  # FF out
         "pre_relu": (1 / m_d),  # FF in, ver2
         "post_relu": (1 / m_d),  # FF out, ver2
-        "expert_inner_function": (1 / m_d),  # FF in MoE
+        "expert_inner_function": (granularity / m_d),  # FF in MoE
         "head": 1,
         "gating": 1,
     }
@@ -227,7 +231,7 @@ def main(
             "parallel": lambda: Parallel(*[module() for _, module in modules])
         }
 
-    checkpoint = (
+    checkpoint = ( 
         get_checkpoint_from_path(args.load_weights_path)
         if args.load_weights_path is not None
         else None
