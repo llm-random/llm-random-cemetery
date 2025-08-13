@@ -126,21 +126,21 @@ trainer:
 
     load:
       type: huggingface
-      path: "" # Change me!
+      path: "src/core/crewtool_small" # Change me!
 
   eval_interval: 100
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
   gradient_clipping: 0.5 # 1.0
-  n_steps: 100
+  n_steps: 10
 
   learning_rate: 0.001
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
     final_lr_fraction: 0.1
-    warmup_steps: 500
+    warmup_steps: 3 
 
   weight_decay: 0.1
 
@@ -212,7 +212,7 @@ infrastructure:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
     name: test
-    # new_neptune_job: false
+    new_neptune_job: true
     project_name: pmtest/llm-random
     tags:
       - test
