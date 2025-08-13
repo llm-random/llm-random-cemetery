@@ -146,12 +146,12 @@ class RoPE(nn.Module):
     """
 
     # features are paired x_i, x_{i + d_head/2}
-    def __init__(self, dhead, length, base, scale_freqs):
+    def __init__(self, dhead, length, base, apply_freq_scaling):
         super().__init__()
         self.dhead = dhead
         self.length = length
         self.base = base
-        self.scale_freqs = scale_freqs
+        self.apply_freq_scaling = apply_freq_scaling
         self.register_freqs()
 
     def register_freqs(self):
@@ -159,7 +159,7 @@ class RoPE(nn.Module):
             torch.arange(0, self.dhead, 2, dtype=torch.int64).float() / self.dhead
         )
         angles = 1.0 / torch.pow(self.base, angle_exponents).reshape(1, -1)
-        if self.scale_freqs:
+        if self.apply_freq_scaling:
             angles = self.scale_freqs(angles)
 
         angle_per_token = angles * torch.arange(0, self.length).reshape(-1, 1)
@@ -197,8 +197,8 @@ class RoPE(nn.Module):
     def forward(self, x):
         [y1, y2] = torch.chunk(x, chunks=2, dim=-1)
         x_rotated = torch.cat([-y2, y1], dim=-1)
-        cos_scaler = self.cos[: x.shape[-2], :].to(x.device)
-        sin_scaler = self.sin[: x.shape[-2], :].to(x.device)
+        cos_scaler = self.cos[: x.shape[-2], :].to(x.device, dtype=x.dtype)
+        sin_scaler = self.sin[: x.shape[-2], :].to(x.device, dtype=x.dtype)
         return x * cos_scaler + x_rotated * sin_scaler
 
 
@@ -225,14 +225,14 @@ class RoPEAttention(nn.Module):
 
         self.q_heads = q_heads
         self.kv_heads = kv_heads
-        self.dhead = dmodel // self.q_heads
+        self.dhead = self.q_proj.weight.shape[0] // self.q_heads
         self.dmodel = dmodel
 
         self.rope = RoPE(
             dhead=self.dhead,
             length=seq_len,
             base=rope_base,
-            scale_freqs=rope_scale_freqs,
+            apply_freq_scaling=rope_scale_freqs,
         )
 
     def forward(self, x):
@@ -250,6 +250,25 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        # q  = self.q_proj(x)
+        # k  = self.k_proj(x)
+        # v  = self.v_proj(x)
+
+        # projected = torch.concat((q,k,v), dim=-1)
+
+        # batch, seq_len = x.shape[:-1]
+        # projected = projected.view(
+        #     batch, seq_len, self.q_heads, 3 * self.dhead
+        # ).transpose(1, 2)
+        # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        # q = self.rope(q)
+        # k = self.rope(k)
+        
+        q = q.contiguous()
+        k = k.contiguous()
+        v = v.contiguous()
+
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
@@ -493,8 +512,6 @@ class ProjectedLinear(nn.Module):
 
         return F.linear(input, weight, bias=None)
 
-        return F.linear(input, self.weight, bias=None)
-
     def extra_repr(self) -> str:
         if self.result_in_features is not None:
             result = f"(projection_in_weight) ({self.base_in_features}, {self.result_in_features})\n"
@@ -504,7 +521,6 @@ class ProjectedLinear(nn.Module):
         if self.result_out_features is not None:
             result += f"\n(projection_out_weight) ({self.result_out_features}, {self.base_out_features})"
         return result
-
 
 class ProjectedEmbedding(nn.Module):
     def __init__(
