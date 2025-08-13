@@ -35,6 +35,7 @@ def create_distributed_variables() -> list[str]:
     return [
         "export WORLD_SIZE=$((${SLURM_NNODES} * ${SLURM_NTASKS_PER_NODE}))",
         'echo "Running on ${WORLD_SIZE} nodes"',
+        'echo "HF_HUB_CACHE=${HF_HUB_CACHE}'
     ]
 
 
