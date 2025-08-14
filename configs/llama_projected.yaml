@@ -122,7 +122,7 @@ trainer:
 
     load:
       type: huggingface
-      path: "" # Change me!
+      path: "src/core/crewtool_small2" # Change me!
 
   eval_interval: 100
   n_eval_steps: 5

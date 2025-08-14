@@ -22,6 +22,51 @@ from torch import zeros as zeros
 import torch.distributed as dist
 import torch.nn.functional as F
 
+from torch.nn import Parameter
+from torch import Tensor
+
+class OurLinear(nn.Linear):
+    def __init__(self, *args, weight,  **kwargs):
+        if "bias" not in kwargs:
+            kwargs["bias"] = False
+        super().__init__(*args, **kwargs)
+        self.weight = weight
+
+
+class MyParameter(Parameter):
+    def __new__(cls, data=None, requires_grad=True):
+        return super().__new__(cls, data, requires_grad)
+
+# Override the isinstance check for torch.nn.Parameter
+# so that MyParameter objects aren't recognized as Parameter
+Parameter.__instancecheck__ = lambda self, obj: (
+    type(obj) is Parameter  # True only for *exactly* Parameter, not subclasses
+)
+
+
+# class MyParameter(Tensor):
+#     def __new__(cls, data=None, requires_grad=True):
+#         # This mimics torch.nn.Parameter's behavior
+#         if data is None:
+#             data = torch.empty(0)
+#         if not isinstance(data, Tensor):
+#             data = torch.tensor(data)
+
+#         # Use Tensor._make_subclass to create a leaf tensor that requires grad
+#         instance = torch.Tensor._make_subclass(cls, data, requires_grad)
+#         return instance
+
+#     def __repr__(self):
+#         return f"MyParameter containing:\n{super().__repr__()}"
+
+# --- Demo ---
+# p = Parameter(torch.randn(2, 2))
+# w = MyParameter(torch.randn(2, 2))
+
+# print(isinstance(p, Parameter))   # True
+# print(isinstance(w, Parameter))   # False
+# print(isinstance(w, MyParameter)) # True
+
 
 def llm_random_weight_init(fan_in, scale):
     std = scale * (1 / fan_in) ** 0.5
@@ -252,6 +297,25 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        # q  = self.q_proj(x)
+        # k  = self.k_proj(x)
+        # v  = self.v_proj(x)
+
+        # projected = torch.concat((q,k,v), dim=-1)
+
+        # batch, seq_len = x.shape[:-1]
+        # projected = projected.view(
+        #     batch, seq_len, self.q_heads, 3 * self.dhead
+        # ).transpose(1, 2)
+        # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        # q = self.rope(q)
+        # k = self.rope(k)
+        
+        q = q.contiguous()
+        k = k.contiguous()
+        v = v.contiguous()
+
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
@@ -413,7 +477,7 @@ class ProjectedLinear(nn.Module):
         self.base_out_features = base_out_features
         self.initialized_compression = False
 
-        self.weight = nn.Parameter(
+        self.weight = MyParameter(
             torch.rand((base_out_features, base_in_features), **factory_kwargs)
         )
         self.projection_in_weight = None
@@ -449,14 +513,14 @@ class ProjectedLinear(nn.Module):
                 self.base_in_features, self.result_in_features, **factory_kwargs
             )
             weight[proj_in_topk_indices, torch.arange(self.result_in_features)] = 1
-            self.projection_in_weight = nn.Parameter(weight, requires_grad=True)
+            self.projection_in_weight = MyParameter(weight, requires_grad=True)
 
         if self.result_out_features is not None:
             weight = torch.zeros(
                 self.result_out_features, self.base_out_features, **factory_kwargs
             )
             weight[torch.arange(self.result_out_features), proj_out_topk_indices] = 1
-            self.projection_out_weight = nn.Parameter(weight, requires_grad=True)
+            self.projection_out_weight = MyParameter(weight, requires_grad=True)
 
         if self.result_in_features is not None or self.result_out_features is not None:
             final_in_features = (
@@ -472,7 +536,16 @@ class ProjectedLinear(nn.Module):
             weight = torch.zeros(
                 final_out_features, final_in_features, **factory_kwargs
             )
-            self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
+            self.auxiliary_weight = MyParameter(weight, requires_grad=True)
+
+
+        # weight_tensor = self.weight.data  # keep the actual tensor values
+
+        # # 2. Remove it from the module's parameters
+        # del self._parameters["weight"]
+
+        # # 3. Register it as a buffer (non-trainable, still in state_dict)
+        # self.register_buffer("weight", weight_tensor, persistent=True)
 
         self.initialized_compression = True
 
@@ -529,7 +602,7 @@ class ProjectedEmbedding(nn.Module):
         vocab_size, dmodel = self.embedding.weight.shape
         weight = torch.zeros(self.result_out_features, dmodel, **factory_kwargs)
         weight[torch.arange(self.result_out_features), topk_dmodel_indices] = 1
-        self.projection = nn.Parameter(weight, requires_grad=True)
+        self.projection = MyParameter(weight, requires_grad=True)
         self.initialized_compression = True
 
         zeros = torch.zeros(vocab_size, self.result_out_features, **factory_kwargs)
