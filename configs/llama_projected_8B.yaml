@@ -1,16 +1,27 @@
+# common:
+#   _target_: src.definitions.Common
+#   dff: 486
+#   dmodel: 96
+#   head_norm: true
+#   init_scale: 0.1
+#   init_type: truncated_normal_fixed
+#   model_type: gpt
+#   sequence_length: 32
+#   vocab_size: 128256
+#   base_dmodel: 128
+#   base_dff: 512
+
 common:
   _target_: src.definitions.Common
-  dff: 192
-  dmodel: 48
+  dff: 7168
+  dmodel: 2048
   head_norm: true
-  init_scale: 0.1
-  init_type: truncated_normal_fixed
   model_type: gpt
-  sequence_length: 32
-  vocab_size: 50257
-  base_dmodel: 64
-  base_dff: 256
-  
+  sequence_length: 1024
+  vocab_size: 128256
+  base_dff: 14336
+  base_dmodel: 4096
+
 model:
   _target_: src.projected_compression.model.LLM
 
@@ -26,7 +37,7 @@ model:
 
   encoder:
     _target_: src.projected_compression.model.TransformerEncoder
-    n_blocks: 4
+    n_blocks: 32
     block_fn:
       _target_: src.projected_compression.model.TransformerBlock
       _partial_: true
@@ -41,8 +52,8 @@ model:
         _target_: src.projected_compression.model.RoPEAttention
         _partial_: true
         dmodel: ${common.base_dmodel}
-        q_heads: 4
-        kv_heads: 4
+        q_heads: 32
+        kv_heads: 8
         seq_len: ${common.sequence_length}
         q_proj_fn:
           _target_: src.projected_compression.model.ProjectedLinear
@@ -58,7 +69,7 @@ model:
           result_in_features: ${common.dmodel} 
           result_out_features: null
           base_in_features: ${common.base_dmodel}
-          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.q_heads} // ${model.encoder.block_fn.attention_fn.kv_heads} * ${common.base_dmodel}'}
+          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads} * (${common.base_dmodel} // ${model.encoder.block_fn.attention_fn.q_heads})'}
 
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
@@ -70,14 +81,13 @@ model:
           base_in_features: ${common.base_dmodel}
           base_out_features: ${common.base_dmodel}
         
-        rope_base: 10000
+        rope_base: 500000
         rope_scale_freqs: false
 
 
-
       ff_layer_fn:
-        _target_: src.projected_compression.model.FeedForward
-        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        _partial_: true 
         ff_pre_act_fn:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
@@ -92,7 +102,7 @@ model:
           result_out_features: ${common.dmodel} 
           base_in_features: ${common.base_dff}
           base_out_features: ${common.base_dmodel}
-
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
 
   head:
     _target_: src.projected_compression.model.TransformerHead
@@ -116,20 +126,20 @@ trainer:
 
   checkpoint:
     save:
-      interval: 12500
+      interval: -1
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
       path: checkpoints # Change me!
 
     load:
-      type: "llm-random"
-      path: "/Users/crewtool/testms/llm-random/tosciezka2/0.pt" # Change me!
+      type: huggingface
+      path: "meta-llama/Llama-3.1-8B"
 
   eval_interval: 100
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
-  gradient_clipping: 0.5 # 1.0
+  gradient_clipping: 1.0
   n_steps: 100
 
   learning_rate: 0.001
@@ -147,8 +157,8 @@ trainer:
     dataset_split: train
     dataset_type: c4
     tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
-    num_workers: 0 # Change me!
+      _target_: src.core.datasets.llama_tokenize_fn
+    num_workers: 8 # Change me!
     seed: 20001
     sequence_length: 32
     shuffle: false
@@ -162,8 +172,8 @@ trainer:
     dataset_split: validation
     dataset_type: c4
     tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
-    num_workers: 0 # Change me!
+      _target_: src.core.datasets.llama_tokenize_fn
+    num_workers: 8 # Change me!
     seed: 123
     sequence_length: 32
     shuffle: true
@@ -171,17 +181,17 @@ trainer:
     use_new_sampling_method: true
     world_size_independent: false
 
-  distributed: null
-    # fsdp:
-    #   mixed_precision:
-    #     dtype: bfloat16
-    #     ignored_classes:
-    #       - LayerNorm
-    #       - AttentionMechanism
-    #   modules_to_wrap:
-    #     - TransformerBlock
-    #     - EmbeddingLayer
-    #     - PredictionHead
+  distributed:
+    fsdp:
+      mixed_precision:
+        dtype: bfloat16
+        ignored_classes:
+          - src.core.model.RMSNorm
+          - src.core.model.AttentionMechanism
+      modules_to_wrap:
+        - src.projected_compression.model.ProjectedEmbedding
+        - src.projected_compression.model.TransformerBlock
+        - src.projected_compression.model.TransformerHead
 
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
@@ -191,14 +201,14 @@ apply_functions:
 
 infrastructure:
   slurm:
-    cpus-per-task: 32
-    gres: gpu:2
+    cpus-per-task: 16
+    gres: gpu:4
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
     partition: h100
     time: "0-1:00:00"
-    ntasks-per-node: 2
+    ntasks-per-node: 4
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
   experiment_prepare_venv_path: ${infrastructure.venv_path}
@@ -209,12 +219,11 @@ infrastructure:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
     name: test
-    # new_neptune_job: false
+    new_neptune_job: true
     project_name: pmtest/llm-random
     tags:
       - test
-    # type: neptune
-    type: stdout
+    type: neptune
 
   git:
     remote_name: cemetery
@@ -223,3 +232,4 @@ infrastructure:
   server: entropia
 
   generated_configs_path: generated_configs
+

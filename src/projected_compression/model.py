@@ -252,6 +252,25 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        # q  = self.q_proj(x)
+        # k  = self.k_proj(x)
+        # v  = self.v_proj(x)
+
+        # projected = torch.concat((q,k,v), dim=-1)
+
+        # batch, seq_len = x.shape[:-1]
+        # projected = projected.view(
+        #     batch, seq_len, self.q_heads, 3 * self.dhead
+        # ).transpose(1, 2)
+        # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        # q = self.rope(q)
+        # k = self.rope(k)
+        
+        q = q.contiguous()
+        k = k.contiguous()
+        v = v.contiguous()
+
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
