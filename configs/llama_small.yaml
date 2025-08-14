@@ -1,12 +1,13 @@
+# _run_: true
+
 common:
   _target_: src.definitions.Common
-  dff: 14336
-  dmodel: 4096
-  head_norm: true
+  dff: 512
+  dmodel: 128
   model_type: gpt
-  sequence_length: 1024
+  sequence_length: 32
   vocab_size: 128256
-
+  
 model:
   _target_: src.projected_compression.model.LLM
 
@@ -20,22 +21,22 @@ model:
 
   encoder:
     _target_: src.projected_compression.model.TransformerEncoder
-    n_blocks: 32
+    n_blocks: 2
     block_fn:
       _target_: src.projected_compression.model.TransformerBlock
       _partial_: true
-      norm_fn:
+      norm_fn: 
         _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.dmodel}
-
+      
       attention_fn:
         _target_: src.projected_compression.model.RoPEAttention
         _partial_: true
         dmodel: ${common.dmodel}
-        q_heads: 32
-        kv_heads: 8
+        q_heads: 4
+        kv_heads: 2
         seq_len: ${common.sequence_length}
         q_proj_fn:
           _target_: src.projected_compression.model.Linear
@@ -46,6 +47,7 @@ model:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
             scale: 1
+
 
         k_proj_fn:
           _target_: src.projected_compression.model.Linear
@@ -60,13 +62,14 @@ model:
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
         o_proj_fn: ${model.encoder.block_fn.attention_fn.q_proj_fn}
-
+        
         rope_base: 500000
         rope_scale_freqs: true
 
+
       ff_layer_fn:
         _target_: src.projected_compression.model.ProjectedLlamaFeedForward
-        _partial_: true
+        _partial_: true 
         ff_pre_act_fn:
           _target_: src.projected_compression.model.Linear
           _partial_: true
@@ -76,7 +79,7 @@ model:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
             scale: 1
-        ff_post_act_fn:
+        ff_post_act_fn: 
           _target_: src.projected_compression.model.Linear
           _partial_: true
           in_features: ${common.dff}
@@ -98,11 +101,11 @@ model:
         _target_: src.projected_compression.model.llm_random_weight_init
         _partial_: true
         scale: 1
-    norm_fn:
-      _target_: src.core.model.RMSNorm
-      _partial_: true
-      eps: 1e-5
-      normalized_shape: ${common.dmodel}
+    norm_fn: 
+        _target_: src.core.model.RMSNorm
+        _partial_: true
+        eps: 1e-5
+        normalized_shape: ${common.dmodel}
 
 trainer:
   _partial_: true
@@ -117,7 +120,7 @@ trainer:
 
     load:
       type: huggingface
-      path: "meta-llama/Llama-3.1-8B"
+      path: "src/core/crewtool_small"
 
   eval_interval: 100
   n_eval_steps: 5
@@ -126,7 +129,7 @@ trainer:
   gradient_clipping: 1.0
   n_steps: 2001
 
-  learning_rate: 0.00001
+  learning_rate: 0.001
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
@@ -140,13 +143,13 @@ trainer:
     dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
-    tokenize_fn:
+    tokenize_fn: 
       _target_: src.core.datasets.llama_tokenize_fn
-    num_workers: 8 # Change me!
+    num_workers: 12 # Change me!
     seed: 20001
-    sequence_length: 1024
+    sequence_length: 32
     shuffle: true
-    total_batch_size: 16
+    total_batch_size: 32
     use_new_sampling_method: true
     world_size_independent: false
 
@@ -155,13 +158,13 @@ trainer:
     dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
-    tokenize_fn:
+    tokenize_fn: 
       _target_: src.core.datasets.llama_tokenize_fn
-    num_workers: 8 # Change me!
+    num_workers: 12 # Change me!
     seed: 123
-    sequence_length: 16
+    sequence_length: 32
     shuffle: true
-    total_batch_size: 16
+    total_batch_size: 32
     use_new_sampling_method: true
     world_size_independent: false
 
@@ -170,23 +173,23 @@ trainer:
       mixed_precision:
         dtype: bfloat16
         ignored_classes:
-          - src.core.model.RMSNorm
-          - src.core.model.AttentionMechanism
+          - RMSNorm
+          - AttentionMechanism
       modules_to_wrap:
-        - src.projected_compression.model.TransformerEmbedding
-        - src.projected_compression.model.TransformerBlock
-        - src.projected_compression.model.TransformerHead
+        - TransformerBlock
+        - EmbeddingLayer
+        - TransformerHead
 
 infrastructure:
   slurm:
-    cpus-per-task: 16
-    gres: gpu:4
+    cpus-per-task: 32
+    gres: gpu:2
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
     partition: h100
     time: "0-1:00:00"
-    ntasks-per-node: 4
+    ntasks-per-node: 2
     export: "ALL,HF_HUB_CACHE=/storage_nvme_3/crewtool/huggingface/hub"
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
