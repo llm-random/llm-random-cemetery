@@ -252,6 +252,25 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        # q  = self.q_proj(x)
+        # k  = self.k_proj(x)
+        # v  = self.v_proj(x)
+
+        # projected = torch.concat((q,k,v), dim=-1)
+
+        # batch, seq_len = x.shape[:-1]
+        # projected = projected.view(
+        #     batch, seq_len, self.q_heads, 3 * self.dhead
+        # ).transpose(1, 2)
+        # q, k, v = torch.chunk(projected, chunks=3, dim=-1)
+        # q = self.rope(q)
+        # k = self.rope(k)
+        
+        q = q.contiguous()
+        k = k.contiguous()
+        v = v.contiguous()
+
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
@@ -473,6 +492,15 @@ class ProjectedLinear(nn.Module):
                 final_out_features, final_in_features, **factory_kwargs
             )
             self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
+
+
+        weight_tensor = self.weight.data  # keep the actual tensor values
+
+        # 2. Remove it from the module's parameters
+        del self._parameters["weight"]
+
+        # 3. Register it as a buffer (non-trainable, still in state_dict)
+        self.register_buffer("weight", weight_tensor, persistent=True)
 
         self.initialized_compression = True
 
