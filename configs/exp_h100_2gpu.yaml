@@ -97,7 +97,8 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+#    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+    dataset_path: "/storage_nvme_4/llm-random/datasets/fineweb/train"
     dataset_split: train
     dataset_type: c4
     num_workers: 0 # Change me!
@@ -110,7 +111,8 @@ trainer:
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+#    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    dataset_path: "/storage_nvme_4/llm-random/datasets/fineweb/train"
     dataset_split: validation
     dataset_type: c4
     num_workers: 0 # Change me!
