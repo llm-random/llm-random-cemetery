@@ -113,25 +113,25 @@ trainer:
       interval: -1
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
-      path: checkpoints # Change me!
+      path: null # Change me!
 
     load:
       type: huggingface
       path: "meta-llama/Llama-3.1-8B"
 
-  eval_interval: 100
+  eval_interval: 10
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
   gradient_clipping: 1.0
-  n_steps: 2001
+  n_steps: 201
 
   learning_rate: 0.00001
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
     final_lr_fraction: 0.1
-    warmup_steps: 500
+    warmup_steps: 50
 
   weight_decay: 0.1
 
@@ -208,6 +208,6 @@ infrastructure:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy
 
   generated_configs_path: generated_configs
