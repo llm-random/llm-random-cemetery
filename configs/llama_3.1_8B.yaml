@@ -137,9 +137,11 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+#    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+    dataset_path: "/storage_nvme_4/llm-random/datasets/fineweb/train"
     dataset_split: train
-    dataset_type: c4
+#    dataset_type: c4
+    dataset_type: fineweb-edu
     tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 8 # Change me!
@@ -152,9 +154,11 @@ trainer:
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+#    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+    dataset_path: "/storage_nvme_4/llm-random/datasets/fineweb/train"
     dataset_split: validation
-    dataset_type: c4
+#    dataset_type: c4
+    dataset_type: fineweb-edu
     tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 8 # Change me!
@@ -187,7 +191,7 @@ infrastructure:
     partition: h100
     time: "0-1:00:00"
     ntasks-per-node: 4
-    export: "ALL,HF_HUB_CACHE=/storage_nvme_3/crewtool/huggingface/hub"
+    export: "ALL,HF_HUB_CACHE=/storage_nvme_3/m1kush/huggingface/hub"
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
   experiment_prepare_venv_path: ${infrastructure.venv_path}
@@ -208,6 +212,6 @@ infrastructure:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy
 
   generated_configs_path: generated_configs
