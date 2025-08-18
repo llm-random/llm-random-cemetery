@@ -21,16 +21,6 @@ trainer:
       mixed_precision:
         dtype: bfloat16
         ignored_classes:
-      modules_to_wrap:
-        - TransformerBlock
-        - EmbeddingLayer
-        - PredictionHead
-
-  distributed:
-    fsdp:
-      mixed_precision:
-        dtype: bfloat16
-        ignored_classes:
           - src.core.model.RMSNorm
           - src.core.model.AttentionMechanism
       modules_to_wrap:
