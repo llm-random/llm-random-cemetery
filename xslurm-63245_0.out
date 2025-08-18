@@ -1,0 +1,186 @@
+Running on 8 nodes
+[2025-08-18 16:00:41,485][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:41,514][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:41,519][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:41,549][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:41,550][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:43,626][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:44,595][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-18 16:00:44,752][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-18 16:00:51,823][__main__][INFO] - Creating model...
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-18 16:00:52,655][__main__][INFO] - Creating model...
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-18 16:00:52,700][__main__][INFO] - Creating model...
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-18 16:00:52,758][__main__][INFO] - Creating model...
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-18_16-00-10/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-18 16:00:52,806][__main__][INFO] - Creating model...
+[2025-08-18 16:00:52,852][__main__][INFO] - Creating model...
+[2025-08-18 16:00:52,854][__main__][INFO] - Creating model...
+[2025-08-18 16:00:52,865][__main__][INFO] - Creating model...
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 159 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 159 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 172 operations to synchronize with Neptune. Do not kill this process.
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 173 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] Waiting for the remaining 173 operations to synchronize with Neptune. Do not kill this process.
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 173 operations to synchronize with Neptune. Do not kill this process.
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Error in call to target 'src.projected_compression.model.TransformerEncoder':
+TypeError('zeros() received an invalid combination of arguments - got (tuple, dtype=NoneType, device=NoneType), but expected one of:\n * (tuple of ints size, *, tuple of names names, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n * (tuple of ints size, *, Tensor out = None, torch.dtype dtype = None, torch.layout layout = None, torch.device device = None, bool pin_memory = False, bool requires_grad = False)\n')
+full_key: model.encoder
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 173 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 172 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] Waiting for the remaining 172 operations to synchronize with Neptune. Do not kill this process.
+[rank0]:[W818 16:00:55.853349553 ProcessGroupNCCL.cpp:1250] Warning: WARNING: process group has NOT been destroyed before we destruct ProcessGroupNCCL. On normal program exit, the application should call destroy_process_group to ensure that any pending NCCL operations have finished in this process. In rare cases this process can exit before this point and block the progress of another member of the process group. This constraint has always been present,  but this warning has only been added since PyTorch 2.4 (function operator())
+[neptune] [info   ] All 172 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+[neptune] [info   ] All 173 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+[neptune] [info   ] All 173 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+[neptune] [info   ] All 173 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+[neptune] [info   ] All 173 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+srun: error: h100a: task 0: Exited with exit code 1
+[neptune] [info   ] All 172 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+[neptune] [info   ] All 172 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37023/metadata
+srun: error: h100a: task 6: Exited with exit code 1
+srun: error: h100a: task 4: Exited with exit code 1
+srun: error: h100a: task 2: Exited with exit code 1
+srun: error: h100a: task 1: Exited with exit code 1
+srun: error: h100a: task 3: Exited with exit code 1
+srun: error: h100a: task 5: Exited with exit code 1
+srun: error: h100a: task 7: Exited with exit code 1
