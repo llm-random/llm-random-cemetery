@@ -11,6 +11,7 @@ import torch.distributed.checkpoint as dcp
 from torch.nn.parallel import DistributedDataParallel as DDP
 import logging
 
+from projected_compression.compression import project_weights
 from src.core.checkpointing import TrainingState, save_training_state, step_checkpoint_path
 from src.core.metric_loggers import MetricLogger
 from src.core.utils import create_batch_fingerprint
@@ -88,6 +89,9 @@ class Trainer:
             self.step = step
             self.metric_logger.set_step(step)
             self.model.train()
+            
+            project_weights(self.model) #dev
+            
             loss = self.calculate_loss(batch)
 
             grad_norm = self.clip_gradient()
