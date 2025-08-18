@@ -127,6 +127,27 @@ def initialize_projection_weights(
         block.ff_layer.norm.weight = torch.nn.Parameter(cloned_data[dmodel_top_indices])
         block.ff_layer.norm.normalized_shape = tuple(block.ff_layer.norm.weight.shape)
 
+def project_weights(
+    model: nn.Module
+):
+    model.head.linear.project()
+    model.embedding.project()
+
+    for i, block in enumerate(model.encoder.blocks):
+        layers_to_init_projections = [
+            "attention_layer.layer.q_proj",
+            "attention_layer.layer.k_proj",
+            "attention_layer.layer.v_proj",
+            "ff_layer.layer.ff_pre_act",
+            "attention_layer.layer.o_proj",
+            "ff_layer.layer.ff_post_act",
+        ]
+        # For models with SiLU (e.g. LLama) 
+        if "ff_layer.layer.gate.weight" in block.state_dict().keys():
+            layers_to_init_projections.append("ff_layer.layer.gate")
+        
+        for layer_name in layers_to_init_projections:
+            get_nested_attr(block, layer_name).project()
 
 def init_compression(model: nn.Module, dmodel, dff):
     # Freeze all parameters
@@ -137,5 +158,7 @@ def init_compression(model: nn.Module, dmodel, dff):
         model, dmodel, dff
     )
     initialize_projection_weights(model, dmodel_top_indices, dff_top_indices)
+    project_weights(model)
+
 
 
