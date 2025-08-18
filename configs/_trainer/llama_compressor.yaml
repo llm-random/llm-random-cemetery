@@ -25,5 +25,5 @@ trainer:
           - src.core.model.AttentionMechanism
       modules_to_wrap:
         - src.projected_compression.model.ProjectedEmbedding
-        - src.projected_compression.model.TransformerBlock
+        - src.projected_compression.model.MyParameter
         - src.projected_compression.model.TransformerHead
