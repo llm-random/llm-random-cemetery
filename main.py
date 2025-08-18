@@ -139,6 +139,13 @@ def run(cfg, metric_logger=None):
         if cfg.get("apply_functions", None):
             for fn in instantiate(cfg.apply_functions):
                 fn(model)
+        print("model------------------------------------------------------")
+        if int(os.environ["RANK"]) == 0:
+            for name, param in model.named_parameters():
+                print(name, param.shape, param.requires_grad, param.device)
+        # for name, param in model.named_parameters():
+        #     print(name, param.shape, param.requires_grad, param.device)
+        print("------------------------------------------------------model")
         model = wrap_model_distributed(model, cfg.trainer.distributed)
         optimizer = torch.optim.AdamW(
             model.parameters(),
@@ -167,6 +174,14 @@ def run(cfg, metric_logger=None):
         )
         scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
         load_checkpoint_from_file(cfg.trainer.checkpoint.load, model, optimizer, scheduler)
+
+    # print("model------------------------------------------------------")
+    # if int(os.environ["RANK"]) == 0:
+    #     for name, param in model.named_parameters():
+    #         print(name, param.shape, param.requires_grad, param.device)
+    # # for name, param in model.named_parameters():
+    # #     print(name, param.shape, param.requires_grad, param.device)
+    # print("------------------------------------------------------model")
 
     trainer = instantiate(cfg.trainer)
     trainer(
