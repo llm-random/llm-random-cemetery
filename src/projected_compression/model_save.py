@@ -382,6 +382,22 @@ class LLM(nn.Module):
         x = self.head(x)
         return x
 
+# class ParameterModule(nn.Module):
+#     def __init__(self, data):
+#         super().__init__()
+#         self.param = nn.Parameter(data)
+
+#     def forward(self):
+#         return self.param
+
+#     # make module behave like the tensor
+#     def __torch_function__(self, func, types, args=(), kwargs=None):
+#         if kwargs is None:
+#             kwargs = {}
+#         return func(self.param, *args, **kwargs)
+
+#     def __repr__(self):
+#         return repr(self.param)
 
 class ProjectedLinear(nn.Module):
     __constants__ = [
@@ -413,15 +429,15 @@ class ProjectedLinear(nn.Module):
         self.base_out_features = base_out_features
         self.initialized_compression = False
 
+        self.projected_weights = nn.Parameter(
+            torch.zeros((result_out_features, result_in_features), **factory_kwargs)
+        )
         self.weight = nn.Parameter(
-            torch.rand((base_out_features, base_in_features), **factory_kwargs)
+            torch.rand((base_out_features, base_in_features), device="cpu", dtype=factory_kwargs["dtype"])
         )
         self.projection_in_weight = None
         self.projection_out_weight = None
         self.auxiliary_weight = None
-        self.projected_weights = None
-
-        self.gpu_device = torch.device("cuda" if torch.cuda.is_available() else "cpu") # dev propably fine - recheck
 
     def init_projections(
         self,
@@ -476,14 +492,12 @@ class ProjectedLinear(nn.Module):
                 final_out_features, final_in_features, **factory_kwargs
             )
             self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
-        
-        self.projected_weights = nn.Parameter(
-            torch.rand((self.result_out_features if self.result_out_features else self.base_out_features, self.result_in_features if self.result_in_features else self.base_in_features), requires_grad=True, device=self.gpu_device)
-        )
-        self.project()
+
         self.initialized_compression = True
 
-    def project(self):
+    def project(
+        self
+    ):
         weight = self.weight
 
         if self.result_in_features is not None:
@@ -498,18 +512,12 @@ class ProjectedLinear(nn.Module):
         ):
             weight += self.auxiliary_weight
 
-        self.projected_weights = weight.to(self.gpu_device) # dev FSDP magic
-        # self.projected_weights.copy_(weight) # dev FSDP magic
-        # self.projected_weights = nn.Parameter(weight).to(self.gpu_device) # dev FSDP magic - only gpu parameters and are overwiritten every step (funny), maybe we should re-fsdp model every step - sounds stupied but might be what we need 
-        # with torch.no_grad():
-        #     self.projected_weights.copy_(weight)
+        self.projected_weights.data.copy_(weight)
 
-
+    
     def forward(self, input: torch.Tensor) -> torch.Tensor:
-        # gradient magic happens here - PC optimization
-        # TODO maybe order of projections matter for speed
-        self.project()
         return F.linear(input, self.projected_weights, bias=None)
+    
 
     def extra_repr(self) -> str:
         if self.result_in_features is not None:
