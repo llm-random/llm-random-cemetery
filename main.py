@@ -168,6 +168,12 @@ def run(cfg, metric_logger=None):
         scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
         load_checkpoint_from_file(cfg.trainer.checkpoint.load, model, optimizer, scheduler)
 
+    print("model------------------------------------------------------")
+    print(os.environ["RANK"])
+    if os.environ["RANK"] == 0:
+        print(model)
+    print("------------------------------------------------------model")
+
     trainer = instantiate(cfg.trainer)
     trainer(
         model=model,
