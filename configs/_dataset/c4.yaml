@@ -1,11 +1,12 @@
 
-
 trainer:
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
     dataset_path: ${switch.trainer.train_dataloader.dataset_path_c4}
     dataset_split: train
     dataset_type: c4
+    tokenize_fn:
+      _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 12
     seed: 20001
     sequence_length: ${common.sequence_length}
@@ -19,6 +20,8 @@ trainer:
     dataset_path: ${switch.trainer.eval_dataloader.dataset_path_c4}
     dataset_split: validation
     dataset_type: c4
+    tokenize_fn:
+      _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 12
     seed: 123
     sequence_length: ${common.sequence_length}
