@@ -1,22 +1,39 @@
+# common:
+#   _target_: src.definitions.Common
+#   dff: 486
+#   dmodel: 96
+#   head_norm: true
+#   init_scale: 0.1
+#   init_type: truncated_normal_fixed
+#   model_type: gpt
+#   sequence_length: 32
+#   vocab_size: 128256
+#   base_dmodel: 128
+#   base_dff: 512
+
 common:
   _target_: src.definitions.Common
-  dff: 14336
-  dmodel: 4096
+  dff: 7168
+  dmodel: 2048
   head_norm: true
   model_type: gpt
   sequence_length: 1024
   vocab_size: 128256
+  base_dff: 14336
+  base_dmodel: 4096
 
 model:
   _target_: src.projected_compression.model.LLM
 
   embedding:
-    _target_: src.projected_compression.model.TransformerEmbedding
-    vocab_size: ${common.vocab_size}
-    dmodel: ${common.dmodel}
-    init_fn:
-      _target_: src.projected_compression.model.trunc_normal_
-      _partial_: true
+    _target_: src.projected_compression.model.ProjectedEmbedding
+    embedding:
+      _target_: src.projected_compression.model.Embedding
+      num_embeddings: ${common.vocab_size}
+      embedding_dim: ${common.base_dmodel}
+
+    result_out_features: ${common.dmodel} 
+    
 
   encoder:
     _target_: src.projected_compression.model.TransformerEncoder
@@ -24,43 +41,45 @@ model:
     block_fn:
       _target_: src.projected_compression.model.TransformerBlock
       _partial_: true
-      norm_fn:
+      norm_fn: 
         _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
-        normalized_shape: ${common.dmodel}
-
+        normalized_shape: ${common.base_dmodel}
+      
       attention_fn:
         _target_: src.projected_compression.model.RoPEAttention
         _partial_: true
-        dmodel: ${common.dmodel}
+        dmodel: ${common.base_dmodel}
         q_heads: 32
         kv_heads: 8
         seq_len: ${common.sequence_length}
         q_proj_fn:
-          _target_: src.projected_compression.model.Linear
+          _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          in_features: ${common.dmodel}
-          out_features: ${common.dmodel}
-          partial_init_fn:
-            _target_: src.projected_compression.model.llm_random_weight_init
-            _partial_: true
-            scale: 1
+          result_in_features: ${common.dmodel} 
+          result_out_features: null
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dmodel}
 
         k_proj_fn:
-          _target_: src.projected_compression.model.Linear
+          _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          in_features: ${common.dmodel}
-          out_features: ${eval:'(${common.dmodel} // ${model.encoder.block_fn.attention_fn.q_heads}) * ${model.encoder.block_fn.attention_fn.kv_heads}'}
-          partial_init_fn:
-            _target_: src.projected_compression.model.llm_random_weight_init
-            _partial_: true
-            scale: 1
+          result_in_features: ${common.dmodel} 
+          result_out_features: null
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads} * (${common.base_dmodel} // ${model.encoder.block_fn.attention_fn.q_heads})'}
 
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
-        o_proj_fn: ${model.encoder.block_fn.attention_fn.q_proj_fn}
-
+        o_proj_fn:
+          _target_: src.projected_compression.model.ProjectedLinear
+          _partial_: true
+          result_in_features: null
+          result_out_features: ${common.dmodel} 
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dmodel}
+        
         rope_base: 500000
         rope_scale_freqs: true
 
@@ -68,41 +87,35 @@ model:
         _target_: src.projected_compression.model.ProjectedLlamaFeedForward
         _partial_: true
         ff_pre_act_fn:
-          _target_: src.projected_compression.model.Linear
+          _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          in_features: ${common.dmodel}
-          out_features: ${common.dff}
-          partial_init_fn:
-            _target_: src.projected_compression.model.llm_random_weight_init
-            _partial_: true
-            scale: 1
-        ff_post_act_fn:
-          _target_: src.projected_compression.model.Linear
+          result_in_features: ${common.dmodel}
+          result_out_features: ${common.dff}
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dff}
+        ff_post_act_fn: 
+          _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          in_features: ${common.dff}
-          out_features: ${common.dmodel}
-          partial_init_fn:
-            _target_: src.projected_compression.model.llm_random_weight_init
-            _partial_: true
-            scale: 1
+          result_in_features: ${common.dff}
+          result_out_features: ${common.dmodel} 
+          base_in_features: ${common.base_dff}
+          base_out_features: ${common.base_dmodel}
         gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
 
   head:
     _target_: src.projected_compression.model.TransformerHead
     linear_fn:
-      _target_: src.projected_compression.model.Linear
+      _target_: src.projected_compression.model.ProjectedLinear
       _partial_: true
-      in_features: ${common.dmodel}
-      out_features: ${common.vocab_size}
-      partial_init_fn:
-        _target_: src.projected_compression.model.llm_random_weight_init
+      result_in_features: ${common.dmodel}
+      result_out_features: null
+      base_in_features: ${common.base_dmodel}
+      base_out_features: ${common.vocab_size}
+    norm_fn: 
+        _target_: src.core.model.RMSNorm
         _partial_: true
-        scale: 1
-    norm_fn:
-      _target_: src.core.model.RMSNorm
-      _partial_: true
-      eps: 1e-5
-      normalized_shape: ${common.dmodel}
+        eps: 1e-5
+        normalized_shape: ${common.base_dmodel}
 
 trainer:
   _partial_: true
@@ -124,9 +137,9 @@ trainer:
 
   gradient_accumulation_steps: 1
   gradient_clipping: 1.0
-  n_steps: 2001
+  n_steps: 100
 
-  learning_rate: 0.00001
+  learning_rate: 0.001
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
@@ -142,12 +155,12 @@ trainer:
     dataset_type: c4
     tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
-    num_workers: 8 # Change me!
+    num_workers: 4 # Change me!
     seed: 20001
-    sequence_length: 1024
-    shuffle: true
+    sequence_length: ${common.sequence_length}
+    shuffle: false
     total_batch_size: 16
-    use_new_sampling_method: true 
+    use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
@@ -157,9 +170,9 @@ trainer:
     dataset_type: c4
     tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
-    num_workers: 8 # Change me!
+    num_workers: 4 # Change me!
     seed: 123
-    sequence_length: 16
+    sequence_length: ${common.sequence_length}
     shuffle: true
     total_batch_size: 16
     use_new_sampling_method: true
@@ -173,19 +186,25 @@ trainer:
           - src.core.model.RMSNorm
           - src.core.model.AttentionMechanism
       modules_to_wrap:
-        - src.projected_compression.model.TransformerEmbedding
+        - src.projected_compression.model.ProjectedEmbedding
         - src.projected_compression.model.TransformerBlock
         - src.projected_compression.model.TransformerHead
 
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    dmodel: ${common.dmodel}
+    dff: ${common.dff}
+
 infrastructure:
   slurm:
-    cpus-per-task: 12
+    cpus-per-task: 4
     gres: gpu:8
     job-name: test
     mem_per_gpu: 125G
-    nodes: 1
+    nodes: 1 
     partition: h100
-    time: "0-1:00:00"
+    time: "0-00:10:00"
     ntasks-per-node: 8
     export: "ALL,HF_HUB_CACHE=/storage_nvme_3/mstefaniak/huggingface/hub"
 
@@ -199,12 +218,13 @@ infrastructure:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
     name: test
-    new_neptune_job: false
+    new_neptune_job: true
     project_name: pmtest/llm-random
     tags:
-      - pc
       - nano
+      - pc
       - mas
+      - llama_8
     type: neptune
 
   git:
