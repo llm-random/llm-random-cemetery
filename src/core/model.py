@@ -21,7 +21,8 @@ from torch.nn.modules.normalization import RMSNorm as RMSNorm, LayerNorm as Laye
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings as RotaryPositionalEmbeddings
 from torch.nn.parallel import DistributedDataParallel as DDP
 import logging
-from torch.distributed.fsdp import fully_shard
+from torch.distributed.fsdp import fully_shard, CPUOffloadPolicy
+
 
 logger = logging.getLogger(__name__)
 
@@ -523,7 +524,9 @@ def wrap_model_fsdp(model, fsdp_config):
         "mp_policy": MixedPrecisionPolicy(
             param_dtype=torch.bfloat16,
             reduce_dtype=torch.float32,
-        )
+        ),
+        "offload_policy": CPUOffloadPolicy(pin_memory=True),
+        "reshard_after_forward": True,
     }
 
     # for class_to_wrap in classes_to_wrap:
