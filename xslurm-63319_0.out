@@ -1,0 +1,927 @@
+Running on 8 nodes
+[2025-08-19 17:07:37,874][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:37,908][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:37,935][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:37,937][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:37,951][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:38,725][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:40,374][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[2025-08-19 17:07:40,377][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-19 17:07:44,363][__main__][INFO] - Creating model...
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-19 17:07:45,463][__main__][INFO] - Creating model...
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-19 17:07:45,559][__main__][INFO] - Creating model...
+[2025-08-19 17:07:45,583][__main__][INFO] - Creating model...
+[2025-08-19 17:07:45,617][__main__][INFO] - Creating model...
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py:121: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[2025-08-19 17:07:45,762][__main__][INFO] - Creating model...
+[2025-08-19 17:07:45,768][__main__][INFO] - Creating model...
+[2025-08-19 17:07:45,817][__main__][INFO] - Creating model...
+[2025-08-19 17:08:19,432][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,457][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,636][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,679][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,721][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,758][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,925][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+[2025-08-19 17:08:20,944][__main__][INFO] - Model LLM created with 8030261248 trainable parameters
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.13s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.19s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.23s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.05it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.04s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.24s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.20s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.18s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.12it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.00s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.25s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.19s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.17s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:03<00:00,  1.16it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:03<00:00,  1.02it/s]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.35s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.29s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.25s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.08it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.06s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.33s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.28s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.25s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.09it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.05s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.31s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.25s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.22s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.11it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:04<00:00,  1.03s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:03,  1.26s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.21s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:04<00:01,  1.53s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.19s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:01<00:04,  1.46s/it]Loading checkpoint shards:  50%|█████     | 2/4 [00:02<00:02,  1.38s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:03<00:01,  1.29s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.21s/it]Loading checkpoint shards: 100%|██████████| 4/4 [00:05<00:00,  1.26s/it]
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'src.core.model.AttentionMechanism'>, <class 'torch.nn.modules.normalization.RMSNorm'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'src.core.model.AttentionMechanism'>, <class 'torch.nn.modules.normalization.RMSNorm'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'src.core.model.AttentionMechanism'>, <class 'torch.nn.modules.normalization.RMSNorm'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'src.core.model.AttentionMechanism'>, <class 'torch.nn.modules.normalization.RMSNorm'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Wrapping model with classes: [<class 'src.projected_compression.model.ProjectedEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+Ignoring mixed precision for classes: [<class 'torch.nn.modules.normalization.RMSNorm'>, <class 'src.core.model.AttentionMechanism'>]
+Using mixed precision dtype: torch.bfloat16
+/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py:118: UserWarning: Both mixed precision and an auto_wrap_policy were specified to FSDP, where the wrapped module has submodules of type:
+{<class 'src.core.model.AttentionMechanism'>, <class 'torch.nn.modules.normalization.RMSNorm'>}
+These modules will be wrapped as separate FSDP instacnes with mixed precision disabled.
+  warnings.warn(
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank5]: Traceback (most recent call last):
+[rank5]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank5]:     main()
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank5]:     _run_hydra(
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank5]:     _run_app(
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank5]:     run_and_report(
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank5]:     raise ex
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank5]:     return func()
+[rank5]:            ^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank5]:     lambda: hydra.run(
+[rank5]:             ^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank5]:     _ = ret.return_value
+[rank5]:         ^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank5]:     raise self._return_value
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank5]:     ret.return_value = task_function(task_cfg)
+[rank5]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank5]:     run(config)
+[rank5]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank5]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank5]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank5]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank5]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank5]:     wrapped_model = FSDP(
+[rank5]:                     ^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank5]:     _auto_wrap(
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank5]:     _post_order_apply(root_module, wrap_fn)
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank5]:     _post_order_apply_inner(root_module, "", None)
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank5]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank5]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank5]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank5]:     optional_module = fn(module)
+[rank5]:                       ^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank5]:     return fsdp_fn(module, **kwargs)
+[rank5]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank5]:     _init_param_handle_from_module(
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank5]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank5]:     handle = FlatParamHandle(
+[rank5]:              ^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank5]:     self._init_flat_param_and_metadata(
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank5]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank5]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank5]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank5]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank5]:     return torch.cat(flat_tensors, dim=0)
+[rank5]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank5]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 5 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_5/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 9 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 9 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank4]: Traceback (most recent call last):
+[rank4]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank4]:     main()
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank4]:     _run_hydra(
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank4]:     _run_app(
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank4]:     run_and_report(
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank4]:     raise ex
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank4]:     return func()
+[rank4]:            ^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank4]:     lambda: hydra.run(
+[rank4]:             ^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank4]:     _ = ret.return_value
+[rank4]:         ^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank4]:     raise self._return_value
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank4]:     ret.return_value = task_function(task_cfg)
+[rank4]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank4]:     run(config)
+[rank4]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank4]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank4]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank4]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank4]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank4]:     wrapped_model = FSDP(
+[rank4]:                     ^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank4]:     _auto_wrap(
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank4]:     _post_order_apply(root_module, wrap_fn)
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank4]:     _post_order_apply_inner(root_module, "", None)
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank4]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank4]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank4]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank4]:     optional_module = fn(module)
+[rank4]:                       ^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank4]:     return fsdp_fn(module, **kwargs)
+[rank4]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank4]:     _init_param_handle_from_module(
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank4]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank4]:     handle = FlatParamHandle(
+[rank4]:              ^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank4]:     self._init_flat_param_and_metadata(
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank4]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank4]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank4]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank4]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank4]:     return torch.cat(flat_tensors, dim=0)
+[rank4]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank4]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 4 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_4/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 14 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 14 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank0]:     main()
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank0]:     _run_hydra(
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank0]:     _run_app(
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank0]:     run_and_report(
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank0]:     raise ex
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank0]:     return func()
+[rank0]:            ^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank0]:     lambda: hydra.run(
+[rank0]:             ^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank0]:     _ = ret.return_value
+[rank0]:         ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank0]:     raise self._return_value
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank0]:     ret.return_value = task_function(task_cfg)
+[rank0]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank0]:     run(config)
+[rank0]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank0]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank0]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank0]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank0]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank0]:     wrapped_model = FSDP(
+[rank0]:                     ^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank0]:     _auto_wrap(
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank0]:     _post_order_apply(root_module, wrap_fn)
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank0]:     _post_order_apply_inner(root_module, "", None)
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank0]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank0]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank0]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank0]:     optional_module = fn(module)
+[rank0]:                       ^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank0]:     return fsdp_fn(module, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank0]:     _init_param_handle_from_module(
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank0]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank0]:     handle = FlatParamHandle(
+[rank0]:              ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank0]:     self._init_flat_param_and_metadata(
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank0]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank0]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank0]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank0]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank0]:     return torch.cat(flat_tensors, dim=0)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 0 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_0/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 9 operations to synchronize with Neptune. Do not kill this process.
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank1]: Traceback (most recent call last):
+[rank1]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank1]:     main()
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank1]:     _run_hydra(
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank1]:     _run_app(
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank1]:     run_and_report(
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank1]:     raise ex
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank1]:     return func()
+[rank1]:            ^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank1]:     lambda: hydra.run(
+[rank1]:             ^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank1]:     _ = ret.return_value
+[rank1]:         ^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank1]:     raise self._return_value
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank1]:     ret.return_value = task_function(task_cfg)
+[rank1]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank1]:     run(config)
+[rank1]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank1]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank1]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank1]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank1]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank1]:     wrapped_model = FSDP(
+[rank1]:                     ^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank1]:     _auto_wrap(
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank1]:     _post_order_apply(root_module, wrap_fn)
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank1]:     _post_order_apply_inner(root_module, "", None)
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank1]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank1]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank1]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank1]:     optional_module = fn(module)
+[rank1]:                       ^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank1]:     return fsdp_fn(module, **kwargs)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank1]:     _init_param_handle_from_module(
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank1]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank1]:     handle = FlatParamHandle(
+[rank1]:              ^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank1]:     self._init_flat_param_and_metadata(
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank1]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank1]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank1]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank1]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank1]:     return torch.cat(flat_tensors, dim=0)
+[rank1]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank1]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 1 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_1/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 14 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 9 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+[neptune] [info   ] All 14 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank6]: Traceback (most recent call last):
+[rank6]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank6]:     main()
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank6]:     _run_hydra(
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank6]:     _run_app(
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank6]:     run_and_report(
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank6]:     raise ex
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank6]:     return func()
+[rank6]:            ^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank6]:     lambda: hydra.run(
+[rank6]:             ^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank6]:     _ = ret.return_value
+[rank6]:         ^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank6]:     raise self._return_value
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank6]:     ret.return_value = task_function(task_cfg)
+[rank6]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank6]:     run(config)
+[rank6]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank6]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank6]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank6]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank6]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank6]:     wrapped_model = FSDP(
+[rank6]:                     ^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank6]:     _auto_wrap(
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank6]:     _post_order_apply(root_module, wrap_fn)
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank6]:     _post_order_apply_inner(root_module, "", None)
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank6]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank6]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank6]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank6]:     optional_module = fn(module)
+[rank6]:                       ^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank6]:     return fsdp_fn(module, **kwargs)
+[rank6]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank6]:     _init_param_handle_from_module(
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank6]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank6]:     handle = FlatParamHandle(
+[rank6]:              ^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank6]:     self._init_flat_param_and_metadata(
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank6]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank6]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank6]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank6]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank6]:     return torch.cat(flat_tensors, dim=0)
+[rank6]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank6]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 6 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_6/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 14 operations to synchronize with Neptune. Do not kill this process.
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank3]: Traceback (most recent call last):
+[rank3]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank3]:     main()
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank3]:     _run_hydra(
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank3]:     _run_app(
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank3]:     run_and_report(
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank3]:     raise ex
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank3]:     return func()
+[rank3]:            ^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank3]:     lambda: hydra.run(
+[rank3]:             ^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank3]:     _ = ret.return_value
+[rank3]:         ^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank3]:     raise self._return_value
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank3]:     ret.return_value = task_function(task_cfg)
+[rank3]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank3]:     run(config)
+[rank3]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank3]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank3]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank3]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank3]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank3]:     wrapped_model = FSDP(
+[rank3]:                     ^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank3]:     _auto_wrap(
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank3]:     _post_order_apply(root_module, wrap_fn)
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank3]:     _post_order_apply_inner(root_module, "", None)
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank3]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank3]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank3]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank3]:     optional_module = fn(module)
+[rank3]:                       ^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank3]:     return fsdp_fn(module, **kwargs)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank3]:     _init_param_handle_from_module(
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank3]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank3]:     handle = FlatParamHandle(
+[rank3]:              ^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank3]:     self._init_flat_param_and_metadata(
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank3]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank3]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank3]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank3]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank3]:     return torch.cat(flat_tensors, dim=0)
+[rank3]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank3]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 3 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_3/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 14 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 14 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+[neptune] [info   ] All 14 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank2]: Traceback (most recent call last):
+[rank2]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank2]:     main()
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank2]:     _run_hydra(
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank2]:     _run_app(
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank2]:     run_and_report(
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank2]:     raise ex
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank2]:     return func()
+[rank2]:            ^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank2]:     lambda: hydra.run(
+[rank2]:             ^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank2]:     _ = ret.return_value
+[rank2]:         ^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank2]:     raise self._return_value
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank2]:     ret.return_value = task_function(task_cfg)
+[rank2]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank2]:     run(config)
+[rank2]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank2]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank2]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank2]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank2]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank2]:     wrapped_model = FSDP(
+[rank2]:                     ^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank2]:     _auto_wrap(
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank2]:     _post_order_apply(root_module, wrap_fn)
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank2]:     _post_order_apply_inner(root_module, "", None)
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank2]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank2]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank2]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank2]:     optional_module = fn(module)
+[rank2]:                       ^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank2]:     return fsdp_fn(module, **kwargs)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank2]:     _init_param_handle_from_module(
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank2]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank2]:     handle = FlatParamHandle(
+[rank2]:              ^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank2]:     self._init_flat_param_and_metadata(
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank2]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank2]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank2]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank2]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank2]:     return torch.cat(flat_tensors, dim=0)
+[rank2]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank2]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 2 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [warning] Warning: string series 'monitoring/gpu_2/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 14 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 14 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+[rank7]: Traceback (most recent call last):
+[rank7]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 220, in <module>
+[rank7]:     main()
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+[rank7]:     _run_hydra(
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+[rank7]:     _run_app(
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+[rank7]:     run_and_report(
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 223, in run_and_report
+[rank7]:     raise ex
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+[rank7]:     return func()
+[rank7]:            ^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+[rank7]:     lambda: hydra.run(
+[rank7]:             ^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 132, in run
+[rank7]:     _ = ret.return_value
+[rank7]:         ^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 260, in return_value
+[rank7]:     raise self._return_value
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+[rank7]:     ret.return_value = task_function(task_cfg)
+[rank7]:                        ^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 201, in main
+[rank7]:     run(config)
+[rank7]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/main.py", line 150, in run
+[rank7]:     model = wrap_model_distributed(model, cfg.trainer.distributed)
+[rank7]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 536, in wrap_model_distributed
+[rank7]:     model = wrap_model_fsdp(model, distributed_config.fsdp)
+[rank7]:             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-19_17-06-46/src/core/model.py", line 519, in wrap_model_fsdp
+[rank7]:     wrapped_model = FSDP(
+[rank7]:                     ^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 471, in __init__
+[rank7]:     _auto_wrap(
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_wrap_utils.py", line 72, in _auto_wrap
+[rank7]:     _post_order_apply(root_module, wrap_fn)
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 69, in _post_order_apply
+[rank7]:     _post_order_apply_inner(root_module, "", None)
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank7]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank7]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 53, in _post_order_apply_inner
+[rank7]:     _post_order_apply_inner(child_module, child_module_name, module)
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 54, in _post_order_apply_inner
+[rank7]:     optional_module = fn(module)
+[rank7]:                       ^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/wrap.py", line 88, in fn
+[rank7]:     return fsdp_fn(module, **kwargs)
+[rank7]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/fully_sharded_data_parallel.py", line 497, in __init__
+[rank7]:     _init_param_handle_from_module(
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 622, in _init_param_handle_from_module
+[rank7]:     _init_param_handle_from_params(state, managed_params, fully_sharded_module)
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_init_utils.py", line 634, in _init_param_handle_from_params
+[rank7]:     handle = FlatParamHandle(
+[rank7]:              ^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 588, in __init__
+[rank7]:     self._init_flat_param_and_metadata(
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 753, in _init_flat_param_and_metadata
+[rank7]:     self.flat_param: FlatParameter = self.flatten_tensors_into_flat_param(
+[rank7]:                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 875, in flatten_tensors_into_flat_param
+[rank7]:     flat_param_data = self.flatten_tensors(tensors, aligned_numel)
+[rank7]:                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]:   File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/fsdp/_flat_param.py", line 867, in flatten_tensors
+[rank7]:     return torch.cat(flat_tensors, dim=0)
+[rank7]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank7]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.42 GiB. GPU 7 has a total capacity of 79.20 GiB of which 516.62 MiB is free. Including non-PyTorch memory, this process has 78.69 GiB memory in use. Of the allocated memory 76.94 GiB is allocated by PyTorch, and 285.20 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+[neptune] [warning] Warning: string series 'monitoring/gpu_7/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 14 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 14 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37064/metadata
+[rank0]:[W819 17:15:49.650775286 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+[rank6]:[W819 17:15:49.926074195 TCPStore.cpp:125] [c10d] recvValue failed on SocketImpl(fd=75, addr=[h100a.mimuw.edu.pl]:47260, remote=[h100a.mimuw.edu.pl]:36552): Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+Exception raised from recvBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:682 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x7beef8d7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x7beedcdae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d6a8cd (0x7beedcdaf8cd in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b47a (0x7beedcdb047a in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x31e (0x7beedcdab19e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x7bee9c290b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x7bee7fc5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x7beefa49caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x7beefa529c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank6]:[W819 17:15:49.929157567 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 6] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+[rank1]:[W819 17:15:49.957349066 TCPStore.cpp:125] [c10d] recvValue failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47242, remote=[h100a.mimuw.edu.pl]:36552): Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+Exception raised from recvBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:682 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x784567f7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x78454bfae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d6a8cd (0x78454bfaf8cd in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b47a (0x78454bfb047a in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x31e (0x78454bfab19e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x78450b490b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x7844eee5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x78456969caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x784569729c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank1]:[W819 17:15:49.962359483 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 1] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+[rank3]:[W819 17:15:49.974275493 TCPStore.cpp:125] [c10d] recvValue failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47218, remote=[h100a.mimuw.edu.pl]:36552): Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+Exception raised from recvBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:682 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x72f27837eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x72f25c3ae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d6a8cd (0x72f25c3af8cd in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b47a (0x72f25c3b047a in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x31e (0x72f25c3ab19e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x72f21b890b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x72f1ff25abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x72f279a9caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x72f279b29c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank3]:[W819 17:15:49.980535687 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 3] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+srun: error: h100a: task 5: Exited with exit code 1
+[rank7]:[W819 17:15:50.010250747 TCPStore.cpp:125] [c10d] recvValue failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47246, remote=[h100a.mimuw.edu.pl]:36552): Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+Exception raised from recvBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:682 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x775907f7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x7758ebfae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d6a8cd (0x7758ebfaf8cd in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b47a (0x7758ebfb047a in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x31e (0x7758ebfab19e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x7758ab490b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x77588ee5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x77590969caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x775909729c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank7]:[W819 17:15:50.015278964 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 7] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+srun: error: h100a: task 4: Exited with exit code 1
+[rank2]:[W819 17:15:50.918565129 TCPStore.cpp:125] [c10d] recvValue failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47234, remote=[h100a.mimuw.edu.pl]:36552): Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+Exception raised from recvBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:682 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x70e8fcf7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x70e8e0fae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d6a8cd (0x70e8e0faf8cd in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b47a (0x70e8e0fb047a in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x31e (0x70e8e0fab19e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x70e8a0490b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x70e883e5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x70e8fe69caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x70e8fe729c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank2]:[W819 17:15:50.924825583 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 2] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Failed to recv, got 0 bytes. Connection was likely closed. Did the remote server shutdown or crash?
+[rank6]:[W819 17:15:50.929396064 TCPStore.cpp:106] [c10d] sendBytes failed on SocketImpl(fd=75, addr=[h100a.mimuw.edu.pl]:47260, remote=[h100a.mimuw.edu.pl]:36552): Broken pipe
+Exception raised from sendBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:653 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x7beef8d7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x7beedcdae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d69d62 (0x7beedcdaed62 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b86e (0x7beedcdb086e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x30e (0x7beedcdab18e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x7bee9c290b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x7bee7fc5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x7beefa49caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x7beefa529c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank6]:[W819 17:15:50.935578907 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 6] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Broken pipe
+[rank3]:[W819 17:15:50.980713054 TCPStore.cpp:106] [c10d] sendBytes failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47218, remote=[h100a.mimuw.edu.pl]:36552): Broken pipe
+Exception raised from sendBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:653 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x72f27837eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x72f25c3ae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d69d62 (0x72f25c3aed62 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b86e (0x72f25c3b086e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x30e (0x72f25c3ab18e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x72f21b890b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x72f1ff25abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x72f279a9caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x72f279b29c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank3]:[W819 17:15:50.985676511 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 3] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Broken pipe
+[rank7]:[W819 17:15:51.015502751 TCPStore.cpp:106] [c10d] sendBytes failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47246, remote=[h100a.mimuw.edu.pl]:36552): Broken pipe
+Exception raised from sendBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:653 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x775907f7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x7758ebfae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d69d62 (0x7758ebfaed62 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b86e (0x7758ebfb086e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x30e (0x7758ebfab18e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x7758ab490b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x77588ee5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x77590969caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x775909729c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank7]:[W819 17:15:51.021688194 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 7] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Broken pipe
+srun: error: h100a: task 0: Exited with exit code 1
+srun: error: h100a: task 1: Exited with exit code 1
+[rank7]:[W819 17:15:52.021871806 TCPStore.cpp:106] [c10d] sendBytes failed on SocketImpl(fd=74, addr=[h100a.mimuw.edu.pl]:47246, remote=[h100a.mimuw.edu.pl]:36552): Broken pipe
+Exception raised from sendBytes at /pytorch/torch/csrc/distributed/c10d/Utils.hpp:653 (most recent call first):
+frame #0: c10::Error::Error(c10::SourceLocation, std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >) + 0x80 (0x775907f7eeb0 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libc10.so)
+frame #1: <unknown function> + 0x5d694d1 (0x7758ebfae4d1 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #2: <unknown function> + 0x5d69d62 (0x7758ebfaed62 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #3: <unknown function> + 0x5d6b86e (0x7758ebfb086e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #4: c10d::TCPStore::check(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > > const&) + 0x30e (0x7758ebfab18e in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cpu.so)
+frame #5: c10d::ProcessGroupNCCL::HeartbeatMonitor::runLoop() + 0x398 (0x7758ab490b18 in /home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/lib/libtorch_cuda.so)
+frame #6: <unknown function> + 0xdbbf4 (0x77588ee5abf4 in /home/mstefaniak/miniconda3/envs/nano/bin/../lib/libstdc++.so.6)
+frame #7: <unknown function> + 0x9caa4 (0x77590969caa4 in /lib/x86_64-linux-gnu/libc.so.6)
+frame #8: <unknown function> + 0x129c3c (0x775909729c3c in /lib/x86_64-linux-gnu/libc.so.6)
+
+[rank7]:[W819 17:15:52.027670514 ProcessGroupNCCL.cpp:1783] [PG ID 0 PG GUID 0(default_pg) Rank 7] Failed to check the "should dump" flag on TCPStore, (maybe TCPStore server has shut down too early), with error: Broken pipe
+srun: error: h100a: task 6: Exited with exit code 1
+srun: error: h100a: task 3: Exited with exit code 1
+srun: error: h100a: task 2: Exited with exit code 1
+srun: error: h100a: task 7: Exited with exit code 1
