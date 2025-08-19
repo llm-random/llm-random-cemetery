@@ -4,7 +4,7 @@ common:
   dmodel: 4096
   head_norm: true
   model_type: gpt
-  sequence_length: 1024
+  sequence_length: 2048
   vocab_size: 128256
 
 model:
@@ -124,7 +124,7 @@ trainer:
 
   gradient_accumulation_steps: 1
   gradient_clipping: 1.0
-  n_steps: 2001
+  n_steps: 100
 
   learning_rate: 0.00001
   scheduler:
@@ -144,9 +144,9 @@ trainer:
       _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 8 # Change me!
     seed: 20001
-    sequence_length: 1024
+    sequence_length: ${common.sequence_length}
     shuffle: true
-    total_batch_size: 16
+    total_batch_size: 32
     use_new_sampling_method: true 
     world_size_independent: false
 
@@ -159,7 +159,7 @@ trainer:
       _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 8 # Change me!
     seed: 123
-    sequence_length: 16
+    sequence_length: ${common.sequence_length}
     shuffle: true
     total_batch_size: 16
     use_new_sampling_method: true
@@ -179,17 +179,18 @@ trainer:
 
 infrastructure:
   slurm:
-    cpus-per-task: 16
-    gres: gpu:4
+    cpus-per-task: 8
+    gres: gpu:8
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
     partition: h100
     time: "0-1:00:00"
-    ntasks-per-node: 4
-    export: "ALL,HF_HUB_CACHE=/storage_nvme_3/crewtool/huggingface/hub"
+    ntasks-per-node: 8
+    export: "ALL,HF_HUB_CACHE=/storage_nvme_3/mstefaniak/huggingface/hub"
 
-  venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  # venv_path: $HOME/nano/.venv/bin/activate # Change me!
+  venv_path: /dev/null
   experiment_prepare_venv_path: ${infrastructure.venv_path}
 
   cemetery_experiments_dir: ~/llmrandom_cemetery
@@ -201,13 +202,16 @@ infrastructure:
     new_neptune_job: false
     project_name: pmtest/llm-random
     tags:
-      - test
+      - pc
+      - nano
+      - mas
+      - llama_8b_default
     type: neptune
 
   git:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy
 
   generated_configs_path: generated_configs
