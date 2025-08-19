@@ -120,13 +120,14 @@ def run(cfg, metric_logger=None):
     if isinstance(metric_logger, NeptuneLogger) and training_state["run_id"] is None:
         metric_logger.run["job_config"] = cfg
         upload_config_file(metric_logger)
+        metric_logger.run["job/current_working_dir"] = os.getcwd()
+
 
     torch.manual_seed(cfg.trainer.train_dataloader.seed)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
     logger.info(f"Creating model...")
-    model = instantiate(cfg.model, _convert_="all").to(device)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = instantiate(cfg.model, _convert_="all")#.to(device)
     logger.info(f"Model {model.__class__.__name__} created with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
 
     # Residual layers needs metric_logger for logging update norms
@@ -139,6 +140,15 @@ def run(cfg, metric_logger=None):
         if cfg.get("apply_functions", None):
             for fn in instantiate(cfg.apply_functions):
                 fn(model)
+
+        # if int(os.environ["RANK"]) == 0:
+        #     print("model------------------------------------------------------") #dev 
+        #     for name, param in model.named_parameters():
+        #         print(name, param.shape, param.requires_grad, param.device)
+        # # for name, param in model.named_parameters():
+        # #     print(name, param.shape, param.requires_grad, param.device)
+        #     print("------------------------------------------------------model")
+
         model = wrap_model_distributed(model, cfg.trainer.distributed)
         optimizer = torch.optim.AdamW(
             model.parameters(),
@@ -167,6 +177,12 @@ def run(cfg, metric_logger=None):
         )
         scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
         load_checkpoint_from_file(cfg.trainer.checkpoint.load, model, optimizer, scheduler)
+
+    if int(os.environ["RANK"]) == 0:
+        print("fsdp model------------------------------------------------------------------------------------------")
+        for name, param in model.named_parameters():
+            print(name, param.shape, param.requires_grad, param.device)
+        print("-----------------------------------------------------------------------------------------------model")
 
     trainer = instantiate(cfg.trainer)
     trainer(

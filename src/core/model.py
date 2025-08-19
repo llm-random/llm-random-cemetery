@@ -525,6 +525,7 @@ def wrap_model_fsdp(model, fsdp_config):
             _module_classes_to_ignore=igonore_mixed_precision_classes,
         ),
         auto_wrap_policy=ModuleWrapPolicy(classes_to_wrap),
+        # use_orig_params=True
     )
     return wrapped_model
 
