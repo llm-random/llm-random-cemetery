@@ -21,7 +21,9 @@ from torch.nn.modules.normalization import RMSNorm as RMSNorm, LayerNorm as Laye
 from torchtune.modules.position_embeddings import RotaryPositionalEmbeddings as RotaryPositionalEmbeddings
 from torch.nn.parallel import DistributedDataParallel as DDP
 import logging
-from torch.distributed.fsdp import fully_shard
+from torch.distributed.fsdp import fully_shard, CPUOffloadPolicy
+from torch.distributed._tensor import DeviceMesh
+
 
 logger = logging.getLogger(__name__)
 
@@ -518,12 +520,21 @@ def wrap_model_fsdp(model, fsdp_config):
     )
     print(f"Using mixed precision dtype: {mixed_precision_dtype}")
 
+    # devices = [torch.device(f'cuda:{i}') for i in range(8)]
+    # mesh = DeviceMesh(devices, [len(devices)])  # 1D mesh
+
+    device_type = "cuda"  # str, not list
+    devices = torch.arange(torch.cuda.device_count())  # tensor of global ranks
+    mesh = DeviceMesh(device_type, devices)  # optional: add mesh_dim_names=("dp",)
 
     fsdp_kwargs = {
         "mp_policy": MixedPrecisionPolicy(
             param_dtype=torch.bfloat16,
             reduce_dtype=torch.float32,
-        )
+        ),
+        "offload_policy": CPUOffloadPolicy(pin_memory=False),
+        "reshard_after_forward": True,
+        "mesh":mesh,
     }
 
     # for class_to_wrap in classes_to_wrap:
