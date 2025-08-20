@@ -1,0 +1,38 @@
+
+
+defaults:
+  - _cluster@_here_: entropy_4
+  - _model@_here_: llama_3_1
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+trainer:
+  n_steps: 5
+  learning_rate: 0.00005
+
+infrastructure:
+  metric_logger:
+    name: test
+    tags:
+      - pc
+      - nano
+      - tiny_llama
+      - pretrain_llama
+
+
+common:
+  _target_: src.definitions.Common
+  dff: 1024
+  dmodel: 256
+  head_norm: true
+  init_scale: 0.2
+  init_type: truncated_normal_fixed
+  model_type: gpt
+  sequence_length: 128
+  vocab_size: 128256
+  
+model:
+  tower:
+    n_blocks: 4
