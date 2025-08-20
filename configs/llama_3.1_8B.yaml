@@ -65,27 +65,17 @@ model:
         rope_scale_freqs: true
 
       ff_layer_fn:
-        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        _target_: src.projected_compression.model.LlamaFeedForward
         _partial_: true
-        ff_pre_act_fn:
+        dmodel: ${common.dmodel}
+        dff: ${common.dff}
+        linear_fn:
           _target_: src.projected_compression.model.Linear
           _partial_: true
-          in_features: ${common.dmodel}
-          out_features: ${common.dff}
           partial_init_fn:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
             scale: 1
-        ff_post_act_fn:
-          _target_: src.projected_compression.model.Linear
-          _partial_: true
-          in_features: ${common.dff}
-          out_features: ${common.dmodel}
-          partial_init_fn:
-            _target_: src.projected_compression.model.llm_random_weight_init
-            _partial_: true
-            scale: 1
-        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
 
   head:
     _target_: src.projected_compression.model.TransformerHead
@@ -110,23 +100,24 @@ trainer:
 
   checkpoint:
     save:
-      interval: -1
+      interval: 1000
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
-      path: checkpoints # Change me!
+      path: "./checkpoints/" # Change me!
 
     load:
       type: huggingface
       path: "meta-llama/Llama-3.1-8B"
 
-  eval_interval: 100
-  n_eval_steps: 5
+  eval_interval: 1000
+  n_eval_steps: 10
 
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 4
   gradient_clipping: 1.0
-  n_steps: 2001
+#  n_steps: 2000
+  n_steps: 0
 
-  learning_rate: 0.00001
+  learning_rate: 0.00005
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
@@ -138,8 +129,10 @@ trainer:
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
     dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+#    dataset_path: "/storage_nvme_4/llm-random/datasets/fineweb/train"
     dataset_split: train
     dataset_type: c4
+#    dataset_type: fineweb-edu
     tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 8 # Change me!
@@ -153,8 +146,10 @@ trainer:
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
     dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+#    dataset_path: "/storage_nvme_4/llm-random/datasets/fineweb/train"
     dataset_split: validation
     dataset_type: c4
+#    dataset_type: fineweb-edu
     tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 8 # Change me!
@@ -177,17 +172,27 @@ trainer:
         - src.projected_compression.model.TransformerBlock
         - src.projected_compression.model.TransformerHead
 
+apply_functions:
+  - _target_: src.projected_compression.minitron.minitron_prune
+    _partial_: true
+    dataloader: ${trainer.train_dataloader}
+    dmodel: ${common.dmodel}
+    dff: ${common.dff}
+    calibration_dataset_size: 1024
+    seq_len: ${common.sequence_length}
+
 infrastructure:
   slurm:
     cpus-per-task: 16
-    gres: gpu:4
+    gres: gpu:8
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
     partition: h100
     time: "0-1:00:00"
     ntasks-per-node: 4
-    export: "ALL,HF_HUB_CACHE=/storage_nvme_3/crewtool/huggingface/hub"
+#    export: "ALL,HF_HUB_CACHE=/storage_nvme_1/m1kush/huggingface/hub"
+    export: "ALL,HF_HUB_CACHE=/storage_nvme_3/m1kush/huggingface/hub"
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
   experiment_prepare_venv_path: ${infrastructure.venv_path}
@@ -208,6 +213,6 @@ infrastructure:
     remote_name: cemetery
     remote_url: git@github.com:llm-random/llm-random-cemetery.git
 
-  server: entropia
+  server: entropy
 
   generated_configs_path: generated_configs
