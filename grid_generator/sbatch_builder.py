@@ -56,9 +56,21 @@ def generate_sbatch_script(
             lines.append(f"module load {module}")
 
     lines.append(f"source {venv_path}")
-    lines.append(
-        f"srun python -u main.py --config-path={config_folder} --config-name=config_${{SLURM_ARRAY_TASK_ID}}.yaml +checkpoint_config.slurm_array_task_id=${{SLURM_ARRAY_TASK_ID}}"
-    )
+    # lines.append(
+    #     f"srun python -u main.py --config-path={config_folder} --config-name=config_${{SLURM_ARRAY_TASK_ID}}.yaml +checkpoint_config.slurm_array_task_id=${{SLURM_ARRAY_TASK_ID}}"
+    # )
+
+    lines.extend([
+        "srun torchrun --nnodes=${SLURM_NNODES}\\",
+        "  --nproc-per-node=\"auto\" \\" 
+        "  --rdzv-id=${SLURM_JOBID} \\"
+        "  --rdzv-backend=c10d \\"
+        "  --rdzv-endpoint=${MASTER_ADDR}:${MASTER_PORT} \\"
+        "  main.py \\"
+        f"    --config-path={config_folder} \\"
+        f"    --config-name=config_${{SLURM_ARRAY_TASK_ID}}.yaml \\"
+        f"    +checkpoint_config.slurm_array_task_id=${{SLURM_ARRAY_TASK_ID}}"
+    ])
 
     with open("exp.job", "w") as f:
         f.write("\n".join(lines))
