@@ -37,6 +37,19 @@ def create_distributed_variables() -> list[str]:
         'echo "Running on ${WORLD_SIZE} nodes"',
     ]
 
+def create_program_call(config_folder):
+    return [
+        "srun torchrun --nnodes=${SLURM_NNODES}\\",
+        "  --nproc-per-node=\"auto\" \\",
+        "  --rdzv-id=${SLURM_JOBID} \\",
+        "  --rdzv-backend=c10d \\",
+        "  --rdzv-endpoint=${MASTER_ADDR}:${MASTER_PORT} \\",
+        "  main.py \\",
+        f"    --config-path={config_folder} \\",
+        "    --config-name=config_${SLURM_ARRAY_TASK_ID}.yaml \\",
+        "    +checkpoint_config.slurm_array_task_id=${SLURM_ARRAY_TASK_ID}"
+    ]
+
 
 def generate_sbatch_script(
     slurm_config, config_folder, n_experiments, venv_path, modules_to_add
@@ -56,9 +69,7 @@ def generate_sbatch_script(
             lines.append(f"module load {module}")
 
     lines.append(f"source {venv_path}")
-    lines.append(
-        f"srun python -u main.py --config-path={config_folder} --config-name=config_${{SLURM_ARRAY_TASK_ID}}.yaml +checkpoint_config.slurm_array_task_id=${{SLURM_ARRAY_TASK_ID}}"
-    )
+    lines.extend(create_program_call(config_folder))
 
     with open("exp.job", "w") as f:
         f.write("\n".join(lines))
