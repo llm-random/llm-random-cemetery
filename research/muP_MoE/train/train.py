@@ -86,6 +86,10 @@ def convert_args(args):
 
 def get_muP_learning_rates(args, model, m_d=1.0):
     lr = args.learning_rate
+    if args.ff_mode == args.token_choice:
+        granularity = args.granularity
+    else:
+        granularity = 1.0
 
     key_lr_dict = {
         "embedding_layer": 1.0,
@@ -99,7 +103,7 @@ def get_muP_learning_rates(args, model, m_d=1.0):
         "post_relu": (1 / m_d),  # FF out, ver2
         "expert_inner_function": (1 / m_d),  # FF in MoE
         "head": 1,
-        "gating": 1,
+        "gating": torch.sqrt(granularity),
     }
 
     ratio_to_params = defaultdict(lambda: {"params": [], "name": "other"})
