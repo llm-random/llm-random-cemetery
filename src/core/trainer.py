@@ -232,6 +232,7 @@ class Trainer:
         self.metric_logger.flush_accumulated_metrics(self.step)
 
     def save_checkpoint(self):
+        print("in save checkpoint")# dev
         if isinstance(self.model, FSDP):
             # Sharded save
             checkpoint_folder = step_checkpoint_path(self.checkpoint.save.path, self.step)
