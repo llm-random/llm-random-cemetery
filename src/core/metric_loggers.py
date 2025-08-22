@@ -149,7 +149,6 @@ def get_metric_logger(
                 neptune_logger = neptune.init_run(
                     project=metric_logger_config.project_name,
                     with_id=neptune_run_id,
-                    monitoring_namespace=f"monitoring/gpu_{rank}",
                     name=metric_logger_config.name,
                     tags=metric_logger_config.tags,
                 )
@@ -160,18 +159,21 @@ def get_metric_logger(
                     neptune_logger, rank, metric_logger_config
                 )
             else:
-                if neptune_run_id is None:
-                    neptune_run_id = broadcast_message(rank)
-                neptune_logger = neptune.init_run(
-                    project=metric_logger_config.project_name,
-                    with_id=neptune_run_id,
-                    monitoring_namespace=f"monitoring/gpu_{rank}",
-                    name=metric_logger_config.name,
-                    tags=metric_logger_config.tags,
-                )
-                _metric_logger = NeptuneLogger(
-                    neptune_logger, rank, metric_logger_config
-                )
+                _metric_logger = StdoutLogger(metric_logger_config)
+                return _metric_logger
+
+            # else:
+            #     if neptune_run_id is None:
+            #         neptune_run_id = broadcast_message(rank)
+            #     neptune_logger = neptune.init_run(
+            #         project=metric_logger_config.project_name,
+            #         with_id=neptune_run_id,
+            #         name=metric_logger_config.name,
+            #         tags=metric_logger_config.tags,
+            #     )
+            #     _metric_logger = NeptuneLogger(
+            #         neptune_logger, rank, metric_logger_config
+            #     )
 
         else:
             neptune_logger = neptune.init_run(
