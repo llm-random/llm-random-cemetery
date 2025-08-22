@@ -6,6 +6,7 @@ from typing import Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+import torch.distributed.fsdp._fully_shard._fully_shard as fsdp_module
 from old_datasets import LLMBatch
 import torch.distributed.checkpoint as dcp
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -232,7 +233,10 @@ class Trainer:
         self.metric_logger.flush_accumulated_metrics(self.step)
 
     def save_checkpoint(self):
-        if isinstance(self.model, FSDP):
+        print("in save checkpoint")# dev
+        print(f"model type: {type(self.model)}")# dev
+        if isinstance(self.model, FSDP) or isinstance(self.model, fsdp_module.FSDPLLM):
+            print("in isinstance FSDP")# dev
             # Sharded save
             checkpoint_folder = step_checkpoint_path(self.checkpoint.save.path, self.step)
             state_dict = {
@@ -241,6 +245,7 @@ class Trainer:
             dcp.save(state_dict, checkpoint_id=checkpoint_folder)
             logger.info(f"Saved sharded model checkpoint in {checkpoint_folder}")
         else:
+            print("in isinstance NOT FSDP")# dev
             # Non-sharded save
             if os.environ["RANK"] == "0":
                 checkpoint_folder = step_checkpoint_path(
