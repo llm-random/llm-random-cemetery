@@ -1,16 +1,35 @@
+# _run_: true
 common:
   _target_: src.definitions.Common
-  dff: 486
-  dmodel: 96
+  dff: 1024
+  dmodel: 2048
   head_norm: true
   init_scale: 0.1
   init_type: truncated_normal_fixed
   model_type: gpt
-  sequence_length: 32
+  sequence_length: 512
   vocab_size: 128256
-  base_dmodel: 128
-  base_dff: 512
-  
+  base_dmodel: 2048
+  base_dff: 8192
+  n_blocks: 16
+  q_heads: 32
+  kv_heads: 8
+
+
+# common:
+#   _target_: src.definitions.Common
+#   dff: 7168
+#   dmodel: 2048
+#   head_norm: true
+#   model_type: gpt
+#   sequence_length: 1024
+#   vocab_size: 128256
+#   base_dff: 14336
+#   base_dmodel: 4096
+#   n_blocks: 32
+#   q_heads: 32
+#   kv_heads: 8
+
 model:
   _target_: src.projected_compression.model.LLM
 
@@ -21,33 +40,32 @@ model:
       num_embeddings: ${common.vocab_size}
       embedding_dim: ${common.base_dmodel}
 
-    result_out_features: ${common.dmodel} 
-    
+    result_out_features: ${common.dmodel}
+
 
   encoder:
     _target_: src.projected_compression.model.TransformerEncoder
-    n_blocks: 2
+    n_blocks: ${common.n_blocks}
     block_fn:
       _target_: src.projected_compression.model.TransformerBlock
       _partial_: true
-      norm_fn: 
-        _target_: src.core.model.LayerNorm
+      norm_fn:
+        _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.base_dmodel}
-        bias: false
-      
+
       attention_fn:
         _target_: src.projected_compression.model.RoPEAttention
         _partial_: true
         dmodel: ${common.base_dmodel}
-        q_heads: 4
-        kv_heads: 2
+        q_heads: ${common.q_heads}
+        kv_heads: ${common.kv_heads}
         seq_len: ${common.sequence_length}
         q_proj_fn:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          result_in_features: ${common.dmodel} 
+          result_in_features: ${common.dmodel}
           result_out_features: null
           base_in_features: ${common.base_dmodel}
           base_out_features: ${common.base_dmodel}
@@ -55,7 +73,7 @@ model:
         k_proj_fn:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          result_in_features: ${common.dmodel} 
+          result_in_features: ${common.dmodel}
           result_out_features: null
           base_in_features: ${common.base_dmodel}
           base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads} * (${common.base_dmodel} // ${model.encoder.block_fn.attention_fn.q_heads})'}
@@ -66,29 +84,28 @@ model:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
           result_in_features: null
-          result_out_features: ${common.dmodel} 
+          result_out_features: ${common.dmodel}
           base_in_features: ${common.base_dmodel}
           base_out_features: ${common.base_dmodel}
-        
-        rope_base: 10000
-        rope_scale_freqs: false
 
+        rope_base: 500000
+        rope_scale_freqs: true
 
       ff_layer_fn:
         _target_: src.projected_compression.model.ProjectedLlamaFeedForward
-        _partial_: true 
+        _partial_: true
         ff_pre_act_fn:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
-          result_in_features: ${common.dmodel} 
-          result_out_features: ${common.dff}  
+          result_in_features: ${common.dmodel}
+          result_out_features: ${common.dff}
           base_in_features: ${common.base_dmodel}
           base_out_features: ${common.base_dff}
-        ff_post_act_fn: 
+        ff_post_act_fn:
           _target_: src.projected_compression.model.ProjectedLinear
           _partial_: true
           result_in_features: ${common.dff}
-          result_out_features: ${common.dmodel} 
+          result_out_features: ${common.dmodel}
           base_in_features: ${common.base_dff}
           base_out_features: ${common.base_dmodel}
         gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
@@ -102,12 +119,11 @@ model:
       result_out_features: null
       base_in_features: ${common.base_dmodel}
       base_out_features: ${common.vocab_size}
-    norm_fn: 
-        _target_: src.core.model.LayerNorm
+    norm_fn:
+        _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.base_dmodel}
-        bias: false
 
 trainer:
   _partial_: true
@@ -115,20 +131,20 @@ trainer:
 
   checkpoint:
     save:
-      interval: 12500
+      interval: -1
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
-      path: checkpoints # Change me!
+      path: null # Change me!
 
     load:
       type: huggingface
-      path: "src/core/crewtool_small2" # Change me!
+      path: "meta-llama/Llama-3.2-1B"
 
   eval_interval: 100
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
-  gradient_clipping: 0.5 # 1.0
+  gradient_clipping: 1.0
   n_steps: 100
 
   learning_rate: 0.001
@@ -142,45 +158,51 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train" #"/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
-    tokenize_fn: 
+    tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
-    num_workers: 0 # Change me!
+    num_workers: 8 # Change me!
     seed: 20001
-    sequence_length: 32
+    sequence_length: 128
     shuffle: false
-    total_batch_size: 32
+    total_batch_size: 8
     use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data_eval
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation" #"/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
-    tokenize_fn: 
+    tokenize_fn:
       _target_: src.core.datasets.llama_tokenize_fn
-    num_workers: 0 # Change me!
+    num_workers: 8 # Change me!
     seed: 123
     sequence_length: 32
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: 8
     use_new_sampling_method: true
     world_size_independent: false
 
-  distributed: null
+  distributed:
     # fsdp:
     #   mixed_precision:
     #     dtype: bfloat16
     #     ignored_classes:
-    #       - LayerNorm
-    #       - AttentionMechanism
+    #       - src.core.model.RMSNorm
+    #       - src.core.model.AttentionMechanism
     #   modules_to_wrap:
-    #     - TransformerBlock
-    #     - EmbeddingLayer
-    #     - PredictionHead
+    #     # - src.projected_compression.model.ProjectedEmbedding
+    #     - src.projected_compression.model.TransformerBlock
+    #     # - src.projected_compression.model.TransformerHead
+
+    fsdp2:
+      modules_to_shard:
+        # - src.projected_compression.model.ProjectedEmbedding
+        - src.projected_compression.model.TransformerBlock
+        # - src.projected_compression.model.TransformerHead
 
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
@@ -190,14 +212,15 @@ apply_functions:
 
 infrastructure:
   slurm:
-    cpus-per-task: 32
+    # cpus-per-task: 4
     gres: gpu:2
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
-    partition: h100
+    partition: a100
     time: "0-1:00:00"
-    ntasks-per-node: 2
+    # ntasks-per-node: 1
+    # export: "ALL" #,HF_HUB_CACHE=/storage_nvme_3/crewtool/huggingface/hub"
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
   experiment_prepare_venv_path: ${infrastructure.venv_path}
@@ -212,8 +235,7 @@ infrastructure:
     project_name: pmtest/llm-random
     tags:
       - test
-    # type: neptune
-    type: stdout
+    type: neptune
 
   git:
     remote_name: cemetery
@@ -222,4 +244,3 @@ infrastructure:
   server: entropia
 
   generated_configs_path: generated_configs
-
