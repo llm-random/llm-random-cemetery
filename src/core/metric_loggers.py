@@ -142,14 +142,14 @@ def get_metric_logger(
         if int(os.environ["WORLD_SIZE"]) > 1:
 
             # As suggested here: https://docs.neptune.ai/tutorials/running_distributed_training/#tracking-a-multi-node-ddp-job
-            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
+            # os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
+            # os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
 
             if rank == 0:
                 neptune_logger = neptune.init_run(
                     project=metric_logger_config.project_name,
                     with_id=neptune_run_id,
-                    monitoring_namespace=f"monitoring/gpu_{rank}",
+                    monitoring_namespace=f"monitoring",
                     name=metric_logger_config.name,
                     tags=metric_logger_config.tags,
                 )
@@ -159,15 +159,19 @@ def get_metric_logger(
                 _metric_logger = NeptuneLogger(
                     neptune_logger, rank, metric_logger_config
                 )
+            # else:
+            #     _metric_logger = StdoutLogger(metric_logger_config)
+            #     return _metric_logger
+
             else:
                 if neptune_run_id is None:
                     neptune_run_id = broadcast_message(rank)
                 neptune_logger = neptune.init_run(
                     project=metric_logger_config.project_name,
                     with_id=neptune_run_id,
-                    monitoring_namespace=f"monitoring/gpu_{rank}",
+                    monitoring_namespace=f"monitoring",
                     name=metric_logger_config.name,
-                    tags=metric_logger_config.tags,
+                    tags=metric_logger_config.tags, 
                 )
                 _metric_logger = NeptuneLogger(
                     neptune_logger, rank, metric_logger_config
