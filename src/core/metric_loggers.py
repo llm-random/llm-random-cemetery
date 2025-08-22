@@ -140,16 +140,10 @@ def get_metric_logger(
         )
         rank = int(os.environ["RANK"])
         if int(os.environ["WORLD_SIZE"]) > 1:
-
-            # As suggested here: https://docs.neptune.ai/tutorials/running_distributed_training/#tracking-a-multi-node-ddp-job
-            os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-            os.environ["CUDA_VISIBLE_DEVICES"] = str(rank)
-
             if rank == 0:
                 neptune_logger = neptune.init_run(
                     project=metric_logger_config.project_name,
                     with_id=neptune_run_id,
-                    monitoring_namespace=f"monitoring/gpu_{rank}",
                     name=metric_logger_config.name,
                     tags=metric_logger_config.tags,
                 )
@@ -165,7 +159,8 @@ def get_metric_logger(
                 neptune_logger = neptune.init_run(
                     project=metric_logger_config.project_name,
                     with_id=neptune_run_id,
-                    monitoring_namespace=f"monitoring/gpu_{rank}",
+                    capture_hardware_metrics=False,
+                    # monitoring_namespace=f"monitoring/gpu_{rank}",
                     name=metric_logger_config.name,
                     tags=metric_logger_config.tags,
                 )
@@ -181,9 +176,6 @@ def get_metric_logger(
                 with_id=neptune_run_id,
             )
             _metric_logger = NeptuneLogger(neptune_logger, rank, metric_logger_config)
-
-        npt_handler = NeptuneHandler(run=_metric_logger.run)
-        logger.addHandler(npt_handler)
 
     elif metric_logger_config.type == "stdout":
         _metric_logger = StdoutLogger(metric_logger_config)
@@ -225,7 +217,3 @@ def broadcast_message(rank, message=None):
     dist.broadcast(message_tensor, src=0)
 
     return message_tensor.cpu().numpy().tobytes().decode("utf-8")
-
-
-
-##### End Loggers #######
