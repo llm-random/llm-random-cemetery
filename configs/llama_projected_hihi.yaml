@@ -3,7 +3,7 @@ common:
   dff: 486
   dmodel: 96
   head_norm: true
-  init_scale: 0.1
+  init_scale: 1.0
   init_type: truncated_normal_fixed
   model_type: gpt
   sequence_length: 32
@@ -16,10 +16,14 @@ model:
 
   embedding:
     _target_: src.projected_compression.model.ProjectedEmbedding
-    embedding:
-      _target_: src.projected_compression.model.Embedding
-      num_embeddings: ${common.vocab_size}
-      embedding_dim: ${common.base_dmodel}
+    embedding_fn:
+      _target_: src.projected_compression.model.TransformerEmbedding
+      _partial_: true
+      vocab_size: ${common.vocab_size}
+      dmodel: ${common.base_dmodel}
+      init_fn:
+        _target_: src.projected_compression.model.trunc_normal_
+        _partial_: true
 
     result_out_features: ${common.dmodel} 
     
@@ -31,7 +35,7 @@ model:
       _target_: src.projected_compression.model.TransformerBlock
       _partial_: true
       norm_fn: 
-        _target_: src.core.model.LayerNorm
+        _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.base_dmodel}
@@ -103,7 +107,7 @@ model:
       base_in_features: ${common.base_dmodel}
       base_out_features: ${common.vocab_size}
     norm_fn: 
-        _target_: src.core.model.LayerNorm
+        _target_: src.core.model.RMSNorm
         _partial_: true
         eps: 1e-5
         normalized_shape: ${common.base_dmodel}
@@ -122,65 +126,61 @@ trainer:
 
     load:
       type: huggingface
-      path: "src/core/crewtool_small2" # Change me!
+      path: "src/core/crewtool_small" # Change me!
 
   eval_interval: 100
   n_eval_steps: 5
 
   gradient_accumulation_steps: 1
   gradient_clipping: 0.5 # 1.0
-  n_steps: 100
+  n_steps: 10
 
   learning_rate: 0.001
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
     final_lr_fraction: 0.1
-    warmup_steps: 500
+    warmup_steps: 3
 
   weight_decay: 0.1
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
-    tokenize_fn: 
-      _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 0 # Change me!
     seed: 20001
-    sequence_length: 32
+    seq_len: ${common.sequence_length}
     shuffle: false
-    total_batch_size: 32
+    total_batch_size: 512
     use_new_sampling_method: true
     world_size_independent: false
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data_eval
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
-    tokenize_fn: 
-      _target_: src.core.datasets.llama_tokenize_fn
     num_workers: 0 # Change me!
     seed: 123
-    sequence_length: 32
+    seq_len: ${common.sequence_length}
     shuffle: true
-    total_batch_size: 32
+    total_batch_size: 512
     use_new_sampling_method: true
     world_size_independent: false
 
-  distributed: null
-    # fsdp:
-    #   mixed_precision:
-    #     dtype: bfloat16
-    #     ignored_classes:
-    #       - LayerNorm
-    #       - AttentionMechanism
-    #   modules_to_wrap:
-    #     - TransformerBlock
-    #     - EmbeddingLayer
-    #     - PredictionHead
+  distributed:
+    fsdp:
+      mixed_precision:
+        dtype: bfloat16
+        ignored_classes:
+          - RMSNorm
+          - AttentionMechanism
+      modules_to_wrap:
+        - ProjectedEmbedding
+        - TransformerBlock
+        - TransformerHead
 
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
@@ -198,6 +198,7 @@ infrastructure:
     partition: h100
     time: "0-1:00:00"
     ntasks-per-node: 2
+    export: "ALL,HF_HUB_CACHE="
 
   venv_path: $HOME/nano/.venv/bin/activate # Change me!
   experiment_prepare_venv_path: ${infrastructure.venv_path}
