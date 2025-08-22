@@ -94,7 +94,8 @@ trainer:
 
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data
+#    dataset_path: data
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
     dataset_split: train
     dataset_type: c4
     tokenize_fn: 
@@ -109,7 +110,8 @@ trainer:
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: data_eval
+#    dataset_path: data_eval
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
     dataset_split: validation
     dataset_type: c4
     tokenize_fn: 
@@ -153,10 +155,10 @@ infrastructure:
   metric_logger:
     _target_: src.definitions.MetricLoggerConfig
     heavy_metrics_calculation_interval: 100
-    name: test
+    name: new_c4_test
     new_neptune_job: false
     # project_name: pmtest/llm-random
-    project_name: crewtool/mojtestproject
+    project_name: new_c4_test
     tags:
       - test
     type: neptune
