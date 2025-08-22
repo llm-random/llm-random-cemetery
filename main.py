@@ -20,9 +20,16 @@ import logging
 from src.core.checkpointing import load_checkpoint_from_file, load_training_state
 from src.core.metric_loggers import NeptuneLogger, get_metric_logger
 from src.core.model import Residual
+import platform
 
 logger = logging.getLogger(__name__)
-
+ch = logging.StreamHandler()
+formatter = logging.Formatter(
+    fmt=f"[%(levelname)s][host:{platform.node()}][local:{os.environ["LOCAL_RANK"]}] %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+ch.setFormatter(formatter)
+logger.addHandler(ch)
 
 def dump_grid_configs(configs_grid, output_folder):
     os.makedirs(output_folder, exist_ok=True)
