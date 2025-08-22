@@ -232,7 +232,10 @@ class Trainer:
         self.metric_logger.flush_accumulated_metrics(self.step)
 
     def save_checkpoint(self):
+        print("in save checkpoint")# dev
+        print(f"model type: {type(self.model)}")# dev
         if isinstance(self.model, FSDP):
+            print("in isinstance FSDP")# dev
             # Sharded save
             checkpoint_folder = step_checkpoint_path(self.checkpoint.save.path, self.step)
             state_dict = {
@@ -241,6 +244,7 @@ class Trainer:
             dcp.save(state_dict, checkpoint_id=checkpoint_folder)
             logger.info(f"Saved sharded model checkpoint in {checkpoint_folder}")
         else:
+            print("in isinstance NOT FSDP")# dev
             # Non-sharded save
             if os.environ["RANK"] == "0":
                 checkpoint_folder = step_checkpoint_path(
