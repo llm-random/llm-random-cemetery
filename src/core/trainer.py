@@ -166,7 +166,9 @@ class Trainer:
 
         # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
         avg_loss = torch.tensor(losses, device=loss.device).sum()
+        print(f"before dist reduce --------------------------------")
         if dist.is_initialized():
+            print(f"after dist reduce --------------------------------")
             dist.all_reduce(avg_loss, op=dist.ReduceOp.SUM)
 
         return avg_loss / float(os.environ["WORLD_SIZE"])
