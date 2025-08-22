@@ -69,6 +69,7 @@ def save_training_state(
 
 def get_full_checkpoint_path(path):
     slurm_array_task_id = os.getenv("SLURM_ARRAY_TASK_ID")
+    print(os.environ)#dev
     return (
         f"{path}/{slurm_array_task_id}"
         if slurm_array_task_id is not None
