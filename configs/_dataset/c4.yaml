@@ -3,7 +3,7 @@
 trainer:
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: ${switch.trainer.train_dataloader.dataset_path_c4}
+    dataset_path: ???
     dataset_split: train
     dataset_type: c4
     num_workers: 12
@@ -18,7 +18,7 @@ trainer:
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: ${switch.trainer.eval_dataloader.dataset_path_c4}
+    dataset_path: ???
     dataset_split: validation
     dataset_type: c4
     num_workers: 12
