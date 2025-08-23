@@ -1,0 +1,46 @@
+defaults:
+  - _misc@_here_: default
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _cluster@_here_: entropy_4
+  - _model@_here_: projected_llama_3
+  - _model/projected_llama_3_sizes@_here_: 1B
+  - _self_
+  
+common: 
+  batch_size: 512
+
+trainer:
+  n_steps: 1001
+  learning_rate: 3.0517578125e-05
+    # - 1.52587890625e-05
+    # - 6.103515625e-05
+    # - 7.62939453125e-06
+  gradient_accumulation_steps: 1
+
+  checkpoint:
+    save:
+      path: null
+
+    load:
+      type: huggingface
+      path: "meta-llama/Llama-3.2-1B"
+
+  train_dataloader:
+    seed: 20001
+    total_batch_size: 32
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/train"
+
+  eval_dataloader:
+    seed: 20001
+    total_batch_size: 32
+    dataset_path: "/storage_nvme_1/llm-random/datasets/c4/validation"
+
+infrastructure:
+  metric_logger:
+    name: test
+    tags:
+      - PC
+      - test
+  venv_path: $HOME/nano/.venv/bin/activate
+
