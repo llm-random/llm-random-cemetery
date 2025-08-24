@@ -1,7 +1,7 @@
 # work in progress
 
 defaults:
-  - _cluster@_here_: entropy_4
+  - _cluster@_here_: helios_4
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -14,6 +14,7 @@ trainer:
 
   checkpoint:
    save:
+    type: huggingface
     path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3_1_hf_test
    load:
     path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3_1_nano/63560/0/step_-1
@@ -25,4 +26,4 @@ infrastructure:
       - pc
       - nano
       - ft_llama3_1
-
+      - hf_conversion
