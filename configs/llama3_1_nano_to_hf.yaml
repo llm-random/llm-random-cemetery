@@ -14,6 +14,7 @@ trainer:
 
   checkpoint:
    save:
+    type: huggingface
     path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3_1_hf_test
    load:
     path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3_1_nano/63560/0/step_-1
@@ -25,4 +26,18 @@ infrastructure:
       - pc
       - nano
       - ft_llama3_1
+      - hf_conversion
+      
+  server: entropy_c
+  slurm:
+    cpus-per-task: 16
+    gres: gpu:4
+    job-name: pc_test
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: a100
+    time: "0-01:00:00"
 
+  venv_path: $HOME/nano/.venv/bin/activate
+  experiment_prepare_venv_path: ${infrastructure.venv_path}
+  cemetery_experiments_dir: ~/llmrandom_cemetery
