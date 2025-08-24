@@ -14,8 +14,10 @@ trainer:
 
   checkpoint:
    save:
+    type: huggingface
     path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3_1_hf_test
    load:
+    type: nano
     path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3_1_nano/63560/0/step_-1
   
 infrastructure:
@@ -25,4 +27,5 @@ infrastructure:
       - pc
       - nano
       - ft_llama3_1
-
+      - hf_conversion
+      - test
