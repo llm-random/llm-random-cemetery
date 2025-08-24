@@ -6,6 +6,8 @@ from typing import Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
+# from torch.distributed.fsdp.fully_sharded_data_parallel import StateDictType
+# from torch.distributed.fsdp.fully_sharded_model import StateDictType
 
 from old_datasets import LLMBatch
 import torch.distributed.checkpoint as dcp
@@ -98,15 +100,31 @@ class Trainer:
             self.optimizer.step()
             self.optimizer.zero_grad()
             self.scheduler.step()
-
+            
             if self._should_save_checkpoint:
                 self.save_checkpoint()
 
             if self._should_evaluate:
                 self.eval()
 
+        def print_state_dict_info(state_dict): #dev
+            for name, param in state_dict.items():
+                if isinstance(param, torch.Tensor):
+                    print(f"{name:60s}, {type(param)} shape={tuple(param.shape)} "
+                        f"norm={param.norm().item():.4f}")
+                else:
+                    # Sometimes buffers / metadata can be non-tensors
+                    print(f"{name:60s} NON-TENSOR {type(param)}")
+
         if self._should_save_final_checkpoint:
-            self.save_checkpoint()
+            if self.checkpoint.save.type == "nano":
+                self.save_checkpoint()
+            elif self.checkpoint.save.type == "huggingface":
+                # model.unshard() # alternative that might not work for a very large > 1gpu memory models
+                model_state_dict = self.model.state_dict()
+
+                
+
 
     def _preprocess_input(self, batch):  # TODO test it
         input_ids = batch[:, :-1].contiguous()
@@ -202,8 +220,8 @@ class Trainer:
 
     def clip_gradient(self):
         if self.gradient_clipping is not None:
-            if isinstance(self.model, FSDP):
-                return self.model.clip_grad_norm_(self.gradient_clipping)
+            if isinstance(self.model, FSDP) or self.model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard": 
+                return self.model.clip_grad_norm_(self.gradient_clipping)  #dev TODO does it work with FSDP2
             else:
                 return torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
