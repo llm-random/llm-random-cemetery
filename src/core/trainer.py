@@ -100,7 +100,13 @@ class Trainer:
             self.scheduler.step()
 
             if self._should_save_checkpoint:
-                self.save_checkpoint()
+                if self.trainer.checkpoint.save.type == "nano":
+                    self.save_checkpoint()
+                elif self.trainer.checkpoint.save.type == "huggingface":
+                    print(f"Rank: {os.environ['RANK']} ------------------------------------")
+                    print(self.model.state_dict())
+                    print(f"------------------------------------ Rank: {os.environ['RANK']}")
+                    # local_model = self.model.to("cpu")
 
             if self._should_evaluate:
                 self.eval()
