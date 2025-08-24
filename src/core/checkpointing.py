@@ -128,7 +128,7 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
         return 
 
     if checkpoint_path is not None:
-        if isinstance(model, FSDP):
+        if isinstance(model, FSDP) or model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard":
             # Sharded load
             state_dict = {"app": TrainingState(model, optimizer, scheduler)}
             dcp.load(state_dict=state_dict, checkpoint_id=checkpoint_path)

@@ -100,7 +100,13 @@ class Trainer:
             self.scheduler.step()
 
             if self._should_save_checkpoint:
-                self.save_checkpoint()
+                if self.trainer.checkpoint.save.type == "nano":
+                    self.save_checkpoint()
+                elif self.trainer.checkpoint.save.type == "huggingface":
+                    print(f"Rank: {os.environ['RANK']} ------------------------------------")
+                    print(self.model.state_dict())
+                    print(f"------------------------------------ Rank: {os.environ['RANK']}")
+                    # local_model = self.model.to("cpu")
 
             if self._should_evaluate:
                 self.eval()
@@ -202,8 +208,8 @@ class Trainer:
 
     def clip_gradient(self):
         if self.gradient_clipping is not None:
-            if isinstance(self.model, FSDP):
-                return self.model.clip_grad_norm_(self.gradient_clipping)
+            if isinstance(self.model, FSDP) or self.model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard": 
+                return self.model.clip_grad_norm_(self.gradient_clipping)  #dev TODO does it work with FSDP2
             else:
                 return torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
