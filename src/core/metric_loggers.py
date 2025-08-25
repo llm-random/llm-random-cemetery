@@ -135,6 +135,8 @@ def get_metric_logger(
         neptune_run_id = (
             None if metric_logger_config.new_neptune_job else neptune_run_id
         )
+        print(f"metric_logger_config.new_neptune_job: {metric_logger_config.new_neptune_job}")
+        print(f"neptune id: {neptune_run_id}")
         rank = int(os.environ["RANK"])
         if int(os.environ["WORLD_SIZE"]) > 1:
             if rank == 0:
