@@ -12,13 +12,32 @@ from fabric import Connection
 import hydra
 from omegaconf import OmegaConf
 import paramiko.ssh_exception
+from hydra import compose, initialize
+from omegaconf import OmegaConf
 
+from grid_generator.generate_configs import create_grid_config
+from grid_generator.sbatch_builder import generate_sbatch_script
+from main import dump_grid_configs
 from resolver import get_cluster_name
 
 logger = logging.getLogger(__name__)
 
 _SSH_HOSTS_TO_PASSPHRASES = {}
 
+
+def ensure_remote_config_exist(repo: Repo, remote_name: str, remote_url: str):
+    for remote in repo.remotes:
+        if remote.name == remote_name:
+            if remote.url != remote_url:
+                old_remote_url = remote.url
+                remote.set_url(remote_url)
+                print(
+                    f"Updated url of '{remote_name}' remote from '{old_remote_url}' to '{remote_url}'"
+                )
+            return
+
+    repo.create_remote(remote_name, url=remote_url)
+    print(f"Added remote '{remote_name}' with url '{remote_url}'")
 
 def ensure_remote_config_exist(repo: Repo, remote_name: str, remote_url: str):
     for remote in repo.remotes:
@@ -57,6 +76,7 @@ def version_code(
     remote_name: str,
     remote_url: str,
     experiment_config_path: Optional[str] = None,
+    exp_job_path: Optional[str] = None,
     job_name: Optional[str] = None,
 ) -> str:
     repo = Repo(".", search_parent_directories=True)
@@ -68,8 +88,9 @@ def version_code(
     original_branch = repo.active_branch.name
     original_branch_commit_hash = repo.head.object.hexsha
 
-    ensure_remote_config_exist(repo, remote_name, remote_url)
+    # ensure_remote_config_exist(repo, remote_name, remote_url)
     repo.git.add(experiment_config_path, force=True)
+    repo.git.add(exp_job_path, force=True)
     repo.git.add(all=True)
 
     try:
@@ -132,31 +153,32 @@ def get_experiment_components(
 def submit_experiment(
     cfg: OmegaConf,
 ):
+    missing_keys: set[str] = OmegaConf.missing_keys(cfg)
+    if missing_keys:
+        raise RuntimeError(f"Got missing keys in config:\n{missing_keys}")
+
+    configs_grid = create_grid_config(cfg)
+    dump_grid_configs(configs_grid, cfg.infrastructure.generated_configs_path)
+
+    modules_to_add = cfg.infrastructure.get("modules_to_add", None)
+    generate_sbatch_script(
+        cfg.infrastructure.slurm, cfg.infrastructure.generated_configs_path, len(configs_grid), cfg.infrastructure.venv_path, modules_to_add
+    )
+
     hydra_config = hydra.utils.HydraConfig.get()
     config_path, config_name = get_experiment_components(hydra_config)
     experiment_config_path = f"{config_path}/{config_name}.yaml"
 
     experiment_branch_name = version_code(
-        cfg.infrastructure.git.remote_name,
-        cfg.infrastructure.git.remote_url,
-        experiment_config_path,
-        hydra_config.job.name,
+        remote_name=cfg.infrastructure.git.remote_name,
+        remote_url=cfg.infrastructure.git.remote_url,
+        experiment_config_path=cfg.infrastructure.generated_configs_path,
+        exp_job_path="exp.job",
+        job_name=hydra_config.job.name,
     )
 
-    missing_keys: set[str] = OmegaConf.missing_keys(cfg)
-    if missing_keys:
-        raise RuntimeError(f"Got missing keys in config:\n{missing_keys}")
-
     with ConnectWithPassphrase(host=cfg.infrastructure.server, inline_ssh_env=True) as connection:
-        result = connection.run("uname -n", hide=True)
-        hostname = result.stdout.strip()
-        username = connection.user
-
-        cluster_name = get_cluster_name(hostname, username)
-
-        cluster_config = OmegaConf.load(f"configs/clusters/{cluster_name}.yaml")
-
-        cemetery_dir = cluster_config.cemetery_experiments_dir
+        cemetery_dir = cfg.infrastructure.cemetery_experiments_dir
         connection.run(f"mkdir -p {cemetery_dir}")
 
         if "NEPTUNE_API_TOKEN" in os.environ:
@@ -178,7 +200,7 @@ def submit_experiment(
             print(f"Cloned.")
         else:
             print(
-                f"Experiment {experiment_branch_name} already exists on {hostname}. Skipping."
+                f"Experiment {experiment_branch_name} already exists. Skipping."
             )
 
         try:
