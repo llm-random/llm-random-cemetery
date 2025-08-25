@@ -6,8 +6,8 @@ trainer:
   n_eval_steps: 10 
   gradient_accumulation_steps: 1
   gradient_clipping: 1.0
-  n_steps: null
-  learning_rate: null
+  n_steps: ???
+  learning_rate: ???
   weight_decay: 0.1
 
   scheduler:
@@ -18,9 +18,9 @@ trainer:
     # warmup_steps: ${eval:'int((${trainer.n_steps} * 0.01)'}
     warmup_steps: 40
 
-  distributed:
-    fsdp2:
-      modules_to_shard: 
-        - ${model.embedding._target_}
-        - ${model.encoder.block_fn._target_}
-        - ${model.head._target_}
+  # distributed:
+  #   fsdp2:
+  #     modules_to_shard: 
+  #       - ${model.embedding._target_}
+  #       - ${model.encoder.block_fn._target_}
+  #       - ${model.head._target_}

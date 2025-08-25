@@ -1,0 +1,603 @@
+W0825 19:10:38.656000 2073187 site-packages/torch/distributed/run.py:774] 
+W0825 19:10:38.656000 2073187 site-packages/torch/distributed/run.py:774] *****************************************
+W0825 19:10:38.656000 2073187 site-packages/torch/distributed/run.py:774] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0825 19:10:38.656000 2073187 site-packages/torch/distributed/run.py:774] *****************************************
+[2025-08-25 19:10:49,289][src.core.checkpointing][INFO] - No training_state_filename. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[2025-08-25 19:10:49,329][src.core.checkpointing][INFO] - No training_state_filename. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[2025-08-25 19:10:53,375][src.core.checkpointing][INFO] - No training_state_filename. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[2025-08-25 19:10:54,698][src.core.checkpointing][INFO] - No training_state_filename. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37350
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[INFO][host:h100a][local_rank:0] Creating model...
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37350
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37350
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37350
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[INFO][host:h100a][local_rank:1] Creating model...
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[INFO][host:h100a][local_rank:2] Creating model...
+[INFO][host:h100a][local_rank:3] Creating model...
+[INFO][host:h100a][local_rank:0] Model LLM created with 1498482688 trainable parameters
+[2025-08-25 19:11:12,079][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+[INFO][host:h100a][local_rank:1] Model LLM created with 1498482688 trainable parameters
+[2025-08-25 19:11:12,730][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+[INFO][host:h100a][local_rank:2] Model LLM created with 1498482688 trainable parameters
+[2025-08-25 19:11:13,046][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+[INFO][host:h100a][local_rank:3] Model LLM created with 1498482688 trainable parameters
+[2025-08-25 19:11:13,153][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+embedding.embedding.weight                                   <class 'torch.distributed.tensor.DTensor'>, shape=(128256, 2048) norm=178.7478
+encoder.blocks.0.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=4.7991
+encoder.blocks.0.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=42.8826
+encoder.blocks.0.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=24.6972
+encoder.blocks.0.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=5.2000
+encoder.blocks.0.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=11.9956
+encoder.blocks.0.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=4.7427
+encoder.blocks.0.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=35.8392
+encoder.blocks.0.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=35.7282
+encoder.blocks.0.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=40.4191
+encoder.blocks.1.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=8.0831
+encoder.blocks.1.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=32.2684
+encoder.blocks.1.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=22.7143
+encoder.blocks.1.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=5.2273
+encoder.blocks.1.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=13.2846
+encoder.blocks.1.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=5.9543
+encoder.blocks.1.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=36.1181
+encoder.blocks.1.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=35.2480
+encoder.blocks.1.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=42.4037
+encoder.blocks.2.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.2226
+encoder.blocks.2.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=26.8023
+encoder.blocks.2.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=19.0266
+encoder.blocks.2.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=6.3602
+encoder.blocks.2.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=13.4740
+encoder.blocks.2.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=6.8724
+encoder.blocks.2.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=33.8920
+encoder.blocks.2.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=34.3305
+encoder.blocks.2.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=43.5382
+encoder.blocks.3.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=9.2947
+encoder.blocks.3.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=30.3351
+encoder.blocks.3.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=20.8752
+encoder.blocks.3.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=7.6717
+encoder.blocks.3.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=15.3456
+encoder.blocks.3.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=7.1552
+encoder.blocks.3.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=32.9415
+encoder.blocks.3.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=32.7506
+encoder.blocks.3.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=46.8677
+encoder.blocks.4.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=9.5279
+encoder.blocks.4.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=27.7948
+encoder.blocks.4.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=19.1841
+encoder.blocks.4.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=7.5824
+encoder.blocks.4.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=15.3409
+encoder.blocks.4.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=7.3670
+encoder.blocks.4.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=32.6543
+encoder.blocks.4.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=32.4917
+encoder.blocks.4.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=48.4727
+encoder.blocks.5.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.8991
+encoder.blocks.5.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=25.4954
+encoder.blocks.5.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=19.4397
+encoder.blocks.5.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=5.4951
+encoder.blocks.5.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=13.9269
+encoder.blocks.5.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=7.5968
+encoder.blocks.5.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=33.1896
+encoder.blocks.5.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=32.8200
+encoder.blocks.5.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=45.8650
+encoder.blocks.6.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.6762
+encoder.blocks.6.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=23.6796
+encoder.blocks.6.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=15.1324
+encoder.blocks.6.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=6.4239
+encoder.blocks.6.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=14.6218
+encoder.blocks.6.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=7.5661
+encoder.blocks.6.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=32.6982
+encoder.blocks.6.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=32.3976
+encoder.blocks.6.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=44.3310
+encoder.blocks.7.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.8226
+encoder.blocks.7.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=29.2400
+encoder.blocks.7.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=19.6034
+encoder.blocks.7.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=6.5309
+encoder.blocks.7.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=15.0718
+encoder.blocks.7.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=7.5721
+encoder.blocks.7.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=33.7502
+encoder.blocks.7.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=33.2120
+encoder.blocks.7.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=43.0992
+encoder.blocks.8.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.4653
+encoder.blocks.8.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=26.5372
+encoder.blocks.8.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=20.6767
+encoder.blocks.8.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=7.7812
+encoder.blocks.8.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=14.9327
+encoder.blocks.8.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=8.0183
+encoder.blocks.8.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=33.8792
+encoder.blocks.8.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=32.9887
+encoder.blocks.8.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=42.2274
+encoder.blocks.9.attention_layer.norm.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.9853
+encoder.blocks.9.attention_layer.layer.q_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=27.5996
+encoder.blocks.9.attention_layer.layer.k_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=19.1069
+encoder.blocks.9.attention_layer.layer.v_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=7.5188
+encoder.blocks.9.attention_layer.layer.o_proj.weight         <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=16.0594
+encoder.blocks.9.ff_layer.norm.weight                        <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=8.4004
+encoder.blocks.9.ff_layer.layer.ff_pre_act.weight            <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=34.9387
+encoder.blocks.9.ff_layer.layer.ff_post_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=33.7700
+encoder.blocks.9.ff_layer.layer.gate.weight                  <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=44.1651
+encoder.blocks.10.attention_layer.norm.weight                <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=12.5483
+encoder.blocks.10.attention_layer.layer.q_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=26.7585
+encoder.blocks.10.attention_layer.layer.k_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=16.7744
+encoder.blocks.10.attention_layer.layer.v_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=6.8696
+encoder.blocks.10.attention_layer.layer.o_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=14.8814
+encoder.blocks.10.ff_layer.norm.weight                       <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=9.3425
+encoder.blocks.10.ff_layer.layer.ff_pre_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=35.2192
+encoder.blocks.10.ff_layer.layer.ff_post_act.weight          <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=34.3871
+encoder.blocks.10.ff_layer.layer.gate.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=44.8071
+encoder.blocks.11.attention_layer.norm.weight                <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.9130
+encoder.blocks.11.attention_layer.layer.q_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=29.1693
+encoder.blocks.11.attention_layer.layer.k_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=19.3655
+encoder.blocks.11.attention_layer.layer.v_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=6.2413
+encoder.blocks.11.attention_layer.layer.o_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=15.4971
+encoder.blocks.11.ff_layer.norm.weight                       <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.1415
+encoder.blocks.11.ff_layer.layer.ff_pre_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=35.9194
+encoder.blocks.11.ff_layer.layer.ff_post_act.weight          <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=35.1763
+encoder.blocks.11.ff_layer.layer.gate.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=44.6970
+encoder.blocks.12.attention_layer.norm.weight                <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.4697
+encoder.blocks.12.attention_layer.layer.q_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=27.2397
+encoder.blocks.12.attention_layer.layer.k_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=16.6317
+encoder.blocks.12.attention_layer.layer.v_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=6.7362
+encoder.blocks.12.attention_layer.layer.o_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=15.6998
+encoder.blocks.12.ff_layer.norm.weight                       <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.6270
+encoder.blocks.12.ff_layer.layer.ff_pre_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=36.8971
+encoder.blocks.12.ff_layer.layer.ff_post_act.weight          <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=36.1193
+encoder.blocks.12.ff_layer.layer.gate.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=44.1664
+encoder.blocks.13.attention_layer.norm.weight                <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=12.3204
+encoder.blocks.13.attention_layer.layer.q_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=27.5238
+encoder.blocks.13.attention_layer.layer.k_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=16.5591
+encoder.blocks.13.attention_layer.layer.v_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=10.2538
+encoder.blocks.13.attention_layer.layer.o_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=17.4658
+encoder.blocks.13.ff_layer.norm.weight                       <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=10.7854
+encoder.blocks.13.ff_layer.layer.ff_pre_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=37.9093
+encoder.blocks.13.ff_layer.layer.ff_post_act.weight          <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=36.8873
+encoder.blocks.13.ff_layer.layer.gate.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=43.2502
+encoder.blocks.14.attention_layer.norm.weight                <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.1586
+encoder.blocks.14.attention_layer.layer.q_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=26.8108
+encoder.blocks.14.attention_layer.layer.k_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=16.9174
+encoder.blocks.14.attention_layer.layer.v_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=11.5078
+encoder.blocks.14.attention_layer.layer.o_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=20.3865
+encoder.blocks.14.ff_layer.norm.weight                       <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.4656
+encoder.blocks.14.ff_layer.layer.ff_pre_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=37.8553
+encoder.blocks.14.ff_layer.layer.ff_post_act.weight          <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=36.1732
+encoder.blocks.14.ff_layer.layer.gate.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=45.9214
+encoder.blocks.15.attention_layer.norm.weight                <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.9318
+encoder.blocks.15.attention_layer.layer.q_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=24.4379
+encoder.blocks.15.attention_layer.layer.k_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=17.0394
+encoder.blocks.15.attention_layer.layer.v_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(512, 2048) norm=12.2020
+encoder.blocks.15.attention_layer.layer.o_proj.weight        <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 2048) norm=20.1903
+encoder.blocks.15.ff_layer.norm.weight                       <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=11.6505
+encoder.blocks.15.ff_layer.layer.ff_pre_act.weight           <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=41.0627
+encoder.blocks.15.ff_layer.layer.ff_post_act.weight          <class 'torch.distributed.tensor.DTensor'>, shape=(2048, 8192) norm=36.3830
+encoder.blocks.15.ff_layer.layer.gate.weight                 <class 'torch.distributed.tensor.DTensor'>, shape=(8192, 2048) norm=46.8394
+head.norm.weight                                             <class 'torch.distributed.tensor.DTensor'>, shape=(2048,) norm=53.7169
+head.linear.weight                                           <class 'torch.distributed.tensor.DTensor'>, shape=(128256, 2048) norm=178.5413
+-----------------------Printing afte hand gather
+embedding.embedding.weight                                   <class 'torch.Tensor'>, shape=(32064, 2048) norm=177.8082
+encoder.blocks.0.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=4.7991
+encoder.blocks.0.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=42.8819
+encoder.blocks.0.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=24.6971
+encoder.blocks.0.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=5.2000
+encoder.blocks.0.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=11.9954
+encoder.blocks.0.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=4.7427
+encoder.blocks.0.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=35.8355
+encoder.blocks.0.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=35.7245
+encoder.blocks.0.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.4151
+encoder.blocks.1.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=8.0831
+encoder.blocks.1.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=32.2681
+encoder.blocks.1.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=22.7143
+encoder.blocks.1.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=5.2273
+encoder.blocks.1.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=13.2845
+encoder.blocks.1.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=5.9543
+encoder.blocks.1.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=36.1142
+encoder.blocks.1.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=35.2444
+encoder.blocks.1.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=42.3996
+encoder.blocks.2.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=10.2226
+encoder.blocks.2.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=26.8016
+encoder.blocks.2.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=19.0265
+encoder.blocks.2.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=6.3602
+encoder.blocks.2.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=13.4738
+encoder.blocks.2.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=6.8724
+encoder.blocks.2.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=33.8886
+encoder.blocks.2.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=34.3270
+encoder.blocks.2.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=43.5342
+encoder.blocks.3.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=9.2947
+encoder.blocks.3.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=30.3347
+encoder.blocks.3.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=20.8751
+encoder.blocks.3.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=7.6716
+encoder.blocks.3.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=15.3454
+encoder.blocks.3.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=7.1552
+encoder.blocks.3.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=32.9385
+encoder.blocks.3.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=32.7475
+encoder.blocks.3.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=46.8628
+encoder.blocks.4.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=9.5279
+encoder.blocks.4.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=27.7944
+encoder.blocks.4.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=19.1841
+encoder.blocks.4.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=7.5824
+encoder.blocks.4.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=15.3407
+encoder.blocks.4.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=7.3670
+encoder.blocks.4.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=32.6513
+encoder.blocks.4.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=32.4888
+encoder.blocks.4.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=48.4675
+encoder.blocks.5.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=10.8991
+encoder.blocks.5.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=25.4948
+encoder.blocks.5.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=19.4397
+encoder.blocks.5.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=5.4951
+encoder.blocks.5.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=13.9267
+encoder.blocks.5.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=7.5968
+encoder.blocks.5.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=33.1863
+encoder.blocks.5.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=32.8168
+encoder.blocks.5.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=45.8606
+encoder.blocks.6.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=10.6762
+encoder.blocks.6.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=23.6793
+encoder.blocks.6.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=15.1323
+encoder.blocks.6.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=6.4238
+encoder.blocks.6.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=14.6216
+encoder.blocks.6.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=7.5661
+encoder.blocks.6.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=32.6951
+encoder.blocks.6.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=32.3945
+encoder.blocks.6.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=44.3267
+encoder.blocks.7.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=10.8226
+encoder.blocks.7.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=29.2395
+encoder.blocks.7.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=19.6033
+encoder.blocks.7.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=6.5309
+encoder.blocks.7.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=15.0716
+encoder.blocks.7.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=7.5721
+encoder.blocks.7.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=33.7467
+encoder.blocks.7.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=33.2085
+encoder.blocks.7.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=43.0944
+encoder.blocks.8.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=11.4653
+encoder.blocks.8.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=26.5368
+encoder.blocks.8.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=20.6767
+encoder.blocks.8.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=7.7812
+encoder.blocks.8.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=14.9325
+encoder.blocks.8.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=8.0183
+encoder.blocks.8.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=33.8758
+encoder.blocks.8.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=32.9855
+encoder.blocks.8.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=42.2229
+encoder.blocks.9.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(512,) norm=10.9853
+encoder.blocks.9.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=27.5992
+encoder.blocks.9.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=19.1069
+encoder.blocks.9.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(128, 2048) norm=7.5188
+encoder.blocks.9.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=16.0593
+encoder.blocks.9.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(512,) norm=8.4004
+encoder.blocks.9.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(2048, 2048) norm=34.9350
+encoder.blocks.9.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(512, 8192) norm=33.7667
+encoder.blocks.9.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(2048, 2048) norm=44.1608
+encoder.blocks.10.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(512,) norm=12.5483
+encoder.blocks.10.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=26.7579
+encoder.blocks.10.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=16.7744
+encoder.blocks.10.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=6.8696
+encoder.blocks.10.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=14.8812
+encoder.blocks.10.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(512,) norm=9.3425
+encoder.blocks.10.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(2048, 2048) norm=35.2155
+encoder.blocks.10.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(512, 8192) norm=34.3837
+encoder.blocks.10.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(2048, 2048) norm=44.8028
+encoder.blocks.11.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(512,) norm=11.9130
+encoder.blocks.11.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=29.1690
+encoder.blocks.11.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=19.3655
+encoder.blocks.11.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=6.2413
+encoder.blocks.11.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=15.4968
+encoder.blocks.11.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(512,) norm=10.1415
+encoder.blocks.11.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(2048, 2048) norm=35.9156
+encoder.blocks.11.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(512, 8192) norm=35.1726
+encoder.blocks.11.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(2048, 2048) norm=44.6930
+encoder.blocks.12.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(512,) norm=11.4697
+encoder.blocks.12.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=27.2393
+encoder.blocks.12.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=16.6317
+encoder.blocks.12.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=6.7362
+encoder.blocks.12.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=15.6996
+encoder.blocks.12.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(512,) norm=10.6270
+encoder.blocks.12.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(2048, 2048) norm=36.8934
+encoder.blocks.12.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(512, 8192) norm=36.1154
+encoder.blocks.12.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(2048, 2048) norm=44.1623
+encoder.blocks.13.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(512,) norm=12.3204
+encoder.blocks.13.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=27.5234
+encoder.blocks.13.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=16.5591
+encoder.blocks.13.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=10.2538
+encoder.blocks.13.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=17.4656
+encoder.blocks.13.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(512,) norm=10.7854
+encoder.blocks.13.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(2048, 2048) norm=37.9054
+encoder.blocks.13.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(512, 8192) norm=36.8833
+encoder.blocks.13.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(2048, 2048) norm=43.2460
+encoder.blocks.14.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(512,) norm=11.1586
+encoder.blocks.14.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=26.8104
+encoder.blocks.14.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=16.9174
+encoder.blocks.14.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=11.5078
+encoder.blocks.14.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=20.3862
+encoder.blocks.14.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(512,) norm=11.4656
+encoder.blocks.14.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(2048, 2048) norm=37.8513
+encoder.blocks.14.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(512, 8192) norm=36.1694
+encoder.blocks.14.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(2048, 2048) norm=45.9169
+encoder.blocks.15.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(512,) norm=11.9318
+encoder.blocks.15.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=24.4374
+encoder.blocks.15.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=17.0393
+encoder.blocks.15.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(128, 2048) norm=12.2020
+encoder.blocks.15.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=20.1901
+encoder.blocks.15.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(512,) norm=11.6505
+encoder.blocks.15.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(2048, 2048) norm=41.0587
+encoder.blocks.15.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(512, 8192) norm=36.3792
+encoder.blocks.15.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(2048, 2048) norm=46.8344
+head.norm.weight                                             <class 'torch.Tensor'>, shape=(512,) norm=53.7169
+head.linear.weight                                           <class 'torch.Tensor'>, shape=(32064, 2048) norm=177.6039
+-----------------------Saving to hf
+Error executing job with overrides: ['+checkpoint_config.slurm_array_task_id=0']
+Traceback (most recent call last):
+  File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py", line 252, in main
+    run(config)
+  File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/main.py", line 243, in run
+    ).train()
+      ^^^^^^^
+  File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/src/core/trainer.py", line 153, in train
+    save_to_llama_3_hf( #dev fixed values
+  File "/home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_19-10-05/src/core/conversion_to_hf.py", line 132, in save_to_llama_3_hf
+    hf_model.load_state_dict(hf_state_dict, strict=True)
+  File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/nn/modules/module.py", line 2624, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for LlamaForCausalLM:
+	size mismatch for model.embed_tokens.weight: copying a param with shape torch.Size([32064, 2048]) from checkpoint, the shape in current model is torch.Size([128256, 2048]).
+	size mismatch for model.layers.0.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.0.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.0.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.0.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.0.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.0.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.0.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.0.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.0.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.1.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.1.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.1.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.1.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.1.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.1.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.1.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.1.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.1.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.2.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.2.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.2.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.2.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.2.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.2.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.2.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.2.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.2.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.3.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.3.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.3.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.3.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.3.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.3.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.3.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.3.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.3.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.4.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.4.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.4.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.4.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.4.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.4.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.4.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.4.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.4.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.5.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.5.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.5.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.5.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.5.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.5.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.5.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.5.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.5.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.6.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.6.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.6.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.6.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.6.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.6.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.6.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.6.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.6.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.7.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.7.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.7.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.7.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.7.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.7.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.7.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.7.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.7.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.8.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.8.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.8.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.8.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.8.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.8.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.8.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.8.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.8.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.9.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.9.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.9.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.9.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.9.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.9.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.9.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.9.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.9.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.10.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.10.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.10.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.10.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.10.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.10.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.10.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.10.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.10.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.11.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.11.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.11.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.11.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.11.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.11.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.11.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.11.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.11.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.12.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.12.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.12.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.12.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.12.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.12.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.12.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.12.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.12.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.13.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.13.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.13.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.13.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.13.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.13.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.13.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.13.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.13.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.14.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.14.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.14.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.14.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.14.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.14.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.14.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.14.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.14.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.15.self_attn.q_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.15.self_attn.k_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.15.self_attn.v_proj.weight: copying a param with shape torch.Size([128, 2048]) from checkpoint, the shape in current model is torch.Size([512, 2048]).
+	size mismatch for model.layers.15.self_attn.o_proj.weight: copying a param with shape torch.Size([512, 2048]) from checkpoint, the shape in current model is torch.Size([2048, 2048]).
+	size mismatch for model.layers.15.mlp.gate_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.15.mlp.up_proj.weight: copying a param with shape torch.Size([2048, 2048]) from checkpoint, the shape in current model is torch.Size([8192, 2048]).
+	size mismatch for model.layers.15.mlp.down_proj.weight: copying a param with shape torch.Size([512, 8192]) from checkpoint, the shape in current model is torch.Size([2048, 8192]).
+	size mismatch for model.layers.15.input_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.layers.15.post_attention_layernorm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for model.norm.weight: copying a param with shape torch.Size([512]) from checkpoint, the shape in current model is torch.Size([2048]).
+	size mismatch for lm_head.weight: copying a param with shape torch.Size([32064, 2048]) from checkpoint, the shape in current model is torch.Size([128256, 2048]).
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [warning] Warning: string series 'monitoring/89880d0a/stderr' value was longer than 1000 characters and was truncated. This warning is printed only once per series.
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 18 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 18 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37350/metadata
+[rank0]:[W825 19:12:54.851175331 ProcessGroupNCCL.cpp:1538] Warning: WARNING: destroy_process_group() was not called before program exit, which can leak resources. For more info, please see https://pytorch.org/docs/stable/distributed.html#shutdown (function operator())
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 1 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 1 operations synced, thanks for waiting!
+W0825 19:12:56.781000 2073187 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 2073240 closing signal SIGTERM
+W0825 19:12:56.783000 2073187 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 2073241 closing signal SIGTERM
+W0825 19:12:56.784000 2073187 site-packages/torch/distributed/elastic/multiprocessing/api.py:900] Sending process 2073242 closing signal SIGTERM
+E0825 19:12:57.679000 2073187 site-packages/torch/distributed/elastic/multiprocessing/api.py:874] failed (exitcode: 1) local_rank: 0 (pid: 2073239) of binary: /home/mstefaniak/miniconda3/envs/nano/bin/python3.11
+Traceback (most recent call last):
+  File "/home/mstefaniak/miniconda3/envs/nano/bin/torchrun", line 8, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 357, in wrapper
+    return f(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^
+  File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/run.py", line 901, in main
+    run(args)
+  File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/run.py", line 892, in run
+    elastic_launch(
+  File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 143, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/mstefaniak/miniconda3/envs/nano/lib/python3.11/site-packages/torch/distributed/launcher/api.py", line 277, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+main.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2025-08-25_19:12:56
+  host      : h100a.mimuw.edu.pl
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 2073239)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
+srun: error: h100a: task 0: Exited with exit code 1
