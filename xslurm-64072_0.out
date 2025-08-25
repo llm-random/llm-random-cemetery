@@ -1,0 +1,597 @@
+W0825 22:13:32.906000 2113482 site-packages/torch/distributed/run.py:774] 
+W0825 22:13:32.906000 2113482 site-packages/torch/distributed/run.py:774] *****************************************
+W0825 22:13:32.906000 2113482 site-packages/torch/distributed/run.py:774] Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+W0825 22:13:32.906000 2113482 site-packages/torch/distributed/run.py:774] *****************************************
+[2025-08-25 22:13:42,145][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[2025-08-25 22:13:47,303][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[2025-08-25 22:13:47,337][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[2025-08-25 22:13:53,028][src.core.checkpointing][INFO] - Checkpoint type: 'huggingface'. Starting training from step 0.
+training_state--------------------------------------
+{'next_step': 0, 'run_id': None, 'processed_tokens': 0}
+metric_logger_config.new_neptune_job: True
+neptune id: None
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[INFO][host:h100a][local_rank:0] Creating model...
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362
+[neptune] [info   ] Neptune initialized. Open in the app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'omegaconf.listconfig.ListConfig'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[neptune] [warning] /home/mstefaniak/llmrandom_cemetery/run_exp_2025-08-25_22-12-57/main.py:183: NeptuneUnsupportedType: You're attempting to log a type that is not directly supported by Neptune (<class 'NoneType'>).
+        Convert the value to a supported type, such as a string or float, or use stringify_unsupported(obj)
+        for dictionaries or collections that contain unsupported values.
+        For more, see https://docs.neptune.ai/help/value_of_unsupported_type
+[INFO][host:h100a][local_rank:1] Creating model...
+[INFO][host:h100a][local_rank:2] Creating model...
+[INFO][host:h100a][local_rank:3] Creating model...
+[INFO][host:h100a][local_rank:0] Model LLM created with 1498482688 trainable parameters
+[INFO][host:h100a][local_rank:2] Model LLM created with 1498482688 trainable parameters
+[INFO][host:h100a][local_rank:3] Model LLM created with 1498482688 trainable parameters
+[INFO][host:h100a][local_rank:1] Model LLM created with 1498482688 trainable parameters
+[2025-08-25 22:14:14,580][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+[2025-08-25 22:14:14,891][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+[2025-08-25 22:14:15,284][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+[2025-08-25 22:14:15,298][src.core.distributed_training][INFO] - [FSDP2] Sharding model with classes: [<class 'src.projected_compression.model.TransformerEmbedding'>, <class 'src.projected_compression.model.TransformerBlock'>, <class 'src.projected_compression.model.TransformerHead'>]
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+The tokenizer class you load from this checkpoint is not the same type as the class this function is called from. It may result in unexpected tokenization. 
+The tokenizer class you load from this checkpoint is 'PreTrainedTokenizerFast'. 
+The class this function is called from is 'LlamaTokenizerFast'.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 1 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 1 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362/metadata
+HF -----------------
+model.embed_tokens.weight                                    <class 'torch.Tensor'>, shape=(128256, 2048) norm=310.5542
+model.layers.0.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9644
+model.layers.0.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4844
+model.layers.0.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4877
+model.layers.0.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9396
+model.layers.0.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8763
+model.layers.0.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8297
+model.layers.0.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8739
+model.layers.0.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.0.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.1.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9762
+model.layers.1.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4776
+model.layers.1.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.5106
+model.layers.1.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9473
+model.layers.1.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8504
+model.layers.1.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8605
+model.layers.1.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8617
+model.layers.1.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.1.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.2.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9353
+model.layers.2.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4986
+model.layers.2.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4758
+model.layers.2.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9724
+model.layers.2.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8948
+model.layers.2.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8636
+model.layers.2.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8186
+model.layers.2.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.2.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.3.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9555
+model.layers.3.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4731
+model.layers.3.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4944
+model.layers.3.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9318
+model.layers.3.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8506
+model.layers.3.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8618
+model.layers.3.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8511
+model.layers.3.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.3.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.4.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9703
+model.layers.4.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4993
+model.layers.4.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4730
+model.layers.4.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9445
+model.layers.4.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8267
+model.layers.4.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8695
+model.layers.4.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8631
+model.layers.4.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.4.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.5.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9396
+model.layers.5.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.5011
+model.layers.5.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.5064
+model.layers.5.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9559
+model.layers.5.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8596
+model.layers.5.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8647
+model.layers.5.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8431
+model.layers.5.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.5.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.6.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9730
+model.layers.6.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4934
+model.layers.6.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4815
+model.layers.6.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9691
+model.layers.6.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8510
+model.layers.6.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8556
+model.layers.6.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8649
+model.layers.6.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.6.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.7.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9567
+model.layers.7.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4934
+model.layers.7.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4797
+model.layers.7.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9843
+model.layers.7.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8359
+model.layers.7.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8723
+model.layers.7.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8731
+model.layers.7.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.7.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.8.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9445
+model.layers.8.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4918
+model.layers.8.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4648
+model.layers.8.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9681
+model.layers.8.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8593
+model.layers.8.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8396
+model.layers.8.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8636
+model.layers.8.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.8.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.9.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9470
+model.layers.9.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4668
+model.layers.9.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4725
+model.layers.9.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9706
+model.layers.9.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8504
+model.layers.9.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8428
+model.layers.9.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8724
+model.layers.9.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.9.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.10.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9722
+model.layers.10.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4699
+model.layers.10.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4746
+model.layers.10.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9637
+model.layers.10.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8664
+model.layers.10.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8533
+model.layers.10.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8817
+model.layers.10.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.10.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.11.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9677
+model.layers.11.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4873
+model.layers.11.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.5030
+model.layers.11.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9575
+model.layers.11.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8402
+model.layers.11.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8624
+model.layers.11.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8722
+model.layers.11.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.11.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.12.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9788
+model.layers.12.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4777
+model.layers.12.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4846
+model.layers.12.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9589
+model.layers.12.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8430
+model.layers.12.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8674
+model.layers.12.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8462
+model.layers.12.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.12.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.13.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9497
+model.layers.13.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4605
+model.layers.13.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4834
+model.layers.13.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9341
+model.layers.13.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8648
+model.layers.13.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8671
+model.layers.13.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8653
+model.layers.13.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.13.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.14.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9420
+model.layers.14.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4892
+model.layers.14.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4746
+model.layers.14.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9590
+model.layers.14.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8617
+model.layers.14.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8671
+model.layers.14.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8479
+model.layers.14.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.14.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.15.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9596
+model.layers.15.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4618
+model.layers.15.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=20.4816
+model.layers.15.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.9351
+model.layers.15.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8514
+model.layers.15.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=81.8336
+model.layers.15.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=81.8251
+model.layers.15.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.layers.15.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+model.norm.weight                                            <class 'torch.Tensor'>, shape=(2048,) norm=45.2548
+lm_head.weight                                               <class 'torch.Tensor'>, shape=(128256, 2048) norm=310.5862
+nano_model_state_dict -----------------
+embedding.embedding.weight                                   <class 'torch.Tensor'>, shape=(128256, 2048) norm=340.9206
+encoder.blocks.0.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=9.8685
+encoder.blocks.0.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=75.5145
+encoder.blocks.0.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=48.8813
+encoder.blocks.0.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=9.3636
+encoder.blocks.0.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=23.7400
+encoder.blocks.0.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=9.5527
+encoder.blocks.0.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=71.6138
+encoder.blocks.0.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=71.1824
+encoder.blocks.0.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=80.4907
+encoder.blocks.1.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=15.9986
+encoder.blocks.1.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=58.2920
+encoder.blocks.1.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=41.5862
+encoder.blocks.1.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=10.0102
+encoder.blocks.1.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=26.4303
+encoder.blocks.1.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=11.9704
+encoder.blocks.1.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=71.2176
+encoder.blocks.1.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=70.4072
+encoder.blocks.1.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=83.9239
+encoder.blocks.2.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=20.3039
+encoder.blocks.2.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=57.3660
+encoder.blocks.2.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=39.0896
+encoder.blocks.2.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=11.9662
+encoder.blocks.2.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=26.8565
+encoder.blocks.2.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=13.7614
+encoder.blocks.2.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=67.9039
+encoder.blocks.2.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=68.6371
+encoder.blocks.2.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=86.3854
+encoder.blocks.3.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=18.5527
+encoder.blocks.3.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=56.5657
+encoder.blocks.3.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=38.0071
+encoder.blocks.3.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=14.1983
+encoder.blocks.3.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=30.5442
+encoder.blocks.3.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=14.3472
+encoder.blocks.3.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=65.9439
+encoder.blocks.3.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=65.4371
+encoder.blocks.3.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=93.9574
+encoder.blocks.4.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=18.9258
+encoder.blocks.4.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.7680
+encoder.blocks.4.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=37.4678
+encoder.blocks.4.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=13.6818
+encoder.blocks.4.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=30.5403
+encoder.blocks.4.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=14.7768
+encoder.blocks.4.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=65.3552
+encoder.blocks.4.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=64.8241
+encoder.blocks.4.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=97.1529
+encoder.blocks.5.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=21.5831
+encoder.blocks.5.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=53.2558
+encoder.blocks.5.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=37.8791
+encoder.blocks.5.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=11.5110
+encoder.blocks.5.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=27.6363
+encoder.blocks.5.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=15.2083
+encoder.blocks.5.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=66.1928
+encoder.blocks.5.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=65.4321
+encoder.blocks.5.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=90.8954
+encoder.blocks.6.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=21.2303
+encoder.blocks.6.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=50.4307
+encoder.blocks.6.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=39.1444
+encoder.blocks.6.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=13.4874
+encoder.blocks.6.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=29.2102
+encoder.blocks.6.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=15.1602
+encoder.blocks.6.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=65.4669
+encoder.blocks.6.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=64.3272
+encoder.blocks.6.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=88.7085
+encoder.blocks.7.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=21.7592
+encoder.blocks.7.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.0176
+encoder.blocks.7.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=38.8838
+encoder.blocks.7.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=14.0706
+encoder.blocks.7.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=30.1943
+encoder.blocks.7.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=15.1806
+encoder.blocks.7.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=67.3491
+encoder.blocks.7.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=65.9070
+encoder.blocks.7.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=86.1239
+encoder.blocks.8.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=22.9992
+encoder.blocks.8.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=52.2060
+encoder.blocks.8.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=39.4260
+encoder.blocks.8.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=13.1829
+encoder.blocks.8.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=29.8049
+encoder.blocks.8.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=16.0211
+encoder.blocks.8.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=67.9014
+encoder.blocks.8.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=66.1318
+encoder.blocks.8.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=84.8013
+encoder.blocks.9.attention_layer.norm.weight                 <class 'torch.Tensor'>, shape=(2048,) norm=22.0078
+encoder.blocks.9.attention_layer.layer.q_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=60.7317
+encoder.blocks.9.attention_layer.layer.k_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=37.8362
+encoder.blocks.9.attention_layer.layer.v_proj.weight         <class 'torch.Tensor'>, shape=(512, 2048) norm=14.4607
+encoder.blocks.9.attention_layer.layer.o_proj.weight         <class 'torch.Tensor'>, shape=(2048, 2048) norm=32.1611
+encoder.blocks.9.ff_layer.norm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=16.7965
+encoder.blocks.9.ff_layer.layer.ff_pre_act.weight            <class 'torch.Tensor'>, shape=(8192, 2048) norm=69.8121
+encoder.blocks.9.ff_layer.layer.ff_post_act.weight           <class 'torch.Tensor'>, shape=(2048, 8192) norm=67.8147
+encoder.blocks.9.ff_layer.layer.gate.weight                  <class 'torch.Tensor'>, shape=(8192, 2048) norm=88.8275
+encoder.blocks.10.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(2048,) norm=25.1367
+encoder.blocks.10.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=55.0453
+encoder.blocks.10.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=35.6081
+encoder.blocks.10.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=12.8192
+encoder.blocks.10.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=29.7930
+encoder.blocks.10.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=18.7064
+encoder.blocks.10.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(8192, 2048) norm=70.4166
+encoder.blocks.10.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(2048, 8192) norm=69.0055
+encoder.blocks.10.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(8192, 2048) norm=88.5765
+encoder.blocks.11.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(2048,) norm=23.7709
+encoder.blocks.11.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=56.0083
+encoder.blocks.11.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=38.6472
+encoder.blocks.11.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=13.7039
+encoder.blocks.11.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=31.0224
+encoder.blocks.11.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=20.3347
+encoder.blocks.11.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(8192, 2048) norm=71.8924
+encoder.blocks.11.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(2048, 8192) norm=70.6537
+encoder.blocks.11.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(8192, 2048) norm=89.6189
+encoder.blocks.12.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(2048,) norm=22.7752
+encoder.blocks.12.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=55.8772
+encoder.blocks.12.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=37.0921
+encoder.blocks.12.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=14.7228
+encoder.blocks.12.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=31.5875
+encoder.blocks.12.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=21.3375
+encoder.blocks.12.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(8192, 2048) norm=73.7789
+encoder.blocks.12.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(2048, 8192) norm=72.6243
+encoder.blocks.12.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(8192, 2048) norm=89.1841
+encoder.blocks.13.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(2048,) norm=24.4980
+encoder.blocks.13.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.2056
+encoder.blocks.13.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=34.2009
+encoder.blocks.13.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=17.5218
+encoder.blocks.13.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=35.2805
+encoder.blocks.13.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=21.6342
+encoder.blocks.13.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(8192, 2048) norm=75.8908
+encoder.blocks.13.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(2048, 8192) norm=74.2868
+encoder.blocks.13.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(8192, 2048) norm=87.3032
+encoder.blocks.14.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(2048,) norm=21.9625
+encoder.blocks.14.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.9651
+encoder.blocks.14.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=31.2654
+encoder.blocks.14.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=23.2564
+encoder.blocks.14.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=41.1723
+encoder.blocks.14.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=22.9918
+encoder.blocks.14.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(8192, 2048) norm=75.7819
+encoder.blocks.14.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(2048, 8192) norm=72.8846
+encoder.blocks.14.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(8192, 2048) norm=90.4904
+encoder.blocks.15.attention_layer.norm.weight                <class 'torch.Tensor'>, shape=(2048,) norm=23.4585
+encoder.blocks.15.attention_layer.layer.q_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=51.0572
+encoder.blocks.15.attention_layer.layer.k_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=30.9492
+encoder.blocks.15.attention_layer.layer.v_proj.weight        <class 'torch.Tensor'>, shape=(512, 2048) norm=22.2261
+encoder.blocks.15.attention_layer.layer.o_proj.weight        <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.3969
+encoder.blocks.15.ff_layer.norm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=23.2100
+encoder.blocks.15.ff_layer.layer.ff_pre_act.weight           <class 'torch.Tensor'>, shape=(8192, 2048) norm=82.8366
+encoder.blocks.15.ff_layer.layer.ff_post_act.weight          <class 'torch.Tensor'>, shape=(2048, 8192) norm=72.8785
+encoder.blocks.15.ff_layer.layer.gate.weight                 <class 'torch.Tensor'>, shape=(8192, 2048) norm=95.5424
+head.norm.weight                                             <class 'torch.Tensor'>, shape=(2048,) norm=107.2346
+head.linear.weight                                           <class 'torch.Tensor'>, shape=(128256, 2048) norm=340.9206
+hf_state_dict -----------------
+model.embed_tokens.weight                                    <class 'torch.Tensor'>, shape=(128256, 2048) norm=340.9206
+model.layers.0.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=9.8685
+model.layers.0.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=75.5145
+model.layers.0.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=48.8813
+model.layers.0.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=9.3636
+model.layers.0.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=23.7400
+model.layers.0.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=9.5527
+model.layers.0.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=71.6138
+model.layers.0.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=71.1824
+model.layers.0.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=80.4907
+model.layers.1.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=15.9986
+model.layers.1.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=58.2920
+model.layers.1.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=41.5862
+model.layers.1.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=10.0102
+model.layers.1.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=26.4303
+model.layers.1.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=11.9704
+model.layers.1.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=71.2176
+model.layers.1.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=70.4072
+model.layers.1.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=83.9239
+model.layers.2.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=20.3039
+model.layers.2.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=57.3660
+model.layers.2.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=39.0896
+model.layers.2.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=11.9662
+model.layers.2.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=26.8565
+model.layers.2.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=13.7614
+model.layers.2.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=67.9039
+model.layers.2.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=68.6371
+model.layers.2.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=86.3854
+model.layers.3.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=18.5527
+model.layers.3.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=56.5657
+model.layers.3.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=38.0071
+model.layers.3.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=14.1983
+model.layers.3.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=30.5442
+model.layers.3.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=14.3472
+model.layers.3.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=65.9439
+model.layers.3.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=65.4371
+model.layers.3.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=93.9574
+model.layers.4.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=18.9258
+model.layers.4.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.7680
+model.layers.4.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=37.4678
+model.layers.4.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=13.6818
+model.layers.4.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=30.5403
+model.layers.4.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=14.7768
+model.layers.4.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=65.3552
+model.layers.4.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=64.8241
+model.layers.4.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=97.1529
+model.layers.5.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=21.5831
+model.layers.5.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=53.2558
+model.layers.5.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=37.8791
+model.layers.5.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=11.5110
+model.layers.5.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=27.6363
+model.layers.5.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=15.2083
+model.layers.5.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=66.1928
+model.layers.5.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=65.4321
+model.layers.5.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=90.8954
+model.layers.6.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=21.2303
+model.layers.6.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=50.4307
+model.layers.6.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=39.1444
+model.layers.6.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=13.4874
+model.layers.6.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=29.2102
+model.layers.6.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=15.1602
+model.layers.6.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=65.4669
+model.layers.6.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=64.3272
+model.layers.6.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=88.7085
+model.layers.7.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=21.7592
+model.layers.7.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.0176
+model.layers.7.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=38.8838
+model.layers.7.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=14.0706
+model.layers.7.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=30.1943
+model.layers.7.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=15.1806
+model.layers.7.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=67.3491
+model.layers.7.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=65.9070
+model.layers.7.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=86.1239
+model.layers.8.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=22.9992
+model.layers.8.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=52.2060
+model.layers.8.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=39.4260
+model.layers.8.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=13.1829
+model.layers.8.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=29.8049
+model.layers.8.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=16.0211
+model.layers.8.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=67.9014
+model.layers.8.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=66.1318
+model.layers.8.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=84.8013
+model.layers.9.input_layernorm.weight                        <class 'torch.Tensor'>, shape=(2048,) norm=22.0078
+model.layers.9.self_attn.q_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=60.7317
+model.layers.9.self_attn.k_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=37.8362
+model.layers.9.self_attn.v_proj.weight                       <class 'torch.Tensor'>, shape=(512, 2048) norm=14.4607
+model.layers.9.self_attn.o_proj.weight                       <class 'torch.Tensor'>, shape=(2048, 2048) norm=32.1611
+model.layers.9.post_attention_layernorm.weight               <class 'torch.Tensor'>, shape=(2048,) norm=16.7965
+model.layers.9.mlp.gate_proj.weight                          <class 'torch.Tensor'>, shape=(8192, 2048) norm=69.8121
+model.layers.9.mlp.down_proj.weight                          <class 'torch.Tensor'>, shape=(2048, 8192) norm=67.8147
+model.layers.9.mlp.up_proj.weight                            <class 'torch.Tensor'>, shape=(8192, 2048) norm=88.8275
+model.layers.10.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=25.1367
+model.layers.10.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=55.0453
+model.layers.10.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=35.6081
+model.layers.10.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=12.8192
+model.layers.10.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=29.7930
+model.layers.10.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=18.7064
+model.layers.10.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=70.4166
+model.layers.10.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=69.0055
+model.layers.10.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=88.5765
+model.layers.11.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=23.7709
+model.layers.11.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=56.0083
+model.layers.11.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=38.6472
+model.layers.11.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=13.7039
+model.layers.11.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=31.0224
+model.layers.11.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=20.3347
+model.layers.11.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=71.8924
+model.layers.11.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=70.6537
+model.layers.11.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=89.6189
+model.layers.12.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=22.7752
+model.layers.12.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=55.8772
+model.layers.12.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=37.0921
+model.layers.12.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=14.7228
+model.layers.12.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=31.5875
+model.layers.12.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=21.3375
+model.layers.12.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=73.7789
+model.layers.12.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=72.6243
+model.layers.12.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=89.1841
+model.layers.13.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=24.4980
+model.layers.13.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.2056
+model.layers.13.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=34.2009
+model.layers.13.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=17.5218
+model.layers.13.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=35.2805
+model.layers.13.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=21.6342
+model.layers.13.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=75.8908
+model.layers.13.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=74.2868
+model.layers.13.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=87.3032
+model.layers.14.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=21.9625
+model.layers.14.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=54.9651
+model.layers.14.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=31.2654
+model.layers.14.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=23.2564
+model.layers.14.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=41.1723
+model.layers.14.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=22.9918
+model.layers.14.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=75.7819
+model.layers.14.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=72.8846
+model.layers.14.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=90.4904
+model.layers.15.input_layernorm.weight                       <class 'torch.Tensor'>, shape=(2048,) norm=23.4585
+model.layers.15.self_attn.q_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=51.0572
+model.layers.15.self_attn.k_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=30.9492
+model.layers.15.self_attn.v_proj.weight                      <class 'torch.Tensor'>, shape=(512, 2048) norm=22.2261
+model.layers.15.self_attn.o_proj.weight                      <class 'torch.Tensor'>, shape=(2048, 2048) norm=40.3969
+model.layers.15.post_attention_layernorm.weight              <class 'torch.Tensor'>, shape=(2048,) norm=23.2100
+model.layers.15.mlp.gate_proj.weight                         <class 'torch.Tensor'>, shape=(8192, 2048) norm=82.8366
+model.layers.15.mlp.down_proj.weight                         <class 'torch.Tensor'>, shape=(2048, 8192) norm=72.8785
+model.layers.15.mlp.up_proj.weight                           <class 'torch.Tensor'>, shape=(8192, 2048) norm=95.5424
+model.norm.weight                                            <class 'torch.Tensor'>, shape=(2048,) norm=107.2346
+lm_head.weight                                               <class 'torch.Tensor'>, shape=(128256, 2048) norm=340.9206
+Saving HF model with the following config LlamaConfig {
+  "_name_or_path": "meta-llama/Llama-3.1-8B",
+  "architectures": [
+    "LlamaForCausalLM"
+  ],
+  "attention_bias": false,
+  "attention_dropout": 0.0,
+  "bos_token_id": 128000,
+  "eos_token_id": 128001,
+  "head_dim": 64,
+  "hidden_act": "silu",
+  "hidden_size": 2048,
+  "initializer_range": 0.02,
+  "intermediate_size": 8192,
+  "max_position_embeddings": 131072,
+  "mlp_bias": false,
+  "model_type": "llama",
+  "num_attention_heads": 32,
+  "num_hidden_layers": 16,
+  "num_key_value_heads": 8,
+  "pretraining_tp": 1,
+  "rms_norm_eps": 1e-05,
+  "rope_scaling": {
+    "factor": 8.0,
+    "high_freq_factor": 4.0,
+    "low_freq_factor": 1.0,
+    "original_max_position_embeddings": 8192,
+    "rope_type": "llama3"
+  },
+  "rope_theta": 500000.0,
+  "tie_word_embeddings": false,
+  "torch_dtype": "bfloat16",
+  "transformers_version": "4.46.2",
+  "use_cache": true,
+  "vocab_size": 128256
+}
+
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 1 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 1 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 1 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362/metadata
+[neptune] [info   ] All 1 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362/metadata
+[neptune] [info   ] Shutting down background jobs, please wait a moment...
+[neptune] [info   ] Done!
+[neptune] [info   ] Waiting for the remaining 1 operations to synchronize with Neptune. Do not kill this process.
+[neptune] [info   ] All 1 operations synced, thanks for waiting!
+[neptune] [info   ] Explore the metadata in the Neptune app: https://app.neptune.ai/pmtest/llm-random/e/LLMRANDOM-37362/metadata
