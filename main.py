@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 logger.propagate = False
 ch = logging.StreamHandler()
 formatter = logging.Formatter(
-    fmt=f"[%(levelname)s][host:{platform.node()}][local_rank:{os.environ.get("LOCAL_RANK")}] %(message)s",
+    fmt=f"[%(levelname)s][host:{platform.node()}][local_rank:{os.environ.get('LOCAL_RANK')}] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 ch.setFormatter(formatter)
@@ -189,7 +189,7 @@ def run(cfg, metric_logger=None):
     logger.info(f"Creating model...")
     model = instantiate(cfg.model, _convert_="all").to(device)
     logger.info(f"Model {model.__class__.__name__} created with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
-
+    raise Exception("test")#dev
     # Residual layers needs metric_logger for logging update norms
     for _, module in model.named_modules():
         if isinstance(module, Residual):
