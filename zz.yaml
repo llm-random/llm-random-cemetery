@@ -1,0 +1,13 @@
+# config.yaml
+servers:
+  A:
+    foo: 1
+    bar: 10
+  B:
+    foo: 2
+    bar: 20
+
+real_config:
+  bar: 999   # default
+  qux: 42    # default
+  foo: 3    # overridden by server A or B

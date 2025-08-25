@@ -250,13 +250,7 @@ def main(config):
         run(config)
         return
 
-    configs_grid = create_grid_config(config)
-    dump_grid_configs(configs_grid, config.infrastructure.generated_configs_path)
 
-    modules_to_add = config.infrastructure.get("modules_to_add", None)
-    generate_sbatch_script(
-        config.infrastructure.slurm, config.infrastructure.generated_configs_path, len(configs_grid), config.infrastructure.venv_path, modules_to_add
-    )
 
     if config.get("_debug_"):
         training_config, overrides = configs_grid[0]
