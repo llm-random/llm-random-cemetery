@@ -1,0 +1,27 @@
+
+
+infrastructure:
+  server: helios
+  slurm:
+    cpus-per-task: 72
+    gres: gpu:4
+    job-name: test_helios
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: plgrid-gpu-gh200
+    time: ???
+
+  venv_path: "/net/pr2/projects/plgrid/plggllmeffi/${env:USER,no_user}/envs/PC_env_login"
+  experiment_prepare_venv_path: "/net/pr2/projects/plgrid/plggllmeffi/${env:USER,no_user}/envs/PC_env_slurm"
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+
+# switch:
+#   trainer:
+#     train_dataloader:
+#       dataset_path_c4: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train" # helios
+#     eval_dataloader:
+#       dataset_path_c4: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation" # helios
