@@ -26,7 +26,7 @@ logger = logging.getLogger(__name__)
 logger.propagate = False
 ch = logging.StreamHandler()
 formatter = logging.Formatter(
-    fmt=f"[%(levelname)s][host:{platform.node()}][local_rank:{os.environ.get("LOCAL_RANK")}] %(message)s",
+    fmt=f"[%(levelname)s][host:{platform.node()}][local_rank:{os.environ.get('LOCAL_RANK')}] %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 ch.setFormatter(formatter)
@@ -167,6 +167,8 @@ def run(cfg, metric_logger=None):
         distributed_setup()
 
     training_state = load_training_state(cfg.trainer.checkpoint.load)
+    print("training_state--------------------------------------")#dev
+    print(training_state)#dev
 
     if metric_logger is None:
         metric_logger = get_metric_logger(
@@ -176,7 +178,9 @@ def run(cfg, metric_logger=None):
         npt_handler = NeptuneHandler(run=metric_logger.run)
         logger.addHandler(npt_handler)
 
-    if isinstance(metric_logger, NeptuneLogger) and training_state["run_id"] is None:
+
+    if isinstance(metric_logger, NeptuneLogger) and (training_state["run_id"] is None or cfg.infrastructure.metric_logger.new_neptune_job):
+        print("really printing config???????????????????????????????????") #dev
         metric_logger.run["job_config"] = cfg
         upload_config_file(metric_logger)
         log_environs(metric_logger)
@@ -189,12 +193,12 @@ def run(cfg, metric_logger=None):
     logger.info(f"Creating model...")
     model = instantiate(cfg.model, _convert_="all").to(device)
     logger.info(f"Model {model.__class__.__name__} created with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
-
     # Residual layers needs metric_logger for logging update norms
     for _, module in model.named_modules():
         if isinstance(module, Residual):
             module.set_metric_logger(metric_logger)
 
+    raise Exception("test") #dev
     if cfg.trainer.checkpoint.load.type == "huggingface":
         copy_llama_model_weights_from_HF(model, cfg.trainer.checkpoint.load.path)
         if cfg.get("apply_functions", None):
