@@ -20,6 +20,11 @@ from grid_generator.sbatch_builder import generate_sbatch_script
 from main import dump_grid_configs
 from resolver import get_cluster_name
 
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+console = Console()
+
 logger = logging.getLogger(__name__)
 
 _SSH_HOSTS_TO_PASSPHRASES = {}
@@ -98,10 +103,12 @@ def version_code(
 
         repo.git.checkout(b=experiment_branch_name)
         print(
-            f"Pushing experiment code to {experiment_branch_name} '{remote_name}' remote..."
+            f"Pushing experiment code to {experiment_branch_name} '{remote_url}'..."
         )
-        repo.git.push(remote_url, experiment_branch_name)
-        print(f"Pushed.")
+        spinner = Spinner("dots", text="Pushing to remote...")
+        with Live(spinner, refresh_per_second=10, console=console):
+            repo.git.push(remote_url, experiment_branch_name)
+        print(f"Done.")
     finally:
         reset_to_original_repo_state(
             repo, original_branch, original_branch_commit_hash, experiment_branch_name
