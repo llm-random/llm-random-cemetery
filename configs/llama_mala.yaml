@@ -1,0 +1,90 @@
+defaults:
+  - _misc@_here_: default
+  # - clusters@_here_: clusters_config
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _cluster@_here_: entropy_4
+  - _model@_here_: projected_llama_3
+  - _model/projected_llama_3_sizes@_here_: 1B
+  - _self_
+  
+common: 
+  batch_size: 512
+
+trainer:
+  n_steps: 1001
+  learning_rate: 3.0517578125e-05
+    # - 1.52587890625e-05
+    # - 6.103515625e-05
+    # - 7.62939453125e-06
+  gradient_accumulation_steps: 1
+
+  checkpoint:
+    save:
+      path: null
+      interval: -1
+
+    load:
+      type: huggingface
+      path: "meta-llama/Llama-3.2-1B"
+
+  train_dataloader:
+    seed: 20001
+    total_batch_size: 32
+    dataset_path: "/net/tscratch/people/plgmaciejpioro/datasets/fineweb-edu/train/train" # "/storage_nvme_1/llm-random/datasets/c4/train"
+
+  eval_dataloader:
+    seed: 20001
+    total_batch_size: 32
+    dataset_path: "/net/tscratch/people/plgmaciejpioro/datasets/fineweb-edu/train/train"  #"/storage_nvme_1/llm-random/datasets/c4/validation"
+
+  distributed:
+    fsdp2:
+      modules_to_shard:
+        - src.projected_compression.model.TransformerBlock
+
+infrastructure:
+  metric_logger:
+    name: test
+    tags:
+      - PC
+      - test
+  venv_path: $HOME/nano/.venv/bin/activate
+
+  server: mojhelios
+
+
+apply_functions:
+- _partial_: true
+  _target_: src.projected_compression.compression.init_compression
+  dff: ${common.dff}
+  dmodel: ${common.dmodel}
+
+
+# slurm:
+#   gres: gpu:4
+#   time: "0-01:00:00"
+#   partition: "plgrid-gpu-gh200"
+#   cpus-per-gpu: "72"
+#   mem-per-gpu: "100G"
+#   account: "plgllmefficont2-gpu-gh200"
+#   nodes: 1
+#   job-name: "go_tr_mtp_k24"
+
+
+# modules_to_add: 
+#   - "ML-bundle/24.06a"
+
+
+# cemetery_experiments_dir: "/net/storage/pr3/plgrid/plggllmeffi/elo/cemetery"
+
+
+# venv_path: '/net/storage/pr3/plgrid/plggllmeffi/venv_crew/bin/activate'
+# experiment_prepare_venv_path: '/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/login_venv/bin/activate'
+
+
+
+hydra: 
+  job_logging:
+    root:
+      level: WARNING
