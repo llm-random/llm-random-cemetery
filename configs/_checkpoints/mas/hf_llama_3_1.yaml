@@ -3,6 +3,7 @@
 trainer:
   checkpoint:
    save:
+    type: nano
     interval: -1
     path: null
     model_checkpoint_filename: __model_checkpoint_filename.pt
