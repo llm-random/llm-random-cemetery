@@ -19,8 +19,11 @@ class TrainingState(Stateful):
 
     def state_dict(self):
         # this line automatically manages FSDP FQN's, as well as sets the default state dict type to FSDP.SHARDED_STATE_DICT
+        # model_state_dict, optimizer_state_dict = get_state_dict(
+        #     self.model, self.optimizer
+        # )
         model_state_dict, optimizer_state_dict = get_state_dict(
-            self.model, self.optimizer
+            self.model, []
         )
         return {
             "model": model_state_dict,
