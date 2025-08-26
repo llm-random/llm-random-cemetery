@@ -32,23 +32,6 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 logger.addHandler(ch)
 
-def dump_grid_configs(configs_grid, output_folder):
-    os.makedirs(output_folder, exist_ok=True)
-
-    class CustomDumper(yaml.SafeDumper):
-        def write_line_break(self, data=None):
-            super().write_line_break(data)
-            if len(self.indents) == 1:  # Check if we're at the root level
-                super().write_line_break()
-
-    for idx, (cfg_dict, overrides_list) in enumerate(configs_grid):
-        cfg_dict["overrides"] = overrides_list
-        cfg_dict["_run_"] = True
-
-        out_path = os.path.join(output_folder, f"config_{idx}.yaml")
-        with open(out_path, "w", encoding="utf-8") as f:
-            yaml.dump(cfg_dict, f, Dumper=CustomDumper, sort_keys=True)
-
 
 def upload_config_file(metric_logger):
     slurm_array_task_id = os.environ.get("SLURM_ARRAY_TASK_ID")
@@ -250,13 +233,6 @@ def main(config):
         run(config)
         return
 
-    configs_grid = create_grid_config(config)
-    dump_grid_configs(configs_grid, config.infrastructure.generated_configs_path)
-
-    modules_to_add = config.infrastructure.get("modules_to_add", None)
-    generate_sbatch_script(
-        config.infrastructure.slurm, config.infrastructure.generated_configs_path, len(configs_grid), config.infrastructure.venv_path, modules_to_add
-    )
 
     if config.get("_debug_"):
         training_config, overrides = configs_grid[0]
