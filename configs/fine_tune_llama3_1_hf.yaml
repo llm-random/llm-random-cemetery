@@ -1,7 +1,7 @@
 # working 22.08
 
 defaults:
-  - _cluster@_here_: entropy_4
+  - _cluster@_here_: helios_4
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -46,4 +46,5 @@ infrastructure:
       - pc
       - nano
       - ft_llama3_1
+      - helios_ft
 
