@@ -20,8 +20,8 @@ trainer:
 
   checkpoint:
    save:
-    path: null
-    # path: /storage_nvme_3/mstefaniak/nano_checkpoints/llaama3_1_nano
+    # path: null
+    path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama3
 
   train_dataloader:
     num_workers: 12
