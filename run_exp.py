@@ -1,6 +1,8 @@
 #!/usr/bin/env python
+import re
+import yaml
 import datetime
-import logging
+
 import os
 import time
 from git import Repo
@@ -12,33 +14,57 @@ from fabric import Connection
 import hydra
 from omegaconf import OmegaConf
 import paramiko.ssh_exception
-
+from hydra import compose, initialize
+from omegaconf import OmegaConf
+from grid_generator.generate_configs import create_grid_config
+from grid_generator.sbatch_builder import generate_sbatch_script
 from resolver import get_cluster_name
 
-logger = logging.getLogger(__name__)
+from rich.console import Console
+from rich.spinner import Spinner
+from rich.live import Live
+from rich.text import Text
+
+console = Console()
+# logger = logging.getLogger(__name__)
+# print(os.getenv("LOG_LEVEL","WARNING").upper())
+# logging.basicConfig(
+#     level=logging.getLevelNamesMapping()[os.getenv("LOG_LEVEL","WARNING").upper()],
+#     format=f"%(message)s",
+#     handlers=[RichHandler(console=console, rich_tracebacks=True)],
+# )
+
+# logger.debug("XD")
+# logger.info("Logging is set up.")
+# logger.warning("Warning message")
+# logger.error("XD")
+
+# logger.info("🚀 Processing started", extra={"user_message": True})
+# logger.info("✅ Processing complete!", extra={"user_message": True})
+
+# exit(0)
 
 _SSH_HOSTS_TO_PASSPHRASES = {}
 
+def dump_grid_configs(configs_grid, output_folder):
+    os.makedirs(output_folder, exist_ok=True)
 
-def ensure_remote_config_exist(repo: Repo, remote_name: str, remote_url: str):
-    for remote in repo.remotes:
-        if remote.name == remote_name:
-            if remote.url != remote_url:
-                old_remote_url = remote.url
-                remote.set_url(remote_url)
-                print(
-                    f"Updated url of '{remote_name}' remote from '{old_remote_url}' to '{remote_url}'"
-                )
-            return
+    class CustomDumper(yaml.SafeDumper):
+        def write_line_break(self, data=None):
+            super().write_line_break(data)
+            if len(self.indents) == 1:  # Check if we're at the root level
+                super().write_line_break()
 
-    repo.create_remote(remote_name, url=remote_url)
-    print(f"Added remote '{remote_name}' with url '{remote_url}'")
+    for idx, (cfg_dict, overrides_list) in enumerate(configs_grid):
+        cfg_dict["overrides"] = overrides_list
 
+        out_path = os.path.join(output_folder, f"config_{idx}.yaml")
+        with open(out_path, "w", encoding="utf-8") as f:
+            yaml.dump(cfg_dict, f, Dumper=CustomDumper, sort_keys=True)
 
 def commit_pending_changes(repo: Repo):
     if len(repo.index.diff("HEAD")) > 0:
         repo.git.commit(m="Versioning code", no_verify=True)
-
 
 def reset_to_original_repo_state(
     repo: Repo,
@@ -50,13 +76,16 @@ def reset_to_original_repo_state(
     if versioning_branch in repo.branches:
         repo.git.branch("-D", versioning_branch)
     repo.head.reset(original_branch_commit_hash, index=True)
-    print("Successfully restored working tree to the original state!")
 
+def git_ssh_to_https_tree(ssh_url: str) -> str:
+    without_git = ssh_url.removeprefix("git@").removesuffix(".git")
+    host, path = without_git.split(":", 1)
+    return f"https://{host}/{path}/tree"
 
 def version_code(
-    remote_name: str,
     remote_url: str,
     experiment_config_path: Optional[str] = None,
+    exp_job_path: Optional[str] = None,
     job_name: Optional[str] = None,
 ) -> str:
     repo = Repo(".", search_parent_directories=True)
@@ -68,19 +97,23 @@ def version_code(
     original_branch = repo.active_branch.name
     original_branch_commit_hash = repo.head.object.hexsha
 
-    ensure_remote_config_exist(repo, remote_name, remote_url)
     repo.git.add(experiment_config_path, force=True)
+    repo.git.add(exp_job_path, force=True)
     repo.git.add(all=True)
 
     try:
         commit_pending_changes(repo)
-
         repo.git.checkout(b=experiment_branch_name)
-        print(
-            f"Pushing experiment code to {experiment_branch_name} '{remote_name}' remote..."
-        )
-        repo.git.push(remote_name, experiment_branch_name)
-        print(f"Pushed.")
+
+        text = Text("Pushing experiment code to branch '")
+        text.append(experiment_branch_name, style="bold magenta")  # branch name in magenta
+        text.append("' at '")
+        text.append(remote_url, style="bold cyan")  # URL in cyan
+        text.append("'...")
+        spinner = Spinner("dots", text=text, style="bold green on black")
+        with Live(spinner, refresh_per_second=10, console=console):
+            repo.git.push(remote_url, experiment_branch_name)
+        console.print(f"Experiment pushed to:  \'[bold green]{git_ssh_to_https_tree(remote_url)}/{experiment_branch_name}[/bold green]\'")
     finally:
         reset_to_original_repo_state(
             repo, original_branch, original_branch_commit_hash, experiment_branch_name
@@ -94,7 +127,6 @@ def ConnectWithPassphrase(*args, **kwargs) -> Generator[Connection, None, None]:
     """Connect to a remote host using a passphrase if the key is encrypted. The passphrase is preserved for subsequent connections to the same host."""
     try:
         connection = Connection(*args, **kwargs)
-        connection.run('echo "Connection successful."')
         yield connection
     except paramiko.ssh_exception.PasswordRequiredException as e:
         if connection.host not in _SSH_HOSTS_TO_PASSPHRASES:
@@ -132,77 +164,107 @@ def get_experiment_components(
 def submit_experiment(
     cfg: OmegaConf,
 ):
-    hydra_config = hydra.utils.HydraConfig.get()
-    config_path, config_name = get_experiment_components(hydra_config)
-    experiment_config_path = f"{config_path}/{config_name}.yaml"
-
-    experiment_branch_name = version_code(
-        cfg.infrastructure.git.remote_name,
-        cfg.infrastructure.git.remote_url,
-        experiment_config_path,
-        hydra_config.job.name,
-    )
-
     missing_keys: set[str] = OmegaConf.missing_keys(cfg)
     if missing_keys:
         raise RuntimeError(f"Got missing keys in config:\n{missing_keys}")
 
+    configs_grid = create_grid_config(cfg)
+    dump_grid_configs(configs_grid, cfg.infrastructure.generated_configs_path)
+
+    modules_to_add = cfg.infrastructure.get("modules_to_add")
+    generate_sbatch_script(
+        cfg.infrastructure.slurm, cfg.infrastructure.generated_configs_path, len(configs_grid), cfg.infrastructure.venv_path, modules_to_add
+    )
+
+    experiment_branch_name = version_code(
+        remote_url=cfg.infrastructure.git.remote_url,
+        experiment_config_path=cfg.infrastructure.generated_configs_path,
+        exp_job_path="exp.job",
+        job_name=cfg.infrastructure.metric_logger.name,
+    )
+
     with ConnectWithPassphrase(host=cfg.infrastructure.server, inline_ssh_env=True) as connection:
-        result = connection.run("uname -n", hide=True)
-        hostname = result.stdout.strip()
-        username = connection.user
-
-        cluster_name = get_cluster_name(hostname, username)
-
-        cluster_config = OmegaConf.load(f"configs/clusters/{cluster_name}.yaml")
-
-        cemetery_dir = cluster_config.cemetery_experiments_dir
+        cemetery_dir = cfg.infrastructure.cemetery_experiments_dir
         connection.run(f"mkdir -p {cemetery_dir}")
-
-        if "NEPTUNE_API_TOKEN" in os.environ:
-            connection.config["run"]["env"]["NEPTUNE_API_TOKEN"] = os.environ[
-                "NEPTUNE_API_TOKEN"
-            ]
-
-        if "WANDB_API_KEY" in os.environ:
-            connection.config["run"]["env"]["WANDB_API_KEY"] = os.environ[
-                "WANDB_API_KEY"
-            ]
 
         experiment_dir = f"{cemetery_dir}/{experiment_branch_name}"
         if connection.run(f"test -d {experiment_dir}", warn=True).failed:
-            print(f"Cloning {experiment_branch_name} to {experiment_dir}...")
             connection.run(
                 f"git clone --depth 1 -b {experiment_branch_name} {cfg.infrastructure.git.remote_url} {experiment_dir}"
             )
-            print(f"Cloned.")
         else:
             print(
-                f"Experiment {experiment_branch_name} already exists on {hostname}. Skipping."
+                f"Experiment {experiment_branch_name} already exists. Skipping."
             )
+        # if "NEPTUNE_API_TOKEN" in os.environ:
+        #     connection.config["run"]["env"]["NEPTUNE_API_TOKEN"] = os.environ[
+        #         "NEPTUNE_API_TOKEN"
+        #     ]
 
         try:
+
+
             connection.run(f"tmux new -d -s {experiment_branch_name}")
             connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "cd {experiment_dir}" ENTER'
+                f'tmux send -t {experiment_branch_name}.0 "cd {experiment_dir}" C-m'
+            )
+            #TODO create venv
+            connection.run(
+                f'tmux send -t {experiment_branch_name}.0 "source {cfg.infrastructure.venv_path}" C-m'
             )
             connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "source {cfg.infrastructure.experiment_prepare_venv_path}" ENTER'
+                f'tmux send -t {experiment_branch_name}.0 "sbatch exp.job" C-m'
             )
-            pwd = os.getcwd()
-            relative_path = os.path.relpath(config_path, pwd)
-            connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "python main.py --config-path={relative_path} --config-name={config_name}" ENTER'
-            )
-            connection.run(
-                f'tmux send -t {experiment_branch_name}.0 "sbatch exp.job" ENTER'
-            )
-            logger.info("=" * 38 + "TMUX" + "=" * 38)
-            time.sleep(3)
-            output = connection.run(
-                f"tmux capture-pane -t {experiment_branch_name}.0 -p", hide=True
-            ).stdout
-            logger.info(output)
+            text = Text("Waiting the job to start!")
+            # text.append(experiment_branch_name, style="bold magenta")  # branch name in magenta
+            # text.append("' at '")
+            # text.append(remote_url, style="bold cyan")  # URL in cyan
+            # text.append("'...")
+            spinner = Spinner("dots", text=text, style="bold green on black")
+            with Live(spinner, refresh_per_second=10, console=console):
+                tries = 3
+                while tries > 0:     
+                    output = connection.run(
+                        f"tmux capture-pane -pt {experiment_branch_name}.0", hide=True
+                    ).stdout
+            
+                    match = re.search(r"Submitted batch job (\d+)", output)
+                    if not match:
+                        match_error = re.search(r"sbatch: error: (.*)\n", output)
+                        if not match_error:
+                            print("Waiting for sbatch output...")
+                            time.sleep(0.5)
+                            tries -= 1
+                            continue
+                        else:
+                            err_msg = match_error.group(1)
+                            raise RuntimeError(f"Error submitting job: {err_msg}")
+                    else:
+                        job_id = match.group(1)
+                        break
+
+            console.print(f"Slurm job ID: [bold orange]{job_id}[/bold orange]")
+
+            while True:
+                squeue_result = connection.run(f"squeue -j {job_id} -h -o '%T'", hide=True)
+                state = squeue_result.stdout.strip()
+                if state == "R":  # Running
+                    console.print(f"Job {job_id} is running")
+                    break
+                elif state == "PD":  # Pending
+                    console.print(f"Job {job_id} is pending...")
+                elif state == "":
+                    raise RuntimeError(f"Job {job_id} disappeared from queue")
+                else:
+                    console.print(f"Job {job_id} state: {state}")
+                time.sleep(1)
+
+            # # logger.info("=" * 38 + "TMUX" + "=" * 38)
+            # time.sleep(3)
+            # output = connection.run(
+            #     f"tmux capture-pane -t {experiment_branch_name}.0 -p", hide=True
+            # ).stdout
+            # logger.info(output)
         except Exception as e:
             print("Exception while running an experiment: ", e)
 
