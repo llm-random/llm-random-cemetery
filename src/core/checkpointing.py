@@ -22,6 +22,9 @@ class TrainingState(Stateful):
         model_state_dict, optimizer_state_dict = get_state_dict(
             self.model, self.optimizer
         )
+        # model_state_dict, optimizer_state_dict = get_state_dict(
+        #     self.model, []
+        # )
         return {
             "model": model_state_dict,
             "optim": optimizer_state_dict,
