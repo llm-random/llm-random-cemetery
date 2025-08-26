@@ -12,7 +12,7 @@
 #   hosts: 
 #     - "t00*"
 
-# - name: "helios"
-#   hosts: 
-#     - "login01.helios*"
-#     - "x100*"
+- name: "helios"
+  hosts: 
+    - "login01.helios*"
+    - "x100*"
