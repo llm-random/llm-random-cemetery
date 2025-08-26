@@ -11,6 +11,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class TrainingState(Stateful):
     def __init__(self, model, optimizer, scheduler):
         self.model = model
@@ -121,6 +122,15 @@ def _find_latest_checkpoint(path: str) -> str:
 
     return max(files, key=os.path.getmtime)
 
+def print_state_dict_info(state_dict): #dev
+    for name, param in state_dict.items():
+        if isinstance(param, torch.Tensor):
+            print(f"{name:60s} {type(param)}, shape={tuple(param.shape)} "
+            # print(f"{name:60s} {param}, shape={tuple(param.shape)} "
+                f"norm={param.norm().item():.4f}")
+        else:
+            # Sometimes buffers / metadata can be non-tensors
+            print(f"{name:60s} NON-TENSOR {type(param)}")
 
 def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
     checkpoint_path = load_config.path
@@ -128,7 +138,7 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
         return 
 
     if checkpoint_path is not None:
-        if isinstance(model, FSDP):
+        if isinstance(model, FSDP) or model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard":
             # Sharded load
             state_dict = {"app": TrainingState(model, optimizer, scheduler)}
             dcp.load(state_dict=state_dict, checkpoint_id=checkpoint_path)
