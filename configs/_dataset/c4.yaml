@@ -10,7 +10,7 @@ trainer:
     seed: 20001
     sequence_length: ${common.sequence_length}
     shuffle: true
-    total_batch_size: ${common.sequence_length}
+    total_batch_size: ${common.batch_size}
     use_new_sampling_method: true
     world_size_independent: true
     tokenize_fn:
@@ -25,7 +25,7 @@ trainer:
     seed: 123
     sequence_length: ${common.sequence_length}
     shuffle: true
-    total_batch_size: ${common.sequence_length}
+    total_batch_size: ${common.batch_size}
     use_new_sampling_method: true
     world_size_independent: true
     tokenize_fn:
