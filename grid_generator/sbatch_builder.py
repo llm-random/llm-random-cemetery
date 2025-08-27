@@ -28,13 +28,14 @@ def create_master_node_configuration() -> list[str]:
         "else",
         "    export MASTER_PORT=$((30000 + (${SLURM_JOB_ID} % 1250) * 8 + (${SLURM_ARRAY_TASK_ID} % 8)))",
         "fi",
+        ""
     ]
 
 
 def create_program_call(config_folder):
     return [
-        "srun torchrun --nnodes=${SLURM_NNODES}\\",
-        "  --nproc-per-node=\"auto\" \\",
+        "torchrun --nnodes=${SLURM_NNODES}\\",
+        "  --nproc-per-node=${NUM_GPUS} \\",
         "  --rdzv-id=${SLURM_JOBID} \\",
         "  --rdzv-backend=c10d \\",
         "  --rdzv-endpoint=${MASTER_ADDR}:${MASTER_PORT} \\",
@@ -46,7 +47,7 @@ def create_program_call(config_folder):
 
 
 def generate_sbatch_script(
-    slurm_config, config_folder, n_experiments, venv_path, modules_to_add
+    slurm_config, config_folder, n_experiments, venv_path, setup_script
 ) -> list[str]:
     lines = ["#!/bin/bash -l", ""]
 
@@ -55,13 +56,13 @@ def generate_sbatch_script(
 
     lines.extend(slurm_parameters)
 
+    lines.append("NUM_GPUS=$(echo $CUDA_VISIBLE_DEVICES | awk -F',' '{print NF}')")
+
     lines.extend(create_master_node_configuration())
 
-    if modules_to_add is not None:
-        for module in modules_to_add:
-            lines.append(f"module load {module}")
+    lines.extend(setup_script)
 
-    lines.append(f"source {venv_path}")
+    lines.append(f"source {venv_path}/bin/activate")
     lines.extend(create_program_call(config_folder))
 
     with open("exp.job", "w") as f:
