@@ -1,25 +1,26 @@
 
 parent: configs/projected_dis/4ff_large/common.yaml
 md5_parent_hash: 0f5bbfd1acb29b5088f1f320eda7bea6
-time: 2-00:00:00
+time: 0-05:00:00
 n_gpus: 4
 cpus_per_gpu: 16
 
 params:
   name: "PD"
-  tags: ["projected_dis", "4ff", "dm1024", "doner"]
+  tags: ["projected_dis", "4ff", "dm1024", "nano_comp"]
   # tags: ["projected_dis", "4ff", "dm1024", "doner", "lr_tune"]
 
   # ^learning_rate: [0.0016, 0.0008, 0.0004] #dev
   learning_rate: 0.0008 #best
 
+  attention_mode: vanilla
   n_blocks: 16
   n_att_heads: 16 
   dmodel: 1024
   dff: 4096
-  # n_steps: 23172 # 20T/ap
+  n_steps: 23172 # 20T/ap
   # ^n_steps: [46344, 92688, 185376] # 2ot, 4ot, 8ot
-  
+
 
   logging_interval_heavy: 1000
   logging_interval_loss: 1000

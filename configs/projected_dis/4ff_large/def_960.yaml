@@ -10,8 +10,8 @@ params:
   # tags: ["projected_dis", "4ff", "dm960", "COMP"]
   tags: ["projected_dis", "4ff", "dm960", "lr_tune"]
 
-  ^learning_rate: [0.0008, 0.0016, 0.0032, 0.0064] #dev
-  # learning_rate: 0.001 #dev
+  # ^learning_rate: [0.0008, 0.0016, 0.0032, 0.0064] #dev
+  learning_rate: 0.001 #dev
 
   dmodel: 960
   dff: 3840
