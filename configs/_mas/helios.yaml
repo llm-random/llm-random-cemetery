@@ -1,0 +1,5 @@
+
+infrastructure:
+  venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv/bin/activate
+  # slurm:
+  #   export: ALL,HF_HUB_CACHE="/net/scratch/hscra/plgrid/plgmstefaniak/hf_cash"
