@@ -733,24 +733,29 @@ if __name__ == "__main__":
     if (
         os.environ.get("MASTER_PORT") is not None
     ):  # if this is already set, we are using multinode torchrun setup
-        main(
-            None,
-            args=args,
-            unique_save_weights_path=save_weights_path,
-            is_using_torchrun=True,
-        )
+        print("UZYWA TORCHRUNE -----------------------------------------------------------------------") #dev
+        # main(
+        #     None,
+        #     args=args,
+        #     unique_save_weights_path=save_weights_path,
+        #     is_using_torchrun=True,
+        # )
     elif args.ddp_enabled or args.fsdp_enabled:  # single-node multi-gpu training
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:  # find free port
-            s.bind(("", 0))
-            port = str(s.getsockname()[1])
-        mp.spawn(
-            main,
-            args=[
-                port,
-                save_weights_path,
-                args,
-            ],
-            nprocs=args.n_gpus,
-        )
+        print("UZYWA args.ddp_enabled or args.fsdp_enabled:  # single-node multi-gpu training -----------------------------------------------------------------------") #dev
+        # with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:  # find free port
+        #     s.bind(("", 0))
+        #     port = str(s.getsockname()[1])
+        # mp.spawn(
+        #     main,
+        #     args=[
+        #         port,
+        #         save_weights_path,
+        #         args,
+        #     ],
+        #     nprocs=args.n_gpus,
+        # )
     else:  # single-gpu training
-        main(None, args=args, unique_save_weights_path=save_weights_path)
+        print("UZYWA args.ddp_enabled or args.fsdp_enabled:  # single-node multi-gpu training -----------------------------------------------------------------------") #dev
+        # main(None, args=args, unique_save_weights_path=save_weights_path)
+    raise Exception("Elosiomelo")
+
