@@ -1,13 +1,20 @@
 
 infrastructure:
-  venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv/bin/activate
+  # venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv/bin/activate
+  venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv24/bin/activate
   # venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv2/bin/activate
   # venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv_local/bin/activate
   experiment_prepare_venv_path: /net/scratch/hscra/plgrid/plgmstefaniak/envs/nano/.venv_local/bin/activate
   # slurm:
   #   export: ALL,HF_HUB_CACHE="/net/scratch/hscra/plgrid/plgmstefaniak/hf_cash"
   modules_to_add:
-    - ML-bundle/25.04
-CUDA_AVAILABLE_DEVICES
-${CUDA_AVAILABLE_DEVICES}
-${CUDA_ _DEVICES}
+    - pytorch3d/0.7.8
+    # - ML-bundle/24.06a
+    # - ML-bundle/25.04
+# CUDA_AVAILABLE_DEVICES  
+# ${CUDA_AVAILABLE_DEVICES}
+# ${CUDA_VISIBLE_DEVICES}
+
+# pip install --force-reinstall torch==2.2.0+cu118 torchvision==0.17.1+cu118 torchaudio==2.2.0+cu118 --index-url https://download.pytorch.org/whl/cu118
+
+# pip install --pre --force-reinstall    torch==2.8.0.dev20250325+cu128    torchvision==0.22.0.dev20250325+cu128    torchaudio==2.6.0.dev20250325+cu128    --index-url https://download.pytorch.org/whl/nightly/cu128
