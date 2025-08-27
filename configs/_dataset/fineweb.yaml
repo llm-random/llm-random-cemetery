@@ -1,11 +1,9 @@
-
-
 trainer:
   train_dataloader:
     _target_: src.core.datasets.get_dataloader
     dataset_path: ???
     dataset_split: train
-    dataset_type: c4
+    dataset_type: fineweb-edu
     num_workers: 12
     seed: 20001
     sequence_length: ${common.sequence_length}
@@ -20,7 +18,7 @@ trainer:
     _target_: src.core.datasets.get_dataloader
     dataset_path: ???
     dataset_split: validation
-    dataset_type: c4
+    dataset_type: fineweb-edu
     num_workers: 12
     seed: 123
     sequence_length: ${common.sequence_length}
