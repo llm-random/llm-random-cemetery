@@ -1,0 +1,33 @@
+
+infrastructure:
+  server: helios
+  slurm:
+    cpus-per-task: 16
+    gres: gpu:4
+    job-name: test
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: "plgrid-gpu-gh200"
+    time: "0-01:00:00"
+    export: "ALL,HF_HUB_CACHE=/net/pr2/projects/plgrid/plggllmeffi/common_hf_hub_dir"
+
+  venv_path: ???
+  experiment_prepare_venv_path: ${infrastructure.venv_path}
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+
+
+  setup_script:
+    - "module load ML-bundle/24.06a"
+    - "if [ ! -d ${infrastructure.venv_path} ]; then python3 -m venv ${infrastructure.venv_path}; fi"
+    - "source ${infrastructure.venv_path}/bin/activate"
+    - "pip install -r requirements.txt"
+
+trainer:
+  train_dataloader:
+    dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train" # helios
+  eval_dataloader:
+    dataset_path: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation" # helios
