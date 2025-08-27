@@ -19,8 +19,10 @@ params:
   projected_dff: 6144
 
   # ^learning_rate: [0.001, 0.0005, 0.00025]
-  ^learning_rate: [0.00075, 0.000375]
+  # ^learning_rate: [0.00075, 0.000375]
+  ^learning_rate: [0.00025]
   # learning_rate: 0.0005 #best
+  # learning_rate: 0.000375 #best2
 
   # ^n_steps: [10179, 20358, 30537, 40716] # /home/ubuntu/llm-random-group/llm-random-cemetery/PD_2025-06-19_20-02-39; /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/llm_random_cemetery/PD_2025-06-20_00-24-36
   ^n_steps: [10179, 20358]
