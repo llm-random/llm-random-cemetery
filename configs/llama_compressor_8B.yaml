@@ -1,6 +1,7 @@
 
 defaults:
   - _cluster@_here_: helios_4
+  # - _cluster@_here_: entropy_8
   - _model@_here_: llama_3_8_pc
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -13,9 +14,11 @@ common:
   batch_size: 512
 
 
-
 trainer:
-  gradient_accumulation_steps: 16
+  # gradient_accumulation_steps: 64
+  ^gradient_accumulation_steps: 
+    - 32
+    - 64
   n_steps: 1001
   
   ^learning_rate: 
@@ -34,6 +37,7 @@ trainer:
 
 
 infrastructure:
+  server: entropy_c
   metric_logger:
     name: Llame_PC
     tags:
