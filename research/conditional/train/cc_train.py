@@ -733,6 +733,7 @@ if __name__ == "__main__":
     if (
         os.environ.get("MASTER_PORT") is not None
     ):  # if this is already set, we are using multinode torchrun setup
+        print("UŻYWA TORCHRUNE -----------------------------------------------------------------------") #dev
         main(
             None,
             args=args,
