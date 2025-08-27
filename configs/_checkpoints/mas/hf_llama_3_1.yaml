@@ -3,6 +3,7 @@
 trainer:
   checkpoint:
    save:
+    type: nano
     interval: -1
     path: null
     model_checkpoint_filename: __model_checkpoint_filename.pt
@@ -15,4 +16,5 @@ trainer:
     # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_1b" # helios # TODO move to shared
     model_checkpoint_filename: __model_checkpoint_filename.pt
     training_state_filename: null
+    only_weights: true 
 
