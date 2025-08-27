@@ -181,7 +181,8 @@ class HeliosBackend(MachineBackend):
         return super().get_default_train_dataset_path(dataset_type)
 
     def get_common_directory(self) -> str:
-        return "/net/storage/pr3/plgrid/plggllmeffi"
+        # return "/net/storage/pr3/plgrid/plggllmeffi"
+        return "/net/scratch/hscra/plgrid/plggllmeffi"
 
     def get_cache_path(self) -> str:
         return f"/net/scratch/hscra/plgrid/plgmaciejpioro/{self.username}/.cache"
