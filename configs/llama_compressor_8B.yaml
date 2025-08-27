@@ -1,21 +1,27 @@
 
 defaults:
-  - _cluster@_here_: helios_4
+  # - _cluster@_here_: helios_4
+  - _cluster@_here_: helios_8
+  # - _cluster@_here_: entropy_8
   - _model@_here_: llama_3_8_pc
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
   - _mas@_here_: helios
+  - _self_
   
 
 common:
   batch_size: 512
-
+  # batch_size: 64
 
 
 trainer:
-  gradient_accumulation_steps: 16
+  gradient_accumulation_steps: 8
+  # ^gradient_accumulation_steps: 
+  #   - 32
+  #   - 64
   n_steps: 1001
   
   ^learning_rate: 
@@ -27,6 +33,7 @@ trainer:
       path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/pc
     load:
       type: huggingface
+      # path: "/net/scratch/hscra/plgrid/plgmstefaniak/hf_cash/my_models/models--meta-llama--Llama-3.1-8B"
       path: "meta-llama/Llama-3.1-8B"
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: null
@@ -43,4 +50,4 @@ infrastructure:
 
   
   slurm:
-    time: "0-01:00:00"
+    time: "0-02:00:00"
