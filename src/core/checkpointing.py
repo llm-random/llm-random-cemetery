@@ -42,6 +42,10 @@ class TrainingState(Stateful):
 
 def step_checkpoint_path(path, step):
     full_config_path = get_full_checkpoint_path(path)
+    if os.environ["RANK"] == "0":
+        print("full_config_path")
+        print(f"{full_config_path}")
+        print(full_config_path)
     return f"{full_config_path}/step_{step}"
 
 
