@@ -61,7 +61,6 @@ def upload_config_file(metric_logger):
 def check_env_vars():
     assert int(os.environ["RANK"]) < int(os.environ["WORLD_SIZE"])
 
-
 def setup_enviroment():
     if "WORLD_SIZE" not in os.environ:
         logger.warning("WORLD_SIZE is not set, setting it to 1")
@@ -153,6 +152,9 @@ def log_environs(metric_logger):
         "CUDA_DEVICE_ORDER",
         "SLURM_TOPOLOGY_ADDR",
         "HOME",
+        "CUDA_VISIBLE_DEVICES",
+        "MASTER_ADDR",
+        "MASTER_PORT",
     ]
 
     environs = os.environ
@@ -161,6 +163,7 @@ def log_environs(metric_logger):
 
 def run(cfg, metric_logger=None):
     setup_enviroment()
+    print({k: os.environ[k] for k in ["WORLD_SIZE","RANK","LOCAL_RANK","MASTER_ADDR","MASTER_PORT"] if k in os.environ}) #dev
 
     if "distributed" in cfg.trainer and cfg.trainer.distributed is not None:
         distributed_setup()
