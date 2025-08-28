@@ -276,7 +276,15 @@ class Trainer:
     def save_checkpoint(self):
         if isinstance(self.model, FSDP) or self.model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard":
             # Sharded save
+            if os.environ["RANK"] == "0":
+                print("CHECKPOINTSS")
+                print(f"{self.checkpoint.save.path}")
+                print(self.checkpoint.save.path)
             checkpoint_folder = step_checkpoint_path(self.checkpoint.save.path, self.step)
+            if os.environ["RANK"] == "0":
+                print("checkpoint_folder")
+                print(f"{checkpoint_folder}")
+                print(checkpoint_folder)
             state_dict = {
                 "app": TrainingState(self.model, self.optimizer, self.scheduler)
             }
