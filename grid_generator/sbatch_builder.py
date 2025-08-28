@@ -54,7 +54,9 @@ def generate_sbatch_script(
     lines.append(f"#SBATCH --array=0-{n_experiments - 1}")
 
     lines.extend(slurm_parameters)
+    
 
+    lines.append(f"export LD_LIBRARY_PATH=/net/scratch/hscra/plgrid/plgcrewtool/siemaeniu/lib/python3.13/site-packages/torch/lib") #dev
     # lines.append(f"export HF_HUB_CACHE=/net/scratch/hscra/plgrid/plgmstefaniak/hf_cash/my_models") #dev
     # lines.append("echo ${SLURM_GPUS_ON_NODE}") #dev
 
