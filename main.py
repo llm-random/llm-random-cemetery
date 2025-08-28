@@ -61,6 +61,46 @@ def upload_config_file(metric_logger):
 def check_env_vars():
     assert int(os.environ["RANK"]) < int(os.environ["WORLD_SIZE"])
 
+def print_environs():
+    # Track variables we see or set
+    seen_env = {}
+
+    if "WORLD_SIZE" not in os.environ:
+        logger.warning("WORLD_SIZE is not set, setting it to 1")
+        os.environ["WORLD_SIZE"] = "1"
+    seen_env["WORLD_SIZE"] = os.environ["WORLD_SIZE"]
+
+    if "RANK" not in os.environ:
+        if "SLURM_PROCID" in os.environ:
+            os.environ["RANK"] = os.environ["SLURM_PROCID"]
+        else:
+            logger.warning("RANK is not set, setting it to 0")
+            os.environ["RANK"] = "0"
+    seen_env["RANK"] = os.environ["RANK"]
+
+    if "LOCAL_RANK" not in os.environ:
+        if "SLURM_LOCALID" in os.environ:
+            os.environ["LOCAL_RANK"] = os.environ["SLURM_LOCALID"]
+        else:
+            logger.warning("LOCAL_RANK is not set, setting it to 0")
+            os.environ["LOCAL_RANK"] = "0"
+    seen_env["LOCAL_RANK"] = os.environ["LOCAL_RANK"]
+
+    if "MASTER_ADDR" not in os.environ:
+        default_master_addr = "localhost"
+        logger.warning(f"MASTER_ADDR is not set, setting it to {default_master_addr}")
+        os.environ["MASTER_ADDR"] = default_master_addr
+    seen_env["MASTER_ADDR"] = os.environ["MASTER_ADDR"]
+
+    if "MASTER_PORT" not in os.environ:
+        default_master_port = "12355"
+        logger.warning(f"MASTER_PORT is not set, setting it to {default_master_port}")
+        os.environ["MASTER_PORT"] = default_master_port
+    seen_env["MASTER_PORT"] = os.environ["MASTER_PORT"]
+
+    # Print only the seen variables
+    
+
 
 def setup_enviroment():
     if "WORLD_SIZE" not in os.environ:
@@ -153,6 +193,9 @@ def log_environs(metric_logger):
         "CUDA_DEVICE_ORDER",
         "SLURM_TOPOLOGY_ADDR",
         "HOME",
+        "CUDA_VISIBLE_DEVICES",
+        "MASTER_ADDR",
+        "MASTER_PORT",
     ]
 
     environs = os.environ
@@ -161,6 +204,7 @@ def log_environs(metric_logger):
 
 def run(cfg, metric_logger=None):
     setup_enviroment()
+    print({k: os.environ[k] for k in ["WORLD_SIZE","RANK","LOCAL_RANK","MASTER_ADDR","MASTER_PORT"] if k in os.environ}) #dev
 
     if "distributed" in cfg.trainer and cfg.trainer.distributed is not None:
         distributed_setup()
