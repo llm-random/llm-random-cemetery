@@ -113,8 +113,8 @@ trainer:
       interval: -1
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
-#      path: "/storage_nvme_3/m1kush/llama_8_minitron"
-      path: null
+      path: "/storage_nvme_3/m1kush/llama_8_minitron_check_optimizer"
+#      path: null
 
     load:
 #      type: huggingface
@@ -122,6 +122,7 @@ trainer:
       type: nano
       training_state_filename: __training_state__.pt
       path: "/storage_nvme_3/m1kush/llama_8_minitron/64295/0/step_-1"
+      load_without_optimizer: true
 
   eval_interval: 100
   n_eval_steps: 5
