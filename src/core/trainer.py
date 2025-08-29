@@ -6,7 +6,6 @@ from typing import Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
-from torch.distributed.tensor import DTensor
 
 from src.core.conversion_to_hf import save_to_llama_3_hf
 from old_datasets import LLMBatch
@@ -16,7 +15,7 @@ import logging
 
 from src.core.checkpointing import TrainingState, get_full_checkpoint_path, save_training_state, step_checkpoint_path
 from src.core.metric_loggers import MetricLogger
-from src.core.utils import create_batch_fingerprint
+from src.core.utils import cast_state_dict_to_tensors, create_batch_fingerprint
 # from torch.distributed import barrier
 
 logger = logging.getLogger(__name__)
@@ -106,24 +105,7 @@ class Trainer:
                 self.save_checkpoint()
 
             if self._should_evaluate:
-                self.eval()
-
-        def cast_state_dict_to_tensors(state_dict, device="cpu"):
-            """
-            Convert all DTensors in a state dict to regular torch.Tensors.
-            By default, gathers them to CPU.
-            """
-            full_state = {}
-            for k, v in state_dict.items():
-                if isinstance(v, DTensor):
-                    full_state[k] = v.full_tensor().float().to(device)
-                    # full_state[k] = v.to_local().to(device)
-                elif isinstance(v, torch.Tensor):
-                    full_state[k] = v.to(device)
-                else:
-                    full_state[k] = v
-            return full_state
-        
+                self.eval()        
         
         if self._should_save_final_checkpoint:
             if self.checkpoint.save.type == "nano":
@@ -135,14 +117,30 @@ class Trainer:
    
                 if os.environ["RANK"] == "0":
 
+                    # dev TODO refactor it to better
+                    dmodel = self.model.embedding.block_fn.ff_layer_fn.ff_pre_act_fn.result_in_features
+                    dff = self.model.embedding.block_fn.ff_layer_fn.ff_pre_act_fn.result_out_features
+                    datt = self.model.embedding.block_fn.attention_fn.q_proj_fn.base_out_features
+
+                    n_att_heads = self.model.embedding.block_fn.attention_fn.q_heads
+                    n_kvatt_heads = self.model.embedding.block_fn.attention_fn.kv_heads
+                    nlayers = len(self.model.encoder.blocks)
+
+
                     save_to_llama_3_hf( #dev fixed values 
                         full_state, save_dir = get_full_checkpoint_path(self.checkpoint.save.path), 
-                        dmodel = 2048, 
-                        dff = 8192, 
-                        n_att_heads = 32,
-                        n_kvatt_heads = 8,
-                        head_dim = 64,
-                        nlayers = 16,
+                        dmodel = dmodel, 
+                        dff = dff, 
+                        n_att_heads = n_att_heads, 
+                        n_kvatt_heads = n_kvatt_heads, 
+                        head_dim = datt / n_att_heads,
+                        nlayers = nlayers, 
+                        # dmodel = 2048, 
+                        # dff = 8192, 
+                        # n_att_heads = 32, 
+                        # n_kvatt_heads = 8, 
+                        # head_dim = 64, 
+                        # nlayers = 16, 
                     ) 
 
 
