@@ -2,7 +2,7 @@
 
 defaults:
   - _cluster@_here_: entropy_4
-  - _model@_here_: llama_3_1
+  - _model@_here_: llama_3_1_50
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
@@ -17,8 +17,11 @@ infrastructure:
       - test_ft_nano
 
 trainer:
-  n_steps: 2000
-  learning_rate: 0.00005
+  # n_steps: 2000
+  n_steps: 401
+  # learning_rate: 0.00005
+  ^learning_rate: 
+   - 0.00005
   gradient_accumulation_steps: 4
 
   checkpoint:
