@@ -68,6 +68,8 @@ def save_to_llama_3_hf(nano_model_state_dict, save_dir:str, dmodel:int, dff:int,
     config.head_dim = head_dim
     config.num_hidden_layers = nlayers
 
+    print(dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers) #dev
+
     hf_model = AutoModelForCausalLM.from_config(config)
     hf_state_dict = remap_nano_to_llama31_hf(nano_model_state_dict)
     hf_model.load_state_dict(hf_state_dict, strict=True)
