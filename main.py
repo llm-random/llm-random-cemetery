@@ -246,6 +246,8 @@ def run(cfg, metric_logger=None):
 @hydra.main(version_base=None, config_path="configs", config_name="exp")
 def main(config):
 
+    # print(config)
+
     if config.get("_run_"):
         run(config)
         return
