@@ -18,24 +18,10 @@ trainer:
   # gradient_accumulation_steps: 8
   gradient_accumulation_steps: 1
 
-  train_dataloader:
-    num_workers: 12
-    seed: 20001
-    total_batch_size: ${common.batch_size}
-
-  eval_dataloader:
-    num_workers: 12
-    seed: 20001
-    total_batch_size: ${common.batch_size}
-
   checkpoint:
    save:
     type: huggingface
-    path: null # change
-   load:
-    type: nano
-    path: null  # change
-    training_state_filename: null
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # change
   
 infrastructure:
   metric_logger:
