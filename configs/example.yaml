@@ -1,0 +1,20 @@
+defaults:
+  - _misc@_here_: default
+  - _dataset@_here_: c4
+  - _cluster@_here_: entropy_a100
+  - _model/llama@_here_: projected_1B
+  - _trainer@_here_: llama
+
+  - _checkpoints@_here_: none
+
+
+infrastructure:
+  slurm:
+    gres: gpu:2
+    job_name: test_job
+  venv_path: $HOME/nano/.venv/bin/activate
+
+common: 
+  batch_size: 32
+  learning_rate: 5e-5
+  n_steps: 100

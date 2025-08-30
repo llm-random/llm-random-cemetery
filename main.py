@@ -246,6 +246,8 @@ def run(cfg, metric_logger=None):
 @hydra.main(version_base=None, config_path="configs", config_name="exp")
 def main(config):
 
+    print(config)
+
     if config.get("_run_"):
         run(config)
         return
@@ -253,16 +255,16 @@ def main(config):
     configs_grid = create_grid_config(config)
     dump_grid_configs(configs_grid, config.infrastructure.generated_configs_path)
 
-    modules_to_add = config.infrastructure.get("modules_to_add", None)
-    generate_sbatch_script(
-        config.infrastructure.slurm, config.infrastructure.generated_configs_path, len(configs_grid), config.infrastructure.venv_path, modules_to_add
-    )
+    # modules_to_add = config.infrastructure.get("modules_to_add", None)
+    # generate_sbatch_script(
+    #     config.infrastructure.slurm, config.infrastructure.generated_configs_path, len(configs_grid), config.infrastructure.venv_path, modules_to_add
+    # )
 
-    if config.get("_debug_"):
-        training_config, overrides = configs_grid[0]
-        training_config["overrides"] = overrides
-        training_config = OmegaConf.create(training_config)
-        run(training_config)
+    # if config.get("_debug_"):
+    #     training_config, overrides = configs_grid[0]
+    #     training_config["overrides"] = overrides
+    #     training_config = OmegaConf.create(training_config)
+    #     run(training_config)
 
 
 if __name__ == "__main__":
