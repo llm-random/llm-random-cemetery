@@ -17,6 +17,7 @@ infrastructure:
 
 common: 
   batch_size: 32
+  sequence_length: 32
 
 trainer:
   n_steps: 100
