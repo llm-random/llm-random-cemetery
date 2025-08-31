@@ -45,7 +45,6 @@ trainer:
   eval_dataloader:
     seed: 124
 
-  
 
 infrastructure:
   metric_logger:
