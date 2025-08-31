@@ -1,7 +1,7 @@
 defaults:
   - _misc@_here_: default
   - _dataset@_here_: c4
-  - _cluster@_here_: entropy_a100
+  - _cluster@_here_: dgx
   - _model/llama@_here_: projected_1B
   - _trainer@_here_: llama
 
@@ -17,6 +17,7 @@ infrastructure:
 
 common: 
   batch_size: 32
+  sequence_length: 32
 
 trainer:
   n_steps: 100
