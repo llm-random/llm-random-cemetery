@@ -8,6 +8,8 @@ infrastructure:
     nodes: 1
     partition: plgrid-gpu-gh200
     time: "2-00:00:00"
+  modules_to_add:
+  - ML-bundle/25.04
 
 
 cluster_switch:
@@ -16,6 +18,3 @@ cluster_switch:
   train_path_fineweb:
   eval_path_fineweb: 
   num_workers: 8
-
-modules_to_add:
-  - ML-bundle/25.04

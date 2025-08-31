@@ -98,6 +98,8 @@ def distributed_setup():
     rank = int(os.environ["RANK"])
     local_rank = int(os.environ["LOCAL_RANK"])
     world_size = int(os.environ.get("WORLD_SIZE", 1))
+    print(os.environ["CUDA_VISIBLE_DEVICES"])
+    print(f"Distributed setup: rank {rank}, local_rank {local_rank}, world_size {world_size}")
 
     if torch.cuda.is_available():
         dist.init_process_group(backend="nccl", rank=rank, world_size=world_size)
