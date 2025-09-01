@@ -116,6 +116,7 @@ class Trainer:
                 full_state = cast_state_dict_to_tensors(model_state_dict)
    
                 if os.environ["RANK"] == "0":
+                    # full_state = cast_state_dict_to_tensors(model_state_dict)
                     dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers = self.model.encoder.get_model_dimensions()
 
                     save_to_llama_3_hf( #dev fixed values 
@@ -127,7 +128,8 @@ class Trainer:
                         head_dim = head_dim,
                         nlayers = nlayers, 
                     ) 
-
+            elif self.checkpoint.save.type == "pc_finalize":
+                self.model
 
 
     def _preprocess_input(self, batch):  # TODO test it
