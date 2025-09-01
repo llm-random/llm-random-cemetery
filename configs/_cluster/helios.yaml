@@ -10,7 +10,9 @@ infrastructure:
     time: "2-00:00:00"
 
   modules_to_add:
-  - ML-bundle/25.04
+  - ML-bundle/24.06a
+
+  cemetery_experiments_dir: "$PLG_GROUPS_STORAGE/plggllmeffi/teraztutajproba"
 
 
 
