@@ -8,6 +8,7 @@ import os
 from torch.nn.parallel import DistributedDataParallel as DDP
 import logging
 import sys
+from torch.distributed.device_mesh import init_device_mesh
 
 logger = logging.getLogger(__name__)
 
@@ -55,6 +56,8 @@ def setup_fsdp2_model(model, fsdp_config):
     modules_to_shard = get_classes_from_dotted_path(fsdp_config.modules_to_shard)
     logger.info(f"[FSDP2] Sharding model with classes: {modules_to_shard}")
 
+    device_mesh = init_device_mesh("cuda", (8,))
+
     fsdp2_kwargs = {
         "mp_policy": MixedPrecisionPolicy(
             param_dtype=torch.bfloat16,
@@ -64,9 +67,9 @@ def setup_fsdp2_model(model, fsdp_config):
 
     for module in model.modules():
         if isinstance(module, tuple(modules_to_shard)):
-            fully_shard(module, **fsdp2_kwargs)
+            fully_shard(module,mesh=device_mesh, **fsdp2_kwargs)
 
-    fully_shard(model, **fsdp2_kwargs)
+    fully_shard(model, mesh=device_mesh, **fsdp2_kwargs)
     return model
 
 
