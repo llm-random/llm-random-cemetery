@@ -7,6 +7,7 @@ from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+from src.projected_compression.compression import finalize_projection_weights
 from src.core.conversion_to_hf import save_to_llama_3_hf
 from old_datasets import LLMBatch
 import torch.distributed.checkpoint as dcp
@@ -83,6 +84,16 @@ class Trainer:
             and self.step >= self.n_steps - 1
             and self.checkpoint.save.path is not None
         )
+    
+    def print_state_dict_info(self, state_dict): #dev
+        for name, param in state_dict.items():
+            if isinstance(param, torch.Tensor):
+                print(f"{name:60s} {type(param)}, shape={tuple(param.shape)} "
+                # print(f"{name:60s} {param}, shape={tuple(param.shape)} "
+                    f"norm={param.norm().item():.4f}")
+            else:
+                # Sometimes buffers / metadata can be non-tensors
+                print(f"{name:60s} NON-TENSOR {type(param)}")
 
     def train(self):
         for step, batch in zip(
@@ -116,6 +127,7 @@ class Trainer:
                 full_state = cast_state_dict_to_tensors(model_state_dict)
    
                 if os.environ["RANK"] == "0":
+                    # full_state = cast_state_dict_to_tensors(model_state_dict)
                     dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers = self.model.encoder.get_model_dimensions()
 
                     save_to_llama_3_hf( #dev fixed values 
@@ -127,7 +139,28 @@ class Trainer:
                         head_dim = head_dim,
                         nlayers = nlayers, 
                     ) 
+            elif self.checkpoint.save.type == "pc_finalize":
+                finalize_projection_weights(self.model)
+                model_state_dict = cast_state_dict_to_tensors(self.model.state_dict())
+                if os.environ["RANK"] == "0":
+                    # self.print_state_dict_info(self.model.state_dict())
+                    self.print_state_dict_info(model_state_dict)
 
+                    checkpoint_folder = step_checkpoint_path(
+                        self.checkpoint.save.path, self.step
+                    )
+                    os.makedirs(checkpoint_folder, exist_ok=True)
+                    checkpoint_path = f"{checkpoint_folder}/{self.checkpoint.save.model_checkpoint_filename}"
+                    state_to_save = {
+                        "model": model_state_dict,
+                        "optim": self.optimizer.state_dict(),
+                        "scheduler": self.scheduler.state_dict(),
+                    }
+                    torch.save(state_to_save, checkpoint_path)
+                    logger.info(
+                        f"Saved non-sharded Finalized PC model checkpoint in '{checkpoint_path}'"
+                    )
+                        
 
 
     def _preprocess_input(self, batch):  # TODO test it
