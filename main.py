@@ -217,7 +217,46 @@ def run(cfg, metric_logger=None):
             weight_decay=cfg.trainer.weight_decay,
         )
         scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
+    elif cfg.trainer.checkpoint.load.type == "finalized_pc":
+
+
+        load_llmrandom_checkpoint(cfg.trainer.checkpoint.load, model)
+
+
+        if cfg.get("apply_functions", None):
+            for fn in instantiate(cfg.apply_functions):
+                fn(model)
+        model = setup_distributed_training(model, cfg.trainer.distributed)
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=cfg.trainer.learning_rate,
+            weight_decay=cfg.trainer.weight_decay,
+        )
+        scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
+
+
     elif cfg.trainer.checkpoint.load.type == "nano":
+        if cfg.get("apply_functions", None):
+            for fn in instantiate(cfg.apply_functions):
+                fn(model)
+        model = setup_distributed_training(model, cfg.trainer.distributed)
+        optimizer = torch.optim.AdamW(
+            model.parameters(),
+            lr=cfg.trainer.learning_rate,
+            weight_decay=cfg.trainer.weight_decay,
+        )
+        scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
+        
+        load_checkpoint_from_file(cfg.trainer.checkpoint.load, model, optimizer, scheduler)
+        if cfg.trainer.checkpoint.load.only_weights:
+            optimizer = torch.optim.AdamW(
+                model.parameters(),
+                lr=cfg.trainer.learning_rate,
+                weight_decay=cfg.trainer.weight_decay,
+            )
+            scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer, n_steps=cfg.trainer.n_steps)
+    elif cfg.trainer.checkpoint.load.type == "nano_local":
+
         if cfg.get("apply_functions", None):
             for fn in instantiate(cfg.apply_functions):
                 fn(model)
