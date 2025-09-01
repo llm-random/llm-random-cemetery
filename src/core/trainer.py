@@ -86,6 +86,7 @@ class Trainer:
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
+            print("TUTAJ DOSZLO")
             self.step = step
             self.metric_logger.set_step(step)
             self.model.train()
