@@ -116,6 +116,8 @@ class Trainer:
                 full_state = cast_state_dict_to_tensors(model_state_dict)
    
                 if os.environ["RANK"] == "0":
+                    print(vars(self.model))
+                    print(self.model)
                     dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers = self.model.get_model_dimensions()
 
                     save_to_llama_3_hf( #dev fixed values 
