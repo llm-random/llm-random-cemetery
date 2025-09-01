@@ -162,13 +162,17 @@ class Trainer:
 
                 loss = _hack_for_python_garbage_collection(input_ids, target_ids)
                 if self.model.training:
+                    print(f"PO HACKU: {os.environ.get('RANK', 'no rank')}")
                     loss.backward()
                 losses.append(loss.item())
 
         # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
+        print(f"CZYZBY TU?: {os.environ.get('RANK', 'no rank')}")
         avg_loss = torch.tensor(losses, device=loss.device).sum()
         if dist.is_initialized():
+            print(f"WESZEDLEM W DIST: {os.environ.get('RANK', 'no rank')}")
             dist.all_reduce(avg_loss, op=dist.ReduceOp.SUM)
+            print(f"PO DIST: {os.environ.get('RANK', 'no rank')}")
 
         return avg_loss / float(os.environ["WORLD_SIZE"])
 
