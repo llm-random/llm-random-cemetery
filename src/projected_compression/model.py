@@ -373,15 +373,30 @@ class LLM(nn.Module):
     ):
         super().__init__()
         self.embedding = embedding
+        print("PO EMB")
         self.encoder = encoder
         self.head = head
+
+        head.register_full_backward_hook(self.my_backward_hook)
+        head.register_full_backward_pre_hook(self.my_pre_backward_hook)
 
     def forward(self, *args, **kwargs):
         x = self.embedding(*args, **kwargs)
         x = self.encoder(x)
+        print("PO ENC")
         x = self.head(x)
+        print("PO HEAD RLY")
         return x
+    
+    def my_backward_hook(self, module, grad_input, grad_output):
+        print(f"yeah {os.environ.get('RANK', 'no rank')}")
+        # You must return grad_input if you don't want to modify the gradients
+        return grad_input
 
+    def my_pre_backward_hook(self, module, grad_output):
+        print(f"yeah (pre){os.environ.get('RANK', 'no rank')}")
+        # Must return grad_output if you don't want to modify it
+        return grad_output
 
 class ProjectedLinear(nn.Module):
     __constants__ = [
@@ -480,6 +495,8 @@ class ProjectedLinear(nn.Module):
         # gradient magic happens here - PC optimization
         # TODO maybe order of projections matter for speed
         weight = self.weight
+        print(f"TUTAJ LINEAR JAKIS: {os.environ.get('RANK', 'no rank')}")
+        
 
         if self.result_in_features is not None:
             weight = weight @ self.projection_in_weight
