@@ -12,6 +12,8 @@ infrastructure:
   modules_to_add:
   - ML-bundle/25.04
 
+  cemetery_experiments_dir: "$PLG_GROUPS_STORAGE/plggllmeffi/teraztutajproba"
+
 
 
 cluster_switch:
