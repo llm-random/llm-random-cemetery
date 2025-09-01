@@ -350,6 +350,20 @@ class TransformerEncoder(nn.Module):
         head_dim = datt / n_att_heads
 
         return dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers
+    
+    def get_compressed_model_dimensions(self): 
+        # Works only for llama3 PC Compressor transforermer architecture 
+        
+        dmodel = self.blocks[0].ff_layer.layer._modules.get("ff_pre_act").in_features
+        dff = self.blocks[0].ff_layer.layer._modules.get("ff_pre_act").out_features
+        datt = self.blocks[0].attention_layer.layer._modules.get("q_proj").out_features
+        n_att_heads = self.blocks[0].attention_layer.layer.q_heads
+        n_kvatt_heads = self.blocks[0].attention_layer.layer.kv_heads
+        nlayers = len(self.blocks)
+
+        head_dim = datt / n_att_heads
+
+        return dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers
 
     def __init__(
         self,
@@ -489,6 +503,31 @@ class ProjectedLinear(nn.Module):
             self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
 
         self.initialized_compression = True
+    
+    def finalize(self):
+        device = "cpu"
+        weight = self.weight.full_tensor().float().to(device)
+
+        if self.result_in_features is not None:
+            weight = weight @ self.projection_in_weight.full_tensor().float().to(device)
+
+        if self.result_out_features is not None:
+            weight = self.projection_out_weight.full_tensor().float().to(device) @ weight
+
+        if (
+            self.result_in_features is not None
+            or self.result_out_features is not None
+        ):
+            weight += self.auxiliary_weight.full_tensor().float().to(device)
+
+        self.weight = None
+        self.projection_in_weight = None
+        self.projection_out_weight = None
+        self.auxiliary_weight = None
+        if os.environ["RANK"] == "0":
+            self.final_weight = weight
+        else:
+            self.final_weight = None
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         # gradient magic happens here - PC optimization
@@ -530,6 +569,20 @@ class ProjectedEmbedding(nn.Module):
         self.projection = None
         self.result_out_features = result_out_features
         self.initialized_compression = False
+
+    def finalize(self):
+        device = "cpu"
+        pweight = (self.projection.full_tensor().float().to(device) @ self.embedding.weight.full_tensor().float().to(device).T + self.auxiliary_weight.weight.full_tensor().float().to(device).T).T
+
+        self.embedding.weight = None
+        self.projection = None
+        self.auxiliary_weight.weight = None
+
+        if os.environ["RANK"] == "0":
+            self.final_weight = pweight
+        else:
+            self.final_weight = None
+
 
     def forward(self, x):
         result = self.embedding(x)
