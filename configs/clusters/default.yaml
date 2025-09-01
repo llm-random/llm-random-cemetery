@@ -9,4 +9,5 @@ trainer_factory:
   eval_dataloader:
     dataset_path: "data_eval"
 
-cemetery_experiments_dir: "~/llmrandom_cemetery"
+# cemetery_experiments_dir: "~/llmrandom_cemetery/run_exp_2025-09-01_11-01-39"
+cemetery_experiments_dir: "$PLG_GROUPS_STORAGE/plggllmeffi/teraztutajproba"

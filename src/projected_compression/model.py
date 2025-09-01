@@ -373,13 +373,17 @@ class LLM(nn.Module):
     ):
         super().__init__()
         self.embedding = embedding
+        print("PO EMB")
         self.encoder = encoder
         self.head = head
+
 
     def forward(self, *args, **kwargs):
         x = self.embedding(*args, **kwargs)
         x = self.encoder(x)
+        print("PO ENC")
         x = self.head(x)
+        print("PO HEAD RLY")
         return x
 
 
@@ -480,6 +484,8 @@ class ProjectedLinear(nn.Module):
         # gradient magic happens here - PC optimization
         # TODO maybe order of projections matter for speed
         weight = self.weight
+        print(f"TUTAJ LINEAR JAKIS: {os.environ.get('RANK', 'no rank')}")
+        
 
         if self.result_in_features is not None:
             weight = weight @ self.projection_in_weight
