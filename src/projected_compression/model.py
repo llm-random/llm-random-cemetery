@@ -489,6 +489,33 @@ class ProjectedLinear(nn.Module):
             self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
 
         self.initialized_compression = True
+    
+    def finalize(self):
+        device = "cpu"
+        weight = self.weight.full_tensor().float().to(device)
+
+        if self.result_in_features is not None:
+            weight = weight @ self.projection_in_weight.full_tensor().float().to(device)
+
+        if self.result_out_features is not None:
+            weight = self.projection_out_weight.full_tensor().float().to(device) @ weight
+
+        if (
+            self.result_in_features is not None
+            or self.result_out_features is not None
+        ):
+            weight += self.auxiliary_weight.full_tensor().float().to(device)
+
+        self.weight = weight
+        self.result_in_features = None
+        self.result_out_features = None
+        self.auxiliary_weight = None
+
+        if os.environ["RANK"] == "0":
+            self.weight = None
+            self.result_in_features = None
+            self.result_out_features = None
+            self.auxiliary_weight = None
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         # gradient magic happens here - PC optimization
