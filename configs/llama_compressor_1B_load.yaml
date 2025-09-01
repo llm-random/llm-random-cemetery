@@ -1,19 +1,22 @@
 
 defaults:
-  - _cluster@_here_: entropy_4
-  - _model@_here_: llama_3_1_pc
+  - _cluster@_here_: entropy
+  - _model/llama@_here_: projected_1B
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _mas@_here_: entropy
+  - _mas@_here_: crewtool
   
 
 common:
   sequence_length: 1024
   batch_size: 512
-  dff: 3072
-  dmodel: 1536
+  dff: 5376
+  dmodel: 1344
+  
+  # dff: 3072
+  # dmodel: 1536  
   # dff: 2048
   # dmodel: 1024
 
@@ -28,7 +31,7 @@ trainer:
    save:
     path: nano
    load:
-    type: nano
+    type: /storage_nvme_3/crewtool/nano_checkpoints/llama31_pc/64668/1
     training_state_filename: null
 
 
@@ -41,3 +44,6 @@ infrastructure:
       - llama_8_pc
       - sparsity_50
 
+  server: entropy_c
+  slurm: 
+    gres: gpu:4
