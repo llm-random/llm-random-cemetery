@@ -1,5 +1,5 @@
+
 defaults:
-  # - _cluster@_here_: helios_4
   - _cluster@_here_: entropy
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
@@ -7,46 +7,30 @@ defaults:
   - _checkpoints@_here_: none
   - _misc@_here_: default
   - _mas@_here_: crewtool
-  # - _mas@_here_: helios
-
+  
 
 common:
   sequence_length: 1024
   batch_size: 512
-
-  # 50%
   dmodel: 1344
   dff: 5376
 
 
 trainer:
-  eval_interval: 500
   gradient_accumulation_steps: 4
-  # n_steps: 2048
   n_steps: 101
-  # ^n_steps: 
-  #  - 4096
-  #  - 6144
-# [0.0078125, 0.00390625, 0.001953125, 0.0009765625, 0.00048828125, 0.000244140625, 0.0001220703125, 6.103515625e-05
-  learning_rate: 0.0009765625
-  # ^learning_rate: 
-  #   - 0.0009765625
-  #   - 0.001953125
-  #   - 0.00048828125
-
+  
+  learning_rate: 6.103515625e-05
 
   checkpoint:
-   save:  
+   save:
     type: nano
     path: /storage_nvme_3/crewtool/nano_checkpoints/tmp
+   load:
+    type: finalized_pc
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65060/0/step_-1
+    training_state_filename: null
 
-  train_dataloader:
-    seed: 1
-
-  eval_dataloader:
-    seed: 124
-
-  
 
 infrastructure:
   metric_logger:
@@ -54,12 +38,9 @@ infrastructure:
     tags:
       - nano
       - pc
-      - llama_1
-      - pretraining
-
-  server: entropy_c
-  slurm: 
+      - llama_8_pc
+      - sparsity_50
+    
+  slurm:
     gres: gpu:4
-
-
 
