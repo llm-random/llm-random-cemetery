@@ -20,7 +20,7 @@ trainer:
   gradient_accumulation_steps: 8
   n_steps: 2048
 
-  learning_rate: 6.103515625e-05
+  learning_rate: 0.0009765625
 
   checkpoint:
    save:  
