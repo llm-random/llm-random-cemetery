@@ -1,6 +1,6 @@
 defaults:
   # - _cluster@_here_: helios_4
-  - _cluster@_here_: entropy_4
+  - _cluster@_here_: entropy
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -23,10 +23,10 @@ trainer:
   eval_interval: 500
   gradient_accumulation_steps: 4
   # n_steps: 2048
-  # n_steps: 1001
-  ^n_steps: 
-   - 4096
-   - 6144
+  n_steps: 0
+  # ^n_steps: 
+  #  - 4096
+  #  - 6144
 # [0.0078125, 0.00390625, 0.001953125, 0.0009765625, 0.00048828125, 0.000244140625, 0.0001220703125, 6.103515625e-05
   learning_rate: 0.0009765625
   # ^learning_rate: 
@@ -36,8 +36,12 @@ trainer:
 
 
   checkpoint:
-   save:  
-    path: null
+   load:
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65182/0
+   save:
+    type: huggingface
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # change
 
   train_dataloader:
     seed: 1
