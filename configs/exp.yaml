@@ -1,7 +1,7 @@
 defaults:
   - _misc@_here_: default
   - _dataset@_here_: c4
-  - _cluster@_here_: entropy
+  - _cluster@_here_: helios
   - _model/llama@_here_: projected_1B
   - _trainer@_here_: llama
 
@@ -10,13 +10,16 @@ defaults:
 
 infrastructure:
   slurm:
-    gres: gpu:2
+    gres: gpu:4
+    nodes: 1
     job_name: test_job
   server: entropy
+  experiment_prepare_venv_path:   /net/scratch/hscra/plgrid/plgcrewtool/prepare_venv/bin/activate # /net/storage/pr3/plgrid/plggllmeffi/tr_venv/bin/activate # $HOME/nano/.venv/bin/activate
+  venv_path: /net/scratch/hscra/plgrid/plgcrewtool/venv_test3/bin/activate
 
 common: 
-  batch_size: 32
-  sequence_length: 32 # totally toy example
+  batch_size: 8
+  sequence_length: 2048
 
 trainer:
   n_steps: 100
