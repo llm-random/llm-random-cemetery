@@ -389,12 +389,37 @@ class LLM(nn.Module):
         self.encoder = encoder
         self.head = head
 
+        # self.head.register_full_backward_hook(self.my_backward_hook)
+        # self.head.register_full_backward_pre_hook(self.my_pre_backward_hook)
+
+        # self.embedding.register_full_backward_hook(self.my_backward_hook2)
+        # self.embedding.register_full_backward_pre_hook(self.my_pre_backward_hook2)
+
     def forward(self, *args, **kwargs):
         x = self.embedding(*args, **kwargs)
         x = self.encoder(x)
         x = self.head(x)
         return x
+    
+    # def my_backward_hook(self, module, grad_input, grad_output):
+    #     print(f"yeah {os.environ.get('RANK', 'no rank')}")
+    #     # You must return grad_input if you don't want to modify the gradients
+    #     return grad_input
 
+    # def my_pre_backward_hook(self, module, grad_output):
+    #     print(f"yeah (pre){os.environ.get('RANK', 'no rank')}")
+    #     # Must return grad_output if you don't want to modify it
+    #     return grad_output
+    
+    # def my_backward_hook2(self, module, grad_input, grad_output):
+    #     print(f"yeah emb {os.environ.get('RANK', 'no rank')}")
+    #     # You must return grad_input if you don't want to modify the gradients
+    #     return grad_input
+
+    # def my_pre_backward_hook2(self, module, grad_output):
+    #     print(f"yeah  emb(pre){os.environ.get('RANK', 'no rank')}")
+    #     # Must return grad_output if you don't want to modify it
+    #     return grad_output
 
 class ProjectedLinear(nn.Module):
     __constants__ = [
@@ -494,6 +519,8 @@ class ProjectedLinear(nn.Module):
         # gradient magic happens here - PC optimization
         # TODO maybe order of projections matter for speed
         weight = self.weight
+        # print(f"TUTAJ LINEAR JAKIS: {os.environ.get('RANK', 'no rank')}")
+        
 
         if self.result_in_features is not None:
             weight = weight @ self.projection_in_weight
