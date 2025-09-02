@@ -11,10 +11,11 @@ infrastructure:
 
   script:
     - "module load ML-bundle/25.04"
-    - "PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/projected_compression"
+    - "PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/projected_compression"
     - |
       VENV_PATH=$PROJECT_HOME_PATH/pc_venv
       export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+      echo "Using HF cache path: $HF_HOME"
 
       # Check if venv exists
       if [ ! -d "$VENV_PATH" ]; then
@@ -24,6 +25,8 @@ infrastructure:
       fi 
       source "$VENV_PATH/bin/activate"
       pip install --upgrade -r requirements.txt
+
+  cemetery_experiments_dir: "$PLG_GROUPS_STORAGE/plggllmeffi/teraztutajproba"
 
 
 
