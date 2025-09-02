@@ -6,31 +6,36 @@ defaults:
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
+  - _mas@_here_: crewtool
 
 
 common:
   sequence_length: 1024
   batch_size: 512
 
-  # # 50%
-  # dmodel: 1344
-  # dff: 5376
+  # 50%
+  dmodel: 1344
+  dff: 5376
 
 
 trainer:
   gradient_accumulation_steps: 8
-  n_steps: 2048
+  # n_steps: 2048
+  n_steps: 401
 
-  learning_rate: 6.103515625e-05
+  # learning_rate: asd # 0.00048828125, 0.000244140625, 0.0001220703125, 6.103515625e-05, 3.0517578125e-05, 1.52587890625e-05
+  ^learning_rate: 
+    - 0.000244140625
+    - 0.00048828125
 
 
   checkpoint:
    load:
     type: nano
-    path: null #change
+    path: /storage_nvme_3/m1kush/llama_8_minitron/64677/0/step_-1
    save:
-    type: huggingface
-    path: null #change
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
   
 
 infrastructure:
