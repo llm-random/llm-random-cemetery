@@ -1,22 +1,20 @@
 import torch
 import torch.nn as nn
-import json
 import logging
 import os
 
-from src.core.checkpointing import get_full_checkpoint_path
+from main import get_device
 
+device = get_device()
 logger = logging.getLogger(__name__)
-
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def calculate_dimension_importances(model: nn.Module, calibration_data, dmodel, dff, n_blocks):
     """
     Calculate the importance of each neuron in the model based on the calibration data.
     Returns a list of importance scores for dmodel and dff dimensions.
     """
-    dmodel_importance = torch.zeros(dmodel, device=device)
-    dff_importance = torch.zeros(n_blocks, dff, device=device)
+    dmodel_importance = torch.zeros(dmodel)
+    dff_importance = torch.zeros(n_blocks, dff)
 
     # Forward pass through the model with calibration data
     with torch.no_grad():
@@ -80,7 +78,7 @@ def prune(model: nn.Module, dmodel_indices, dff_indices, target_dmodel):
 
 def minitron_prune(model: nn.Module, dataloader, dmodel, target_dmodel, dff, target_dff, calibration_dataset_size, seq_len, total_batch_size, n_blocks, checkpoint_save_path):
 
-    calibration_data = torch.zeros(calibration_dataset_size // total_batch_size, total_batch_size, seq_len, dtype=torch.long, device=device)
+    calibration_data = torch.zeros(calibration_dataset_size // total_batch_size, total_batch_size, seq_len, dtype=torch.long)
     for i, batch in enumerate(dataloader):
         if i * total_batch_size >= calibration_dataset_size:
             break
@@ -92,22 +90,21 @@ def minitron_prune(model: nn.Module, dataloader, dmodel, target_dmodel, dff, tar
 
     logger.debug("Importance dimensions calculated.")
 
-    dmodel_top_indices = torch.topk(dmodel_importance, dim=0, largest=True, k=target_dmodel).indices.tolist()
+    dmodel_top_indices = torch.topk(dmodel_importance, dim=0, largest=True, k=target_dmodel).indices
 
     dff_top_indices = []
     for i in range(n_blocks):
-        dff_top_indices_current = torch.topk(dff_importance[i], dim=0, largest=True, k=target_dff).indices.tolist()
+        dff_top_indices_current = torch.topk(dff_importance[i], dim=0, largest=True, k=target_dff).indices
         dff_top_indices.append(dff_top_indices_current)
 
-    # save to file indices as dict
-    dict_to_save = {"dmodel_top_indices": dmodel_top_indices, "dff_top_indices": dff_top_indices}
-    path = get_full_checkpoint_path(checkpoint_save_path) + "/top_indices.json"
 
-    # check if path exists
+    dict_to_save = {"dmodel_top_indices": dmodel_top_indices, "dff_top_indices": dff_top_indices}
+    # path = get_full_checkpoint_path(checkpoint_save_path) + "/top_indices.pt"
+    path = "./top_indices.pt"
+
     os.makedirs(os.path.dirname(path), exist_ok=True)
 
-    with open(path, "w") as f:
-        json.dump(dict_to_save, f)
+    torch.save(dict_to_save, path)
 
     model = prune(model, dmodel_top_indices, dff_top_indices, target_dmodel)
 
