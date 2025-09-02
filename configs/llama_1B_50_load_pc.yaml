@@ -1,27 +1,35 @@
 
 defaults:
   - _cluster@_here_: entropy
-  - _model@_here_: llama_tiny_compressor
+  - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
   - _mas@_here_: crewtool
   
+
 common:
   sequence_length: 1024
-  batch_size: 128
+  batch_size: 512
+  dmodel: 1344
+  dff: 5376
+
 
 trainer:
-  gradient_accumulation_steps: 1
-  n_steps: 300
+  gradient_accumulation_steps: 4
+  n_steps: 101
   
   learning_rate: 6.103515625e-05
 
   checkpoint:
    save:
-    type: huggingface
-    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # change
+    path: nano
+   load:
+    type: finalized_pc
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65060/0/step_-1
+    training_state_filename: null
+
 
 infrastructure:
   metric_logger:
@@ -29,7 +37,9 @@ infrastructure:
     tags:
       - nano
       - pc
-      - tiny_compressor
-
-  
+      - llama_8_pc
+      - sparsity_50
+      
+    slurm:
+      gres: gpu:4
 
