@@ -1,12 +1,12 @@
 
 defaults:
-  - _cluster@_here_: entropy_4
+  - _cluster@_here_: entropy
   - _model@_here_: llama_tiny_compressor
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _mas@_here_: entropy
+  - _mas@_here_: crewtool
   
 common:
   sequence_length: 1024
@@ -17,6 +17,11 @@ trainer:
   n_steps: 300
   
   learning_rate: 6.103515625e-05
+
+  checkpoint:
+   save:
+    type: huggingface
+    path: null # change
 
 infrastructure:
   metric_logger:
