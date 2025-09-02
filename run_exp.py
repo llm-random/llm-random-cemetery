@@ -128,7 +128,7 @@ def get_experiment_components(
     return config_path, config_name
 
 
-@hydra.main(version_base=None, config_path=".", config_name="experiment")
+@hydra.main(version_base=None, config_path="configs", config_name="exp")
 def submit_experiment(
     cfg: OmegaConf,
 ):
