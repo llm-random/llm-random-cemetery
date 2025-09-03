@@ -188,8 +188,6 @@ infrastructure:
     time: "0-1:00:00"
     export: "ALL,HF_HUB_CACHE=/storage_nvme_3/crewtool/huggingface/hub"
 
-  venv_path: $HOME/nano/.venv/bin/activate # Change me!
-  experiment_prepare_venv_path: ${infrastructure.venv_path}
 
   cemetery_experiments_dir: ~/llmrandom_cemetery
 
