@@ -113,6 +113,7 @@ trainer:
 #      type: nano
 #      training_state_filename: __training_state__.pt
 #      path: "/storage_nvme_3/m1kush/llama_8_minitron"
+#      load_without_optimizer: true
 
   eval_interval: 100
   n_eval_steps: 5
@@ -184,10 +185,10 @@ apply_functions:
     _partial_: true
     dataloader: ${trainer.train_dataloader}
     dmodel: ${common.dmodel}
-    target_dmodel: 3072
+    target_dmodel: 2048
     dff: ${common.dff}
-    target_dff: 9216
-    calibration_dataset_size: 4
+    target_dff: 7168
+    calibration_dataset_size: 1024
     seq_len: ${common.sequence_length}
     total_batch_size: ${trainer.train_dataloader.total_batch_size}
     n_blocks: ${model.encoder.n_blocks}
