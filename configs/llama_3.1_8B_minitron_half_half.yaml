@@ -1,9 +1,7 @@
 common:
   _target_: src.definitions.Common
-  old_dff: 14336
-  dff: 9216
-  old_dmodel: 4096
-  dmodel: 3072
+  dff: 14336
+  dmodel: 4096
   head_norm: true
   model_type: gpt
   sequence_length: 2048
@@ -43,7 +41,7 @@ model:
           _target_: src.projected_compression.model.Linear
           _partial_: true
           in_features: ${common.dmodel}
-          out_features: ${common.old_dmodel}
+          out_features: ${common.dmodel}
           partial_init_fn:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
@@ -53,7 +51,7 @@ model:
           _target_: src.projected_compression.model.Linear
           _partial_: true
           in_features: ${common.dmodel}
-          out_features: ${eval:'(${common.old_dmodel} // ${model.encoder.block_fn.attention_fn.q_heads}) * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          out_features: ${eval:'(${common.dmodel} // ${model.encoder.block_fn.attention_fn.q_heads}) * ${model.encoder.block_fn.attention_fn.kv_heads}'}
           partial_init_fn:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
@@ -61,15 +59,7 @@ model:
 
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
-        o_proj_fn:
-          _target_: src.projected_compression.model.Linear
-          _partial_: true
-          in_features: ${common.old_dmodel}
-          out_features: ${common.dmodel}
-          partial_init_fn:
-            _target_: src.projected_compression.model.llm_random_weight_init
-            _partial_: true
-            scale: 1
+        o_proj_fn: ${model.encoder.block_fn.attention_fn.q_proj_fn}
 
         rope_base: 500_000
         rope_scale_freqs: true
@@ -113,16 +103,16 @@ trainer:
       interval: -1
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
-      path: "/storage_nvme_3/m1kush/llama_8_minitron_check_optimizer"
+      path: "/storage_nvme_3/m1kush/llama_8_minitron"
+      save_without_optimizer: true
 #      path: null
 
     load:
-#      type: huggingface
-#      path: "meta-llama/Llama-3.1-8B"
-      type: nano
-      training_state_filename: __training_state__.pt
-      path: "/storage_nvme_3/m1kush/llama_8_minitron/65368/0/step_-1"
-#      path: "/storage_nvme_3/m1kush/llama_8_minitron_check_optimizer/64648/0/step_99"
+      type: huggingface
+      path: "meta-llama/Llama-3.1-8B"
+#      type: nano
+#      training_state_filename: __training_state__.pt
+#      path: "/storage_nvme_3/m1kush/llama_8_minitron"
 #      load_without_optimizer: true
 
   eval_interval: 100
@@ -130,8 +120,8 @@ trainer:
 
   gradient_accumulation_steps: 1
   gradient_clipping: 1.0
-#  n_steps: 0
-  n_steps: 200
+  n_steps: 0
+#  n_steps: 100
 #  n_steps: 15301
 
   learning_rate: 3.0517578125e-05
@@ -190,27 +180,30 @@ trainer:
         - src.projected_compression.model.TransformerBlock
         - src.projected_compression.model.TransformerHead
 
-#apply_functions:
-#  - _target_: src.projected_compression.minitron.minitron_prune
-#    _partial_: true
-#    dataloader: ${trainer.train_dataloader}
-#    dmodel: ${common.dmodel}
-#    dff: ${common.dff}
-#    calibration_dataset_size: 1024
-#    seq_len: ${common.sequence_length}
-#    total_batch_size: ${trainer.train_dataloader.total_batch_size}
-#    n_blocks: ${model.encoder.n_blocks}
+apply_functions:
+  - _target_: src.projected_compression.minitron.minitron_prune
+    _partial_: true
+    dataloader: ${trainer.train_dataloader}
+    dmodel: ${common.dmodel}
+    target_dmodel: 2048
+    dff: ${common.dff}
+    target_dff: 7168
+    calibration_dataset_size: 1024
+    seq_len: ${common.sequence_length}
+    total_batch_size: ${trainer.train_dataloader.total_batch_size}
+    n_blocks: ${model.encoder.n_blocks}
+    checkpoint_save_path: ${trainer.checkpoint.save.path}
 
 infrastructure:
   slurm:
     cpus-per-task: 8
-    gres: gpu:4
+    gres: gpu:1
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
     partition: h100
     time: "0-12:00:00"
-    ntasks-per-node: 4
+    ntasks-per-node: 1
 #    export: "ALL,HF_HUB_CACHE=/storage_nvme_1/m1kush/huggingface/hub"
     export: "ALL,HF_HUB_CACHE=/storage_nvme_3/m1kush/huggingface/hub"
 

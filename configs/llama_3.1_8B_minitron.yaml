@@ -104,6 +104,7 @@ trainer:
       model_checkpoint_filename: __model_optim_scheduler__.pt
       training_state_filename: __training_state__.pt
       path: "/storage_nvme_3/m1kush/llama_8_minitron"
+      save_without_optimizer: true
 #      path: null
 
     load:
@@ -186,7 +187,7 @@ apply_functions:
     target_dmodel: 3072
     dff: ${common.dff}
     target_dff: 9216
-    calibration_dataset_size: 1024
+    calibration_dataset_size: 4
     seq_len: ${common.sequence_length}
     total_batch_size: ${trainer.train_dataloader.total_batch_size}
     n_blocks: ${model.encoder.n_blocks}
