@@ -1,4 +1,5 @@
 import os
+import hydra
 import yaml
 from src.core.distributed_training import setup_distributed_training
 from src.core.conversion_from_llmrandom import load_llmrandom_checkpoint
@@ -249,3 +250,11 @@ def run(cfg: OmegaConf, metric_logger=None):
     ).train()
 
     cleanup()
+
+
+@hydra.main(version_base=None, config_path="configs", config_name="exp")
+def main(config: OmegaConf):
+    run(config)
+
+if __name__ == "__main__":
+    main()
