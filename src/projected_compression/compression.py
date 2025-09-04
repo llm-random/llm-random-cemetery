@@ -137,6 +137,8 @@ def init_compression(model: nn.Module, dmodel, dff):
     )
     initialize_projection_weights(model, dmodel_top_indices, dff_top_indices)
 
+    return model
+
 
 def finalize_projection_weights(
     model: nn.Module
@@ -159,3 +161,5 @@ def finalize_projection_weights(
         
         for layer_name in layers_to_init_projections:
             get_nested_attr(block, layer_name).finalize()
+
+    # return model
