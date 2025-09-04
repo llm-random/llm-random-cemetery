@@ -1,6 +1,8 @@
 import torch
 import torch.nn as nn
 
+from main import get_device
+
 
 def get_nested_attr(module, attr_path):
     attrs = attr_path.split(".")
@@ -127,15 +129,34 @@ def initialize_projection_weights(
         block.ff_layer.norm.weight = torch.nn.Parameter(cloned_data[dmodel_top_indices])
         block.ff_layer.norm.normalized_shape = tuple(block.ff_layer.norm.weight.shape)
 
-def init_compression(model: nn.Module, dmodel, dff):
+# def init_compression(model: nn.Module, dmodel, dff):
+def init_compression(model: nn.Module, dimensions_importances_path, target_dmodel, target_dff):
     # Freeze all parameters
     for param in model.parameters():
         param.requires_grad = False
 
-    dmodel_top_indices, dff_top_indices = calculate_dimension_importances(
-        model, dmodel, dff
-    )
-    initialize_projection_weights(model, dmodel_top_indices, dff_top_indices)
+    # dmodel_top_indices, dff_top_indices = calculate_dimension_importances(
+    #     model, dmodel, dff
+    # )
+
+    device = get_device()
+    dmodel, dff, n_att_heads, n_kvatt_heads, head_dim, nlayers = model.encoder.get_model_dimensions()
+
+    dimensions_importances = torch.load(dimensions_importances_path)
+    dmodel_importances = dimensions_importances["dmodel_importances"]
+    dff_importances = dimensions_importances["dff_importances"]
+
+    dmodel_indices = torch.topk(dmodel_importances, dim=0, largest=True, k=target_dmodel).indices.to(device)
+    dff_indices = []
+    for i in range(nlayers):
+        dff_top_indices_current = torch.topk(dff_importances[i], dim=0, largest=True, k=target_dff).indices.to(device)
+        dff_indices.append(dff_top_indices_current)
+
+    print(f"Indicies: {dmodel_indices}") #dev
+
+    initialize_projection_weights(model, dmodel_indices, dff_indices)
+
+    return model
 
 
 def finalize_projection_weights(
@@ -159,3 +180,5 @@ def finalize_projection_weights(
         
         for layer_name in layers_to_init_projections:
             get_nested_attr(block, layer_name).finalize()
+
+    # return model
