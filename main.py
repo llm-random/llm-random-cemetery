@@ -162,7 +162,8 @@ def log_environs(metric_logger):
 def get_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    return device
+    # return device #dev
+    return "cpu"
 
 def run(cfg, metric_logger=None):
     setup_enviroment()
@@ -193,6 +194,7 @@ def run(cfg, metric_logger=None):
 
     logger.info(f"Creating model...")
     model = instantiate(cfg.model, _convert_="all").to(device)
+    # model = instantiate(cfg.model, _convert_="all").to("cpu")
     logger.info(f"Model {model.__class__.__name__} created with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
     # Residual layers needs metric_logger for logging update norms
     for _, module in model.named_modules():
