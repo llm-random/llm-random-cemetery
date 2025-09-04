@@ -19,15 +19,16 @@ def calculate_dimension_importances(model: nn.Module, calibration_data, dmodel, 
 
     # Forward pass through the model with calibration data
     with torch.no_grad():
-        for batch in calibration_data:
+        for i, batch in enumerate(calibration_data):
+            print(f"Beginning batch {i}")
             x = model.embedding(batch)
             for layer_number, layer in enumerate(model.encoder.blocks):
+                # print(f"Beginning layer {layer_number}") #dev
                 y = layer.attention_layer.norm(x) # normalized_pre_attn
                 dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
 
                 y = layer.attention_layer.layer(y) # attention_output
                 x = x + y  # Residual connection
-
 
                 y = layer.ff_layer.norm(x) # normalized_pre_ff
                 dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
