@@ -9,43 +9,98 @@ from src.core.checkpointing import get_full_checkpoint_path
 device = get_device()
 logger = logging.getLogger(__name__)
 
-def calculate_dimension_importances(model: nn.Module, calibration_data, dmodel, dff, n_blocks):
+# def calculate_dimension_importances(model: nn.Module, calibration_data, dmodel, dff, n_blocks):
+#     """
+#     Calculate the importance of each neuron in the model based on the calibration data.
+#     Returns a list of importance scores for dmodel and dff dimensions.
+#     """
+#     dmodel_importance = torch.zeros(dmodel, device=device)
+#     dff_importance = torch.zeros(n_blocks, dff, device=device)
+
+#     # Forward pass through the model with calibration data
+#     with torch.no_grad():
+#         for i, batch in enumerate(calibration_data):
+#             print(f"Beginning batch {i}")
+#             x = model.embedding(batch)
+#             for layer_number, layer in enumerate(model.encoder.blocks):
+#                 # print(f"Beginning layer {layer_number}") #dev
+#                 y = layer.attention_layer.norm(x) # normalized_pre_attn
+#                 dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
+
+#                 y = layer.attention_layer.layer(y) # attention_output
+#                 x = x + y  # Residual connection
+
+#                 y = layer.ff_layer.norm(x) # normalized_pre_ff
+#                 dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
+
+#                 ff_layer = layer.ff_layer.layer
+#                 ff_gated = ff_layer.silu(ff_layer.gate(y))
+
+#                 y = ff_layer.ff_pre_act(y) # ff_pre_act
+#                 dff_importance[layer_number] += torch.sum(torch.abs(y), dim=[0, 1])
+
+#                 y = ff_layer.ff_post_act(y * ff_gated) # ff_output
+
+#                 x = x + y  # Residual connection
+#             x = model.head(x)
+
+            # assert torch.allclose(x, model(batch)), "Model output does not match expected output"
+
+#     return dmodel_importance, dff_importance
+
+# import torch
+# import torch.nn as nn
+
+def calculate_dimension_importances(model: nn.Module, calibration_data, dmodel, dff, n_blocks, device="cuda"):
     """
-    Calculate the importance of each neuron in the model based on the calibration data.
-    Returns a list of importance scores for dmodel and dff dimensions.
+    Calculate importance of each neuron (dmodel and dff) using forward hooks.
     """
     dmodel_importance = torch.zeros(dmodel, device=device)
     dff_importance = torch.zeros(n_blocks, dff, device=device)
 
-    # Forward pass through the model with calibration data
+    handles = []
+
+    # --- Hook functions ---
+    def hook_dmodel_pre_attn(layer, inp, out):
+        nonlocal dmodel_importance
+        # inp[0] has shape [batch, seq, dmodel]
+        dmodel_importance += torch.sum(torch.abs(out.detach()), dim=[0, 1])
+
+    def hook_dmodel_pre_ff(layer, inp, out):
+        nonlocal dmodel_importance
+        dmodel_importance += torch.sum(torch.abs(out.detach()), dim=[0, 1])
+
+    def hook_ff_pre_act(layer, inp, out, block_idx=None):
+        nonlocal dff_importance
+        dff_importance[block_idx] += torch.sum(torch.abs(out.detach()), dim=[0, 1])
+
+    # --- Register hooks ---
+    for block_idx, block in enumerate(model.encoder.blocks):
+        # normalized pre-attention
+        handles.append(block.attention_layer.norm.register_forward_hook(hook_dmodel_pre_attn))
+
+        # normalized pre-ff
+        handles.append(block.ff_layer.norm.register_forward_hook(hook_dmodel_pre_ff))
+
+        # ff_pre_act with block index captured
+        handles.append(
+            block.ff_layer.layer.ff_pre_act.register_forward_hook(
+                lambda layer, inp, out, idx=block_idx: hook_ff_pre_act(layer, inp, out, idx)
+            )
+        )
+
+    # --- Run calibration data ---
     with torch.no_grad():
-        for batch in calibration_data:
-            x = model.embedding(batch)
-            for layer_number, layer in enumerate(model.encoder.blocks):
-                y = layer.attention_layer.norm(x) # normalized_pre_attn
-                dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
+        for i, batch in enumerate(calibration_data):
+            print(f"Beginning batch {i}")
+            _ = model(batch.to(device))
 
-                y = layer.attention_layer.layer(y) # attention_output
-                x = x + y  # Residual connection
-
-
-                y = layer.ff_layer.norm(x) # normalized_pre_ff
-                dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
-
-                ff_layer = layer.ff_layer.layer
-                ff_gated = ff_layer.silu(ff_layer.gate(y))
-
-                y = ff_layer.ff_pre_act(y) # ff_pre_act
-                dff_importance[layer_number] += torch.sum(torch.abs(y), dim=[0, 1])
-
-                y = ff_layer.ff_post_act(y * ff_gated) # ff_output
-
-                x = x + y  # Residual connection
-            x = model.head(x)
-
-            assert torch.allclose(x, model(batch)), "Model output does not match expected output"
+    # cleanup
+    for h in handles:
+        h.remove()
 
     return dmodel_importance, dff_importance
+
 
 def prune(model: nn.Module, dmodel_indices, dff_indices, target_dmodel):
     """
