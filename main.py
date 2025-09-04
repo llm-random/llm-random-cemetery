@@ -192,7 +192,8 @@ def run(cfg, metric_logger=None):
     device = get_device()
 
     logger.info(f"Creating model...")
-    model = instantiate(cfg.model, _convert_="all").to(device)
+    # model = instantiate(cfg.model, _convert_="all").to(device)
+    model = instantiate(cfg.model, _convert_="all").to("cpu")
     logger.info(f"Model {model.__class__.__name__} created with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
     # Residual layers needs metric_logger for logging update norms
     for _, module in model.named_modules():
