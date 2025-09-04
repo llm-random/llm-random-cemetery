@@ -162,7 +162,8 @@ def log_environs(metric_logger):
 def get_device():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    return device
+    return device #dev
+    # return "cpu"
 
 def run(cfg, metric_logger=None):
     setup_enviroment()
