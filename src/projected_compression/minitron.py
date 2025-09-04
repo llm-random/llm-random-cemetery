@@ -22,6 +22,7 @@ def calculate_dimension_importances(model: nn.Module, calibration_data, dmodel, 
         for batch in calibration_data:
             x = model.embedding(batch)
             for layer_number, layer in enumerate(model.encoder.blocks):
+                print(f"Beginning layer {layer_number}!")
                 y = layer.attention_layer.norm(x) # normalized_pre_attn
                 dmodel_importance += torch.sum(torch.abs(y), dim=[0, 1])  # Sum across batch and sequence dimensions
 
