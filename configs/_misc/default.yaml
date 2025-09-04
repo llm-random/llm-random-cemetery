@@ -18,3 +18,20 @@ infrastructure:
 
   cemetery_experiments_dir: "~/llmrandom_cemetery"
 
+# hydra:
+#   job:
+#     type: slurm
+# hydra:
+#   job_logging:
+#     version: 1
+#     formatters:
+#       simple:
+#         format: '%(message)s'
+#     handlers:
+#       rich:
+#         class: rich.logging.RichHandler
+#         formatter: simple
+#     root:
+#       level: WARN
+#       handlers: [rich]
+#     disable_existing_loggers: false
