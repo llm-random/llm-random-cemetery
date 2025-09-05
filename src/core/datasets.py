@@ -67,6 +67,8 @@ class AbstractDataset(IterableDataset):
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
 
+        logger.info(f"Worker \n world_size {self.world_size},\n rank {self.rank},\n rng {self.rng},\n split {self.split},\n seed {self.seed}\n") #dev
+
     def sample_packer(self):
         buffer: List[int] = []
         sampler = iter(self.get_infinite_sampler())
@@ -101,7 +103,8 @@ class AbstractDataset(IterableDataset):
                     buffer, document_lengths = [], []
 
     def __iter__(self):
-        self.rng.seed(self.seed)
+        # self.rng.seed(self.seed)
+        self.rng.seed(self.seed + self.rank if self.seed is not None else None)
         if self.world_size_independent:
             return itertools.islice(
                 self.sample_packer(), self.rank, None, self.world_size
