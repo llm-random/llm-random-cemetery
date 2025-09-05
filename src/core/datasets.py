@@ -55,6 +55,8 @@ class AbstractDataset(IterableDataset):
         shuffle: bool = True,
         world_size_independent: bool = False,
     ):
+        # logger.info(f"Worker PRE-INIT \n WORLD_SIZE {int(os.environ.get("WORLD_SIZE"))},\n rank {int(os.environ.get("RANK"))},\n rng {self.rng},\n seed {seed}\n") #dev
+
         self.world_size = int(os.environ.get("WORLD_SIZE"))
         self.rank = int(os.environ.get("RANK"))
         self.rng = random.Random(seed)
@@ -67,6 +69,8 @@ class AbstractDataset(IterableDataset):
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
 
+        logger.info(f"Dataset init \n world_size {self.world_size},\n rank {self.rank},\n rng {self.rng},\n split {self.split},\n seed {self.seed}\n") #dev
+
     def sample_packer(self):
         buffer: List[int] = []
         sampler = iter(self.get_infinite_sampler())
@@ -74,6 +78,13 @@ class AbstractDataset(IterableDataset):
 
             while True:
                 sample = next(sampler)["input_ids"]
+
+                for e in range(100): #dev
+                    if len(buffer) >= self.sequence_length:
+                        yield buffer[: self.sequence_length]
+                    buffer.extend(sample)
+                yield sample
+                continue
 
                 if len(buffer) == 0:
                     rand_num = self.rng.randint(0, len(sample) - 1)
@@ -101,8 +112,11 @@ class AbstractDataset(IterableDataset):
                     buffer, document_lengths = [], []
 
     def __iter__(self):
+        # logger.info(f"--------------- Worker _iter_ \n world_size {self.world_size},\n rank {self.rank},\n rng {self.rng},\n split {self.split},\n seed {self.seed},\n world_size_independent {self.world_size_independent},\n ss ({self.seed + self.rank if self.seed is not None else None})\n") #dev
         self.rng.seed(self.seed)
+        # self.rng.seed(self.seed + self.rank if self.seed is not None else None)
         if self.world_size_independent:
+            logger.info(f"--------------- Worker _iter_ \n world_size {self.world_size},\n rank {self.rank},\n rng {self.rng},\n split {self.split},\n seed {self.seed},\n world_size_independent {self.world_size_independent},\n ss ({self.seed + self.rank if self.seed is not None else None})\n") #dev
             return itertools.islice(
                 self.sample_packer(), self.rank, None, self.world_size
             )
@@ -241,6 +255,25 @@ def collate_wrapper(examples):
     return torch.from_numpy(np.array(examples))
 
 
+# def worker_init_fn(worker_id): #devv
+#     worker_info = torch.utils.data.get_worker_info()
+#     dataset = worker_info.dataset
+
+#     rank = int(os.environ.get("RANK", 0))
+#     base_seed = dataset.seed if dataset.seed is not None else 0
+
+#     # dataset.world_size = int(os.environ.get("WORLD_SIZE"))
+#     # dataset.rank = int(os.environ.get("RANK"))
+
+#     logger.info(f"WORKER init fun base_seed {base_seed},\n rank {rank},\n worker_info.num_workers {worker_info.num_workers},\n worker_id {worker_id},\n dataset {vars(dataset)},\n")
+
+#     # Deterministic: global seed + rank offset + worker offset
+#     unique_seed = base_seed + rank * worker_info.num_workers + worker_id
+#     dataset.rng.seed(unique_seed) 
+#     dataset.world_size = int(os.environ.get("WORLD_SIZE")) * worker_info.num_workers
+#     dataset.rank = int(os.environ.get("RANK")) + worker_id
+
+
 def get_dataloader(
     dataset_type: str,
     dataset_path: str,
@@ -276,6 +309,7 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            # worker_init_fn=worker_init_fn,
         )
     elif dataset_type == "fineweb-edu":
         dataset = FineWebEduDataset(
@@ -294,8 +328,9 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            # worker_init_fn=worker_init_fn,
         )
-    else:
+    else:   
         raise ValueError(f"Unsupported dataset type: '{dataset_type}'")
 
     return dataloader
