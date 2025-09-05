@@ -1,11 +1,14 @@
 
 defaults:
+  # - _cluster@_here_: helios
   - _cluster@_here_: entropy
   - _model/llama@_here_: projected_1B
   - _trainer@_here_: llama
   - _dataset@_here_: c4
+  # - _dataset@_here_: fineweb
   - _checkpoints@_here_: none
   - _misc@_here_: default
+  - _mas@_here_: crewtool
 
 
 common:
@@ -15,9 +18,30 @@ common:
 
 trainer:
   gradient_accumulation_steps: 8
-  n_steps: 2048
+  # n_steps: 2048
+  # n_steps: 401
+  ^n_steps: 
+    - 2048
+    # - 4096
+    # - 6144
+    # - 8192
+    # - 16384
 
-  learning_rate: 6.103515625e-05
+  # learning_rate: 6.103515625e-05
+  ^learning_rate: 
+    # - 0.000244140625
+    - 0.0001220703125
+    # - 6.103515625e-05
+    # - 3.0517578125e-05
+
+  scheduler:
+    ^warmup_steps: 
+      # - 20
+      # - 40
+      - 80
+      # - 160
+
+  # [0.0078125, 0.00390625, 0.001953125, 0.0009765625, 0.00048828125, 0.000244140625, 0.0001220703125, 6.103515625e-05, 3.0517578125e-05, 1.52587890625e-05, 7.62939453125e-06, 3.814697265625e-06, 1.9073486328125e-06, 9.5367431640625e-07, 4.76837158203125e-07, 2.384185791015625e-07]
 
   checkpoint:
    save:  
@@ -36,10 +60,12 @@ infrastructure:
 
   slurm: 
     gres: gpu:4
+    time: "0-8:00:00"
 
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
     _partial_: true
-    dimensions_importances_path: ??? # change
+    dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6765321/0/minitron_dimensions_importances.pt #helios
+    # dimensions_importances_path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65575/0/minitron_dimensions_importances.pt #entropy
     target_dmodel: ${common.dmodel}
     target_dff: ${common.dff}
