@@ -36,6 +36,7 @@ class Trainer:
     gradient_clipping: Optional[float]
     checkpoint: Optional[dict]
     learning_rate: float
+    exp_learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
 
@@ -179,6 +180,7 @@ class Trainer:
         else:
             for batch_chunk in batch.chunk(self.gradient_accumulation_steps):
                 input_ids, target_ids = self._preprocess_input(batch_chunk)
+                logger.info(f"RANK: {os.environ["RANK"]}, exml: {target_ids[0][:10]}") #dev
                 input_ids = input_ids.to(self.device)
                 if self.model.training:
                     self._update_processed_tokens(input_ids)
