@@ -36,6 +36,7 @@ class Trainer:
     gradient_clipping: Optional[float]
     checkpoint: Optional[dict]
     learning_rate: float
+    exp_learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
 
@@ -165,6 +166,7 @@ class Trainer:
 
                 # Tensors should be on the same device for loss calculation #TODO check
                 target_ids = target_ids.to(predicted_ids.device)
+                # logger.info(target_ids[0][:5]) #dev
 
                 mask_loss = F.cross_entropy(
                     predicted_ids.flatten(0, -2),
@@ -179,6 +181,7 @@ class Trainer:
         else:
             for batch_chunk in batch.chunk(self.gradient_accumulation_steps):
                 input_ids, target_ids = self._preprocess_input(batch_chunk)
+                logger.info(target_ids[0][:5]) #dev
                 input_ids = input_ids.to(self.device)
                 if self.model.training:
                     self._update_processed_tokens(input_ids)
