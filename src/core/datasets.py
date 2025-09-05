@@ -75,6 +75,18 @@ class AbstractDataset(IterableDataset):
             while True:
                 sample = next(sampler)["input_ids"]
 
+                for e in range(100): #dev
+                    if len(buffer) >= self.sequence_length:
+                        break
+                    buffer.extend(sample)
+                yield buffer[: self.sequence_length]
+                buffer = []
+                continue
+                raise Exception("Zuz")
+                yield sample
+                
+                sample = next(sampler)["input_ids"]
+
                 if len(buffer) == 0:
                     rand_num = self.rng.randint(0, len(sample) - 1)
                     sample = sample[rand_num:]
@@ -150,25 +162,12 @@ class FineWebEduDataset(AbstractDataset):
             batched=True
         )
 
-    def _belongs_to_split(self, document_id: int) -> bool:
-        eval_percentage = 1
-
-        if self.split == "train":
-            return hash(document_id) % 100 >= eval_percentage
-        elif self.split == "validation":
-            return hash(document_id) % 100 < eval_percentage
-        else:
-            raise ValueError("split must be either 'train' or 'validation'")
-
-
     def get_infinite_sampler(self):
         epoch = 0
         while True:
             self.data_generator.set_epoch(epoch)
             for next_sample in self.data_generator:
-                if self._belongs_to_split(next_sample["id"]):
-                    yield next_sample
-
+                yield next_sample
             epoch += 1
 
 class C4Dataset(AbstractDataset):
