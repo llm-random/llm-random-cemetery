@@ -55,9 +55,11 @@ class AbstractDataset(IterableDataset):
         shuffle: bool = True,
         world_size_independent: bool = False,
     ):
+        logger.info(f"Worker PRE-INIT \n WORLD_SIZE {int(os.environ.get("WORLD_SIZE"))},\n rank {int(os.environ.get("RANK"))},\n rng {self.rng},\n seed {seed}\n") #dev
+
         self.world_size = int(os.environ.get("WORLD_SIZE"))
         self.rank = int(os.environ.get("RANK"))
-        self.rng = random.Random(seed)
+        # self.rng = random.Random(seed)
         self.sequence_length = sequence_length
         self.tokenize_fn = tokenize_fn
         self.path = path
@@ -66,6 +68,8 @@ class AbstractDataset(IterableDataset):
         self.use_new_sampling_method = use_new_sampling_method
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
+
+        logger.info(f"Worker INIT \n world_size {self.world_size},\n rank {self.rank},\n rng {self.rng},\n split {self.split},\n seed {self.seed}\n") #dev
 
     def sample_packer(self):
         buffer: List[int] = []
@@ -101,7 +105,9 @@ class AbstractDataset(IterableDataset):
                     buffer, document_lengths = [], []
 
     def __iter__(self):
-        self.rng.seed(self.seed)
+        logger.info(f"--------------- Worker _iter_ \n world_size {self.world_size},\n rank {self.rank},\n rng {self.rng},\n split {self.split},\n seed {self.seed},\n world_size_independent {self.world_size_independent},\n ss ({self.seed + self.rank if self.seed is not None else None})\n") #dev
+        # self.rng.seed(self.seed) #dev
+        self.rng.seed(self.seed + self.rank if self.seed is not None else None)
         if self.world_size_independent:
             return itertools.islice(
                 self.sample_packer(), self.rank, None, self.world_size
@@ -241,6 +247,18 @@ def collate_wrapper(examples):
     return torch.from_numpy(np.array(examples))
 
 
+def worker_init_fn(worker_id):
+    worker_info = torch.utils.data.get_worker_info()
+    dataset = worker_info.dataset
+
+    rank = int(os.environ.get("RANK", 0))
+    base_seed = dataset.seed if dataset.seed is not None else 0
+
+    # Deterministic: global seed + rank offset + worker offset
+    unique_seed = base_seed + rank * worker_info.num_workers + worker_id
+    dataset.rng.seed(unique_seed)
+
+
 def get_dataloader(
     dataset_type: str,
     dataset_path: str,
@@ -276,6 +294,7 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            worker_init_fn=worker_init_fn,
         )
     elif dataset_type == "fineweb-edu":
         dataset = FineWebEduDataset(
@@ -294,8 +313,9 @@ def get_dataloader(
             collate_fn=collate_fn,
             pin_memory=True,
             num_workers=num_workers,
+            worker_init_fn=worker_init_fn,
         )
-    else:
+    else:   
         raise ValueError(f"Unsupported dataset type: '{dataset_type}'")
 
     return dataloader
