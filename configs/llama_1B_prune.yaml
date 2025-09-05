@@ -1,5 +1,6 @@
 defaults:
   - _cluster@_here_: entropy
+  # - _cluster@_here_: helios
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -16,9 +17,22 @@ common:
 trainer:
   gradient_accumulation_steps: 8
   n_steps: 2048
+  # n_steps: 401
+  # ^n_steps: 
+  #   - 2048
+    # - 4096
+    # - 6144
+    # - 8192
+    # - 16384
 
-  ^learning_rate: 
-    - 0.0001220703125
+  exp_learning_rate: 12
+  # ^exp_learning_rate: 
+    # - 13
+    # - 12
+
+  scheduler:
+    ^warmup_steps: 
+      - 40
 
   checkpoint:
    load:
@@ -26,7 +40,7 @@ trainer:
     path: "meta-llama/Llama-3.2-1B"
    save:
     type: nano
-    path: null #change
+    path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem #change
 
 
 infrastructure:
@@ -36,6 +50,8 @@ infrastructure:
       - nano
       - pc
       - llama_1
+      - diefferent_init_approx_lens
+      - x64
 
   slurm:
     gres: gpu:4
@@ -43,7 +59,9 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
     _partial_: true
-    dimensions_importances_path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65575/0/minitron_dimensions_importances.pt
+
+    dimensions_importances_path: /storage_nvme_3/crewtool/pc/c4_importances_8m/minitron_dimensions_importances.pt
+    
     target_dmodel: 1344
     target_dff: 5376
 
