@@ -1,0 +1,187 @@
+_debug_: true
+
+_run_: true
+
+common:
+  _target_: src.definitions.Common
+  base_dff: 8192
+  base_dmodel: 2048
+  batch_size: 512
+  dff: 1024
+  dmodel: 2048
+  kv_heads: 8
+  n_blocks: 16
+  q_heads: 32
+  sequence_length: 512
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  experiment_prepare_venv_path: ${infrastructure.venv_path}
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  metric_logger:
+    _target_: src.definitions.MetricLoggerConfig
+    heavy_metrics_calculation_interval: 100
+    name: test
+    new_neptune_job: true
+    project_name: crewtool/mojtestproject
+    tags:
+    - PC
+    - test
+    type: neptune
+  server: entropy
+  slurm:
+    cpus-per-task: 16
+    gres: gpu:4
+    job-name: noelo
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: h100
+    time: 0-05:00:00
+  venv_path: $HOME/nano/.venv/bin/activate
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.ProjectedEmbedding
+    embedding:
+      _target_: src.projected_compression.model.Embedding
+      embedding_dim: ${common.base_dmodel}
+      num_embeddings: 128256
+    result_out_features: ${common.dmodel}
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.RoPEAttention
+        dmodel: ${common.base_dmodel}
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads}
+            * (${common.base_dmodel} // ${model.encoder.block_fn.attention_fn.q_heads})'}
+          result_in_features: ${common.dmodel}
+          result_out_features: null
+        kv_heads: ${common.kv_heads}
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dmodel}
+          result_in_features: null
+          result_out_features: ${common.dmodel}
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dmodel}
+          result_in_features: ${common.dmodel}
+          result_out_features: null
+        rope_base: 500000
+        rope_scale_freqs: true
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dff}
+          base_out_features: ${common.base_dmodel}
+          result_in_features: ${common.dff}
+          result_out_features: ${common.dmodel}
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dff}
+          result_in_features: ${common.dmodel}
+          result_out_features: ${common.dff}
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.base_dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.ProjectedLinear
+      base_in_features: ${common.base_dmodel}
+      base_out_features: ${modele.embedding.embedding.num_embeddings}
+      result_in_features: ${common.dmodel}
+      result_out_features: null
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.base_dmodel}
+
+overrides:
+- trainer.learning_rate=3.0517578125e-05
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  checkpoint:
+    save:
+      path: null
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset_path: /storage_nvme_1/llm-random/datasets/c4/validation
+    dataset_split: validation
+    dataset_type: c4
+    num_workers: 12
+    seed: 20001
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.llama_tokenize_fn
+    total_batch_size: 32
+    use_new_sampling_method: true
+    world_size_independent: true
+  eval_interval: 100
+  gradient_accumulation_steps: 1
+  gradient_clipping: 1.0
+  learning_rate: 3.0517578125e-05
+  load:
+    path: meta-llama/Llama-3.2-1B
+    type: huggingface
+  n_eval_steps: 5
+  n_steps: 1001
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: ${eval:'int((${trainer.n_steps} * 0.01))'}
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset_path: /storage_nvme_1/llm-random/datasets/c4/train
+    dataset_split: train
+    dataset_type: c4
+    num_workers: 12
+    seed: 20001
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.llama_tokenize_fn
+    total_batch_size: 32
+    use_new_sampling_method: true
+    world_size_independent: true
+  weight_decay: 0.1
