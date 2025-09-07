@@ -83,10 +83,12 @@ class Trainer:
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
+            logger.warning(f"[RANK:{os.environ['RANK']}] Git batch!")
             self.step = step
             self.metric_logger.set_step(step)
             self.model.train()
             loss = self.calculate_loss(batch)
+            logger.warning(f"[RANK:{os.environ['RANK']}] Made my calculations!")
 
             grad_norm = self.clip_gradient()
 
@@ -123,6 +125,7 @@ class Trainer:
             """we want to have no reference to model output while backpropagating to allow torch to free memory,
             so we wrap loss calculation in a function"""
             predicted_ids = self.model(input_ids)
+            print(f"[RANK:{os.environ['RANK']}] Got predicted ids!")
 
             # Tensors should be on the same device for loss calculation #TODO check
             target_ids = target_ids.to(predicted_ids.device)
@@ -132,6 +135,7 @@ class Trainer:
                 target_ids.reshape(-1).long(),
                 reduction="none",
             )
+            print(f"[RANK:{os.environ['RANK']}] policzony loss")
             loss = mask_loss.mean() / self.gradient_accumulation_steps
             return loss
 
@@ -145,11 +149,15 @@ class Trainer:
             loss = _hack_for_python_garbage_collection(input_ids, target_ids)
             if self.model.training:
                 loss.backward()
+            print(f"[RANK:{os.environ['RANK']}] poszedl backward")
             losses.append(loss.item())
 
         # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
+        print(f"[RANK:{os.environ['RANK']}] yesssss")
         avg_loss = torch.tensor(losses, device=loss.device).sum()
+        print(f"[RANK:{os.environ['RANK']}] avg_loss")
         if dist.is_initialized():
+            print(f"[RANK:{os.environ['RANK']}] reduce")
             dist.all_reduce(avg_loss, op=dist.ReduceOp.SUM)
 
         return avg_loss / float(os.environ["WORLD_SIZE"])
