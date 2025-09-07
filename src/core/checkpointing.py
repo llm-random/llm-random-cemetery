@@ -95,7 +95,7 @@ def load_scheduler(scheduler, checkpoint_path):
         state_dict = torch.load(scheduler_path, mmap=True, weights_only=True, map_location="cpu")
         scheduler.load_state_dict(state_dict)
     else:
-        logger.warning(f"Sheduler state dict is missing in '{scheduler_path}'")
+        logger.warning(f"[RANK:{os.environ['RANK']}] Sheduler state dict is missing in '{scheduler_path}'")
 
 def load_model_state_dict(checkpoint_path):
     model_path = f"{checkpoint_path}/{MODEL_SD_FILENAME}" 
