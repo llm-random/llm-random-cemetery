@@ -11,6 +11,7 @@ infrastructure:
 
   script:
     - "module load ML-bundle/25.04"
+    - "module load CUDA/12.8.0"
     - "PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/projected_compression"
     - |
       VENV_PATH=$PROJECT_HOME_PATH/pc_venv
