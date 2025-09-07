@@ -1,0 +1,58 @@
+defaults:
+  - _misc@_here_: default
+  - _cluster@_here_: helios
+  - _model@_here_: llama_3_8
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  # - _dataset@_here_: fineweb
+
+common:
+  sequence_length: 1024
+  batch_size: 4
+
+
+trainer:
+  n_steps: 0
+
+  learning_rate: 6.103515625e-05
+
+  checkpoint:
+   load:
+    type: huggingface
+    path: "meta-llama/Llama-3.1-8B"
+
+infrastructure:
+  metric_logger:
+    name: importances
+    tags:
+      - nano
+      - pc
+      - IMPORTANCES
+      - 8xCalibration
+
+  slurm:
+    job-name: importances
+    gres: gpu:4
+    nodes: 1
+    time: "0-1:00:00"
+
+
+apply_functions:
+  - _target_: src.projected_compression.weight_importances.dummy_importances
+    _partial_: true
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
+    n_blocks: ${model.encoder.n_blocks}
+    checkpoint_save_path: ${trainer.checkpoint.save.path}
+    model_dir_name: llama3_1_8B
+
+  # - _target_: src.projected_compression.weight_importances.minitron_importances
+  #   _partial_: true
+  #   dataloader: ${trainer.train_dataloader}
+  #   dmodel: ${common.dmodel}
+  #   dff: ${common.dff}
+  #   calibration_dataset_size: 1024
+  #   seq_len: ${common.sequence_length}
+  #   total_batch_size: ${trainer.train_dataloader.total_batch_size}
+  #   n_blocks: ${model.encoder.n_blocks}
+  #   checkpoint_save_path: ${trainer.checkpoint.save.path}
