@@ -19,9 +19,9 @@ trainer:
   distributed:
     fsdp2:
       modules_to_shard: 
-        - ${model.embedding._target_}
+        # - ${model.embedding._target_}
         - ${model.encoder.block_fn._target_}
-        - ${model.head._target_}
+        # - ${model.head._target_}
   
   train_dataloader:
     tokenize_fn:
