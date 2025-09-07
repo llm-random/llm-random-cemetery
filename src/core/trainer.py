@@ -83,10 +83,12 @@ class Trainer:
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
+            logger.warning(f"[RANK:{os.environ['RANK']}] Git batch!")
             self.step = step
             self.metric_logger.set_step(step)
             self.model.train()
             loss = self.calculate_loss(batch)
+            logger.warning(f"[RANK:{os.environ['RANK']}] Made my calculations!")
 
             grad_norm = self.clip_gradient()
 
@@ -123,6 +125,7 @@ class Trainer:
             """we want to have no reference to model output while backpropagating to allow torch to free memory,
             so we wrap loss calculation in a function"""
             predicted_ids = self.model(input_ids)
+            logger.warning(f"[RANK:{os.environ['RANK']}] Got predicted ids!")
 
             # Tensors should be on the same device for loss calculation #TODO check
             target_ids = target_ids.to(predicted_ids.device)
