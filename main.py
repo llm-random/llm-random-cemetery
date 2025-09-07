@@ -102,8 +102,8 @@ def distributed_setup():
     world_size = int(os.environ.get("WORLD_SIZE", 1))
 
     if torch.cuda.is_available():
-        dist.init_process_group(backend="nccl", rank=rank, world_size=world_size, device_id=torch.device(f"cuda:{local_rank}"))
         torch.cuda.set_device(local_rank)
+        dist.init_process_group(backend="nccl", rank=rank, world_size=world_size, device_id=torch.device(f"cuda:{local_rank}"))
     else:
         logger.warning("CUDA is not available. Running on CPU and 'gloo' backend.")
         dist.init_process_group(backend="gloo", rank=rank, world_size=world_size)
@@ -191,63 +191,124 @@ def run(cfg, metric_logger=None):
         
     torch.manual_seed(cfg.trainer.train_dataloader.seed)
 
-    if os.environ["RANK"] == "0":
-        logger.info(f"Creating model...")
-        if cfg.trainer.checkpoint.load.path is None:
-            model = instantiate(cfg.model, _convert_="all")
-            logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
-            if cfg.get("apply_functions", None):
-                for fn in instantiate(cfg.apply_functions):
-                    logger.info(f"Applying function '{fn.func.__name__}' on a model.")
-                    fn(model)
-        else:
-            with torch.device('meta'):
-                model = instantiate(cfg.model, _convert_="all")
-                logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+    # if cfg.trainer.checkpoint.load.path is None:
+    #     model = instantiate(cfg.model, _convert_="all")
+    #     logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+    #     if cfg.get("apply_functions", None):
+    #         for fn in instantiate(cfg.apply_functions):
+    #             logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #             fn(model)
+    # else:
+    #     with torch.device('meta'):
+    #         model = instantiate(cfg.model, _convert_="all")
+    #         logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+            
+    #     if cfg.trainer.checkpoint.load.type == "huggingface":
+    #         state_dict = llama_hf_to_nano_state_dict(cfg.trainer.checkpoint.load.path)
+    #         model.load_state_dict(state_dict, assign=True)
+    #         if cfg.get("apply_functions", None):
+    #             for fn in instantiate(cfg.apply_functions):
+    #                 logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #                 fn(model)
+    #     else: 
+    #         if cfg.get("apply_functions", None):
+    #             for fn in instantiate(cfg.apply_functions):
+    #                 logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #                 fn(model)
+    #         state_dict = load_model_state_dict(cfg.trainer.checkpoint.load.path)
+    #         model.load_state_dict(state_dict, assign=True)
+
+
+    with torch.device('meta'):
+        model = instantiate(cfg.model, _convert_="all")
+        logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+            
+    if cfg.trainer.checkpoint.load.type == "huggingface":
+        state_dict = llama_hf_to_nano_state_dict(cfg.trainer.checkpoint.load.path)
+        model.load_state_dict(state_dict, assign=True)
+        # if cfg.get("apply_functions", None):
+        #     for fn in instantiate(cfg.apply_functions):
+        #         logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+        #         fn(model)
+    else: 
+        # if cfg.get("apply_functions", None):
+        #     for fn in instantiate(cfg.apply_functions):
+        #         logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+        #         fn(model)
+        state_dict = load_model_state_dict(cfg.trainer.checkpoint.load.path)
+        model.load_state_dict(state_dict, assign=True).to("cuda")
+
+    logger.info(f"Model {model.__class__.__name__} after applying functions have {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+    state_dict = model.state_dict()
+    model = setup_distributed_training(model, cfg.trainer.distributed)
+
+    set_model_state_dict(
+        model, 
+        state_dict,                 
+        options=StateDictOptions(
+            full_state_dict=True,
+            broadcast_from_rank0=True,
+        )
+    )
+
+    # if os.environ["LOCAL_RANK"] == "0":
+    #     logger.info(f"Creating model...")
+    #     if cfg.trainer.checkpoint.load.path is None:
+    #         model = instantiate(cfg.model, _convert_="all")
+    #         logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+    #         if cfg.get("apply_functions", None):
+    #             for fn in instantiate(cfg.apply_functions):
+    #                 logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #                 fn(model)
+    #     else:
+    #         with torch.device('meta'):
+    #             model = instantiate(cfg.model, _convert_="all")
+    #             logger.info(f"Model {model.__class__.__name__} initialized with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
                 
-            if cfg.trainer.checkpoint.load.type == "huggingface":
-                state_dict = llama_hf_to_nano_state_dict(cfg.trainer.checkpoint.load.path)
-                model.load_state_dict(state_dict, assign=True)
-                if cfg.get("apply_functions", None):
-                    for fn in instantiate(cfg.apply_functions):
-                        logger.info(f"Applying function '{fn.func.__name__}' on a model.")
-                        fn(model)
-            else: 
-                if cfg.get("apply_functions", None):
-                    for fn in instantiate(cfg.apply_functions):
-                        logger.info(f"Applying function '{fn.func.__name__}' on a model.")
-                        fn(model)
-                state_dict = load_model_state_dict(cfg.trainer.checkpoint.load.path)
-                model.load_state_dict(state_dict, assign=True)
+    #         if cfg.trainer.checkpoint.load.type == "huggingface":
+    #             state_dict = llama_hf_to_nano_state_dict(cfg.trainer.checkpoint.load.path)
+    #             model.load_state_dict(state_dict, assign=True)
+    #             if cfg.get("apply_functions", None):
+    #                 for fn in instantiate(cfg.apply_functions):
+    #                     logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #                     fn(model)
+    #         else: 
+    #             if cfg.get("apply_functions", None):
+    #                 for fn in instantiate(cfg.apply_functions):
+    #                     logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #                     fn(model)
+    #             state_dict = load_model_state_dict(cfg.trainer.checkpoint.load.path)
+    #             model.load_state_dict(state_dict, assign=True)
 
-        logger.info(f"Model {model.__class__.__name__} after applying functions have {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
-        state_dict = model.state_dict()
-        model = setup_distributed_training(model, cfg.trainer.distributed)
+    #     logger.info(f"Model {model.__class__.__name__} after applying functions have {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
+    #     state_dict = model.state_dict()
+    #     model = setup_distributed_training(model, cfg.trainer.distributed)
 
-        set_model_state_dict(
-            model, 
-            state_dict,                 
-            options=StateDictOptions(
-                full_state_dict=True,
-                broadcast_from_rank0=True,
-            )
-        )
-    else:
-        with torch.device('meta'):
-            model = instantiate(cfg.model, _convert_="all")
-            if cfg.get("apply_functions", None):
-                for fn in instantiate(cfg.apply_functions):
-                    logger.info(f"Applying function '{fn.func.__name__}' on a model.")
-                    fn(model)
-        model = setup_distributed_training(model, cfg.trainer.distributed)
-        set_model_state_dict(
-            model, 
-            {},                 
-            options=StateDictOptions(
-                full_state_dict=True,
-                broadcast_from_rank0=True,
-            )
-        )
+    #     set_model_state_dict(
+    #         model, 
+    #         state_dict,                 
+    #         options=StateDictOptions(
+    #             full_state_dict=True,
+    #             broadcast_from_rank0=True,
+    #         )
+    #     )
+    # else:
+    #     with torch.device('meta'):
+    #         model = instantiate(cfg.model, _convert_="all")
+    #         if cfg.get("apply_functions", None):
+    #             for fn in instantiate(cfg.apply_functions):
+    #                 logger.info(f"Applying function '{fn.func.__name__}' on a model.")
+    #                 fn(model)
+    #     model = setup_distributed_training(model, cfg.trainer.distributed)
+    #     set_model_state_dict(
+    #         model, 
+    #         {},                 
+    #         options=StateDictOptions(
+    #             full_state_dict=True,
+    #             broadcast_from_rank0=True,
+    #         )
+    #     )
+    logger.warning(f"[RANK:{os.environ['RANK']}] Model ready!")
 
     optimizer = torch.optim.AdamW(
         model.parameters(),
@@ -260,6 +321,7 @@ def run(cfg, metric_logger=None):
     load_scheduler(scheduler, cfg.trainer.checkpoint.load.path)
 
     trainer = instantiate(cfg.trainer)
+    logger.info("Trainer created!")
     trainer(
         model=model,
         optimizer=optimizer,
