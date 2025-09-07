@@ -74,9 +74,13 @@ def setup_fsdp2_model(model, fsdp_config):
 
 
 def setup_distributed_training(model, distributed_config):
+    print(f"[RANK:{os.environ['RANK']}] Weszlo do distributed")
     if distributed_config is not None:
+        print(f"[RANK:{os.environ['RANK']}] znalazlo config")
         if torch.cuda.is_available():
+            print(f"[RANK:{os.environ['RANK']}] Bylo avail")
             if distributed_config.get("fsdp2"):
+                print(f"[RANK:{os.environ['RANK']}] wlaczylo fsdp2")
                 model = setup_fsdp2_model(model, distributed_config.fsdp2)
             elif distributed_config.get("fsdp"):
                 model = setup_fsdp1_model(model, distributed_config.fsdp)

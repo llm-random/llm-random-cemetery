@@ -363,7 +363,9 @@ class TransformerEncoder(nn.Module):
 
     def forward(self, x):
         for block in self.blocks:
+            print(f"{os.environ['RANK']}  Before block")
             x = block(x)
+            print(f"{os.environ['RANK']}  After block")
         return x
 
 
@@ -393,6 +395,7 @@ class LLM(nn.Module):
 
     def forward(self, *args, **kwargs):
         x = self.embedding(*args, **kwargs)
+        print(f"{os.environ['RANK']}  embeddding done")
         x = self.encoder(x)
         x = self.head(x)
         return x
