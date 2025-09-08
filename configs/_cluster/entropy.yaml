@@ -21,11 +21,11 @@ infrastructure:
         python3 -m venv "$VENV_PATH"
         pip install --upgrade pip
       fi 
-      source "$VENV_PATH/bin/activate"
+      # source "$VENV_PATH/bin/activate"
       pip install --upgrade -r requirements.txt
 
 cluster_switch:
   train_path_c4: "/storage_nvme_1/llm-random/datasets/c4/train"
   eval_path_c4: "/storage_nvme_1/llm-random/datasets/c4/validation"
-  train_path_fineweb: ???
-  eval_path_fineweb: ???
+  train_path_fineweb: "/storage_nvme_4/llm-random/datasets/fineweb/train"
+  eval_path_fineweb: "/storage_nvme_4/llm-random/datasets/fineweb/train"
