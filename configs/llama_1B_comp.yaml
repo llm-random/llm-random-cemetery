@@ -1,7 +1,7 @@
 defaults:
   - _cluster@_here_: helios
   # - _cluster@_here_: entropy
-  - _model@_here_: llama_3_1
+  - _model/llama@_here_: projected_1B
   - _trainer@_here_: llama
   - _dataset@_here_: fineweb
   - _checkpoints@_here_: none
@@ -10,33 +10,29 @@ defaults:
 
 common:
   sequence_length: 1024
-  # sequence_length: 100
-  batch_size: 512 #dev
-  # batch_size: 16 #dev
+  batch_size: 512
 
 
 trainer:
-  gradient_accumulation_steps: 8 #dev
-  # gradient_accumulation_steps: 1 #dev
-  # n_steps: 2048
-  # n_steps: 401
-  # n_steps: 101
+  gradient_accumulation_steps: 8
   ^n_steps: 
     # - 101
     # - 2048
     - 4096
     - 6144
     - 8192
+    # - 12288
     # - 16384
 
-  exp_learning_rate: 12 #optimal fo 1B
+  exp_learning_rate: 14 # optimal 1B
   # ^exp_learning_rate: 
-  #   - 13
-  #   - 12
-  #   - 11
+    # - 13
+    # - 14
+    # - 15
 
   scheduler:
     warmup_steps: 40
+
 
   checkpoint:
    load:
@@ -47,44 +43,25 @@ trainer:
     # path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # entropy
     path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # helios
 
-  # train_dataloader:
-    # world_size_independent: false
-    # ^num_workers: 
-    #   - 1
-    #   - 2
-    #   - 3
-    #   - 4
-    # seed: 1000
-    # shuffle: true
-    # use_new_sampling_method: true
-
-  # eval_dataloader:
-  #   world_size_independent: false
-    # num_workers: 1
-    # seed: 123
-    # shuffle: true
-    # use_new_sampling_method: true
-
-
 infrastructure:
   metric_logger:
-    name: Llame_HP
+    name: Llame_PC
     tags:
       - nano
       - pc
       - llama_1
-      - hard_pruning
+      - projected_compression
 
-  slurm:
+  slurm: 
     job-name: ${infrastructure.metric_logger.name}
-    gres: gpu:4 #dev
+    gres: gpu:4
     time: "0-8:00:00"
- 
+    # time: "0-12:00:00"
+
 apply_functions:
-  - _target_: src.projected_compression.pruning.prune
+  - _target_: src.projected_compression.compression.init_compression
     _partial_: true
     dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/pc/fw_importances_8m/minitron_dimensions_importances.pt # helios
     # dimensions_importances_path: /storage_nvme_3/crewtool/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy
-    target_dmodel: 1344
-    target_dff: 5376
-
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
