@@ -1,10 +1,10 @@
 defaults:
   # - _cluster@_here_: helios
   - _cluster@_here_: entropy
+  # - _cluster@_here_: entropy_a100
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
-  - _dataset@_here_: c4
-  # - _dataset@_here_: fineweb
+  - _dataset@_here_: fineweb
   - _checkpoints@_here_: none
   - _misc@_here_: default
 
@@ -17,20 +17,32 @@ common:
 trainer:
   gradient_accumulation_steps: 8
   # n_steps: 2048
-  n_steps: 401
-  # ^n_steps: 
+  # n_steps: 401
+  ^n_steps: 
+    # - 2048
     # - 4096
     # - 6144
     # - 8192
+    - 20480
+    # - 40960
+    # - 61440
 
   # train_dataloader:
   #   seed: 3
   #   num_workers: 2
 
-  # learning_rate: 0001220703125 # 0.00048828125, 0.000244140625, 0.0001220703125, 6.103515625e-05, 3.0517578125e-05, 1.52587890625e-05
-  ^learning_rate: 
-    - 0.0001220703125
-    # - 0.000244140625
+  # exp_learning_rate: 16
+
+  ^exp_learning_rate: 
+    # - 14
+    # - 15
+    - 16
+    # - 17
+    # - 18
+    # - 19
+
+  train_dataloader:
+    seed: 1002
 
   
   checkpoint:
@@ -46,12 +58,16 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: Llame_PC
+    name: Llame_TA
     tags:
       - nano
       - pc
       - llama_1
+      - TA
+      - T10B
 
+  # server: entropym
   slurm:
+    job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
-
+    time: "2-00:00:00"
