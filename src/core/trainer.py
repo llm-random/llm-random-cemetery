@@ -1,4 +1,6 @@
 import os
+from pathlib import Path
+import time
 from attr import define
 import torch
 import torch.nn.functional as F
@@ -15,7 +17,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 import logging
 
 from src.core.checkpointing import TrainingState, get_full_checkpoint_path, save_training_state, step_checkpoint_path
-from src.core.metric_loggers import MetricLogger
+from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger
 from src.core.utils import cast_state_dict_to_tensors, create_batch_fingerprint
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ class Trainer:
     gradient_clipping: Optional[float]
     checkpoint: Optional[dict]
     learning_rate: float
+    exp_learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
 
@@ -54,6 +57,9 @@ class Trainer:
             logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
             for _ in range(n_skip_eval_batches):
                 next(self.eval_iterator)
+
+        self.tloss_100 = AveMetric(100, "steps/100/train/loss")
+        self.time_100 = AveDiffMetric(100, "steps/100/time", time.time())
 
     @property
     def _should_evaluate(self) -> bool:
@@ -143,14 +149,24 @@ class Trainer:
             so we wrap loss calculation in a function"""
             predicted_ids = self.model(input_ids)
 
+            if self.step >= 25:
+                logger.info(f"RANK_{os.environ["RANK"]} after predicted_ids = self.model(input_ids)")
+
             # Tensors should be on the same device for loss calculation #TODO check
             target_ids = target_ids.to(predicted_ids.device)
+
+            if self.step >= 25:
+                logger.info(f"RANK_{os.environ["RANK"]} after target_ids = target_ids.to(predicted_ids.device)")
 
             mask_loss = F.cross_entropy(
                 predicted_ids.flatten(0, -2),
                 target_ids.reshape(-1).long(),
                 reduction="none",
             )
+
+            if self.step >= 25:
+                logger.info(f"RANK_{os.environ["RANK"]} after mask_loss = F.cross_entropy(")
+
             loss = mask_loss.mean() / self.gradient_accumulation_steps
             return loss
 
@@ -179,13 +195,30 @@ class Trainer:
         else:
             for batch_chunk in batch.chunk(self.gradient_accumulation_steps):
                 input_ids, target_ids = self._preprocess_input(batch_chunk)
+                if self.step >= 25:
+                    top = step_checkpoint_path(
+                        self.checkpoint.save.path, self.step
+                    )
+                    content = {
+                        "input_ids":input_ids,
+                        "target_ids":target_ids
+                    }
+                    os.makedirs(top, exist_ok=True)
+                    torch.save(content, Path(content, "input.pt"))
                 input_ids = input_ids.to(self.device)
+                if self.step >= 25:
+                    logger.info(f"RANK_{os.environ["RANK"]} after input_ids = input_ids.to(self.device)")
                 if self.model.training:
                     self._update_processed_tokens(input_ids)
-
+                if self.step >= 25:
+                    logger.info(f"RANK_{os.environ["RANK"]} after self._update_processed_tokens(input_ids)")
                 loss = _hack_for_python_garbage_collection(input_ids, target_ids)
+                if self.step >= 25:
+                    logger.info(f"RANK_{os.environ["RANK"]} after loss = _hack_for_python_garbage_collection")
                 if self.model.training:
                     loss.backward()
+                if self.step >= 25:
+                    logger.info(f"RANK_{os.environ["RANK"]} after loss.backward()")
                 losses.append(loss.item())
 
         # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
@@ -254,6 +287,9 @@ class Trainer:
             "tokens/train/grad_norm", self.processed_tokens, grad_norm.item()
         )
         self.metric_logger.flush_accumulated_metrics(self.step)
+
+        self.tloss_100.log(self.metric_logger, self.step, loss.item())
+        self.time_100.log(self.metric_logger, self.step, time.time())
 
     def save_checkpoint(self):
         if isinstance(self.model, FSDP) or self.model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard":
