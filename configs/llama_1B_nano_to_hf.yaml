@@ -19,12 +19,13 @@ trainer:
   checkpoint:
    load:
     type: nano
-    path: null # change
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/66304/0/step_6143 # change
    save:
     type: huggingface
-    path: null # change
+    path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3/ # change
   
 infrastructure:
+  server: entropym
   metric_logger:
     name: test
     tags:
