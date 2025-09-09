@@ -101,8 +101,8 @@ trainer:
 #    dataset_type: c4
     dataset_type: fineweb-edu
     tokenize_fn:
-      _target_: src.core.datasets.gpt2_tokenize_fn
-    num_workers: 0 # Change me!
+      _target_: src.core.datasets.llama_tokenize_fn
+    num_workers: 2 # Change me!
     seed: 20001
     sequence_length: 32
     shuffle: true
@@ -142,7 +142,7 @@ trainer:
 infrastructure:
   slurm:
     cpus-per-task: 32
-    gres: gpu:2
+    gres: gpu:0
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
