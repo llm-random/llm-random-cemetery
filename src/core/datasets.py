@@ -101,10 +101,16 @@ class AbstractDataset(IterableDataset):
                     buffer, document_lengths = [], []
 
     def __iter__(self):
+        # worker_info = torch.utils.data.get_worker_info()
+        # num_workers = worker_info.num_workers
+        # worker_id = worker_info.id
+        # logger.info(f"self.rank {self.rank}, worker_id {worker_id}, num_workers {num_workers}, self.world_size {self.world_size}, worker_info {worker_info}, ")
+        
         self.rng.seed(self.seed)
         if self.world_size_independent:
             return itertools.islice(
                 self.sample_packer(), self.rank, None, self.world_size
+                # self.sample_packer(), self.rank*num_workers+worker_id, None, self.world_size*num_workers
             )
         else:
             return self.sample_packer()
@@ -150,25 +156,13 @@ class FineWebEduDataset(AbstractDataset):
             batched=True
         )
 
-    def _belongs_to_split(self, document_id: int) -> bool:
-        eval_percentage = 1
-
-        if self.split == "train":
-            return hash(document_id) % 100 >= eval_percentage
-        elif self.split == "validation":
-            return hash(document_id) % 100 < eval_percentage
-        else:
-            raise ValueError("split must be either 'train' or 'validation'")
-
-
     def get_infinite_sampler(self):
         epoch = 0
         while True:
             self.data_generator.set_epoch(epoch)
             for next_sample in self.data_generator:
-                if self._belongs_to_split(next_sample["id"]):
-                    yield next_sample
-
+                logger.info(f"{vars(next_sample)}") # dev
+                yield next_sample
             epoch += 1
 
 class C4Dataset(AbstractDataset):
