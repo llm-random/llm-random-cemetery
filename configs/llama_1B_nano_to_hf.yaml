@@ -1,11 +1,10 @@
-# work in progress
-
 defaults:
-  - _cluster@_here_: entropy
+  # - _cluster@_here_: entropy
+  - _cluster@_here_: helios
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
-  - _checkpoints@_here_: mas/hf_llama_3_1.yaml
+  - _checkpoints@_here_: none
   - _misc@_here_: default
 
 common: 
@@ -19,19 +18,22 @@ trainer:
   checkpoint:
    load:
     type: nano
-    path: null # change
+    path:  # change
    save:
     type: huggingface
-    path: null # change
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3/ # entropy_m
+    path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50 # helios
   
 infrastructure:
+  server: entropym
   metric_logger:
     name: test
     tags:
       - pc
       - nano
-      - ft_llama3_1
       - hf_conversion
+      - llama1_50_pc_3b
+      # - llama1_50_hp
 
   slurm: 
     gres: gpu:4
