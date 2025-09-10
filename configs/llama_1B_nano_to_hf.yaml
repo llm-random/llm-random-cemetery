@@ -1,15 +1,21 @@
-# work in progress
-
 defaults:
-  - _cluster@_here_: entropy
+  # - _cluster@_here_: entropy
+  - _cluster@_here_: helios
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
-  - _checkpoints@_here_: mas/hf_llama_3_1.yaml
+  - _checkpoints@_here_: none
   - _misc@_here_: default
 
 common: 
   batch_size: 512
+  dmodel: 1344
+  dff: 5376
+  # dmodel: 960
+  # dff: 3840
+  # dmodel: 1728
+  # dff: 6912
+
 
 trainer:
   n_steps: 0
@@ -19,20 +25,40 @@ trainer:
   checkpoint:
    load:
     type: nano
-    path: null # change
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6838211/1/step_6143 # HP
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6860816/0/step_8191 # HP
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6860815/1/step_12287 # HP
+
+    # path: asd # PC
+    path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50/6867192/0 # PC
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50/6867195/0 # PC
+
+    # path: asd # change
    save:
     type: huggingface
-    path: null # change
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3/ # entropy_m
+    path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50 # helios
   
 infrastructure:
+  # server: entropym
   metric_logger:
     name: test
     tags:
       - pc
       - nano
-      - ft_llama3_1
       - hf_conversion
+      - COMP
 
+      # - llama1_50_hp_3b
+      # - llama1_50_hp_4b
+      # - llama1_50_hp_6b
+
+      # - llama1_50_pc_3b
+      - llama1_50_pc_4b
+      # - llama1_50_pc_6b
+
+      
   slurm: 
     gres: gpu:4
+    time: "0-00:30:00"
 
