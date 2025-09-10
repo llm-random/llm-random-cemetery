@@ -1,0 +1,56 @@
+defaults:
+  # - _cluster@_here_: entropy
+  - _cluster@_here_: helios
+  - _model/llama@_here_: projected_1B
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+  
+
+common:
+  sequence_length: 1024
+  batch_size: 512
+  dff: 5376 # 50%
+  dmodel: 1344
+
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 0
+  
+  learning_rate: 6.103515625e-05
+
+  checkpoint:
+  load:
+    type: huggingface
+    # path: "meta-llama/Llama-3.2-1B" 
+    path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6838211/1/step_6143
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6860743/0/step_12287
+  save:
+    type: pc_finalize
+    path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50 # helios
+
+
+infrastructure:
+  metric_logger:
+    name: Llame_PC
+    tags:
+      - nano
+      - pc
+      - COMP
+      - llama_pc_finalized
+      - llama1_50_pc_3b
+
+  slurm: 
+    gres: gpu:4
+    time: "0-00:30:00"
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/cheackpoints/pc/fw_importances_8m/minitron_dimensions_importances.pt # helios llama3
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6854696/0/minitron_dimensions_importances.pt # helios ta3b
+    # dimensions_importances_path: /storage_nvme_3/crewtool/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
