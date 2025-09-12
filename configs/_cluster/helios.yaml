@@ -8,7 +8,7 @@ infrastructure:
     nodes: 1
     partition: plgrid-gpu-gh200
     time: "2-00:00:00"
-
+# export HF_HOME= $PLG_GROUPS_STORAGE/plggllmeffi/projected_compression/hf_cache
   script:
     - "module load ML-bundle/25.04"
     - "PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/projected_compression"
