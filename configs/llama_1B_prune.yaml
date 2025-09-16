@@ -1,9 +1,9 @@
 defaults:
+  # - _cluster@_here_: helios
   - _cluster@_here_: entropy
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
-  - _dataset@_here_: c4
-  # - _dataset@_here_: fineweb
+  - _dataset@_here_: fineweb
   - _checkpoints@_here_: none
   - _misc@_here_: default
 
@@ -14,36 +14,98 @@ common:
 
 
 trainer:
-  gradient_accumulation_steps: 8
-  n_steps: 2048
+  # gradient_accumulation_steps: 8
+  gradient_accumulation_steps: 4
+  ^n_steps: 
+    # - 101
+    - 2048
+    # - 4096
+    # - 6144
+    # - 8192
+    # - 12288
+    # - 16384
 
-  ^learning_rate: 
-    - 0.0001220703125
+  # exp_learning_rate: asd #optimal fo 10%
+  # exp_learning_rate: 11 #optimal fo 30%
+  # exp_learning_rate: 12 #optimal fo 1B 50%
+  # exp_learning_rate: 13 #optimal fo 75%
+  # exp_learning_rate: 12 #optimal fo randomi 50%
+  ^exp_learning_rate: 
+  #   - 9
+  #   - 10
+  #   - 11
+    - 12
+    - 13
+    # - 14
+    # - 15
+
+  scheduler:
+    warmup_steps: 40
 
   checkpoint:
    load:
     type: huggingface
     path: "meta-llama/Llama-3.2-1B"
-   save:
+    # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_ta3/llama1_ta3/" # helios ta3b
+    # path: "/storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3/66415/0" # entropy ta3b
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3/66751/0 # entropy ta10b
+   save:  
     type: nano
-    path: null #change
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # entropy
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # helios
+
+  # train_dataloader:
+    # world_size_independent: false
+    # ^num_workers: 
+    #   - 1
+    #   - 2
+    #   - 3
+    #   - 4
+    # seed: 1000
+    # shuffle: true
+    # use_new_sampling_method: true
+
+  # eval_dataloader:
+  #   world_size_independent: false
+    # num_workers: 1
+    # seed: 123
+    # shuffle: true
+    # use_new_sampling_method: true
 
 
 infrastructure:
   metric_logger:
-    name: Llame_PC
+    name: Llame_HP
     tags:
       - nano
       - pc
       - llama_1
-
+      - hard_pruning
+      # - ta10b
+      - 10p
+  
+  server: entropym
   slurm:
-    gres: gpu:4
-
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4 #dev
+    # time: "0-4:00:00"
+    # time: "0-8:00:00"
+    time: "0-12:00:00"
+ 
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
     _partial_: true
-    dimensions_importances_path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65575/0/minitron_dimensions_importances.pt
-    target_dmodel: 1344
-    target_dff: 5376
-
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/pc/fw_importances_8m/minitron_dimensions_importances.pt # helios llama3
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6854696/0/minitron_dimensions_importances.pt # helios ta3b
+    dimensions_importances_path: /storage_nvme_3/crewtool/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy ACTIVATIONS
+    # dimensions_importances_path: /storage_nvme_3/crewtool/pc/fw_importances_8m/random_dimensions_importances.pt # entropy RANDOM
+    # dimensions_importances_path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/66752/0/minitron_dimensions_importances.pt # entropy ACTIVATIONS ta10
+    # dimensions_importances_path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/66752/0/random_dimensions_importances.pt # entropy RANDOM ta10
+    # target_dmodel: 1344 #50
+    # target_dff: 5376
+    # target_dmodel: 960 # 30
+    # target_dff: 3840
+    # target_dmodel: 1728 # 75
+    # target_dff: 6912
+    target_dmodel: 448 # 10
+    target_dff: 1728
