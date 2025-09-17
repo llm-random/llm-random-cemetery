@@ -10,7 +10,6 @@ from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
 from src.projected_compression.compression import finalize_projection_weights
 from src.core.conversion_to_hf import save_to_llama_3_hf
-from old_datasets import LLMBatch
 import torch.distributed.checkpoint as dcp
 from torch.nn.parallel import DistributedDataParallel as DDP
 import logging
@@ -146,6 +145,7 @@ class Trainer:
         def _hack_for_python_garbage_collection(input_ids, target_ids):
             """we want to have no reference to model output while backpropagating to allow torch to free memory,
             so we wrap loss calculation in a function"""
+            raise Exception()
             predicted_ids = self.model(input_ids)
 
             # Tensors should be on the same device for loss calculation #TODO check
