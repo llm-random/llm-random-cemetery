@@ -2,6 +2,8 @@ from collections import OrderedDict
 import re
 import torch
 
+from src.core.utils import print_state_dict_info
+
 
 def remap_llmrandom_state_dict_to_nano(llmrandom_dict):
 
@@ -109,4 +111,8 @@ def load_llmrandom_checkpoint(load_config, model):
     checkpoint = torch.load(load_config.path)
     remapped_state_dict = remap_llmrandom_state_dict_to_nano(checkpoint["model"])
     fix_qkv_from_llmrandom(model, remapped_state_dict)
+    print_state_dict_info(remapped_state_dict) #dev
+    print("model.state_dict()--------------------------------------------") #dev
+    print_state_dict_info(model.state_dict()) #dev
     model.load_state_dict(remapped_state_dict)
+
