@@ -1,0 +1,40 @@
+defaults:
+  - _cluster@_here_: helios
+  # - _cluster@_here_: entropy
+  # - _cluster@_here_: entropy_a100
+  - _model/llmrandom@_here_: llmrandom_8m
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+trainer:
+  gradient_accumulation_steps: 8
+  n_steps: 100
+
+  exp_learning_rate: 16
+  
+  checkpoint:
+   load:
+    type: huggingface
+    # path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_1536_254236.pt # helios 80t/pp
+    path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_1536_254236.pt # 80t/pp
+   save:
+    type: nano
+    path: null
+
+
+infrastructure:
+  metric_logger:
+    name: llmrandom
+    tags:
+      - nano
+      - pc
+      - llmrandom_800m
+      - conversion
+
+  server: entropym
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:1
+    time: "0-01:00:00"
