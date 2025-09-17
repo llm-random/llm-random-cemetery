@@ -277,6 +277,8 @@ def run(cfg:OmegaConf, metric_logger=None):
     else:
         raise Exception(f"Not recognized load checkpoint format: {cfg.trainer.checkpoint.load.type}")
     
+    raise Exception()
+
     logger.info(f"Model initialized")
     trainer = instantiate(cfg.trainer)
     trainer(
