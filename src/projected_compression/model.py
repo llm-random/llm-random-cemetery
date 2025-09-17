@@ -67,7 +67,17 @@ class Residual(nn.Module):
         self.metric_logger = metric_logger
 
     def forward(self, x):
+        # try:
+        #     x_cpu = x.cpu()
+        #     print(f"Successfully moved to CPU")
+        #     print(f"Input shape: {x_cpu.shape}")
+        #     print(f"Input dtype: {x_cpu.dtype}")
+        #     print(f"Input contains NaN: {torch.isnan(x_cpu).any()}")
+        #     print(f"Input contains Inf: {torch.isinf(x_cpu).any()}")
+        # except Exception as e:
+        #     print(f"Failed to move to CPU: {e}")
         normalized = self.norm(x)
+        # raise Exception()
         out = self.layer(normalized)
         if self.metric_logger is not None:
             self.metric_logger.accumulate_metrics(
@@ -332,6 +342,15 @@ class TransformerBlock(nn.Module):
         )
 
     def forward(self, x):
+        # try: #dev
+        #     x_cpu = x.cpu()
+        #     print(f"Successfully moved to CPU")
+        #     print(f"Input shape: {x_cpu.shape}")
+        #     print(f"Input dtype: {x_cpu.dtype}")
+        #     print(f"Input contains NaN: {torch.isnan(x_cpu).any()}")
+        #     print(f"Input contains Inf: {torch.isinf(x_cpu).any()}")
+        # except Exception as e:
+        #     print(f"Failed to move to CPU: {e}")
         x = self.attention_layer(x)
         x = self.ff_layer(x)
         return x
@@ -359,6 +378,15 @@ class TransformerEncoder(nn.Module):
         self.blocks = nn.ModuleList([block_fn(i) for i in range(n_blocks)])
 
     def forward(self, x):
+        # try: #dev
+        #     x_cpu = x.cpu()
+        #     print(f"Successfully moved to CPU")
+        #     print(f"Input shape: {x_cpu.shape}")
+        #     print(f"Input dtype: {x_cpu.dtype}")
+        #     print(f"Input contains NaN: {torch.isnan(x_cpu).any()}")
+        #     print(f"Input contains Inf: {torch.isinf(x_cpu).any()}")
+        # except Exception as e:
+        #     print(f"Failed to move to CPU: {e}")
         for block in self.blocks:
             x = block(x)
         return x
