@@ -67,6 +67,13 @@ class Residual(nn.Module):
         self.metric_logger = metric_logger
 
     def forward(self, x):
+        # Add these debug prints before your norm layer
+        print(f"Input shape: {x.shape}")
+        print(f"Input dtype: {x.dtype}")
+        print(f"Input device: {x.device}")
+        print(f"Input contains NaN: {torch.isnan(x).any()}")
+        print(f"Input contains Inf: {torch.isinf(x).any()}")
+        print(f"Input min/max: {x.min()}, {x.max()}")
         normalized = self.norm(x)
         out = self.layer(normalized)
         if self.metric_logger is not None:
