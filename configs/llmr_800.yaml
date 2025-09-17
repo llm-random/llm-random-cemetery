@@ -1,0 +1,71 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  - _model/llmrandom@_here_: def_800
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 512
+  # batch_size: 512
+  batch_size: 32
+
+trainer:
+  gradient_accumulation_steps: 4
+  ^n_steps: 
+    - 101
+    # - 4000
+    # - 8000
+    # - 16000
+    # - 24000
+
+  ^learning_rate: 
+    # - 10
+    # - 11
+    # - 12
+    # - 13
+    # - 14
+    - 15
+    # - 16
+    # - 17
+
+  
+  checkpoint:
+   load:
+    type: llm-random
+    # path: /home/mstefaniak/checkpoints/def_1536_254236.pt
+    path: /home/crewtool/checkpoints/def_1536_254236.pt
+  #  save:
+  #   type: nano
+  #   path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
+
+  distributed: null
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: LLMR_training
+    tags:
+      - nano
+      - pc
+      - llmr_800
+      - test
+
+
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:1
+    time: "0-4:00:00"
+    # time: "0-8:00:00"
+    # time: "0-12:00:00"
+
