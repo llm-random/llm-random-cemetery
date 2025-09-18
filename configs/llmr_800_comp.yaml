@@ -1,0 +1,95 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  - _model/llmrandom@_here_: projected_800
+  - _trainer@_here_: llama
+  # - _dataset@_here_: fineweb
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+
+common:
+  sequence_length: 512
+  batch_size: 512
+  # dmodel: 768 # 35
+  # dff: 3072
+  dmodel: 528 # 20
+  dff: 2112
+  # dmodel: 1152 # 65
+  # dff: 4608
+
+
+trainer:
+  gradient_accumulation_steps: 2
+  ^n_steps: 
+    # - 101
+    - 4001
+    # - 8001
+    # - 16001
+    # - 24001
+
+
+  # learning_rate: 14 # 50 1B
+  # learning_rate: 14 # 35 1B
+  ^learning_rate: 
+    # - 10
+    # - 11
+    - 12
+    - 13
+    - 14
+    # - 15
+    # - 16
+    # - 17
+
+  scheduler:
+    warmup_steps: 80
+
+  checkpoint:
+   load:
+    type: llm-random
+    # path: /net/storage/pr3/plgrid/plggllmeffi/plgmstefaniak/checkpoints/def_1536_254236.pt # helios 80
+    path: /home/crewtool/checkpoints/def_1536_254236.pt # entropy
+   save:  
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # entropy
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # helios
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: LLMR_PC
+    tags:
+      - nano
+      - pc
+      - llmr_800
+      - projected_compression
+      # - 35p
+      - 20p
+      
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    time: "0-8:00:00"
+    # time: "0-12:00:00"
+
+  # distributed: null
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    dimensions_importances_path: /home/crewtool/checkpoints/importances/67523/0/minitron_dimensions_importances.pt # activations entropy llmr800
+    # dimensions_importances_path: /net/home/plgrid/plgmstefaniak/checkpoints/llmr_importances_800//minitron_dimensions_importances.pt # activations helios llmr800
+
+    # # # # dimensions_importances_path: /home/crewtool/checkpoints/importances/67523/0/random_dimensions_importances.pt # random entropy llmr800
+    # # # # dimensions_importances_path: /net/home/plgrid/plgmstefaniak/checkpoints/llmr_importances_800//random_dimensions_importances.pt # random helios llmr800
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
