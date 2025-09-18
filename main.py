@@ -1,7 +1,7 @@
 import os
 import hydra
 import yaml
-from src.core.utils import solve_config_lr
+from src.core.utils import print_state_dict_info, solve_config_lr
 from src.core.conversion_from_finalized_pc import load_finalized_pc_checkpoint
 from src.core.distributed_training import setup_distributed_training
 from src.core.conversion_from_llmrandom import load_llmrandom_checkpoint
@@ -200,6 +200,7 @@ def run(cfg:OmegaConf, metric_logger=None):
 
     logger.info(f"Creating model...")
     model = instantiate(cfg.model, _convert_="all").to(device)
+    # model = instantiate(cfg.model, _convert_="all").to("cpu")
     logger.info(f"Model {model.__class__.__name__} created with {sum(p.numel() for p in model.parameters() if p.requires_grad)} trainable parameters")
     # Residual layers needs metric_logger for logging update norms
     for _, module in model.named_modules():
@@ -229,6 +230,7 @@ def run(cfg:OmegaConf, metric_logger=None):
                 if res == False:
                     cleanup() 
                     return 0
+        model = model.to(device)
         model = setup_distributed_training(model, cfg.trainer.distributed)
         optimizer = torch.optim.AdamW(
             model.parameters(),
