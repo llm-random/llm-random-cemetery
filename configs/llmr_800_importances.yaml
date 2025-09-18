@@ -1,10 +1,10 @@
 defaults:
   - _cluster@_here_: entropy
   # - _cluster@_here_: helios
-  - _model@_here_: llama_3_1
+  - _model/llmrandom@_here_: def_800
   - _trainer@_here_: llama
-  # - _dataset@_here_: c4
-  - _dataset@_here_: fineweb
+  - _dataset@_here_: c4
+  # - _dataset@_here_: fineweb
   - _checkpoints@_here_: none
   - _misc@_here_: default
 
@@ -20,15 +20,27 @@ trainer:
 
   checkpoint:
    load:
-    type: huggingface
+    # type: huggingface
     # path: "meta-llama/Llama-3.2-1B"
     # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_ta3/llama1_ta3/" # TA3B
-    path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3//66751/0 # TA10B
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_ta3//66751/0 # TA10B
+    type: llm-random
+    # path: /home/mstefaniak/checkpoints/def_1536_254236.pt
+    path: /home/crewtool/checkpoints/def_1536_254236.pt
 
    save:
     type: nano
     # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # change
-    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # change
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # change
+    path: /home/crewtool/checkpoints/importances
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
 
 infrastructure:
   server: entropym
@@ -39,9 +51,11 @@ infrastructure:
       - pc
       - IMPORTANCES
       - 8xCalibration
-      - fineweb
+      # - fineweb
       # - TA3B
-      - TA10B
+      # - TA10B
+      - c4
+      - llmr800
 
   slurm:
     job-name: importances
