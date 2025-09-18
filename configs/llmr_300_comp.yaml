@@ -1,0 +1,77 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  - _model/llmrandom@_here_: projected_300
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 512
+  batch_size: 512
+  # batch_size: 16
+
+trainer:
+  gradient_accumulation_steps: 1
+  ^n_steps: 
+    - 101
+    # - 4001
+    # - 8001
+    # - 16001
+    # - 24001
+
+  learning_rate: 10
+
+  scheduler:
+    warmup_steps: 80
+  
+  checkpoint:
+   load:
+    type: llm-random
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/def_4ff_1024_92688.pt # helios
+    path: /home/crewtool/checkpoints/def_4ff_1024_92688.pt # entropy
+  #  save:
+  #   type: nano
+  #   path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # helios
+  #   path: /storage_nvme_3/crewtool/nano_checkpoints/tmp # entropy
+
+  distributed: null
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: LLMR_300_PC
+    tags:
+      - nano
+      - pc
+      - llmr_300
+      - projected_compression
+
+
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    # time: "0-2:00:00"
+    time: "0-6:00:00"
+    # time: "0-10:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    # dimensions_importances_path: asd/minitron_dimensions_importances.pt # activations helios llmr800
+    dimensions_importances_path: asd/minitron_dimensions_importances.pt # activations entropy llmr800
+
+    # # # # dimensions_importances_path: asd/random_dimensions_importances.pt # random entropy llmr800
+    # # # # dimensions_importances_path: asd/random_dimensions_importances.pt # random helios llmr800
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
+
