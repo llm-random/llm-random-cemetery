@@ -39,8 +39,8 @@ def cast_state_dict_to_tensors(state_dict, device="cpu"):
 def finish_exp(model):
     return False
 
-def solve_config_lr(config_lr:float) -> tuple[float, float] # TODO temporary place - move to devinitions eval+ when created
-    ret_lr, ret_exp_lr = None
+def solve_config_lr(config_lr:float) -> tuple[float, float]: # TODO temporary place - move to devinitions eval+ when created
+    ret_lr, ret_exp_lr = None, None
     if config_lr < 1.0: 
         ret_lr = config_lr
         ret_exp_lr = -1*math.log(config_lr) / math.log(2)
@@ -48,3 +48,15 @@ def solve_config_lr(config_lr:float) -> tuple[float, float] # TODO temporary pla
         ret_lr = 2**-config_lr
         ret_exp_lr = ret_exp_lr
     return ret_lr, ret_exp_lr
+
+def print_state_dict_info(state_dict): # used for debugging + log info
+    for name, param in state_dict.items():
+        if isinstance(param, torch.Tensor):
+            print(f"{name:60s} {type(param)}, shape={tuple(param.shape)}, device: {param.device} "
+            # print(f"{name:60s} {param}, shape={tuple(param.shape)} "
+                f"norm={param.norm().item():.4f}")
+        else:
+            # Sometimes buffers / metadata can be non-tensors
+            print(f"{name:60s} NON-TENSOR {type(param)}")
+
+            
