@@ -1,0 +1,88 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  - _model/llmrandom@_here_: def_800
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 512
+  batch_size: 512
+  # batch_size: 32
+
+trainer:
+  gradient_accumulation_steps: 4
+  ^n_steps: 
+    # - 101
+    - 4000
+    # - 8000
+    # - 16000
+    # - 24000
+
+  scheduler:
+    warmup_steps: 80
+
+
+  ^learning_rate: 
+    # - 9
+    - 10
+    - 11
+    - 12
+    - 13
+    # - 14
+    # - 15
+    # - 16
+    # - 17
+
+  
+  checkpoint:
+   load:
+    type: llm-random
+    path: /home/crewtool/checkpoints/def_1536_254236.pt
+   save:
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  # distributed: null
+
+infrastructure:
+  metric_logger:
+    name: LLMR_training
+    tags:
+      - nano
+      - pc
+      - llmr_800
+      - hard_pruning
+
+
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    # gres: gpu:1
+    # time: "0-4:00:00"
+    # time: "0-8:00:00"
+    time: "0-12:00:00"
+
+
+apply_functions:
+  - _target_: src.projected_compression.pruning.prune
+    _partial_: true
+    # dimensions_importances_path: /home/crewtool/checkpoints/importances/67523/0/random_dimensions_importances.pt # random entropy llmr800
+    dimensions_importances_path: /home/crewtool/checkpoints/importances/67523/0/minitron_dimensions_importances.pt # activations entropy llmr800
+    target_dmodel: 960 # 50
+    target_dff: 3840
+    # target_dmodel: 768 # 36
+    # target_dff: 3072
+    # target_dmodel: 1152 # 65
+    # target_dff: 4608
