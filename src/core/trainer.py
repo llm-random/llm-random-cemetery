@@ -18,6 +18,7 @@ from src.core.utils import create_batch_fingerprint
 
 logger = logging.getLogger(__name__)
 
+
 @define(slots=False)
 class Trainer:
     model: torch.nn.Module
