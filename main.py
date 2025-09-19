@@ -259,7 +259,7 @@ def main(config):
 
     modules_to_add = config.infrastructure.get("modules_to_add", None)
     generate_sbatch_script(
-        config.infrastructure.slurm, config.infrastructure.generated_configs_path, len(configs_grid), config.infrastructure.venv_path, modules_to_add
+        config.infrastructure.slurm, config.infrastructure.generated_configs_path, len(configs_grid), None, modules_to_add
     )
 
     if config.get("_debug_"):

@@ -61,7 +61,7 @@ def generate_sbatch_script(
         for module in modules_to_add:
             lines.append(f"module load {module}")
 
-    lines.append(f"source {venv_path}")
+    # lines.append(f"source {venv_path}")
     lines.extend(create_program_call(config_folder))
 
     with open("exp.job", "w") as f:
