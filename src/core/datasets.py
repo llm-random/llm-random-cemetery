@@ -7,7 +7,7 @@ import itertools
 import numpy as np
 import random
 from torch.utils.data import IterableDataset, DataLoader
-from transformers import GPT2TokenizerFast, LlamaTokenizerFast
+from transformers import GPT2TokenizerFast, AutoTokenizer
 from datasets import load_dataset
 from datasets.distributed import split_dataset_by_node
 import logging
@@ -32,7 +32,7 @@ def gpt2_tokenize_fn():
     return tokenize_function
 
 def llama_tokenize_fn():
-    tokenizer = LlamaTokenizerFast.from_pretrained("meta-llama/Llama-3.1-8B", add_bos_token=True, add_eos_token=True, legacy=False)
+    tokenizer = AutoTokenizer.from_pretrained("meta-llama/Llama-3.1-8B", add_bos_token=True, add_eos_token=True, legacy=False)
     def tokenize_function(examples):
         batch_encodings = tokenizer(
             examples["text"],
@@ -123,7 +123,7 @@ class FineWebEduDataset(AbstractDataset):
         seed: Optional[int] = None,
         use_new_sampling_method: bool = True,
         shuffle: bool = True,
-        world_size_independent: bool = False
+        world_size_independent: bool = True
     ):
         super().__init__(sequence_length, tokenize_fn, path, split, seed, use_new_sampling_method, shuffle,
                          world_size_independent)
@@ -152,11 +152,12 @@ class FineWebEduDataset(AbstractDataset):
 
     def _belongs_to_split(self, document_id: int) -> bool:
         eval_percentage = 1
-
+        doc_rng = random.Random(document_id)
+        doc_hash = doc_rng.randint(0, 99)
         if self.split == "train":
-            return hash(document_id) % 100 >= eval_percentage
+            return doc_hash >= eval_percentage
         elif self.split == "validation":
-            return hash(document_id) % 100 < eval_percentage
+            return doc_hash < eval_percentage
         else:
             raise ValueError("split must be either 'train' or 'validation'")
 
@@ -166,8 +167,9 @@ class FineWebEduDataset(AbstractDataset):
         while True:
             self.data_generator.set_epoch(epoch)
             for next_sample in self.data_generator:
-                if self._belongs_to_split(next_sample["id"]):
-                    yield next_sample
+                print(f"Rank {self.rank} processing document ID {next_sample['id']}")
+                # if self._belongs_to_split(next_sample["id"]):
+                yield next_sample
 
             epoch += 1
 
@@ -299,4 +301,3 @@ def get_dataloader(
         raise ValueError(f"Unsupported dataset type: '{dataset_type}'")
 
     return dataloader
-
