@@ -1,0 +1,93 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  - _model/smollm@_here_: projected_360
+  - _trainer@_here_: llama
+  - _dataset@_here_: fineweb
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  batch_size: 512
+  # batch_size: 8
+  
+  # dmodel: 480 # 35
+  # dff: 1280
+  # dmodel: 330 # 20
+  # dff: 880
+
+trainer:
+  gradient_accumulation_steps: 4
+  ^n_steps: 
+    # - 101
+    - 1024
+    # - 2048
+    # - 4096
+    # - 6144
+
+  # learning_rate: asd # 50 1B
+  # learning_rate: asd # 35 1B
+  # learning_rate: asd # 20 1B
+  ^learning_rate: 
+    # - 10
+    # - 11
+    # - 12
+    - 13
+    - 14
+    - 15
+    # - 16
+    # - 17
+
+  scheduler:
+    warmup_steps: 40
+
+  checkpoint:
+   load:
+    type: huggingface
+    path: "HuggingFaceTB/SmolLM-360M"
+   save:
+    type: nano
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # helios
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_360_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_360_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: LLMR_training
+    tags:
+      - nano
+      - pc
+      - projected_compression
+      - smollm_360
+      - 50p
+      # - 35p
+      # - 20p
+      # - test
+
+
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    # gres: gpu:1
+    # time: "0-2:00:00"
+    time: "0-2:00:00"
+    # time: "0-12:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    dimensions_importances_path: /home/crewtool/checkpoints/importances/67992/0/minitron_dimensions_importances.pt # activations entropy
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/smollm360_importances/minitron_dimensions_importances.pt # activations helios
+
+    # # # # dimensions_importances_path: /home/crewtool/checkpoints/importances/67992/0/random_dimensions_importances.pt # random entropy
+    # # # # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/smollm360_importances/random_dimensions_importances.pt # random helios
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
