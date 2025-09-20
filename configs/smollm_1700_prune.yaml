@@ -1,0 +1,96 @@
+defaults:
+  # - _cluster@_here_: helios #helios
+  - _cluster@_here_: entropy
+  - _model/smollm@_here_: def_1700
+  - _trainer@_here_: llama
+  - _dataset@_here_: fineweb
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 2048
+  batch_size: 512
+  # batch_size: 8 #dev
+
+trainer:
+  gradient_accumulation_steps: 4
+  ^n_steps: 
+    - 101 #dev
+    # - 1,024
+    # - 2048
+    # - 4096
+    # - 6144
+
+  # learning_rate: 11asd #optimal fo 10%
+  # learning_rate: 12asd #optimal fo 30%
+  # learning_rate: 12asd #optimal fo 1B 50%
+  # learning_rate: 13asd #optimal fo 75%
+  # learning_rate: 12asd #optimal fo randomi 50%
+  ^learning_rate: 
+    # - 9
+    # - 10
+    - 11
+    - 12
+    - 13
+    # - 14
+    # - 15
+
+  scheduler:
+    warmup_steps: 40
+
+  checkpoint:
+   load:
+    type: huggingface
+    path: "HuggingFaceTB/SmolLM-1.7B"
+   save:
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem #helios
+
+  # distributed: null
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_1700_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_1700_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: SMOLLM_training
+    tags:
+      - nano
+      - pc
+      - hard_pruning
+      - smollm_1700
+      - 50p
+      # - 35p
+      # - 20p
+      - test
+
+
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:1 #dev
+    time: "0-4:00:00"
+    # time: "0-8:00:00"
+    # time: "0-12:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.pruning.prune
+    _partial_: true
+    dimensions_importances_path: /home/crewtool/checkpoints/importances/68000/0/minitron_dimensions_importances.pt # activations entropy
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/smollm_1700_importances/minitron_dimensions_importances.pt # activations #helios
+
+    # # # # dimensions_importances_path: /home/crewtool/checkpoints/importances/68000/0/random_dimensions_importances.pt # random entropy
+    # # # # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/smollm_1700_importances/random_dimensions_importances.pt # random #helios
+  
+    target_dmodel: 1344 # 50
+    target_dff: 5376
+    # target_dmodel: 1088 # 35
+    # target_dff: 4352
+    # target_dmodel: 768 # 20
+    # target_dff: 3072
