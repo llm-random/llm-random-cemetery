@@ -1,0 +1,12 @@
+defaults:
+  - base_model
+  - _self_
+
+common:
+  dmodel: 576asd
+  dff: 1536asd
+  dhead: 64asd
+  sequence_length: 2048asd
+  n_blocks: 30asd
+  q_heads: 9asd
+  kv_heads: 3asd
