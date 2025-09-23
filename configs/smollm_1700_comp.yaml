@@ -1,0 +1,126 @@
+defaults:
+  # - _cluster@_here_: helios #helios
+  - _cluster@_here_: entropy 
+  - _model/smollm@_here_: projected_1700
+  - _trainer@_here_: llama
+  - _dataset@_here_: fineweb
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  # sequence_length: 2048
+  sequence_length: 1024
+  batch_size: 512
+  # batch_size: 1 #dev
+  
+  # dmodel: 448 # 10
+  # dff: 1728
+  dmodel: 960 # 30
+  dff: 3840
+  # dmodel: 1344 # 50
+  # dff: 5376
+  # dmodel: 1728 # 75
+  # dff: 6912
+  
+  # dmodel: 1088 # 35
+  # dff: 4352
+  # dmodel: 768 # 20
+  # dff: 3072
+
+
+trainer:
+  gradient_accumulation_steps: 16
+  # ^n_steps: 
+    # - 1024
+    # - 2048
+    # - 4096
+    # - 6144
+
+  ^n_steps: 
+    # - 101
+    - 2048
+    # - 4096
+    # - 6144
+    # - 8192
+    # - 12288
+
+  # learning_rate: 12asd # optimal 10%
+  # learning_rate: asd # optimal 20%
+  # learning_rate: 13 # optimal 35%
+  # learning_rate: 14asd # optimal 1B 50%
+  # learning_rate: 15asd # optimal 75%
+  # learning_rate: 14asd #optimal fo randomi 50%
+  ^learning_rate: 
+    - 13
+    - 14
+    - 12
+    # - 10
+    # - 11
+    # - 12
+    # - 13
+    # - 14
+    # - 15
+    # - 16
+    # - 17
+
+  scheduler:
+    warmup_steps: 80
+
+  checkpoint:
+   load:
+    type: huggingface
+    path: "HuggingFaceTB/SmolLM-1.7B"
+   save:
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #entropy
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem #helios
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_1700_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_1700_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: SLLM_1700_comp
+    # name: SLLM_1700_comp_35r
+    tags:
+      - nano
+      - pc
+      - projected_compression
+      - smollm_1700
+      - cx1k
+      # - 10p
+      - 30p
+      # - 50p
+
+      # - 35p
+      # - 20p
+      # - 30p
+      # - test
+
+  #helios
+  # server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4 #dev
+    # time: "0-3:00:00"
+    # time: "0-6:00:00"
+    # time: "0-12:00:00"
+    # time: "0-18:00:00"
+    time: "0-20:00:00"
+    # time: "0-44:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    # dimensions_importances_path: /home/crewtool/checkpoints/importances/68000/0/minitron_dimensions_importances.pt # activations entropy 
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/smollm_1700_importances/minitron_dimensions_importances.pt # activations #helios
+
+    dimensions_importances_path: /home/crewtool/checkpoints/importances/68000/0/random_dimensions_importances.pt # random entropy
+    # # # # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/smollm_1700_importances/random_dimensions_importances.pt # random #helios
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
