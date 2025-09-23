@@ -1,0 +1,64 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  - _model/smollm@_here_: def_1700
+  - _trainer@_here_: llama
+  - _dataset@_here_: fineweb
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 2048
+  # batch_size: 512
+  batch_size: 4
+
+  
+
+trainer:
+  gradient_accumulation_steps: 1
+  ^n_steps: 
+    - 101
+    # - 4001
+    # - 8001
+    # - 16001
+    # - 24001
+
+  learning_rate: 16
+
+  scheduler:
+    warmup_steps: 40
+
+  checkpoint:
+   load:
+    type: huggingface
+    path: "HuggingFaceTB/SmolLM-1.7B"
+  #  save:
+  #   type: nano
+  #   path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
+
+  train_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_1700_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn: 
+      _target_: src.core.datasets.smollm_1700_tokenize_fn
+
+infrastructure:
+  metric_logger:
+    name: SMOLLM_training
+    tags:
+      - nano
+      - pc
+      - smollm_1700
+      - test
+
+
+  server: entropym
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:2 #dev
+    time: "0-4:00:00"
+    # time: "0-8:00:00"
+    # time: "0-12:00:00"
+
