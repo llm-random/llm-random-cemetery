@@ -1,0 +1,91 @@
+defaults:
+  # - _cluster@_here_: entropy
+  - _cluster@_here_: helios
+  - _model/llama@_here_: projected_1B
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+  
+
+common:
+  sequence_length: 1024
+  batch_size: 512
+
+  # dmodel: 448 # 10
+  # dff: 1728
+  # dmodel: 960 # 30
+  # dff: 3840
+  dmodel: 1344 # 50
+  dff: 5376
+  # dmodel: 1728 # 75
+  # dff: 6912
+
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 0
+  
+  learning_rate: 6.103515625e-05
+
+  checkpoint:
+    load:
+      type: nano
+      ^path: 
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66762/1/step_2047 #10
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/67305/0/step_4095
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/67306/1/step_8191
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/67324/2/step_12287
+        # - /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6839728/2/step_2047 #30
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66630/0/step_4095
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66635/1/step_8191
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66557/2/step_12287
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/65897/1/step_2047 #50
+        - /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6838732/0/step_4095
+        - /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6838758/1/step_8191
+        - /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6860743/0/step_12287
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66831/0/step_2047 #50 ta
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66842/1/step_4095
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66844/2/step_8191
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/66807/3/step_12287
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/68216/0/step_2047 #30 randomi
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/68230/1/step_4095
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/68240/2/step_8191
+        # # - /storage_nvme_3/crewtool/nano_checkpoints/tmp/68215/3/step_12287
+    save:
+      type: pc_finalize
+      path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_pc_final # helios
+      # path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final # entropy
+
+
+infrastructure:
+  metric_logger:
+    name: Llame_PC
+    tags:
+      - nano
+      - pc
+      - COMP
+      - llama_pc_finalized
+      - randomi
+      # - ta10b
+      # - 10p
+      # - 30p
+      - 50p
+
+
+  # #helios
+  # server: entropym
+  slurm: 
+    gres: gpu:4
+    time: "0-00:30:00"
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/pc/fw_importances_8m/minitron_dimensions_importances.pt # helios llama3
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6854696/0/minitron_dimensions_importances.pt # helios ta3b
+    # dimensions_importances_path: /storage_nvme_3/crewtool/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy
+    
+    
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
