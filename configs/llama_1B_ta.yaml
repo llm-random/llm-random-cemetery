@@ -1,0 +1,73 @@
+defaults:
+  # - _cluster@_here_: helios
+  - _cluster@_here_: entropy
+  # - _cluster@_here_: entropy_a100
+  - _model@_here_: llama_3_1
+  - _trainer@_here_: llama
+  - _dataset@_here_: fineweb
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+
+common:
+  sequence_length: 1024
+  batch_size: 512
+
+
+trainer:
+  gradient_accumulation_steps: 8
+  # n_steps: 2048
+  # n_steps: 401
+  ^n_steps: 
+    # - 2048
+    # - 4096
+    # - 6144
+    # - 8192
+    - 20480
+    # - 40960
+    # - 61440
+
+  # train_dataloader:
+  #   seed: 3
+  #   num_workers: 2
+
+  # exp_learning_rate: 16
+
+  ^exp_learning_rate: 
+    # - 14
+    - 15
+    # - 16
+    # - 17
+    # - 18
+    # - 19
+
+  train_dataloader:
+    seed: 1000
+
+  
+  checkpoint:
+   load:
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65529/0/step_-1
+    # path: /storage_nvme_3/crewtool/nano_checkpoints/tmp/65526/0/step_-1
+    type: huggingface
+    path: "meta-llama/Llama-3.2-1B"
+   save:
+    type: nano
+    path: /storage_nvme_3/crewtool/nano_checkpoints/tmp #change
+
+
+infrastructure:
+  metric_logger:
+    name: Llame_TA
+    tags:
+      - nano
+      - pc
+      - llama_1
+      - TA
+      - T3B
+
+  server: entropym
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    time: "2-00:00:00"
