@@ -1,15 +1,23 @@
-# work in progress
-
 defaults:
   - _cluster@_here_: entropy
+  # - _cluster@_here_: helios
   - _model@_here_: llama_3_1
   - _trainer@_here_: llama
   - _dataset@_here_: c4
-  - _checkpoints@_here_: mas/hf_llama_3_1.yaml
+  - _checkpoints@_here_: none
   - _misc@_here_: default
 
 common: 
   batch_size: 512
+
+  # dmodel: 448 # 10
+  # dff: 1728
+  # dmodel: 960 # 30
+  # dff: 3840
+  dmodel: 1344 # 50
+  dff: 5376
+  # dmodel: 1728 # 75
+  # dff: 6912
 
 trainer:
   n_steps: 0
@@ -18,21 +26,107 @@ trainer:
 
   checkpoint:
    load:
-    type: nano
-    path: null # change
+    # type: nano
+    # ^path:
+    #   -  asd # # 10
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd # # 30
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd # # 50
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd # # 30 RANDOMINIT
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd # # 50 TA
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+    #   -  asd #
+
+    type: finalized_pc
+    ^path: 
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68435/0/step_-1 # # 10
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68436/1/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68437/2/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68434/3/step_-1 #
+  #     -  /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_pc_final/7099300/0/step # # 30
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68422/0/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68423/1/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68421/2/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68456/0/step_-1 # # 30 RANDOMINIT
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68457/1/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68458/2/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68455/3/step_-1 #
+      # # -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68447/0/step_-1 # # 50
+  #     -  /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_pc_final/7099297/0/step_-1 #
+  #     -  /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_pc_final/7099298/1/step_-1 #
+  #     -  /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_pc_final/7099296/2/step_-1 #
+      -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68445/0/step_-1 # # 50 TA
+      -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68446/1/step_-1 #
+      -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68448/2/step_-1 #
+      -  /storage_nvme_3/crewtool/nano_checkpoints/llama1_pc_final/68444/3/step_-1 #
+
    save:
     type: huggingface
-    path: null # change
+    path: /storage_nvme_3/crewtool/nano_checkpoints/llama1_hf_final # entropy
+    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50 # helios
   
 infrastructure:
+  # server: entropym
   metric_logger:
-    name: test
+    name: conversion
     tags:
       - pc
       - nano
-      - ft_llama3_1
       - hf_conversion
+      - TA10B
+      # - rinit
+      # - 10p
+      # - 30p
+      - 50p
 
+
+      
   slurm: 
-    gres: gpu:4
+    # gres: gpu:4
+    # gres: gpu:2
+    gres: gpu:1
+    time: "0-00:30:00"
 
+
+
+
+
+
+
+
+# type: nano
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6837555/0/step_4095 # HP
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6838211/1/step_6143 # HP
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6860816/0/step_8191 # HP
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem/6860815/1/step_12287 # HP
+
+# type: finalized_pc
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50/6871381/0/step_-1 # PC 2b
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50/6867278/0/step_-1 # PC 3b
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50/6867192/0/step_-1 # PC 4b
+# path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/results/llama1_50/6867195/0/step_-1 # PC 6b
+
+      # - llama1_50_hp_2b
+      # - llama1_50_hp_3b
+      # - llama1_50_hp_4b
+      # - llama1_50_hp_6b
+
+      # - llama1_50_pc_2b
+      # - llama1_50_pc_3b
+      # - llama1_50_pc_4b
+      # - llama1_50_pc_6b
