@@ -186,6 +186,8 @@ def submit_experiment(
             cemetery_dir = cfg.infrastructure.cemetery_experiments_dir
             connection.run(f"mkdir -p {cemetery_dir}")
 
+            print(f'os.environ: {os.environ["NEPTUNE_API_TOKEN"]}')
+
             if "NEPTUNE_API_TOKEN" in os.environ:
                 connection.config["run"]["env"]["NEPTUNE_API_TOKEN"] = os.environ[
                     "NEPTUNE_API_TOKEN"
