@@ -1,0 +1,18 @@
+defaults:
+  - base_scheduler_comparison
+
+trainer:
+  scheduler:
+    _partial_: true
+    _target_: src.plasticity.mics.RepeatedScheduler
+    num_cycles: 5
+    base_scheduler:
+      _partial_: true
+      _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+      final_lr_fraction: 0.1
+      warmup_steps: ${eval:'int(${trainer.n_steps} / 5 * 0.01)'}
+      n_steps: ${eval:'int(${trainer.n_steps} / 5)'}
+
+infrastructure:
+  metric_logger:
+    name: Plasticity_Repeated_Cosine
