@@ -497,3 +497,4 @@ def get_vanilla_embedding(vocab_size, dmodel, init_type, init_scale, sequence_le
             init_scale=init_scale,
         ),
     )
+

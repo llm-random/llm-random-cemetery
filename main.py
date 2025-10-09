@@ -181,6 +181,7 @@ def run(cfg:OmegaConf, metric_logger=None):
             metric_logger_config=instantiate(cfg.infrastructure.metric_logger, _convert_="all"),
             neptune_run_id=training_state["run_id"],
         )
+        print(f"metric_logger:\n{type(metric_logger)}")
         npt_handler = NeptuneHandler(run=metric_logger.run)
         logger.addHandler(npt_handler)
 
