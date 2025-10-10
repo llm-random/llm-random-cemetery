@@ -1,16 +1,23 @@
-import math
-from torch.optim.lr_scheduler import _LRScheduler
+from torch.optim.lr_scheduler import (
+    SequentialLR,
+    LinearLR,
+    CosineAnnealingLR,
+    ConstantLR,
+    _LRScheduler,
+)
 
 
-class CosineScheduler(_LRScheduler):
+class CosineScheduler(SequentialLR):
     """
-    Cosine annealing learning rate scheduler.
+    Cosine annealing learning rate scheduler with optional warmup.
     Decays learning rate from initial value to final_lr_fraction * base_lr following a cosine curve.
 
-    Note: last_epoch in PyTorch's _LRScheduler is actually the step count (poor naming).
+    Uses SequentialLR to compose LinearLR (warmup) and CosineAnnealingLR schedulers.
     """
 
-    def __init__(self, optimizer, n_steps, final_lr_fraction=0, warmup_steps=0, last_epoch=-1):
+    def __init__(
+        self, optimizer, n_steps, final_lr_fraction=0, warmup_steps=0, last_epoch=-1
+    ):
         """
         Args:
             optimizer: Wrapped optimizer
@@ -22,39 +29,53 @@ class CosineScheduler(_LRScheduler):
         self.n_steps = n_steps
         self.final_lr_fraction = final_lr_fraction
         self.warmup_steps = warmup_steps
-        # Initialize min_lr before super().__init__() which calls get_lr()
-        # We'll use optimizer.defaults['lr'] as a fallback for base_lr
-        base_lrs = [group["lr"] for group in optimizer.param_groups]
-        self.min_lr = [base_lr * final_lr_fraction for base_lr in base_lrs]
-        super().__init__(optimizer, last_epoch)
 
-    def get_lr(self):
-        """Calculate learning rate based on current step (self.last_epoch is actually step count)."""
-        step = self.last_epoch
+        # Get base learning rate for eta_min calculation
+        optimizer_lr = optimizer.param_groups[0]["lr"]
 
-        if self.warmup_steps > 0 and step < self.warmup_steps:
-            # Warmup: linear increase from 0 to base_lr
-            alpha = step / self.warmup_steps
-            return [base_lr * alpha for base_lr in self.base_lrs]
-        elif step >= self.n_steps:
-            return self.min_lr
+        schedulers = []
+        milestones = []
 
-        # Cosine annealing (adjusted for warmup)
-        progress = (step - self.warmup_steps) / (self.n_steps - self.warmup_steps)
-        return [
-            min_lr + (base_lr - min_lr) * (1 + math.cos(math.pi * progress)) / 2
-            for base_lr, min_lr in zip(self.base_lrs, self.min_lr)
-        ]
+        if warmup_steps > 0:
+            # Warmup phase: linear increase from 0.1 to 1.0
+            warmup_scheduler = LinearLR(
+                optimizer,
+                start_factor=0.1,
+                end_factor=1.0,
+                total_iters=warmup_steps,
+            )
+            schedulers.append(warmup_scheduler)
+            milestones.append(warmup_steps)
+
+        # Cosine annealing phase
+        cosine_steps = n_steps - warmup_steps
+        cosine_scheduler = CosineAnnealingLR(
+            optimizer,
+            T_max=cosine_steps,
+            eta_min=final_lr_fraction * optimizer_lr,
+        )
+        schedulers.append(cosine_scheduler)
+
+        super().__init__(
+            optimizer,
+            schedulers=schedulers,
+            milestones=milestones,
+            last_epoch=last_epoch,
+        )
+
+    def step(self, epoch=None):
+        """Override step to ignore epoch parameter for compatibility with nested SequentialLR"""
+        super().step()
 
 
-class WSDScheduler(_LRScheduler):
+class WSDScheduler(SequentialLR):
     """
     Warmup-Stable-Decay (WSD) scheduler with linear decay.
     - Warmup: Linear increase from 0 to peak_lr
     - Stable: Constant at peak_lr
     - Decay: Linear decrease to final_lr_fraction * base_lr
 
-    Note: last_epoch in PyTorch's _LRScheduler is actually the step count (poor naming).
+    Uses SequentialLR to compose LinearLR (warmup), ConstantLR (stable), and LinearLR (decay) schedulers.
     """
 
     def __init__(
@@ -84,38 +105,56 @@ class WSDScheduler(_LRScheduler):
         self.warmup_steps = (
             warmup_steps if warmup_steps is not None else int(n_steps * warmup_fraction)
         )
-        self.decay_steps = decay_steps if decay_steps is not None else int(n_steps * decay_fraction)
+        self.decay_steps = (
+            decay_steps if decay_steps is not None else int(n_steps * decay_fraction)
+        )
         self.stable_steps = n_steps - self.warmup_steps - self.decay_steps
-
         self.final_lr_fraction = final_lr_fraction
-        super().__init__(optimizer, last_epoch)
-        # Compute min_lr as fraction of base_lr
-        self.min_lr = [base_lr * final_lr_fraction for base_lr in self.base_lrs]
 
-    def get_lr(self):
-        """Calculate learning rate based on current step (self.last_epoch is actually step count)."""
-        step = self.last_epoch
+        schedulers = []
+        milestones = []
 
-        if step < self.warmup_steps:
-            # Warmup: linear increase from 0 to peak_lr
-            alpha = step / self.warmup_steps
-            return [base_lr * alpha for base_lr in self.base_lrs]
+        # Warmup phase: linear increase from 0.1 to 1.0
+        if self.warmup_steps > 0:
+            warmup_scheduler = LinearLR(
+                optimizer,
+                start_factor=0,
+                end_factor=1.0,
+                total_iters=self.warmup_steps,
+            )
+            schedulers.append(warmup_scheduler)
+            milestones.append(self.warmup_steps)
 
-        elif step < self.warmup_steps + self.stable_steps:
-            # Stable: constant at peak_lr
-            return self.base_lrs
+        # Stable phase: constant at peak_lr
+        if self.stable_steps > 0:
+            stable_scheduler = ConstantLR(
+                optimizer,
+                factor=1.0,
+                total_iters=self.stable_steps,
+            )
+            schedulers.append(stable_scheduler)
+            milestones.append(self.warmup_steps + self.stable_steps)
 
-        elif step < self.n_steps:
-            # Decay: linear decrease from peak_lr to min_lr
-            decay_progress = (step - self.warmup_steps - self.stable_steps) / self.decay_steps
-            return [
-                base_lr - (base_lr - min_lr) * decay_progress
-                for base_lr, min_lr in zip(self.base_lrs, self.min_lr)
-            ]
+        # Decay phase: linear decrease to final_lr_fraction
+        if self.decay_steps > 0:
+            decay_scheduler = LinearLR(
+                optimizer,
+                start_factor=1.0,
+                end_factor=final_lr_fraction,
+                total_iters=self.decay_steps,
+            )
+            schedulers.append(decay_scheduler)
 
-        else:
-            # After n_steps, stay at min_lr
-            return self.min_lr
+        super().__init__(
+            optimizer,
+            schedulers=schedulers,
+            milestones=milestones,
+            last_epoch=last_epoch,
+        )
+
+    def step(self, epoch=None):
+        """Override step to ignore epoch parameter for compatibility with nested SequentialLR"""
+        super().step()
 
 
 class RepeatedScheduler(_LRScheduler):
@@ -124,10 +163,21 @@ class RepeatedScheduler(_LRScheduler):
     After each cycle completes, the scheduler resets to its initial state.
 
     First cycle can have warmup, subsequent cycles start at peak LR.
+
+    Note: This uses a delegation pattern rather than SequentialLR because we need
+    to reset the base scheduler at cycle boundaries, which SequentialLR doesn't support
+    (SequentialLR schedulers continue from the optimizer's current LR, not the base LR).
     """
 
     def __init__(
-        self, optimizer, base_scheduler_factory, num_cycles, n_steps, warmup_steps=0, last_epoch=-1
+        self,
+        optimizer,
+        base_scheduler_factory,
+        num_cycles,
+        n_steps,
+        warmup_steps=0,
+        last_epoch=-1,
+        **base_scheduler_kwargs
     ):
         """
         Args:
@@ -137,17 +187,22 @@ class RepeatedScheduler(_LRScheduler):
             n_steps: Total number of training steps
             warmup_steps: Warmup steps for first cycle only (default: 0)
             last_epoch: Current step (default: -1)
+            **base_scheduler_kwargs: Additional arguments to pass to base_scheduler_factory
         """
         self.num_cycles = num_cycles
         self.n_steps = n_steps
         self.warmup_steps = warmup_steps
+        self.base_scheduler_kwargs = base_scheduler_kwargs
 
         # Calculate steps per cycle
         cycle_steps = (n_steps - warmup_steps) // num_cycles
 
         # Create base scheduler for first cycle with warmup
         self.base_scheduler = base_scheduler_factory(
-            optimizer=optimizer, n_steps=cycle_steps, warmup_steps=warmup_steps
+            optimizer=optimizer,
+            n_steps=cycle_steps + warmup_steps,
+            warmup_steps=warmup_steps,
+            **base_scheduler_kwargs
         )
 
         # Store attributes from base scheduler
@@ -161,6 +216,7 @@ class RepeatedScheduler(_LRScheduler):
         self.cycle_steps = cycle_steps
         self.current_cycle = 0
         self.step_in_cycle = 0
+        self.base_scheduler_factory = base_scheduler_factory
 
         super().__init__(optimizer, last_epoch)
 
@@ -178,23 +234,20 @@ class RepeatedScheduler(_LRScheduler):
         self.step_in_cycle += 1
 
         # Check if cycle complete
-        if self.step_in_cycle >= self.cycle_steps:
+        if self.step_in_cycle >= self.cycle_steps + (
+            self.warmup_steps if self.current_cycle == 0 else 0
+        ):
             self.current_cycle += 1
             self.step_in_cycle = 0
 
             # Reset for next cycle (if not last)
             if self.current_cycle < self.num_cycles:
                 # Reset base scheduler with no warmup for subsequent cycles
-                self.base_scheduler.last_epoch = -1
-                self.base_scheduler.__init__(
-                    self.optimizer,
+                self.base_scheduler = self.base_scheduler_factory(
+                    optimizer=self.optimizer,
                     n_steps=self.cycle_steps,
                     warmup_steps=0,
-                    **{
-                        k: v
-                        for k, v in self.base_scheduler.__dict__.items()
-                        if k in ["final_lr_fraction", "decay_fraction", "warmup_fraction"]
-                    }
+                    **self.base_scheduler_kwargs
                 )
 
         self.last_epoch = self.base_scheduler.last_epoch
