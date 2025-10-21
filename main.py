@@ -279,13 +279,24 @@ def run(cfg:OmegaConf, metric_logger=None):
     
     logger.info(f"Model initialized")
     trainer = instantiate(cfg.trainer)
-    trainer(
-        model=model,
-        optimizer=optimizer,
-        scheduler=scheduler,
-        training_state=training_state,
-        metric_logger=metric_logger,
-    ).train()
+    if cfg.distillation:
+        # assert isinstance(trainer, TrainerDistillation)
+        teacher_model = instantiate(cfg.model, _convert_="all").to(device)
+        trainer(
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            training_state=training_state,
+            metric_logger=metric_logger,
+        ).train()
+    else:
+        trainer(
+            model=model,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            training_state=training_state,
+            metric_logger=metric_logger,
+        ).train()
 
     cleanup()
 
