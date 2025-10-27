@@ -92,14 +92,17 @@ def calculate_dimension_importances(model: nn.Module, topk_dmodel, topk_dff):
 def initialize_projection_weights(
     model: nn.Module, dmodel_top_indices, dff_top_indices
 ):
+    print(f"Initializing projections START")
     model.head.linear.init_projections(dmodel_top_indices, None)
     model.embedding.init_projection(dmodel_top_indices)
 
+    print(f"Initializing projections before head")
     cloned_data = model.head.norm.weight.data.clone()
     model.head.norm.weight = torch.nn.Parameter(cloned_data[dmodel_top_indices])
     model.head.norm.normalized_shape = tuple(model.head.norm.weight.shape)
 
     for i, block in enumerate(model.encoder.blocks):
+        print(f"Initializing projections, block: {i} ---------------")
         layers_to_init_projections = [
             ("attention_layer.layer.q_proj", dmodel_top_indices, None),
             ("attention_layer.layer.k_proj", dmodel_top_indices, None),
