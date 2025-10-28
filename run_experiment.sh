@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=research/muP_MoE/configs/lr_plot_iwd.yaml --git_branch=MoE_lr_grid_independent_wd_2025-10-28_09-29-02 --skip_copy_code --custom_backends_module=research.muP_MoE.utils.backends
