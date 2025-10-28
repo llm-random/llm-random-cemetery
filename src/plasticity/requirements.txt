@@ -1,0 +1,4 @@
+lm-eval==0.4.4
+peft==0.13.2
+rouge-score==0.1.2
+sacrebleu==2.4.0
