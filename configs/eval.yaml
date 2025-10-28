@@ -1,0 +1,29 @@
+# Minimal evaluation config
+# Usage: python eval.py checkpoint.path=/path/to/checkpoint eval_task=wikitext
+
+defaults:
+  - _model/llama@_here_: nano_1B
+
+checkpoint:
+  path: null  # REQUIRED: Set to your checkpoint path
+  model_checkpoint_filename: __model_checkpoint_filename.pt
+  training_state_filename: null
+  only_weights: true
+
+# Model instantiation config (must match checkpoint architecture)
+# This gets passed to instantiate() to create the model
+model: ???  # Resolved via defaults from _model configs
+
+# Model parameters for conversion to HF format (must match model config)
+model_params:
+  dmodel: 768
+  dff: 2048
+  n_att_heads: 12
+  n_kvatt_heads: 2
+  head_dim: 64
+  nlayers: 12
+
+# Evaluation config
+eval_task: wikitext  # lm_eval task name (e.g., wikitext, hellaswag, arc_easy)
+eval_num_fewshot: 0
+eval_batch_size: 8
