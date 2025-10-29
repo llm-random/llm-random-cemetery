@@ -287,7 +287,38 @@ def run(cfg:OmegaConf, metric_logger=None):
         metric_logger=metric_logger,
     ).train()
 
+    print("XXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+
     cleanup()
+
+    print("YYYYYYYYYYYYYYYYYYYYYYYYYYYYY")
+
+    print(cfg.do_eval)
+    print(f'metric_logger["job/SLURM_JOB_ID"]: {metric_logger["job/SLURM_JOB_ID"]}')
+    print(f'metric_logger["job/SLURM_ARRAY_JOB_ID"]: {metric_logger["job/SLURM_ARRAY_JOB_ID"]}')
+
+    if cfg.do_eval:
+        from lm_eval import evaluator
+        import json
+
+        eval_model_args = (
+            f"pretrained={cfg.trainer.checkpoint.save.path},"
+            f"tokenizer=meta-llama/Llama-3.1-8B"
+        )
+
+        results = evaluator.simple_evaluate(
+            model="hf",
+            model_args=eval_model_args,
+            tasks=["wikitext", "piqa"],
+            limit=2,
+            device="cuda:0",
+        )
+
+        # Save results to JSON with default=str to handle torch dtypes
+        with open("eval_results.json", "w") as f:
+            json.dump(results, f, indent=2, default=str)
+
+        print(results)
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="exp")
