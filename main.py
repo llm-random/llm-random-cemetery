@@ -309,6 +309,8 @@ def run(cfg:OmegaConf, metric_logger=None):
             metric_logger=metric_logger,
         ).train()
 
+    
+
     cleanup()
 
     # Run evaluation if configured
