@@ -8,7 +8,7 @@ common:
   q_heads: 32
   kv_heads: 8
   vocab_size: 128256
-  sequence_length: 1024
+  sequence_length: ???
   head_norm: true
   init_scale: 0.1
   init_type: truncated_normal_fixed
