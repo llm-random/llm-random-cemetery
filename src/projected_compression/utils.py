@@ -1,5 +1,7 @@
 import torch
 
+from core.model import get_init_weight
+
 
 # 1) Using the SVD (orthogonal projectors)
 def svd_op(a):
@@ -36,12 +38,31 @@ def svd_g(a):
     # U_perp = U
     # V_perp = Vh.T
 
-    L = torch.randn(A.shape[0], U_perp.shape[1], device=A.device)
-    K = torch.randn(V_perp.shape[1], A.shape[1], device=A.device)
+    L = get_init_weight((A.shape[0], U_perp.shape[1]), fan_in=U_perp.shape[1], init_type="truncated_normal_fixed", scale=1.0).to(A.device)
+    K = get_init_weight((V_perp.shape[1], A.shape[1]), fan_in=A.shape[1], init_type="truncated_normal_fixed", scale=1.0).to(A.device)
 
     P1 = torch.eye(A.shape[0], device=A.device) + L @ U_perp.T
     P2 = torch.eye(A.shape[1], device=A.device) + V_perp @ K
     return P1, P2
+# def svd_g(a):
+#     # torch.backends.cuda.preferred_linalg_library("magma")
+
+#     A = a
+#     assert torch.isfinite(A).all(), "Matrix contains NaN or Inf"
+#     U, S, Vh = torch.linalg.svd(A, full_matrices=True)
+#     r = (S > 1e-12).sum().item()
+#     # print(r)
+#     U_perp = U[:, r:]
+#     V_perp = Vh[r:, :].T
+#     # U_perp = U
+#     # V_perp = Vh.T
+
+#     L = torch.randn(A.shape[0], U_perp.shape[1], device=A.device)
+#     K = torch.randn(V_perp.shape[1], A.shape[1], device=A.device)
+
+#     P1 = torch.eye(A.shape[0], device=A.device) + L @ U_perp.T
+#     P2 = torch.eye(A.shape[1], device=A.device) + V_perp @ K
+#     return P1, P2
 
 def _norm_index(idx, dim_size: int, device: torch.device):
     # None → full range
