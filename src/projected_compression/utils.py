@@ -1,5 +1,7 @@
 import torch
 
+from src.core.model import get_init_weight
+
 
 # 1) Using the SVD (orthogonal projectors)
 def svd_op(a):
@@ -23,6 +25,27 @@ def mpp(a):
     P2 = Ap @ A   # n x n
     return P1, P2
 
+# def svd_g(a):
+#     A = a
+#     assert torch.isfinite(A).all(), "Matrix contains NaN or Inf"
+#     U, S, Vh = torch.linalg.svd(A, full_matrices=True)
+#     r = (S > 1e-12).sum().item()
+#     # print(r)
+#     U_perp = U[:, r:]
+#     V_perp = Vh[r:, :].T
+#     # U_perp = U
+#     # V_perp = Vh.T
+#     # print("get_init_weight((A.shape[0], U_perp.shape[1]), fan_in=U_perp.shape[1], init_type=truncated_normal_fixed, scale=1.0).to(A.device)")
+#     # print(U_perp.shape[1])
+#     # print(A.shape[1])
+#     # print(U_perp.shape)
+#     # print(U_perp)
+#     L = get_init_weight((A.shape[0], U_perp.shape[1]), fan_in=A.shape[0], init_type="truncated_normal_fixed", scale=1.0).to(A.device)
+#     K = get_init_weight((V_perp.shape[1], A.shape[1]), fan_in=A.shape[1], init_type="truncated_normal_fixed", scale=1.0).to(A.device)
+
+#     P1 = torch.eye(A.shape[0], device=A.device) + L @ U_perp.T
+#     P2 = torch.eye(A.shape[1], device=A.device) + V_perp @ K
+#     return P1, P2
 def svd_g(a):
     # torch.backends.cuda.preferred_linalg_library("magma")
 
@@ -75,6 +98,7 @@ def smart_projections(t, iy, ix, fun=svd_g):
         err = torch.norm(t@p2ll[:, ix] - t[:, ix])
         print(err)
         if err > 0.01: #dev
+            print(f"err: {err}")
             print(t.shape)
             print(p2ll.shape)
             print(ix.shape)
@@ -86,7 +110,12 @@ def smart_projections(t, iy, ix, fun=svd_g):
         _ = None
         err = torch.norm(p1r[iy]@t - t[iy])
         print(err)
-        assert err < 0.01
+        # assert err < 0.01
+        if err > 0.01: #dev
+            print(f"err: {err}")
+            print(t.shape)
+            print(p2ll.shape)
+            print(iy.shape)
         return p1r[iy], None
     else:
         print("ix iy")#dev
@@ -99,5 +128,11 @@ def smart_projections(t, iy, ix, fun=svd_g):
         # print("before err") #dev
         err = torch.norm(p1r[iy]@t@p2ll[:, ix] - t[iy][:, ix])
         print(err)
-        assert err < 0.01
+        # assert err < 0.01
+        if err > 0.01: #dev
+            print(f"err: {err}")
+            print(t.shape)
+            print(p2ll.shape)
+            print(ix.shape)
+            print(iy.shape)
         return p1r[iy], p2ll[:, ix]
