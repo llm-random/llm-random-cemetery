@@ -8,6 +8,7 @@ common:
   n_blocks: ???
   q_heads: ???
   kv_heads: ???
+  rope_sequence_length: 128000
 
 
 model:
