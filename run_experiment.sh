@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/bdt_mp/2025.11.10_qknorm_dt.yaml --git_branch=diff_qk_test_2025-11-10_17-52-58 --skip_copy_code --custom_backends_module=research.attention_moe.backends
