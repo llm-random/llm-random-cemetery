@@ -2,13 +2,15 @@
 authors = ["Janek <jan.malasnicki@gmail.com>"]
 channels = ["conda-forge"]
 name = "nano"
-platforms = ["linux-64", "osx-arm64"]   # drop osx-64 (Intel Mac)
+platforms = ["linux-64", "osx-arm64"]   # linux and mac
 version = "0.1.0"
 
 [tasks]
 
 [dependencies]
 python = "==3.12.3"
+# lm_eval = { version = "==0.4.9.1", channel = "conda-forge" }
+# pydantic = { version = "==2.11.10", channel = "conda-forge" }
 
 [pypi-dependencies]
 # Linux: CUDA 12.8 wheels
@@ -25,6 +27,7 @@ torchdata = "==0.11.0"
 black = "==25.1.0"
 torchao = "==0.11.0"
 torchtune = "==0.6.1"
+lm-eval = "==0.4.9.1"   # ← move off conda to avoid pulling datasets 4.4.1
 
 # macOS (Apple Silicon): CPU wheels (PyPI has arm64 wheels)
 [target.osx-arm64.pypi-dependencies]
