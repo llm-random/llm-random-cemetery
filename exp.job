@@ -1,0 +1,49 @@
+#!/bin/bash -l
+
+#SBATCH --array=0-0
+#SBATCH --cpus-per-gpu=12
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=tiny_remote
+#SBATCH --mem-per-gpu=90G
+#SBATCH --nodes=1
+#SBATCH --partition=plgrid-gpu-gh200
+#SBATCH --time=00:10:00
+
+#---------- SCRIPT ----------
+module load ML-bundle/25.04
+PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/projected_compression
+# HF cache on project storage
+export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+
+# Use global Pixi installation (do NOT create envs in job dir)
+export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/pixi
+export PATH="$PIXI_HOME/bin:$PATH"
+
+# Keep Pixi envs & cache on project storage, not under ./ or $HOME
+export PIXI_ENV_ROOT=/net/storage/pr3/plgrid/plggllmeffi/pixi_envs
+export PIXI_CACHE_DIR=/net/storage/pr3/plgrid/plggllmeffi/pixi_cache
+export RATTLER_CACHE_DIR=$PIXI_CACHE_DIR
+export UV_CACHE_DIR=$PIXI_CACHE_DIR/uv
+
+# NOTE: no `pixi install` here on purpose
+# You can still call `pixi` manually in the job if needed,
+# but it won't create .pixi in the job directory.
+
+#-------- SCRIPT END --------
+
+
+export MASTER_ADDR=$(scontrol show hostname ${SLURM_NODELIST} | head -n 1)
+if [ -z "${SLURM_ARRAY_TASK_ID}" ]; then
+    export MASTER_PORT=$((40000 + ${SLURM_JOB_ID} % 10000))
+else
+    export MASTER_PORT=$((30000 + (${SLURM_JOB_ID} % 1250) * 8 + (${SLURM_ARRAY_TASK_ID} % 8)))
+fi
+srun pixi run torchrun --nnodes=${SLURM_NNODES}\
+  --nproc-per-node=${SLURM_GPUS_ON_NODE} \
+  --rdzv-id=${SLURM_JOBID} \
+  --rdzv-backend=c10d \
+  --rdzv-endpoint=${MASTER_ADDR}:${MASTER_PORT} \
+  main.py \
+    --config-path=generated_configs \
+    --config-name=config_${SLURM_ARRAY_TASK_ID}.yaml \
+    +checkpoint_config.slurm_array_task_id=${SLURM_ARRAY_TASK_ID}

@@ -2,7 +2,7 @@ infrastructure:
   server: helios
   slurm:
     cpus_per_gpu: 12
-    gres: ???
+    gres: "gpu:1"
     job-name: test
     mem_per_gpu: 90G
     nodes: 1
@@ -13,19 +13,22 @@ infrastructure:
     - "module load ML-bundle/25.04"
     - "PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/projected_compression"
     - |
-      VENV_PATH=$PROJECT_HOME_PATH/pc_venv
+      # HF cache on project storage
       export HF_HOME=$PROJECT_HOME_PATH/hf_cache
 
-      # Check if venv exists
-      if [ ! -d "$VENV_PATH" ]; then
-        echo 'Virtual environment not found. Creating...'
-        python3 -m venv "$VENV_PATH"
-        pip install --upgrade pip
-      fi 
-      source "$VENV_PATH/bin/activate"
-      pip install --upgrade -r requirements.txt
+      # Use global Pixi installation (do NOT create envs in job dir)
+      export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/pixi
+      export PATH="$PIXI_HOME/bin:$PATH"
 
+      # Keep Pixi envs & cache on project storage, not under ./ or $HOME
+      export PIXI_ENV_ROOT=/net/storage/pr3/plgrid/plggllmeffi/pixi_envs
+      export PIXI_CACHE_DIR=/net/storage/pr3/plgrid/plggllmeffi/pixi_cache
+      export RATTLER_CACHE_DIR=$PIXI_CACHE_DIR
+      export UV_CACHE_DIR=$PIXI_CACHE_DIR/uv
 
+      # NOTE: no `pixi install` here on purpose
+      # You can still call `pixi` manually in the job if needed,
+      # but it won't create .pixi in the job directory.
 
 cluster_switch:
   train_path_c4: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train"
