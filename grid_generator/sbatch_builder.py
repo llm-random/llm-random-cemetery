@@ -33,7 +33,15 @@ def create_master_node_configuration() -> list[str]:
 
 def create_program_call(config_folder):
     return [
-        "srun pixi run torchrun --nnodes=${SLURM_NNODES}\\",
+        'echo "=== PIXI DEBUG ==="',
+        'echo "PIXI_ENV_PREFIX=$PIXI_ENV_PREFIX"',
+        'echo "which python: $(which python)"',
+        'python -c "import sys, import importlib; '
+        'print(\'sys.executable=\', sys.executable); '
+        'import importlib; '
+        'm = importlib.import_module(\'lm_eval\'); '
+        'print(\'lm_eval=\', m.__file__)" || echo \'lm_eval import failed\'',
+        "srun torchrun --nnodes=${SLURM_NNODES}\\",
         "  --nproc-per-node=${SLURM_GPUS_ON_NODE} \\",
         "  --rdzv-id=${SLURM_JOBID} \\",
         "  --rdzv-backend=c10d \\",
@@ -43,6 +51,7 @@ def create_program_call(config_folder):
         "    --config-name=config_${SLURM_ARRAY_TASK_ID}.yaml \\",
         "    +checkpoint_config.slurm_array_task_id=${SLURM_ARRAY_TASK_ID}",
     ]
+
 
 
 def generate_sbatch_script(
