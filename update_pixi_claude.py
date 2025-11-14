@@ -1,27 +1,48 @@
+#!/usr/bin/env python
+"""
+Update pixi environment on remote clusters.
+
+This script:
+1. Reads cluster configuration from yaml files (e.g., configs/_cluster/entropy.yaml)
+2. Extracts the server hostname and PIXI_HOME path
+3. Connects to the remote server via SSH
+4. Copies pixi.toml and pixi.lock files to the remote cluster
+5. Runs 'pixi install' to update the environment
+"""
+
 import argparse
 import os
 import re
 import sys
-import shlex
 from pathlib import Path
 
 from omegaconf import OmegaConf
 from run_exp import ConnectWithPassphrase
-from grid_generator.sbatch_builder import create_slurm_parameters
 
 
-def extract_pixi_home(script_lines) -> str:
-    text = "\n".join(script_lines)
-    match = re.search(r"^export\s+PIXI_HOME=([^\s#]+)", text, re.MULTILINE)
+def extract_pixi_home(script_lines: list) -> str:
+    """
+    Extract PIXI_HOME path from cluster config script section.
 
-    if not match:
-        raise ValueError("PIXI_HOME not found in cluster configuration script")
+    Args:
+        script_lines: List of script commands from cluster config
 
-    return match.group(1).strip().replace('"', "")
+    Returns:
+        The PIXI_HOME path
+
+    Raises:
+        ValueError: If PIXI_HOME is not found in the script
+    """
+    for line in script_lines:
+        match = re.search(r"export\s+PIXI_HOME=([^\s]+)", line)
+        if match:
+            return match.group(1)
+
+    raise ValueError("PIXI_HOME not found in cluster configuration script")
 
 
 def get_project_root() -> Path:
-    # Get the project root directory (where pixi.toml is located).
+    """Get the project root directory (where pixi.toml is located)."""
     current = Path(__file__).resolve().parent
 
     # Look for pixi.toml in current and parent directories
@@ -50,21 +71,12 @@ def update_remote_pixi(cluster_config_path: str, dry_run: bool = False):
     # Extract server and PIXI_HOME
     server = cfg.infrastructure.server
     script_lines = cfg.infrastructure.script
-    slurm_config = cfg.infrastructure.slurm
-
-    # Override SLURM config for pixi install (doesn't need GPUs, shorter time)
-    slurm_config["time"] = "00:15:00"
-    slurm_config["gres"] = "gpu:1"
-    slurm_config["job-name"] = "update_pixi"
 
     try:
         pixi_home = extract_pixi_home(script_lines)
     except ValueError as e:
         print(f"Error: {e}")
         sys.exit(1)
-
-    # Set output file location to PIXI_HOME directory
-    slurm_config["output"] = f"{pixi_home}/pixi_install_%j.out"
 
     print(f"Cluster: {server}")
     print(f"PIXI_HOME: {pixi_home}")
@@ -92,10 +104,7 @@ def update_remote_pixi(cluster_config_path: str, dry_run: bool = False):
         print(f"  3. Copy pixi.toml to {pixi_home}/")
         if pixi_lock.exists():
             print(f"  4. Copy pixi.lock to {pixi_home}/")
-        print(f"  5. Run 'pixi install' on compute node using srun with SLURM params:")
-        slurm_params = create_slurm_parameters(slurm_config)
-        for param in slurm_params:
-            print(f"      {param}")
+        print(f"  5. Run 'pixi install' in {pixi_home}")
         return
 
     # Connect to remote server
@@ -116,36 +125,15 @@ def update_remote_pixi(cluster_config_path: str, dry_run: bool = False):
             print(f"Copying pixi.lock to {pixi_home}/...")
             connection.put(str(pixi_lock), remote=f"{pixi_home}/pixi.lock")
 
-        # Run pixi install on compute node using srun
-        print(f"\nRunning 'pixi install' on compute node...")
-
-        # Build srun command with SLURM parameters
-        slurm_params = create_slurm_parameters(slurm_config)
-        # Convert #SBATCH flags to srun flags (remove #SBATCH prefix)
-        srun_flags = [param.replace("#SBATCH ", "") for param in slurm_params]
-        srun_cmd = "srun " + " ".join(srun_flags)
+        # Run pixi install
+        print(f"\nRunning 'pixi install' in {pixi_home}...")
 
         # Set up PATH and other environment variables from the cluster config
-        text = "\n".join(script_lines)
         env_setup = []
-        for line in text.splitlines():
-            stripped = line.strip()
-
-            # skip empty lines and comments
-            if not line or line.startswith("#"):
-                continue
-
-            # include module load
-            if stripped.startswith("module load"):
-                env_setup.append(stripped)
-
-            # include all pixi-related exports
-            if stripped.startswith("export") and (
-                "PIXI" in stripped
-                or "XDG_" in stripped
-                or 'PATH="$PIXI_HOME' in stripped
-            ):
-                env_setup.append(stripped)
+        for line in script_lines:
+            if "export" in line and "PIXI" in line:
+                # Extract export commands for pixi-related environment variables
+                env_setup.append(line.strip())
 
         env_commands = " && ".join(env_setup) if env_setup else ""
 
@@ -154,10 +142,7 @@ def update_remote_pixi(cluster_config_path: str, dry_run: bool = False):
         else:
             install_command = f"cd {pixi_home} && pixi install"
 
-        cmd_quoted = shlex.quote(install_command)
-        full_command = f"{srun_cmd} bash -lc {cmd_quoted}"
-
-        result = connection.run(full_command, pty=True)
+        result = connection.run(install_command, pty=True)
 
         if result.ok:
             print("\n✓ Pixi environment updated successfully!")
@@ -170,13 +155,24 @@ def main():
     parser = argparse.ArgumentParser(
         description="Update pixi environment on remote clusters",
         formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Update pixi on entropy cluster
+  python update_pixi.py --cluster configs/_cluster/entropy.yaml
+
+  # Update pixi on helios cluster
+  python update_pixi.py --cluster configs/_cluster/helios.yaml
+
+  # Dry run (show what would be done)
+  python update_pixi.py --cluster configs/_cluster/entropy.yaml --dry-run
+        """,
     )
 
     parser.add_argument(
         "--cluster",
         type=str,
-        required=True,
-        help="Path to cluster configuration YAML file",
+        default="configs/_cluster/entropy.yaml",
+        help="Path to cluster configuration yaml file (default: configs/_cluster/entropy.yaml)",
     )
 
     parser.add_argument(
