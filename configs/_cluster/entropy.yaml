@@ -26,6 +26,12 @@ infrastructure:
     # activate pixi
     - 'cd "$PIXI_HOME"'
     - 'eval "$(pixi shell-hook)"'
+    - 'echo "cat pixi.toml"'
+    - 'cat pixi.toml'
+    - 'echo "pwd:"'
+    - 'pwd'
+    - 'echo "which python"'
+    - 'which python'
     - 'cd -'
 
 cluster_switch:
