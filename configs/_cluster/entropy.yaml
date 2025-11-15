@@ -26,6 +26,17 @@ infrastructure:
     # activate pixi
     - 'cd "$PIXI_HOME"'
     - 'eval "$(pixi shell-hook)"'
+    - 'echo "cat pixi.toml"'
+    - 'cat pixi.toml'
+    - 'echo "pwd:"'
+    - 'pwd'
+    - 'echo "which python"'
+    - 'which python'
+
+    - 'echo "[DEBUG] python=$(which python)"'
+    - 'echo "[DEBUG] pixi_prefix=$PIXI_ENV_PREFIX"'
+    - 'python -c "import lm_eval; print(\"[DEBUG] lm_eval=\", lm_eval.__file__)" || echo \"lm_eval import failed\"'
+
     - 'cd -'
 
 cluster_switch:
