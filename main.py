@@ -317,7 +317,8 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
 def run(cfg: OmegaConf, metric_logger=None):
     setup_enviroment()
 
-    if "distributed" in cfg.trainer and cfg.trainer.distributed is not None:
+    use_distributed = "distributed" in cfg.trainer and cfg.trainer.distributed is not None
+    if use_distributed:
         distributed_setup()
 
     model, optimizer, scheduler, training_state, metric_logger = (
@@ -327,7 +328,7 @@ def run(cfg: OmegaConf, metric_logger=None):
     common_config = instantiate(cfg.common)
 
     if model is not None:
-        logger.info(f"Model initialized")
+        logger.info("Model initialized")
 
         trainer = instantiate(cfg.trainer)
         trainer(
@@ -338,14 +339,26 @@ def run(cfg: OmegaConf, metric_logger=None):
             metric_logger=metric_logger,
         ).train()
 
-        # TODO
-        # finetuning
+    # --- all ranks reach here after training ---
+    if use_distributed and dist.is_initialized():
+        dist.barrier()   # make sure everyone is done with training
 
-        evaluator = instantiate(cfg.evaluator)
-        if evaluator is not None:
-            evaluator(metric_logger=metric_logger).eval()
+    # free GPU memory used by training model (VERY important before HF eval)
+    del model, optimizer, scheduler
+    torch.cuda.empty_cache()
 
-    cleanup()
+    # tear down torch.distributed AFTER barrier
+    if use_distributed and dist.is_initialized():
+        cleanup()
+
+    # ---- eval: only rank 0, no process group, fresh HF model ----
+    rank = int(os.environ.get("RANK", "0"))
+    if rank == 0 and cfg.get("evaluator") is not None:
+        logger.info("Starting eval on rank 0 (no DDP/FSDP)")
+        evaluator_cfg = instantiate(cfg.evaluator)
+        if evaluator_cfg is not None:
+            evaluator_cfg(metric_logger=metric_logger).eval()
+
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="exp")
