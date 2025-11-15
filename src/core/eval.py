@@ -2,8 +2,10 @@ from lm_eval import evaluator
 from attr import define
 from typing import Optional
 import json
+import os
 
 from src.core.metric_loggers import MetricLogger
+from src.core.checkpointing import get_full_checkpoint_path
 
 
 @define(slots=False)
@@ -16,8 +18,9 @@ class Evaluator:
     metric_logger: MetricLogger
 
     def eval(self):
+        full_ckpt_path = get_full_checkpoint_path(self.checkpoint_path)
         eval_model_args = (
-            f"pretrained={self.checkpoint_path}," f"tokenizer={self.tokenizer}"
+            f"pretrained={full_ckpt_path}," f"tokenizer={self.tokenizer}"
         )
 
         results = evaluator.simple_evaluate(
@@ -29,7 +32,7 @@ class Evaluator:
             log_samples=False,
         )
 
-        with open("eval_results.json", "w") as f:
+        with open(os.path.join(full_ckpt_path, "eval_results.json"), "w") as f:
             json.dump(results, f, indent=2, default=str)
 
         self.log_eval(results)

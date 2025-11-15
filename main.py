@@ -340,6 +340,8 @@ def run(cfg: OmegaConf, metric_logger=None):
 
         # TODO
         # finetuning
+        
+        cleanup()
 
         evaluator = instantiate(cfg.evaluator)
         if evaluator is not None:
