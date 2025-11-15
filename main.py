@@ -340,10 +340,15 @@ def run(cfg: OmegaConf, metric_logger=None):
 
         # TODO
         # finetuning
+        
+        logger.info('before eval')
 
-        evaluator = instantiate(cfg.evaluator)
-        if evaluator is not None:
-            evaluator(metric_logger=metric_logger).eval()
+        # eval doesn't use fsdp
+        if os.environ["RANK"] == "0":
+            logger.info('evaluating...')
+            evaluator = instantiate(cfg.evaluator)
+            if evaluator is not None:
+                evaluator(metric_logger=metric_logger).eval()
 
     cleanup()
 
