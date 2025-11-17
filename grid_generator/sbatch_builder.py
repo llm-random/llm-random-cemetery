@@ -51,7 +51,16 @@ def generate_sbatch_script(
     lines = ["#!/bin/bash -l", ""]
 
     slurm_parameters = create_slurm_parameters(slurm_config)
-    lines.append(f"#SBATCH --array=0-{n_experiments - 1}")
+
+    # Optional concurrency limit for the array:
+    # if slurm_config has "max_concurrent", we use 0-(n-1)%max_concurrent
+    max_concurrent = slurm_config.get("max_concurrent", None)
+    if max_concurrent is not None:
+        array_spec = f"0-{n_experiments - 1}%{max_concurrent}"
+    else:
+        array_spec = f"0-{n_experiments - 1}"
+
+    lines.append(f"#SBATCH --array={array_spec}")
 
     lines.extend(slurm_parameters)
 
