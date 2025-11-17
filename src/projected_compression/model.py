@@ -462,7 +462,7 @@ class ProjectedLinear(nn.Module):
 
         if smart_init:
             print(f"SMART P1 P2 - {str(smart_init)}") #dev
-            p1, p2 = smart_projections(self.weight, proj_out_topk_indices, proj_in_topk_indices, smart_init)
+            p1, p2, diff_weights = smart_projections(self.weight, proj_out_topk_indices, proj_in_topk_indices, smart_init)
 
             if self.result_in_features is not None:
                 weight = torch.zeros(
@@ -477,6 +477,8 @@ class ProjectedLinear(nn.Module):
                 )
                 weight = weight + p1.to("cpu")
                 self.projection_out_weight = nn.Parameter(weight, requires_grad=True)
+
+            # self.auxiliary_weight = nn.Parameter(diff_weights.to("cpu"), requires_grad=True)
         else:
             if self.result_in_features is not None:
                 weight = torch.zeros(
@@ -604,10 +606,17 @@ class ProjectedEmbedding(nn.Module):
             print(f"self.embedding.weight.shape {self.embedding.weight.shape}") #dev
             print(f"topk_dmodel_indices.shape {topk_dmodel_indices.shape}") #dev
             print(f"weight.shape {weight.shape}") #dev
-            _, p2 = smart_projections(self.embedding.weight, None, topk_dmodel_indices, smart_init)
+            _, p2, diff_weights = smart_projections(self.embedding.weight, None, topk_dmodel_indices, smart_init)
             weight = weight + p2.T.to('cpu')
+            # self.auxiliary_weight = nn.Embedding(
+            #     vocab_size, self.result_out_features, _weight=diff_weights.to('cpu')
+            # )
         else:
             weight[torch.arange(self.result_out_features), topk_dmodel_indices] = 1
+            zeros = torch.zeros(vocab_size, self.result_out_features, **factory_kwargs)
+            self.auxiliary_weight = nn.Embedding(
+                vocab_size, self.result_out_features, _weight=zeros
+            )
         self.projection = nn.Parameter(weight, requires_grad=True)
         self.initialized_compression = True
 
@@ -615,3 +624,4 @@ class ProjectedEmbedding(nn.Module):
         self.auxiliary_weight = nn.Embedding(
             vocab_size, self.result_out_features, _weight=zeros
         )
+
