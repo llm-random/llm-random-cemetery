@@ -12,10 +12,10 @@ common:
   sequence_length: 1024
   batch_size: 512
 
-  # dmodel: 448 # 10
-  # dff: 1728
-  dmodel: 960 # 30
-  dff: 3840
+  dmodel: 448 # 10
+  dff: 1728
+  # dmodel: 960 # 30
+  # dff: 3840
   # dmodel: 1344 # 50
   # dff: 5376
   # dmodel: 1728 # 75
@@ -82,7 +82,8 @@ infrastructure:
       # - 50p
       # - magnitude
       # - randomi
-      # - TEST
+      - TEST
+      - REBUTAL
   
   #helios
   # server: entropym
