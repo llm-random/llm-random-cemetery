@@ -41,7 +41,7 @@ def svd_g(a):
     return P1, P2
 
 
-def _norm_index(idx, dim_size: int, device: torch.device):
+def norm_index(idx, device: torch.device):
     # None → full range
     if idx is None:
         # return torch.arange(dim_size, device=device)
@@ -61,8 +61,8 @@ def _norm_index(idx, dim_size: int, device: torch.device):
     raise TypeError(f"Unsupported index type: {type(idx)}")
 
 def smart_projections(t, iy, ix, fun=svd_g):
-    iy = _norm_index(iy, t.shape[0], t.device)
-    ix = _norm_index(ix, t.shape[1], t.device)
+    iy = norm_index(iy, t.device)
+    ix = norm_index(ix, t.device)
     assert not (iy is None and ix is None)
     
     if iy is None:
@@ -114,6 +114,8 @@ def transfer_selected(
     - If only proj_in_topk_indices: copy whole rows
     - If only proj_out_topk_indices: copy whole columns
     """
+    ix = norm_index(ix, W.device)
+    iy = norm_index(iy, W.device)
 
     # Both rows and columns: submatrix, row by row (no R×C tensor)
     if ix is not None and iy is not None:
