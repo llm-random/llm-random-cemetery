@@ -15,7 +15,7 @@ from torchtune.modules.position_embeddings import (
 
 from torch.nn import Embedding as Embedding
 
-from src.projected_compression.utils import mpp, smart_projections, svd_g
+from src.projected_compression.utils import mpp, smart_projections, svd_g, transfer_selected
 from src.core.llama import repeat_kv
 from src.core.model import AttentionMechanism
 from torch.nn.init import trunc_normal_
@@ -510,6 +510,9 @@ class ProjectedLinear(nn.Module):
                 )
                 self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
 
+        occlusion_weight = torch.zeros(self.weight.shape) #dev
+        self.weight =  nn.Parameter(transfer_selected(self.weight, occlusion_weight, proj_out_topk_indices, proj_in_topk_indices)) #dev
+
         self.initialized_compression = True
     
     def finalize(self):
@@ -613,5 +616,9 @@ class ProjectedEmbedding(nn.Module):
             self.auxiliary_weight = nn.Embedding(
                 vocab_size, self.result_out_features, _weight=zeros
             )
+
+        occlusion_weight = torch.zeros(self.embedding.weight.shape) #dev
+        self.embedding.weight = nn.Parameter(transfer_selected(self.embedding.weight, occlusion_weight, None, topk_dmodel_indices)) #dev
+
         self.projection = nn.Parameter(weight, requires_grad=True)
         self.initialized_compression = True
