@@ -61,16 +61,16 @@ trainer:
     warmup_steps: 40
 
 
-  checkpoint:
-   load:
-    type: huggingface
+  # checkpoint:
+  #  load:
+    # type: huggingface
     # path: null #dev
-    path: "meta-llama/Llama-3.2-1B"
+    # path: "meta-llama/Llama-3.2-1B"
     # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_ta3/llama1_ta3/" # helios ta3b
     # path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama1_ta3/66751/0 # entropy ta10b
-   save:  
-    type: nano
-    path: null #dev
+  #  save:  
+  #   type: nano
+  #   path: null #dev
     # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
     # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
 
