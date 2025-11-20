@@ -46,17 +46,17 @@ trainer:
     warmup_steps: 80
 
   
-  checkpoint:
-   load:
-    type: llm-random
-    path: null #dev
-    # path: /home/mstefaniak/checkpoints/def_4ff_1024_92688.pt # entropy
-    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/def_4ff_1024_92688.pt # helios
-   save:  
-    type: nano
-    path: null #dev
-    # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
-    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
+  # checkpoint:
+  #  load:
+  #   type: llm-random
+  #   path: null #dev
+  #   # path: /home/mstefaniak/checkpoints/def_4ff_1024_92688.pt # entropy
+  #   # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/def_4ff_1024_92688.pt # helios
+  #  save:  
+  #   type: nano
+  #   path: null #dev
+  #   # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
+  #   # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
 
   train_dataloader:
     tokenize_fn: 
