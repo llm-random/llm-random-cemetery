@@ -510,9 +510,10 @@ class ProjectedLinear(nn.Module):
                 )
                 self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
 
-        # occlusion_weight = torch.zeros(self.weight.shape) #dev
+        occlusion_weight = torch.zeros(self.weight.shape) #dev
         # occlusion_weight = get_init_weight(self.weight.shape, fan_in=self.weight.shape[0], init_type="truncated_normal_fixed", scale=1.0) #dev
-        # self.weight =  nn.Parameter(transfer_selected(self.weight, occlusion_weight, proj_out_topk_indices, proj_in_topk_indices)) #dev Occlusion
+        self.weight =  nn.Parameter(transfer_selected(self.weight, occlusion_weight, proj_out_topk_indices, proj_in_topk_indices)) #dev Occlusion
+        # print(self.weight) #dev
 
         self.initialized_compression = True
     
@@ -618,9 +619,10 @@ class ProjectedEmbedding(nn.Module):
                 vocab_size, self.result_out_features, _weight=zeros
             )
 
-        # occlusion_weight = torch.zeros(self.embedding.weight.shape) #dev
+        occlusion_weight = torch.zeros(self.embedding.weight.shape) #dev
         # occlusion_weight = get_init_weight(self.embedding.weight.shape, fan_in=self.embedding.weight.shape[0], init_type="truncated_normal_fixed", scale=1.0) #dev
-        # self.embedding.weight = nn.Parameter(transfer_selected(self.embedding.weight, occlusion_weight, None, topk_dmodel_indices)) #dev Occlusion
+        self.embedding.weight = nn.Parameter(transfer_selected(self.embedding.weight, occlusion_weight, None, topk_dmodel_indices)) #dev Occlusion
+        # print(self.embedding.weight) #dev
 
         self.projection = nn.Parameter(weight, requires_grad=True)
         self.initialized_compression = True
