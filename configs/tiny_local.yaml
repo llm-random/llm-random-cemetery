@@ -24,6 +24,7 @@ trainer:
 infrastructure:
   metric_logger:
     name: tiny_Local
+    project_name: pmtest/tml-bgw
     tags:
       - nano
       - local
