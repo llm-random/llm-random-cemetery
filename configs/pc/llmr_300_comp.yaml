@@ -46,17 +46,17 @@ trainer:
   scheduler:
     warmup_steps: 80
   
-  checkpoint:
-   load:
-    type: llm-random
-    path: null #dev
-    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/def_4ff_1024_92688.pt # helios
-    # path: /home/mstefaniak/checkpoints/def_4ff_1024_92688.pt # entropy
-   save:  
-    type: nano
-    path: null #dev
-    # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
-    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
+  # checkpoint:
+  #  load:
+  #   type: llm-random
+  #   path: null #dev
+  #   # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/def_4ff_1024_92688.pt # helios
+  #   # path: /home/mstefaniak/checkpoints/def_4ff_1024_92688.pt # entropy
+  #  save:  
+  #   type: nano
+  #   path: null #dev
+  #   # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
+  #   # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
 
 
   train_dataloader:
@@ -89,11 +89,14 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
     _partial_: true
-    dimensions_importances_path: /home/mstefaniak/checkpoints/importances/67735/0/minitron_dimensions_importances.pt # activations entropy llmr300
+    # dimensions_importances_path: /home/mstefaniak/checkpoints/importances/67735/0/minitron_dimensions_importances.pt # activations entropy llmr300
     # dimensions_importances_path: asd/minitron_dimensions_importances.pt # activations helios llmr300
 
     # # # # dimensions_importances_path: /home/mstefaniak/checkpoints/importances/67735/0/random_dimensions_importances.pt # random entropy llmr300
     # # # # dimensions_importances_path: asd/random_dimensions_importances.pt # random helios llmr300
     target_dmodel: ${common.dmodel}
     target_dff: ${common.dff}
+    smart_init: ${common.smart_init}
 
+    dimensions_importances_path: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/random_dimensions_importances.pt # entropy RANDOM llama31
+    # dimensions_importances_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_1_fw_importances/random_dimensions_importances.pt # #helios RANDOM llama31
