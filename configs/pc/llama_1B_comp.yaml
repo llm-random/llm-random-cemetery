@@ -34,8 +34,8 @@ trainer:
   gradient_accumulation_steps: 8
   # gradient_accumulation_steps: 4
   ^n_steps: 
-    # - 101
-    - 2048
+    - 101
+    # - 2048
     # - 4096
     # - 6144
     # - 8192
@@ -49,9 +49,9 @@ trainer:
   # learning_rate: 14 #optimal fo randomi 50%
   ^learning_rate: 
   #   # - 10
-    - 11
+    # - 11
     - 12
-    - 13
+    # - 13
     # - 14
   #   # - 15
   #   # - 16
@@ -64,15 +64,14 @@ trainer:
   checkpoint:
    load:
     type: huggingface
-    # path: null #dev
     path: "meta-llama/Llama-3.2-1B"
     # path: "/net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama1_ta3/llama1_ta3/" # helios ta3b
     # path: /storage_nvme_3/mstefaniak/nano_checkpoints/llama1_ta3/66751/0 # entropy ta10b
-   save:  
-    type: nano
-    path: null #dev
-    # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
-    # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
+  #  save:  
+  #   type: nano
+  #   path: null #dev
+  #   # path: /storage_nvme_3/mstefaniak/nano_checkpoints/tmp # entropy
+  #   # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/tem # #helios
 
 infrastructure:
   metric_logger:
@@ -88,19 +87,20 @@ infrastructure:
       # - 50p
       # - magnitude
       # - randomi
-      # - TEST
+      - TEST
       # - occlusion
       # - random_occlude
       # - smart_init
       # - no_Wa
-      - random_W
+      # - random_W
       - REBUTAL
+      - print_occluded_weights
   
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
-    # time: "0-0:15:00"
-    time: "0-3:00:00"
+    time: "0-0:20:00"
+    # time: "0-3:00:00"
     # time: "0-8:00:00"
     # time: "0-24:00:00"
 
