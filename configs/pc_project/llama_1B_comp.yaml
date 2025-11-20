@@ -11,10 +11,10 @@ common:
   sequence_length: 1024
   batch_size: 512
 
-  # dmodel: 448 # 10
-  # dff: 1728
-  dmodel: 960 # 30
-  dff: 3840
+  dmodel: 448 # 10
+  dff: 1728
+  # dmodel: 960 # 30
+  # dff: 3840
   # dmodel: 1344 # 50
   # dff: 5376
   # dmodel: 1728 # 75
@@ -32,8 +32,8 @@ trainer:
     # - 12288
     # - 16384
 
-  # learning_rate: 12 # optimal 10%
-  learning_rate: 13 # optimal 30%
+  learning_rate: 12 # optimal 10%
+  # learning_rate: 13 # optimal 30%
   # learning_rate: 14 # optimal 1B 50%
   # learning_rate: 15 # optimal 75%
   # learning_rate: 14 # optimal for randomi 50%
@@ -45,9 +45,9 @@ trainer:
    load:
     type: huggingface
     path: "meta-llama/Llama-3.2-1B"
-   save:  
-    type: nano
-    path: ??? # CHANGE
+  #  save:  
+  #   type: nano
+  #   path: ??? # CHANGE
 
 
 infrastructure:
@@ -59,11 +59,13 @@ infrastructure:
       - llama_1
       - projected_compression
       # - ta10b
-      # - 10p
-      - 30p
+      - 10p
+      # - 30p
       # - 50p
       # - magnitude
       # - randomi
+      - TEST
+      - PR
   
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
@@ -74,6 +76,6 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
     _partial_: true
-    dimensions_importances_path: ??? # CHANGE
+    dimensions_importances_path: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy ACTIVATIONS llama31 ######################################
     target_dmodel: ${common.dmodel}
     target_dff: ${common.dff}
