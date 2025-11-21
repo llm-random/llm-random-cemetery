@@ -34,10 +34,10 @@ common:
   # batch_size: 64
 
 
-  # dmodel: 448 # 10
-  # dff: 1728
-  dmodel: 960 # 30
-  dff: 3840
+  dmodel: 448 # 10
+  dff: 1728
+  # dmodel: 960 # 30
+  # dff: 3840
   # dmodel: 1344 # 50
   # dff: 5376
   # dmodel: 1728 # 75
@@ -79,12 +79,12 @@ trainer:
   # learning_rate: 12 # optimal 10% smart init
   # learning_rate: 13 # optimal 30% smart init
   # learning_rate: asd # optimal 50% smart init
-  ^learning_rate: 
+  # ^learning_rate: 
   # #   # - 10
     # - 11
-    # - 12
+    - 12
     - 13
-    # - 14
+    - 14
     # - 15
   # #   # - 16
   # #   # - 17
@@ -132,7 +132,7 @@ infrastructure:
       # - smart_init
       # - mpp
       # - svd
-      - better_distillation
+      # - better_distillation
       # - better_base
       # - svd_better
       # - mpp_better
@@ -147,15 +147,16 @@ infrastructure:
       # - auxilary_error_init
       - REBUTAL
       - occlusion
+      - lr_tune
   
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
     # time: "0-0:15:00"
-    time: "0-3:30:00"
+    # time: "0-3:30:00"
     # time: "0-12:00:00"
-    # time: "0-24:00:00"
+    time: "0-24:00:00"
 
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
