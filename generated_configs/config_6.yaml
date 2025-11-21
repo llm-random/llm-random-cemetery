@@ -1,0 +1,236 @@
+_run_: true
+
+apply_functions:
+- _partial_: true
+  _target_: src.projected_compression.pruning.prune
+  dimensions_importances_path: /home/mstefaniak/checkpoints/importances/95923/0/random_dimensions_importances.pt
+  target_dff: ${common.target_dff}
+  target_dmodel: ${common.target_dmodel}
+
+cluster_switch:
+  eval_path_c4: /storage_nvme_1/llm-random/datasets/c4/validation
+  eval_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+  train_path_c4: /storage_nvme_1/llm-random/datasets/c4/train
+  train_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+
+common:
+  _target_: src.definitions.Common
+  batch_size: 12288
+  datt: 1024
+  dff: 4096
+  dmodel: 1024
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  kv_heads: 16
+  model_type: gpt
+  n_blocks: 16
+  q_heads: 16
+  sequence_length: 16
+  target_dff: 1920
+  target_dmodel: 480
+  vocab_size: 50257
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  metric_logger:
+    _target_: src.definitions.MetricLoggerConfig
+    heavy_metrics_calculation_interval: 100
+    name: LLMR_300_HP
+    new_neptune_job: true
+    project_name: pmtest/llm-random
+    tags:
+    - nano
+    - pc
+    - llmr_300
+    - hard_pruning
+    - 35p
+    - TEST
+    - REBUTAL
+    - speedup
+    type: neptune
+  script:
+  - PROJECT_HOME_PATH=/storage_nvme_4/projected_compression
+  - "VENV_PATH=$PROJECT_HOME_PATH/pc_venv\nexport HF_HOME=$PROJECT_HOME_PATH/hf_cache\n\
+    \n# Check if venv exists\nif [ ! -d \"$VENV_PATH\" ]; then\n  echo 'Virtual environment\
+    \ not found. Creating...'\n  python3 -m venv \"$VENV_PATH\"\n  pip install --upgrade\
+    \ pip\nfi \nsource \"$VENV_PATH/bin/activate\"\npip install --upgrade -r requirements.txt\n"
+  server: entropy
+  slurm:
+    cpus_per_gpu: 16
+    gres: gpu:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 125G
+    nodes: 1
+    partition: h100
+    time: 0-4:00:00
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.llm_random_weight_init
+      scale: 1
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.RoPEAttention
+        dmodel: ${common.dmodel}
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.datt}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        kv_heads: ${common.kv_heads}
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.datt}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.datt}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        rope_base: 10000
+        rope_scale_freqs: false
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.FeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.LayerNorm
+        bias: false
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.llm_random_weight_init
+        scale: 1
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.LayerNorm
+      bias: false
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+overrides:
+- common.batch_size=12288
+- trainer.n_steps=201
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: null
+      training_state_filename: null
+      type: nano
+    save:
+      interval: -1
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: null
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset_path: ${cluster_switch.eval_path_c4}
+    dataset_split: validation
+    dataset_type: c4
+    num_workers: 8
+    seed: 123
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.gpt2_tokenize_fn
+    total_batch_size: ${common.batch_size}
+    use_new_sampling_method: true
+    world_size_independent: false
+  eval_interval: 100
+  exp_learning_rate: null
+  gradient_accumulation_steps: 1
+  gradient_clipping: 1.0
+  learning_rate: 12
+  n_eval_steps: 10
+  n_steps: 201
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: 80
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset_path: ${cluster_switch.train_path_c4}
+    dataset_split: train
+    dataset_type: c4
+    num_workers: 8
+    seed: 1000
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.gpt2_tokenize_fn
+    total_batch_size: ${common.batch_size}
+    use_new_sampling_method: true
+    world_size_independent: false
+  weight_decay: 0.1
