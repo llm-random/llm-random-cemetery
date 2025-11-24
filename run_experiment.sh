@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/bdt_md/2025.11.24_lora_dropout_ablation.yaml --git_branch=diff_ablation_lora_dropout_2025-11-24_16-55-45 --skip_copy_code --custom_backends_module=research.attention_moe.backends
