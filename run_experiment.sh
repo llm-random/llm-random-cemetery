@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/context/2025.11.25_gqa4_long.yaml --git_branch=context_loss_2025-11-25_23-26-04 --skip_copy_code --custom_backends_module=research.attention_moe.backends
