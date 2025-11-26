@@ -1,0 +1,35 @@
+Combined Response
+We thank all reviewers for their time and thoughtful comments. We appreciate the feedback and agree with some of the weaknesses raised. Below we address the main points raised across the reviews. We also state our decision to withdraw the submission.
+
+simpleP vs. μP in MoE (Reviewers R1 & R2):
+Reviewers noted that simpleP performs nearly as well as μP in our experiments, raising the question of what practical benefits the theoretically grounded μP provides.
+
+To clarify: the only structural difference is that μP reparameterizes the router matrix as an output weight, whereas simpleP leaves the router unscaled.
+
+At very large widths, the router’s updates diverge when left unscaled (following the TP5 theory). This is why, in theory, μP is the correct scaling and simpleP is not.
+
+However, at the modest widths we could afford to train (≤ 2048 model dimension), the instability does not appear. Thus, the empirical gap between μP and simpleP is negligible at our scale. It’s difficult to speculate about the scale at which we could notice it.
+
+2. Experimental details (R1, R2)
+
+We ran these ablations under simpleP only.
+The reason is that the parameterization does not affect expert-count or granularity scaling, since these experiments do not change model width. Thus, simpleP and standard parameterization behave identically in these sweeps. muP wouldn’t make sense, since the whole derivation assumes constant expert count.
+
+We admit that we could do better job with explaining the details of the experiments, as not everything was clear for all reviewers.
+
+3. Limited experimental scope (R1 & R3)
+
+We agree that the empirical exploration covers only a limited portion of the possible search space. Given our compute constraints, we made a deliberate choice: we prioritized training larger models for longer, rather than allocating the same budget to running many smaller experiments across multiple datasets or modalities. In our view, understanding the behavior of scaling rules at longer training runs was more informative than, for example, repeating the same experiment on an additional dataset. Moreover, we want to mention that we performed grid over MoE model widths in 2 settings, smaller (in the appendix) and larger (Figure 1). The larger setting has 16 layers trained for 5.2B tokens, having ~ 0.8B active 4.5B total parameters at the largest width.
+
+That said, we acknowledge that some additional experimental angle, such as testing the transfer of another hyperparameter, would meaningfully strengthen the empirical support for the theory.
+
+4. Paper length (R3)
+
+We accept R3’s point that the paper is short (6 pages) given the available space. This was a deliberate choice to keep the submission focused, but we see that this brevity made the contribution appear weaker.
+
+Decision
+
+We respectfully withdraw the submission.
+We are grateful for the reviewers’ constructive comments, and we plan to substantially expand the experimental section, deepen the theoretical comparison of μP and simpleP, and improve clarity and structure in a future version.
+
+Thank you again for your time.
