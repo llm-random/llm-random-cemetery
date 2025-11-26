@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/context/2025.11.26_mha_short_ot.yaml --git_branch=context_loss_2025-11-26_10-38-53 --skip_copy_code --custom_backends_module=research.attention_moe.backends
