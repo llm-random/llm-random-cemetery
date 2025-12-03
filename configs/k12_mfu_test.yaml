@@ -1,0 +1,62 @@
+defaults:
+  - _cluster@_here_: entropy_a100
+  - _model@_here_: tiny
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+  - _eval@_here_: none
+
+common:
+  dmodel: 768
+  dff: 2048
+  datt: 768
+  n_blocks: 12
+  q_heads: 12
+  kv_heads: 1
+  vocab_size: 50257
+  sequence_length: 4096
+  batch_size: 32
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  model_type: gpt
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 100_000
+  ^learning_rate: [1e-3, 5e-4]
+
+  checkpoint:
+    save:
+      type: nano
+      path: checkpoint
+
+  train_dataloader:
+    tokenize_fn:
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    tokenize_fn:
+      _target_: src.core.datasets.gpt2_tokenize_fn
+
+
+infrastructure:
+  # max_concurrent_jobs: 1
+
+  metric_logger:
+    name: context_scaling
+    heavy_metrics_calculation_interval: 1000
+    tags:
+      - nano
+      - context_scaling
+      - long_seq
+      - k12
+      - MQA
+      - test_a100
+
+  slurm:
+    time: "12:00:00"
+    # time: "00:10:00"
+    gres: gpu:4
+    job-name: ${infrastructure.metric_logger.name}
