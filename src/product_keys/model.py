@@ -110,3 +110,91 @@ class RoPETopKAttention(nn.Module):
         attention_output = torch.matmul(attention_weight, v)
 
         return self.o_proj(attention_output.transpose(1, 2).contiguous().flatten(-2))
+
+
+class RoPEProductKeysEncoderAttention(nn.Module):
+    def __init__(
+        self,
+        q_proj_fn,
+        k_proj_fn,
+        v_proj_fn,
+        o_proj_fn,
+        dmodel,
+        q_heads,
+        kv_heads,
+        seq_len,
+        rope_base,
+        rope_scale_freqs: bool,
+        top_k: int,
+    ):
+        super().__init__()
+
+        assert math.sqrt(seq_len).is_integer(), "seq_len must be a perfect square"
+        self.m = int(math.sqrt(seq_len))
+
+        self.q_proj = q_proj_fn()
+        self.k_proj = k_proj_fn()
+        self.v_proj = v_proj_fn()
+        self.o_proj = o_proj_fn()
+
+        self.q_heads = q_heads
+        self.kv_heads = kv_heads
+        self.dhead = self.q_proj.weight.shape[0] // self.q_heads
+        self.dmodel = dmodel
+
+        self.top_k = top_k
+
+        self.rope = RoPE(
+            dhead=self.dhead,
+            length=seq_len,
+            base=rope_base,
+            apply_freq_scaling=rope_scale_freqs,
+        )
+
+    def __apply_topk_mask(self, x, fill_value: float):
+        top_k_values, _ = torch.topk(x, self.top_k, dim=-1)
+        threshold = top_k_values[..., -1].unsqueeze(-1)
+        mask_topk = x < threshold
+        return x.masked_fill(mask_topk, fill_value)
+
+    def forward(self, x):
+        query_states = self.q_proj(x)
+        key_states = self.k_proj(x)
+        value_states = self.v_proj(x)
+
+        batch, seq_len = x.shape[:-1]
+        q = query_states.view(batch, seq_len, self.q_heads, -1).transpose(1, 2)
+        q = self.rope(q)
+        k = key_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
+        k = self.rope(k)
+
+        v = value_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
+
+        from src.core.llama import repeat_kv
+
+        k = repeat_kv(k, self.q_heads // self.kv_heads)
+        v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        k = k.view(batch, self.q_heads, self.m, self.m, self.dhead)
+        k1 = k[..., : k.size(-1) // 2].sum(-2)
+        k2 = k[..., k.size(-1) // 2 :].sum(-3)
+
+        q1 = q[..., : q.size(-1) // 2]
+        q2 = q[..., q.size(-1) // 2 :]
+
+
+
+        attention_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.dhead)
+        causal_mask = torch.triu(
+            torch.ones(seq_len, seq_len, device=attention_scores.device), diagonal=1
+        ).bool()
+        attention_scores = attention_scores.masked_fill(causal_mask, float("-inf"))
+
+        attention_scores = self.__apply_topk_mask(
+            attention_scores, fill_value=float("-inf")
+        )
+        attention_weight = F.softmax(attention_scores, dim=-1)
+
+        attention_output = torch.matmul(attention_weight, v)
+
+        return self.o_proj(attention_output.transpose(1, 2).contiguous().flatten(-2))
