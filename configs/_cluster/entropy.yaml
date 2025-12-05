@@ -10,7 +10,7 @@ infrastructure:
     time: "2-00:00:00"
 
   script:
-    - "PROJECT_HOME_PATH=/storage_nvme_4/projected_compression"
+    - "PROJECT_HOME_PATH=/storage_nvme_4/product_keys"
     - |
       VENV_PATH=$PROJECT_HOME_PATH/pc_venv
       export HF_HOME=$PROJECT_HOME_PATH/hf_cache
