@@ -1,0 +1,105 @@
+n_heads: 10
+proj_dim: 20
+top_k: 8
+
+attention_fn:
+  _target_: src.core.model.RoPEAttention
+  _partial_: true
+  dmodel: 100
+  q_heads: ${n_heads}
+  kv_heads: ${n_heads}
+  seq_len: 30
+  q_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  k_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  v_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  o_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  rope_base: 500000
+  rope_scale_freqs: true
+
+
+topk_attention_fn:
+  _target_: src.product_keys.model.RoPETopKAttention
+  _partial_: true
+  dmodel: 100
+  q_heads: ${n_heads}
+  kv_heads: ${n_heads}
+  seq_len: 30
+  q_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  k_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  v_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  o_proj_fn:
+    _target_: src.core.model.Linear
+    _partial_: true
+    in_features: ${proj_dim}
+    out_features: ${proj_dim}
+    partial_init_fn:
+      _target_: src.product_keys.model.deterministic_weight_init
+      _partial_: true
+      scale: 1
+
+  rope_base: 500000
+  rope_scale_freqs: true
+  top_k: ${top_k}
