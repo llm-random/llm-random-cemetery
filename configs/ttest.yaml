@@ -14,7 +14,7 @@ common:
 trainer:
   gradient_accumulation_steps: 1
   n_steps: 100
-  ^learning_rate: [1e-3, 1e-4]
+  learning_rate: 1e-3
 
   checkpoint:
     save:
@@ -36,5 +36,5 @@ infrastructure:
     gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 10
+# evaluator:
+#   limit: null
