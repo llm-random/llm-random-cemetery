@@ -98,8 +98,17 @@ def smollm_1700_tokenize_fn():
     )
 
     def tokenize_function(examples):
+        if "text" in examples and "content" in examples:
+            raise KeyError("Both 'text' and 'content' found. Please specify which one to use.")
+        elif "text" in examples:
+            source_col = "text"
+        elif "content" in examples:
+            source_col = "content"
+        else:
+            raise KeyError(f"Neither 'text' nor 'content' found. Available keys: {list(examples.keys())}")
+        texts =  examples[source_col]
         batch_encodings = tokenizer(
-            examples["text"],
+            texts,
             truncation=False,
             max_length=int(1e10),
         )
@@ -241,17 +250,106 @@ class FineWebDataset(GenericDataset):
     pass
 
 
+# TODO c4 z HF?
+class MixtureOfDatasets(IterableDataset):
+    BUFFER_SIZE = 10000
+    NUM_SHARDS = 64
+
+    def __init__(
+            self,
+            sequence_length,
+            tokenize_fn: Callable,
+            paths: Optional[List[str]] = None,
+            weights: Optional[List[float]] = None,
+            split: Optional[str] = None,
+            seed: Optional[int] = None,
+            use_new_sampling_method: bool = True,
+            shuffle: bool = True,
+            world_size_independent: bool = False,
+    ):
+        self.world_size = int(os.environ.get("WORLD_SIZE"))
+        self.rank = int(os.environ.get("RANK"))
+        self.rng = random.Random(seed)
+        self.sequence_length = sequence_length
+        self.tokenize_fn = tokenize_fn
+        self.paths = paths
+        self.weights = weights
+        self.split = split
+        self.seed = seed
+        self.use_new_sampling_method = use_new_sampling_method
+        self.shuffle = shuffle
+        self.world_size_independent = world_size_independent
+        self.data_generator = None
+        self.datasets = [GenericDataset(
+            sequence_length=sequence_length,
+            split=split,
+            tokenize_fn=tokenize_fn,
+            path=path,
+            seed=seed,
+            use_new_sampling_method=use_new_sampling_method,
+            shuffle=shuffle,
+            world_size_independent=world_size_independent,
+        ) for path in paths]
+
+    def __iter__(self):
+        rng = random.Random(self.seed)
+        dataset_iterators = [iter(dataset) for dataset in self.datasets]
+        used = np.zeros(len(self.datasets), dtype=np.int64)
+        step = 0
+
+        while True:
+            step += 1
+            expected = (step * np.array(self.weights)).astype(np.int64)
+            diffs = expected - used
+            max_diff = np.max(diffs)
+            candidate_indices = [i for i, diff in enumerate(diffs) if diff == max_diff] if step >= 100 else list(range(len(self.datasets)))
+            chosen_index = rng.choice(candidate_indices)
+            used[chosen_index] += 1
+            try:
+                sample = next(dataset_iterators[chosen_index])
+            except StopIteration:
+                dataset_iterators[chosen_index] = iter(self.datasets[chosen_index])
+                sample = next(dataset_iterators[chosen_index])
+            print(f"{self.split}, step {step}: Chose dataset {self.paths[chosen_index]}")
+            yield sample
+
+
 def collate_wrapper(examples):
     return torch.from_numpy(np.array(examples))
 
 
-def get_mixture_of_datasets_dataloader(datasets: dict[str, int], dataset_split, tokenize_fn, total_batch_size, sequence_length,
+def get_mixture_of_datasets_dataloader(datasets: dict[str, int], dataset_split, tokenize_fn, total_batch_size,
+                                       sequence_length,
                                        num_workers, seed, shuffle, use_new_sampling_method, world_size_independent,
                                        collate_fn: Callable = collate_wrapper):
-    print(datasets)
+    # print(datasets)
     dataset_paths, dataset_weights = zip(*datasets.items())
-    assert abs(sum(dataset_weights) - 1) < 1e-6, "Dataset weights must sum to 1"
+    assert abs(sum(dataset_weights) - 1) < 1e-6, f"Dataset weights must sum to 1, current sum: {sum(dataset_weights)}"
+    world_size = int(os.environ["WORLD_SIZE"])
+    batch_size_per_device = total_batch_size // world_size
+    logger.debug(f"Batch size per device: {batch_size_per_device}")
+    logger.debug(f"Total: {total_batch_size}")
+    dataset = MixtureOfDatasets(
+        sequence_length=sequence_length + 1,
+        split=dataset_split,
+        tokenize_fn=tokenize_fn,
+        paths=list(dataset_paths),
+        weights=list(dataset_weights),
+        seed=seed,
+        use_new_sampling_method=use_new_sampling_method,
+        shuffle=shuffle,
+        world_size_independent=world_size_independent,
+    )
 
+    dataloader = DataLoader(
+        dataset,
+        batch_size=batch_size_per_device,
+        collate_fn=collate_fn,
+        pin_memory=True,
+        num_workers=num_workers,
+    )
+
+    return dataloader
 
 
 def get_dataloader(
