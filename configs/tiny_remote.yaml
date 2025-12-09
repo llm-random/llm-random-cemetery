@@ -1,11 +1,11 @@
 defaults:
-  - _cluster@_here_: entropy_a100
+  - _cluster@_here_: entropy
   - _model@_here_: tiny
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _eval@_here_: default
+  - _eval@_here_: none
 
 common:
   sequence_length: 128
@@ -33,8 +33,8 @@ infrastructure:
 
   slurm:
     time: "00:10:00"
-    gres: gpu:1
+    gres: gpu:2
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 10
+# evaluator:
+#   limit: 10
