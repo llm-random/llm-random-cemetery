@@ -32,8 +32,8 @@ infrastructure:
       - tiny
 
   slurm:
-    time: "00:10:00"
-    gres: gpu:1
+    time: "2-00:10:00"
+    gres: gpu:2
     job-name: ${infrastructure.metric_logger.name}
 
 evaluator:
