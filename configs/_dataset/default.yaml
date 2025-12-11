@@ -3,7 +3,6 @@ trainer:
     _target_: src.core.datasets.get_dataloader
 #    dataset_path: ???
     dataset_split: ???
-#    dataset_type: ???
     num_workers: ???
     seed: 1000
     sequence_length: ${common.sequence_length}
@@ -15,9 +14,8 @@ trainer:
 
   eval_dataloader:
     _target_: src.core.datasets.get_dataloader
-    dataset_path: ???
+#    dataset_path: ???
     dataset_split: ???
-    dataset_type: ???
     num_workers: ???
     seed: 123
     sequence_length: ${common.sequence_length}

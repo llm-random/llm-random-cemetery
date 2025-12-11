@@ -6,15 +6,15 @@ trainer:
   train_dataloader:
     dataset_path: data
     dataset_split: train
-    dataset_type: c4
     num_workers: 0
     tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: gpt2
 
   eval_dataloader:
     dataset_path: data_eval
     dataset_split: validation
-    dataset_type: c4
     num_workers: 0
     tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: gpt2
