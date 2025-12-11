@@ -1,5 +1,5 @@
 defaults:
-  - _cluster@_here_: local
+  - _cluster@_here_: entropy
   - _model@_here_: tiny
   - _trainer@_here_: llama
   - _dataset@_here_: smollm_corpus
@@ -9,7 +9,8 @@ defaults:
 
 common:
   sequence_length: 16
-  batch_size: 2
+#  batch_size: 2
+  batch_size: 1
 
 trainer:
   gradient_accumulation_steps: 1
@@ -29,6 +30,10 @@ infrastructure:
       - local
       - tiny
 
-evaluator:
-  limit: 1
-  device: cpu
+  slurm:
+    job-name: dataset_mixture_test
+    gres: gpu:1
+
+evaluator: null
+#  limit: 1
+#  device: cpu

@@ -145,9 +145,9 @@ trainer:
     _target_: src.core.datasets.get_dataloader
     dataset_path: data
     dataset_split: train
-    dataset_type: c4
-    tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
+    tokenize_fn:
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: gpt2
     num_workers: 0 # Change me!
     seed: 20001
     sequence_length: 32
@@ -160,9 +160,9 @@ trainer:
     _target_: src.core.datasets.get_dataloader
     dataset_path: data_eval
     dataset_split: validation
-    dataset_type: c4
-    tokenize_fn: 
-      _target_: src.core.datasets.gpt2_tokenize_fn
+    tokenize_fn:
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: gpt2
     num_workers: 0 # Change me!
     seed: 123
     sequence_length: 32

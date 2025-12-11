@@ -6,11 +6,9 @@ trainer:
   train_dataloader:
     dataset_path: ${cluster_switch.train_path_fineweb}
     dataset_split: train
-    dataset_type: fineweb-edu
     num_workers: 2
 
   eval_dataloader:
     dataset_path: ${cluster_switch.eval_path_fineweb}
     dataset_split: train
-    dataset_type: fineweb-edu
     num_workers: 2
