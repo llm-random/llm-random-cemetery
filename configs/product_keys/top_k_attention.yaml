@@ -6,29 +6,29 @@ defaults:
   - /_dataset/c4@_here_
   - /_checkpoints/none@_here_
   - /_misc/default@_here_
-  - /_eval/default@_here_
+  - /_eval/none@_here_
   - _self_
 
 common:
   sequence_length: 2048
   batch_size: 32
-  dmodel: 768
-  dff: 2042
+  dmodel: 1024
+  dff: 2724
   datt: ${common.dmodel}
-  n_blocks: 12
-  q_heads: 12
-  kv_heads: 12
+  n_blocks: 16
+  q_heads: 16
+  kv_heads: 16
   vocab_size: 128256
 
 trainer:
   gradient_accumulation_steps: 2
-  n_steps: 56000
-  learning_rate: 1e-3
+  n_steps: 101410
+  learning_rate: 5e-4
 
-  checkpoint:
-    save:
-      type: huggingface
-      path: checkpoint
+  # checkpoint:
+  #   save:
+  #     type: huggingface
+  #     path: checkpoint
 
 infrastructure:
   metric_logger:
@@ -37,16 +37,16 @@ infrastructure:
     tags:
       - nano
       - top_k_attention
-      - "lr=${trainer.learning_rate}"
       - "seq_len=${common.sequence_length}"
+      - "n_layers=${common.n_blocks}"
   slurm:
     gres: gpu:1
     time: "1-00:00:00"
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 1
-  device: cpu
+# evaluator:
+#   limit: 1
+#   device: cpu
 
 model:
   encoder:
@@ -94,5 +94,5 @@ model:
 
         rope_base: 500000
         rope_scale_freqs: true
-        top_k: 16
+        top_k: 600000
         top_k_before_softmax: true
