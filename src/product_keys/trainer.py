@@ -27,8 +27,8 @@ class MaskedLMTrainer(Trainer):
         """
         Prepares a batch for MLM by masking a percentage of tokens.
         """
-        input_ids = batch.clone()
-        labels = batch.clone()
+        input_ids = batch[:, :-1].contiguous()  # remove last token for compatibility
+        labels = batch[:, :-1].contiguous()  # remove last token for compatibility
 
         # Determine which tokens to mask based on the masking percentage.
         prob = torch.full(labels.shape, self.masking_percentage, device=labels.device)
