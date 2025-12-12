@@ -43,7 +43,9 @@ def cd_to_root_dir():
     repo = Repo()
     assert repo.remotes.origin.url in [
         "git@github.com:llm-random/llm-random.git",
-    ], "You're not in the right repo! Move to the llm-random folder, and make sure your origin is the llm-random repo. Aborting..."
+    ], (
+        "You're not in the right repo! Move to the llm-random folder, and make sure your origin is the llm-random repo. Aborting..."
+    )
     os.chdir(repo.working_dir)
 
 
@@ -62,6 +64,7 @@ def rsync_to_remote(host, local_dir):
                 "--stats",
                 f"--rsh={proxy_command}",
                 "--exclude=*.pyc",
+                "--exclude=*.ipynb",
                 local_dir,
                 f"{host}:{base_dir}",
             ]
