@@ -7,10 +7,10 @@ trainer:
     datasets:
       ${cluster_switch.train_path_fineweb}: 1.0
     dataset_split: train
-    num_workers: 2
+    num_workers: 4
 
   eval_dataloader:
     datasets:
       ${cluster_switch.eval_path_fineweb}: 1.0
     dataset_split: train
-    num_workers: 2
+    num_workers: 4
