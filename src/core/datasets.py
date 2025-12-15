@@ -237,7 +237,8 @@ class MixtureOfDatasets(IterableDataset):
             except StopIteration:
                 dataset_iterators[chosen_index] = iter(self.datasets[chosen_index])
                 sample = next(dataset_iterators[chosen_index])
-            print(f"{self.split}, step {step}: Chose dataset {self.paths[chosen_index]}")
+            if self.rank == 0:
+                print(f"{self.split}, step {step}: Chose dataset {self.paths[chosen_index]}")
             yield sample
 
 
