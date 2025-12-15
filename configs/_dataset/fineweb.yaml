@@ -14,3 +14,14 @@ trainer:
     dataset_split: train
     dataset_type: fineweb-edu
     num_workers: 2
+
+sq_all() {
+        echo "________________ENTROPY______________"
+        sq entropy
+        echo "_________________LEM_________________"
+        sq lem
+        echo "________________ATHENA_______________"
+        sq athena
+        echo "________________HELIOS_______________"
+        sq helios
+}
