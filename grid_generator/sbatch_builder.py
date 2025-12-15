@@ -62,10 +62,10 @@ def generate_sbatch_script(
 
     lines.extend(slurm_parameters)
 
-    if script is not None and script != []:
-        lines.extend(["", "#---------- SCRIPT ----------"])
-        lines.extend(script)
-        lines.extend(["#-------- SCRIPT END --------", ""])
+    # if script is not None and script != []:
+    #     lines.extend(["", "#---------- SCRIPT ----------"])
+    #     lines.extend(script)
+    #     lines.extend(["#-------- SCRIPT END --------", ""])
 
     lines.extend(create_master_node_configuration())
     lines.extend(create_program_call(config_folder))
