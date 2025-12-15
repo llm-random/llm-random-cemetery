@@ -7,10 +7,10 @@ trainer:
     datasets:
       ${cluster_switch.train_path_c4}: 1.0
     dataset_split: train
-    num_workers: 8
+    num_workers: 4
 
   eval_dataloader:
     datasets:
       ${cluster_switch.eval_path_c4}: 1.0
     dataset_split: validation
-    num_workers: 8
+    num_workers: 4
