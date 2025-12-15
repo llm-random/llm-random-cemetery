@@ -5,9 +5,15 @@ defaults:
 trainer:
   train_dataloader:
     datasets:
-      ${cluster_switch.train_path_fineweb}: 1.0
+      [[${cluster_switch.train_path_fineweb}, 0.3],
+       [${cluster_switch.train_path_c4}, 0.7]]
     dataset_split: train
     num_workers: 2
+
+- path: cos
+   weight: 0.3
+ - path: innycos
+   weight: 0.
 
   eval_dataloader:
     datasets:

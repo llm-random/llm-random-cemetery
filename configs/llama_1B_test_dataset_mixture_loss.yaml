@@ -1,0 +1,34 @@
+defaults:
+  - _cluster@_here_: entropy
+  - _model@_here_: llama_3_1
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 1024
+  batch_size: 512
+
+trainer:
+  n_steps: 2048
+  learning_rate: 0.00005
+  gradient_accumulation_steps: 8
+
+
+infrastructure:
+  metric_logger:
+    name: llama_0.8_c4_0.2_fineweb
+    tags:
+      - pc
+      - nano
+      - llama_1
+      - test_configs
+      - pretrain_llama
+
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    time: "0-3:00:00"
+
+evaluator: null
