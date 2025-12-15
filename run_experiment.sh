@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/bdt_md/2025.12.15_500m_lora_rank_alpha_ablation.yaml --git_branch=diff_500m_vanilla_2025-12-15_11-21-02 --skip_copy_code --custom_backends_module=research.attention_moe.backends
