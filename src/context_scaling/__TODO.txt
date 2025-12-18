@@ -1,0 +1,4 @@
+ - logginig - csv / json
+ - sample packer rewrite
+ - check fsdp (2gpu)
+ - 

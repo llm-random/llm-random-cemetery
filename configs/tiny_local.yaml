@@ -5,7 +5,7 @@ defaults:
   - _dataset@_here_: local_dummy
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _eval@_here_: default
+  - _eval@_here_: none
 
 common:
   sequence_length: 16
@@ -16,10 +16,21 @@ trainer:
   n_steps: 100
   learning_rate: 1e-3
 
-  checkpoint:
-    save:
-      type: huggingface
-      path: checkpoint
+  # checkpoint:
+  #   save:
+  #     type: huggingface
+  #     path: checkpoint
+
+  train_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.core.datasets.gpt2_tokenize_fn
+      
+  eval_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.core.datasets.gpt2_tokenize_fn
+
 
 infrastructure:
   metric_logger:
@@ -28,7 +39,3 @@ infrastructure:
       - nano
       - local
       - tiny
-
-evaluator:
-  limit: 1
-  device: cpu
