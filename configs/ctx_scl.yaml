@@ -1,5 +1,5 @@
 defaults:
-  - _cluster@_here_: helios
+  - _cluster@_here_: entropy
   - _model@_here_: k16
   - _trainer@_here_: context_scaling
   - _dataset@_here_: ctx_scl_dataset
@@ -10,13 +10,13 @@ defaults:
 
 common:
   sequence_length: 2048
-  batch_size: 128
+  batch_size: 32
   ^kv_heads: [16, 1]
 
 trainer:
   gradient_accumulation_steps: 1
   n_steps: 40_001
-  ^learning_rate: [9, 10, 11, 12, 13]
+  ^learning_rate: [9]
   eval_interval: 100
   eval_long_ctx_interval: 1000
   n_eval_long_ctx_steps: 64
@@ -51,7 +51,7 @@ infrastructure:
 
   slurm:
     time: "16:00:00"
-    gres: gpu:4
+    gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
     # python src/context_scaling/long_context_batch_maker.py --dataset_path /net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation --save_data_dir //net/scratch/hscra/plgrid/plgmaciejpioro/c4/long_context --tokenizer gpt2 --min_length 3072 --save_batch_size 4096 --save_hist_dir tmp --num_workers 16
