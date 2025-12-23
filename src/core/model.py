@@ -374,6 +374,7 @@ class RoPEAttention(nn.Module):
         k_proj_fn,
         v_proj_fn,
         o_proj_fn,
+        pre_attn_fn,
         dmodel,
         q_heads,
         kv_heads,
@@ -386,6 +387,7 @@ class RoPEAttention(nn.Module):
         self.k_proj = k_proj_fn()
         self.v_proj = v_proj_fn()
         self.o_proj = o_proj_fn()
+        self.pre_attn_fn = pre_attn_fn
         self.attention_mechanism = AttentionMechanism()
 
         self.q_heads = q_heads
@@ -417,6 +419,7 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+        q, k, v = self.pre_attn_fn(q, k, v)
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
@@ -463,6 +466,19 @@ class AttentionMechanism(nn.Module):
             value=value,
             causal=causal,
         )
+
+
+def qk_norm(q: torch.Tensor, k: torch.Tensor, v: torch.Tensor, eps: float = 1e-6):
+    """
+    Apply LayerNorm to q and k over head_dim (last dimension).
+    v is returned unchanged.
+
+    Expected shapes:
+      q, k, v: (batch, n_heads, seq_len, head_dim)
+    """
+    q = F.layer_norm(q, q.shape[-1:], eps=eps)
+    k = F.layer_norm(k, k.shape[-1:], eps=eps)
+    return q, k, v
 
 
 def init_kaiming_uniform(shape, fan_in, scale, dtype=torch.float32):
