@@ -374,6 +374,7 @@ class RoPEAttention(nn.Module):
         k_proj_fn,
         v_proj_fn,
         o_proj_fn,
+        pre_attn_fn,
         dmodel,
         q_heads,
         kv_heads,
@@ -386,6 +387,7 @@ class RoPEAttention(nn.Module):
         self.k_proj = k_proj_fn()
         self.v_proj = v_proj_fn()
         self.o_proj = o_proj_fn()
+        self.pre_attn_fn = pre_attn_fn
         self.attention_mechanism = AttentionMechanism()
 
         self.q_heads = q_heads
@@ -417,6 +419,7 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+        q, k, v = self.pre_attn_fn(q, k, v)
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
@@ -463,6 +466,16 @@ class AttentionMechanism(nn.Module):
             value=value,
             causal=causal,
         )
+
+
+class QKNorm(nn.Module):
+    def __init__(self, head_dim: int, eps: float = 1e-6):
+        super().__init__()
+        self.q_norm = RMSNorm(head_dim, eps=eps)
+        self.k_norm = RMSNorm(head_dim, eps=eps)
+
+    def forward(self, q, k, v):
+        return self.q_norm(q), self.k_norm(k), v 
 
 
 def init_kaiming_uniform(shape, fan_in, scale, dtype=torch.float32):
