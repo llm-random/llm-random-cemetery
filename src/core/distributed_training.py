@@ -58,7 +58,7 @@ def setup_fsdp1_model(model, fsdp_config):
 def setup_fsdp2_model(model, fsdp_config):
     modules_to_shard = get_classes_from_dotted_path(fsdp_config.modules_to_shard)
     logger.debug(f"[FSDP2] Sharding model with classes: {modules_to_shard}")
-    device_mesh = init_device_mesh("cuda", (torch.distributed.get_world_size(),))
+    device_mesh = init_device_mesh("cuda", (torch.distributed.get_world_size(),), mesh_dim_names=("dp",))
 
     fsdp2_kwargs = {
         "mp_policy": MixedPrecisionPolicy(
