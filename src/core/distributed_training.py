@@ -64,7 +64,8 @@ def setup_fsdp2_model(model, fsdp_config):
         "mp_policy": MixedPrecisionPolicy(
             param_dtype=torch.bfloat16,
             reduce_dtype=torch.float32,
-        )
+        ),
+        "reshard_after_forward": True,
     }
 
     for module in model.modules():
