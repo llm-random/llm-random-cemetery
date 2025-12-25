@@ -7,7 +7,6 @@ import torch
 import os
 import logging
 import sys
-from torch.distributed.device_mesh import init_device_mesh
 
 logger = logging.getLogger(__name__)
 
@@ -58,20 +57,14 @@ def setup_fsdp1_model(model, fsdp_config):
 def setup_fsdp2_model(model, fsdp_config):
     modules_to_shard = get_classes_from_dotted_path(fsdp_config.modules_to_shard)
     logger.debug(f"[FSDP2] Sharding model with classes: {modules_to_shard}")
-    device_mesh = init_device_mesh("cuda", (torch.distributed.get_world_size(),))
 
-    fsdp2_kwargs = {
-        "mp_policy": MixedPrecisionPolicy(
-            param_dtype=torch.bfloat16,
-            reduce_dtype=torch.float32,
-        )
-    }
+    mp_policy = MixedPrecisionPolicy(param_dtype=torch.bfloat16, reduce_dtype=torch.float32)
 
     for module in model.modules():
         if isinstance(module, tuple(modules_to_shard)):
-            fully_shard(module, mesh=device_mesh, **fsdp2_kwargs)
+            fully_shard(module, mp_policy=mp_policy, reshard_after_forward=True)
 
-    fully_shard(model, mesh=device_mesh, **fsdp2_kwargs)
+    fully_shard(model, mp_policy=mp_policy, reshard_after_forward=True)
     logger.info(f"Sharding done.")
     return model
 
