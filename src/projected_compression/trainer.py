@@ -14,7 +14,6 @@ class PCTrainer(Trainer):
 
 
     def train(self):
-        self.model.source_model.embedding.weight.requires_grad = False
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
@@ -24,20 +23,20 @@ class PCTrainer(Trainer):
 
             self.model.prepare_compressed_weights()
             loss = self.calculate_loss(batch)
-            self.model.pass_gradient_to_projections(self.block_optimizers, self.block_schedulers, self.gradient_clipping)
 
-            grad_norm = self.clip_gradient()
-            self.log_metrics(loss, grad_norm)
+            grad_norm = self.model.pass_gradient_to_projections(self.block_optimizers, self.block_schedulers, self.gradient_clipping)
+            torch.nn.utils.clip_grads_with_norm_(self.model.parameters(), self.gradient_clipping, grad_norm)
+
+
             self.optimizer.step()
             self.optimizer.zero_grad()
             self.scheduler.step()
-            self.model.zero_grad()
+
+            self.model.target_model.zero_grad()
+
 
             if self._should_save_checkpoint:
                 self.save_checkpoint()
 
             # if self._should_evaluate:
             #     self.eval()
-
-
-
