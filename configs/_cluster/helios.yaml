@@ -13,7 +13,8 @@ infrastructure:
   script:
     - 'module load ML-bundle/25.04'
     - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano'
-    - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
+    - 'export HF_HOME="/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_cache"'
+    # - "/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_cache"
     
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'
