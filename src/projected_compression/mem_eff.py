@@ -99,8 +99,8 @@ class MemoryEfficientProjectedCompression(nn.Module):
 
         base_grad_norm = get_module_grad_norm(self)
 
-        target_blocks_grad_norms = []
-        projection_blocks_grad_norms = []
+        # target_blocks_grad_norms = []
+        # projection_blocks_grad_norms = []
         for block_target, block_source, block_proj, optimizer, scheduler in zip(
             self.target_model.encoder.blocks,
             self.source_model.encoder.blocks,
@@ -116,14 +116,15 @@ class MemoryEfficientProjectedCompression(nn.Module):
             self.backward_compressed_weights(block_proj.compressible_ff_gate, block_source.ff_layer.layer.gate.weight, block_target.ff_layer.layer.gate.weight.grad)
             self.backward_compressed_weights(block_proj.compressible_ff_post, block_source.ff_layer.layer.ff_post_act.weight, block_target.ff_layer.layer.ff_post_act.weight.grad)
 
-            compressed_params_grad_norm = get_compressed_params_grad_norm(block_target)
-            projection_block_grad_norm = get_module_grad_norm(block_proj)
+            # compressed_params_grad_norm = get_compressed_params_grad_norm(block_target)
+            # projection_block_grad_norm = get_module_grad_norm(block_proj)
 
-            target_blocks_grad_norms.append(compressed_params_grad_norm)
-            projection_blocks_grad_norms.append(projection_block_grad_norm)
+            # target_blocks_grad_norms.append(compressed_params_grad_norm)
+            # projection_blocks_grad_norms.append(projection_block_grad_norm)
 
-            adjusted_grad_norm = (base_grad_norm**2 + compressed_params_grad_norm**2 - projection_block_grad_norm**2)**0.5
-            torch.nn.utils.clip_grads_with_norm_(block_proj.parameters(), gradient_clipping, adjusted_grad_norm)
+            # adjusted_grad_norm = (base_grad_norm**2 + compressed_params_grad_norm**2 - projection_block_grad_norm**2)**0.5
+            torch.nn.utils.clip_grads_with_norm_(block_proj.parameters(), gradient_clipping, base_grad_norm)
+            # torch.nn.utils.clip_grads_with_norm_(block_proj.parameters(), gradient_clipping, adjusted_grad_norm)
 
             compressed_params = get_compressed_matrices(block_target)
             for param in compressed_params:
@@ -133,11 +134,11 @@ class MemoryEfficientProjectedCompression(nn.Module):
             optimizer.zero_grad()
             scheduler.step()
 
-        squared_total_target_grad_norm = sum(g**2 for g in target_blocks_grad_norms)
-        squared_total_proj_grad_norm = sum(g**2 for g in projection_blocks_grad_norms)
+        # squared_total_target_grad_norm = sum(g**2 for g in target_blocks_grad_norms)
+        # squared_total_proj_grad_norm = sum(g**2 for g in projection_blocks_grad_norms)
 
-        return (base_grad_norm**2 - squared_total_proj_grad_norm + squared_total_target_grad_norm) ** 0.5
-
+        # return (base_grad_norm**2 - squared_total_proj_grad_norm + squared_total_target_grad_norm) ** 0.5
+        return base_grad_norm
             
     def backward_compressed_weights(self, proj, weight, gradient):
         weight = weight.detach()
