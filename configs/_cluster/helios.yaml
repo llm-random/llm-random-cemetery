@@ -13,13 +13,15 @@ infrastructure:
   script:
     - 'module load ML-bundle/25.04'
     - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano'
-    - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
+    - 'export HF_HOME="/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_cache"'
+    # - "/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_cache"
     
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'
     
     # export pixi variables
-    - 'export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/nano/pixi'
+    # - 'export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/nano/pixi'
+    - 'export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/pixi'
     - 'export PATH="$PIXI_HOME/bin:$PATH"'
     - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
     - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
