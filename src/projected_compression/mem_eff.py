@@ -141,7 +141,9 @@ class MemoryEfficientProjectedCompression(nn.Module):
             
     def backward_compressed_weights(self, proj, weight, gradient):
         weight = weight.detach()
-        weights = proj.get_projected_weight(weight.bfloat16()).contiguous()
+        if self.cast_bfloat16:
+            weight = weight.bfloat16()
+        weights = proj.get_projected_weight(weight)
         weights.backward(gradient)
 
 
