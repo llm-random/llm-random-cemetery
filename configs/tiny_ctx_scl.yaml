@@ -32,6 +32,14 @@ trainer:
   eval_long_ctx_interval: 20
   n_eval_long_ctx_steps: 2
 
+  checkpoint:
+   save:
+    type: huggingface
+    interval: -1
+    path: null
+    model_checkpoint_filename: __model_checkpoint_filename.pt
+    training_state_filename: __training_state_filename.pt
+
 infrastructure:
   metric_logger:
     name: tiny_Local
