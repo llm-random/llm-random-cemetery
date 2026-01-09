@@ -1,0 +1,3 @@
+ - logginig - csv / json
+ - check fsdp (2gpu)
+ - post hock eval
