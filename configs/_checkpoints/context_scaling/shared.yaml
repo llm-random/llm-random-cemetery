@@ -1,0 +1,15 @@
+trainer:
+  checkpoint:
+    save:
+      type: nano
+      interval: -1
+      path: /net/storage/pr3/plgrid/plggllmeffi/nano/ctx_scaling/models
+      model_checkpoint_filename: ctx_scl_model.pt
+      training_state_filename: ctx_scl_training_state.pt
+
+    load:
+      type: nano
+      path: null
+      model_checkpoint_filename: ctx_scl_model.pt
+      training_state_filename: null # not tested
+      only_weights: true # false not tested
