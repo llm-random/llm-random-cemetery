@@ -2,7 +2,7 @@ defaults:
   - _cluster@_here_: helios
   - _model@_here_: tiny
   - _trainer@_here_: context_scaling
-  - _dataset@_here_: c4
+  - _dataset@_here_: ctx_scl_dataset
   - _checkpoints@_here_: none
   - _misc@_here_: default
   - _eval@_here_: none
@@ -18,6 +18,11 @@ trainer:
   learning_rate: 2e-3
   eval_interval: 20
   eval_long_ctx_interval: 20
+
+  checkpoint:
+    save:
+      type: nano
+      path: checkpoint
 
   eval_long_ctx_dataloader:
     _target_: src.core.datasets.get_dataloader
