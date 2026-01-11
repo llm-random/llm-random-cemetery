@@ -2,7 +2,7 @@
 infrastructure:
   metric_logger:
     _target_: src.definitions.MetricLoggerConfig
-    project_name: pmtest/llm-random
+    project_name: pmtest/tml-bgw
     heavy_metrics_calculation_interval: 100
     new_neptune_job: true
     type: neptune
