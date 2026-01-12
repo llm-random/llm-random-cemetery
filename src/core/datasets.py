@@ -178,7 +178,7 @@ class AbstractDataset(IterableDataset):
 
 class FineWebEduDataset(AbstractDataset):
 
-    BUFFER_SIZE = 10000
+    BUFFER_SIZE = 500
     NUM_SHARDS = 64
 
     def __init__(
