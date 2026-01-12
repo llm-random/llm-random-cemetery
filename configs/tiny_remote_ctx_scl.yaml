@@ -3,7 +3,7 @@ defaults:
   - _model@_here_: k16
   - _trainer@_here_: context_scaling
   - _dataset@_here_: ctx_scl_dataset
-  - _checkpoints@_here_: none
+  - _checkpoints/context_scaling@_here_: shared_entropy
   - _misc@_here_: default
   - _eval@_here_: none
   - _self_
@@ -39,7 +39,7 @@ infrastructure:
       - remote
       - tiny
       - context_scaling
-      - "1712"
+      - "savemodel"
 
   slurm:
     time: "00:10:00"
