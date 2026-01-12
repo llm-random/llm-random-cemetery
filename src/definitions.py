@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from typing import Literal
 from typing import Optional, List
 from attr import dataclass
+import wandb
 
 
 @dataclass
@@ -84,6 +85,7 @@ class TrainingConfig(BaseModel):
 
 class MetricLoggerConfig(BaseModel):
     type: Optional[str]
+    wandb_entity: Optional[str]
     project_name: Optional[str]
     name: Optional[str]
     tags: Optional[List[str]]
