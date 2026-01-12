@@ -1,7 +1,7 @@
 defaults:
   - ../../_misc@_here_: default
   - ../../_cluster@_here_: helios
-  - ../../_model/llama@_here_: projected_mem_eff_1B
+  - ../../_model/llama@_here_: projected_mem_eff_8B
   - ../../_dataset@_here_: fineweb
   - ../../_trainer@_here_: llama
   - _self_
@@ -17,8 +17,10 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: "/net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_2_1B_nano.pt"
-  path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/1b/random_dimensions_importances.pt"
+  source_model_path: "/net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_1_8B_nano.pt"
+  path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/minitron_dimensions_importances.pt"
+  # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/magnitude_dimensions_importances.pt"
+  # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/random_dimensions_importances.pt" 
 
   init_norms_with_ones: false
 
@@ -30,6 +32,7 @@ trainer:
   _target_: src.projected_compression.trainer.PCTrainer
   gradient_accumulation_steps: 128
   n_steps: 1024
+  # n_steps: 4096
   
   learning_rate: 15
 
@@ -39,7 +42,8 @@ trainer:
   checkpoint:
     save:
       type: nano
-      path: "/net/scratch/hscra/plgrid/plgcrewtool/pc_costam" # CHANGE
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/tutaj_pc_hej_8b_minitron_15" # CHANGE
+      # interval: 4095
       interval: 1023
 
 model:
@@ -52,4 +56,8 @@ infrastructure:
       - nano
       - pc
       - mem_eff
-      - 8b
+      - 8B
+      - 50p
+      - minitron_importances
+      # - magnitude_importances
+      # - random_importances
