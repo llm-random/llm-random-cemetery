@@ -1,5 +1,5 @@
 infrastructure:
-  server: helios
+  server: helios_sftp
   max_concurrent_jobs: null
   slurm:
     cpus_per_gpu: 12
@@ -19,7 +19,7 @@ infrastructure:
     - 'export HYDRA_FULL_ERROR=1'
     
     # export pixi variables
-    - 'export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/nano/pixi'
+    - 'export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/nano/pixi_wandb'
     - 'export PATH="$PIXI_HOME/bin:$PATH"'
     - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
     - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
