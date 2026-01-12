@@ -1,0 +1,43 @@
+{
+  "os": "macOS-26.1-arm64-arm-64bit",
+  "python": "CPython 3.12.3",
+  "startedAt": "2026-01-12T13:57:19.972474Z",
+  "args": [
+    "--config-path",
+    "configs",
+    "--config-name",
+    "tiny_local"
+  ],
+  "program": "/Users/maciej/Documents/nano/main.py",
+  "codePath": "main.py",
+  "codePathLocal": "main.py",
+  "git": {
+    "remote": "git@github.com:llm-random/nano.git",
+    "commit": "59a4a459241ce1f0980de0f7be9d93168918e226"
+  },
+  "email": "maciej.pioro@gmail.com",
+  "root": "/Users/maciej/Documents/nano",
+  "host": "Maciejs-MacBook-Air.local",
+  "executable": "/Users/maciej/Documents/nano/.pixi/envs/default/bin/python",
+  "cpu_count": 8,
+  "cpu_count_logical": 8,
+  "disk": {
+    "/": {
+      "total": "494384795648",
+      "used": "460535447552"
+    }
+  },
+  "memory": {
+    "total": "17179869184"
+  },
+  "apple": {
+    "name": "Apple M2",
+    "ecpuCores": 4,
+    "pcpuCores": 4,
+    "gpuCores": 10,
+    "memoryGb": 16,
+    "swapTotalBytes": "22548578304",
+    "ramTotalBytes": "17179869184"
+  },
+  "writerId": "5cr61jz8rk78u6sg2ecpczlzw3sr6mce"
+}

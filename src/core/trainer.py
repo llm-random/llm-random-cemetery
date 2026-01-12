@@ -201,9 +201,9 @@ class Trainer:
                 self.metric_logger.flush_accumulated_metrics(self.step)
             avg_loss = torch.tensor(losses).mean()
             self.metric_logger.log("steps/eval/loss", self.step, avg_loss.item())
-            self.metric_logger.log(
-                "tokens/eval/loss", self.processed_tokens, avg_loss.item()
-            )
+            # self.metric_logger.log(
+            #     "tokens/eval/loss", self.processed_tokens, avg_loss.item()
+            # )  # TODO: Fix W&B Step
 
         if self._should_log_eval_input:
             self.metric_logger.log(
@@ -235,13 +235,15 @@ class Trainer:
             "steps/train/processed_tokens", self.step, self.processed_tokens
         )
 
-        self.metric_logger.log("tokens/train/loss", self.processed_tokens, loss.item())
-        self.metric_logger.log(
-            "tokens/lr", self.processed_tokens, (self.scheduler.get_last_lr()[0])
-        )
-        self.metric_logger.log(
-            "tokens/train/grad_norm", self.processed_tokens, grad_norm.item()
-        )
+        # self.metric_logger.log(
+        #     "tokens/train/loss", self.processed_tokens, loss.item()
+        # )  # TODO: Fix W&B Step
+        # self.metric_logger.log(
+        #     "tokens/lr", self.processed_tokens, (self.scheduler.get_last_lr()[0])
+        # )  # TODO: Fix W&B Step
+        # self.metric_logger.log(
+        #     "tokens/train/grad_norm", self.processed_tokens, grad_norm.item()
+        # )  # TODO: Fix W&B Step
 
         self.loss_averaged_100.log(self.metric_logger, self.step, loss.item())
         self.time_diff_averaged_100.log(self.metric_logger, self.step, time.time())

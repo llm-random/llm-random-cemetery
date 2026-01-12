@@ -143,6 +143,7 @@ def get_composition_file_path(hydra_config):
 def get_metric_logger(
     metric_logger_config: Optional[MetricLoggerConfig] = None,
     neptune_run_id: Optional[str] = None,
+    wandb_run_id: Optional[str] = None,
 ):
     _metric_logger = None
     if metric_logger_config.type == "neptune":
@@ -191,6 +192,7 @@ def get_metric_logger(
 
         if rank == 0 or rank is None:
             wandb_logger = wandb.init(
+                entity=metric_logger_config.wandb_entity,
                 project=metric_logger_config.project_name,
                 name=metric_logger_config.name,
                 tags=metric_logger_config.tags,
