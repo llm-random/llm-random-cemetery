@@ -33,7 +33,8 @@ infrastructure:
 
   slurm:
     time: "00:10:00"
-    gres: gpu:1
+    gres: gpu:0
+    mem_per_gpu: null
     job-name: ${infrastructure.metric_logger.name}
 
 evaluator:
