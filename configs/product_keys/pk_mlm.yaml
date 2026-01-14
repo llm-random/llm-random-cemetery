@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /_cluster/entropy@_here_
+  - /_cluster/helios@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
   - /_dataset/c4@_here_
@@ -28,13 +28,13 @@ trainer:
   n_steps: 77050
   learning_rate: 5e-4
   train_dataloader:
-    tokenize_fn:
-      _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
-      
-
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
   eval_dataloader:
-    tokenize_fn:
-      _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
 
 
 infrastructure:
