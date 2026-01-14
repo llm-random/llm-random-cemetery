@@ -28,13 +28,15 @@ trainer:
   n_steps: 77050
   learning_rate: 5e-4
   train_dataloader:
-    tokenize_fn:
-      _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
       
 
   eval_dataloader:
-    tokenize_fn:
-      _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
 
 
 infrastructure:
