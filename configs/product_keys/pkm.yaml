@@ -10,7 +10,7 @@ defaults:
 
 common:
   sequence_length: 1024
-  batch_size: 64
+  batch_size: 16
   dmodel: 768
   datt: ${common.dmodel}
   n_blocks: 12
@@ -32,11 +32,13 @@ trainer:
   n_steps: 50000
   learning_rate: 3e-4
   train_dataloader:
-    tokenize_fn:
-      _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
   eval_dataloader:
-    tokenize_fn:
-      _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
 
 infrastructure:
   metric_logger:
