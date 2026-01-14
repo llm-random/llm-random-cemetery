@@ -1,0 +1,75 @@
+defaults:
+  - _cluster@_here_: helios
+  - _model@_here_: llama_3_8
+  - _trainer@_here_: llama
+  - _dataset@_here_: fineweb
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 2048
+  batch_size: 512
+
+  target_dmodel: 3072 # 50
+  target_dff: 9216
+  # target_dmodel: 2160 # 30
+  # target_dff: 6480
+  # target_dmodel: 1056
+  # target_dff: 3168
+
+trainer:
+  gradient_accumulation_steps: 16
+  # gradient_accumulation_steps: 4
+  ^n_steps:
+    - 1024
+    # - 4096
+    # - 6144
+    # - 8192
+    # - 12288
+    # - 16384
+
+  ^learning_rate:
+    # - 9
+    # - 10
+    # - 11
+    - 12
+    - 13
+    - 14
+
+  scheduler:
+    warmup_steps: 40
+
+  checkpoint:
+    load:
+      type: huggingface
+      path: "meta-llama/Llama-3.1-8B"
+    save:
+      type: nano
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/hpr/10/hej50_" # CHANGE
+      interval: 1023
+
+infrastructure:
+  metric_logger:
+    name: llama31
+    tags:
+      - nano
+      - pc
+      - llama_3_8
+      - hard_pruning
+      # - 30p
+      # - 10p
+      - 50p
+      # - 50p
+      - random_importances
+
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4 #dev
+    time: "1-00:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.pruning.prune
+    _partial_: true
+    dimensions_importances_path: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/minitron_dimensions_importances.pt" # CHANGE
+    target_dmodel: ${common.target_dmodel}
+    target_dff: ${common.target_dff}
