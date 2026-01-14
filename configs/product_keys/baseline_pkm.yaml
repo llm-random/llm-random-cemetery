@@ -17,12 +17,7 @@ common:
   n_blocks: 16
   q_heads: 16
   kv_heads: 16
-  vocab_size: 50304      # GPT-2 vocab
-
-  pkm_n_sub_keys: 1024    # 1024^2 = 1,048,576 memory slots
-  pkm_k: 32
-  pkm_query_dim: 32
-  pkm_n_heads: 4
+  vocab_size: 50304
 
 trainer:
   _target_: src.product_keys.trainer.MaskedLMTrainer
@@ -41,30 +36,17 @@ trainer:
       tokenize_fn:
         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
 
+
 infrastructure:
   metric_logger:
-    name: pkm
+    name: baseline_pkm
     project_name: pmtest/tml-bgw
     tags:
       - nano
-      - pkm
+      - baseline_pkm
       - "seq_len=${common.sequence_length}"
       - "n_layers=${common.n_blocks}"
-      - "pkm_k=${common.pkm_k}"
-      - "pkm_n_sub_keys=${common.pkm_n_sub_keys}"
   slurm:
     gres: gpu:2
     time: "1-00:00:00"
     job-name: ${infrastructure.metric_logger.name}
-
-model:
-  encoder:
-    block_fn:
-      ff_layer_fn:
-        _target_: src.product_keys.model.ProductKeysMemory
-        _partial_: true
-        d_model: ${common.dmodel}
-        query_dim: ${common.pkm_query_dim}
-        n_sub_keys: ${common.pkm_n_sub_keys}
-        k_neighbors: ${common.pkm_k}
-        n_heads: ${common.pkm_n_heads}
