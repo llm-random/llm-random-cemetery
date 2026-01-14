@@ -1,0 +1,2 @@
+#!/bin/bash
+python3 -m lizrd.grid --config_path=configs/bdt_md/2026.01.14_pareto_bdt_4.yaml --git_branch=diff_pareto_2026-01-14_20-52-05 --skip_copy_code --custom_backends_module=research.attention_moe.backends
