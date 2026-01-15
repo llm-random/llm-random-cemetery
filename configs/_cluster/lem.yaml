@@ -1,25 +1,26 @@
 infrastructure:
-  server: helios
+  server: lem
   max_concurrent_jobs: null
   slurm:
-    cpus_per_gpu: 72
-    gres: "gpu:4"
+    cpus_per_gpu: 16
+    gres: "gpu:hopper:4"
     job-name: test
-    mem_per_gpu: 90G
+    mem_per_gpu: 128G
     nodes: 1
-    partition: plgrid-gpu-gh200
-    time: "2-00:00:00"
+    partition: plgrid-lem-gpu-h100
+    time: "1-00:00:00"
+    account: "plgllmefficont2"
 
   script:
-    - 'module load ML-bundle/25.04'
-    - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano'
-    - 'export HF_HOME="/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_cache"'
+    # - 'module load ML-bundle/25.04'
+    # - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano'
+    - 'export HF_HOME="/lustre/pd01/plgrid/plgllmefficont2/crewtool/hf"'
     
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'
     
     # export pixi variables
-    - 'export PIXI_HOME=/net/storage/pr3/plgrid/plggllmeffi/plgcrewtool/pixi'
+    - 'export PIXI_HOME=/lustre/pd01/plgrid/plgllmefficont2/crewtool/pixi'
     - 'export PATH="$PIXI_HOME/bin:$PATH"'
     - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
     - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
@@ -31,7 +32,7 @@ infrastructure:
     - 'cd -'
 
 cluster_switch:
-  train_path_c4: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/train"
-  eval_path_c4: "/net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation"
+  train_path_c4: null
+  eval_path_c4: null
   train_path_fineweb: "/net/scratch/hscra/plgrid/plgmaciejpioro/fineweb-edu/train/train"
   eval_path_fineweb: "/net/scratch/hscra/plgrid/plgmaciejpioro/fineweb-edu/train/train"
