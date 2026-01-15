@@ -1,5 +1,5 @@
 defaults:
-  - _cluster@_here_: helios
+  - _cluster@_here_: entropy
   - _model@_here_: k16
   - _trainer@_here_: context_scaling
   - _dataset@_here_: ctx_scl_dataset
@@ -13,6 +13,12 @@ common:
   batch_size: 64
   kv_heads: 16
   dff: 2560
+
+model:
+  encoder:
+    block_fn:
+      attention_fn:
+        pre_attn_fn: null
 
 trainer:
   gradient_accumulation_steps: 1
