@@ -77,10 +77,12 @@ model:
 
         rope_base: 500000
         rope_scale_freqs: true
+        compile: true
 
       ff_layer_fn:
         _target_: src.core.model.SwiGLU
         _partial_: true
+        compile: true
         ff_pre_act_fn:
           _target_: src.core.model.Linear
           _partial_: true
