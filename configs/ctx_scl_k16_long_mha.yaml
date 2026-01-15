@@ -1,5 +1,5 @@
 defaults:
-  - _cluster@_here_: helios
+  - _cluster@_here_: entropy
   - _model@_here_: k16
   - _trainer@_here_: context_scaling
   - _dataset@_here_: ctx_scl_dataset
@@ -13,12 +13,19 @@ common:
   batch_size: 64
   kv_heads: 16
   dff: 2560
+  vocab_size: 50304
+
+# model:
+#   encoder:
+#     block_fn:
+#       attention_fn:
+#         pre_attn_fn: null
 
 trainer:
   gradient_accumulation_steps: 1
   n_steps: 320_001
-  ^learning_rate: [12, 13]
-  # ^learning_rate: [9, 10, 11]
+  learning_rate: 11
+  # ^learning_rate: [9, 10, 11, 12, 13]
   # learning_rate: 10
   eval_interval: 5000
   eval_long_ctx_interval: 5000
@@ -45,8 +52,8 @@ trainer:
     num_workers: 8
     dataset:
       load_dataset_fn:
-        # path: /storage_nvme_1/llm-random/datasets/c4/long_context_2048n8192
-        path: /net/scratch/hscra/plgrid/plgj321m/c4/long_context_2048n8192
+        path: /storage_nvme_1/llm-random/datasets/c4/long_context_2048n8192
+        # path: /net/scratch/hscra/plgrid/plgj321m/c4/long_context_2048n8192
 
 infrastructure:
   metric_logger:
@@ -64,3 +71,5 @@ infrastructure:
     time: "48:00:00"
     gres: gpu:4
     job-name: ${infrastructure.metric_logger.name}
+    cpus_per_gpu: 16
+    mem_per_gpu: 96G
