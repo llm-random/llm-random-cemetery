@@ -381,6 +381,7 @@ class RoPEAttention(nn.Module):
         seq_len,
         rope_base,
         rope_scale_freqs: bool,
+        compile: bool,
     ):
         super().__init__()
         self.q_proj = q_proj_fn()
@@ -401,6 +402,12 @@ class RoPEAttention(nn.Module):
             base=rope_base,
             apply_freq_scaling=rope_scale_freqs,
         )
+
+        if compile:
+            self.forward = torch.compile(
+                self.forward,
+                mode="max-autotune-no-cudagraphs",
+            )
 
     def forward(self, x):
         query_states = self.q_proj(x)
