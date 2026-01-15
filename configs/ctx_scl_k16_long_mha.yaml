@@ -14,6 +14,12 @@ common:
   kv_heads: 16
   dff: 2560
 
+model:
+  encoder:
+    block_fn:
+      attention_fn:
+        pre_attn_fn: null
+
 trainer:
   gradient_accumulation_steps: 1
   n_steps: 320_001
