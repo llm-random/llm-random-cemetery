@@ -10,12 +10,12 @@ common:
   batch_size: 512
   sequence_length: 2048
 
-  # dmodel: 3072 # 50
-  # dff: 9216
+  dmodel: 3072 # 50
+  dff: 9216
   # dmodel: 2160 # 30
   # dff: 6480
-  dmodel: 1056 # 10
-  dff: 3168
+  # dmodel: 1056 # 10
+  # dff: 3168
 
 
 projected_compression:
@@ -32,13 +32,13 @@ projected_compression:
 
   init_norms_with_ones: false
 
-  separate_block_optimizers: true
+  separate_block_optimizers: false
 
-  adjust_grad_norm: true
+  adjust_grad_norm: false
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
-  gradient_accumulation_steps: 128
+  gradient_accumulation_steps: 64
   n_steps: 4096 
   # 2048
   
@@ -67,14 +67,16 @@ infrastructure:
   metric_logger:
     name: Llame_PC
     tags:
-      - nano
-      - pc
-      - mem_eff
-      - 8B
-      - 30p
-      - minitron_importances
+      # - nano
+      # - pc
+      # - mem_eff
+      # - 8B
+      # - 30p
+      # - minitron_importances
+      - test
       # - magnitude_importances
       # - random_importances
 
-  # slurm:
-  #   time: "0-01:00:00"
+  slurm:
+    time: "0-02:00:00"
+    nodes: 2
