@@ -46,6 +46,7 @@ class Trainer:
     distributed: Optional[dict]
 
     def __attrs_post_init__(self):
+        logger.info("trainer: __attrs_post_init__")
         self.processed_tokens = self.training_state["processed_tokens"]
         self.start_step = self.training_state["next_step"]
         self.device = next(self.model.parameters()).device
