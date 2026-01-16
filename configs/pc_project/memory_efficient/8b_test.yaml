@@ -10,12 +10,12 @@ common:
   batch_size: 512
   sequence_length: 2048
 
-  # dmodel: 3072 # 50
-  # dff: 9216
+  dmodel: 3072 # 50
+  dff: 9216
   # dmodel: 2160 # 30
   # dff: 6480
-  dmodel: 1056 # 10
-  dff: 3168
+  # dmodel: 1056 # 10
+  # dff: 3168
 
 
 projected_compression:
@@ -52,7 +52,7 @@ trainer:
   checkpoint:
     save:
       type: nano
-      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b_10p/14_4k" # CHANGE
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b_10p/14__tesytttk" # CHANGE
       interval: 4095
 
   # train_dataloader:
@@ -67,14 +67,16 @@ infrastructure:
   metric_logger:
     name: Llame_PC
     tags:
-      - nano
-      - pc
-      - mem_eff
-      - 8B
-      - 30p
-      - minitron_importances
+      # - nano
+      # - pc
+      # - mem_eff
+      # - 8B
+      # - 30p
+      # - minitron_importances
+      - test
       # - magnitude_importances
       # - random_importances
 
-  # slurm:
-  #   time: "0-01:00:00"
+  slurm:
+    time: "0-01:00:00"
+    nodes: 2
