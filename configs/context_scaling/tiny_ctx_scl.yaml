@@ -1,0 +1,45 @@
+defaults:
+  - _cluster@_here_: local
+  - _model/context_scaling@_here_: tiny
+  - _trainer@_here_: context_scaling
+  - _dataset@_here_: ctx_scl_dataset
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+  - _eval@_here_: none
+  - _self_
+
+common:
+  _target_: src.definitions.Common
+  dmodel: 64
+  dff: 128
+  datt: 64
+  n_blocks: 4
+  q_heads: 4
+  kv_heads: 4
+  vocab_size: 50257
+  sequence_length: 8
+  batch_size: 2
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  model_type: gpt
+  model_seed: 123
+  data_seed: 123
+
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 100
+  learning_rate: 1e-3
+  eval_interval: 10
+  eval_long_ctx_interval: 20
+  n_eval_long_ctx_steps: 2
+
+infrastructure:
+  metric_logger:
+    name: tiny_Local
+    tags:
+      - nano
+      - local
+      - tiny
+      - context_scaling

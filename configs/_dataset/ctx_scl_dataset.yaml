@@ -22,7 +22,6 @@ trainer:
         _target_: src.context_scaling.dataset.get_dataset
         _partial_: true
         path: ${cluster_switch.train_path_c4}
-        load_dataset_fn: null
         shuffle: true
 
   eval_dataloader:
@@ -44,7 +43,6 @@ trainer:
         _target_: src.context_scaling.dataset.get_dataset
         _partial_: true
         path: ${cluster_switch.eval_path_c4}
-        load_dataset_fn: null
         shuffle: true
 
   eval_long_ctx_dataloader:
@@ -66,5 +64,4 @@ trainer:
         _target_: src.context_scaling.dataset.get_dataset
         _partial_: true
         path: data_long_ctx
-        load_dataset_fn: null
         shuffle: true
