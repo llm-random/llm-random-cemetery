@@ -213,6 +213,7 @@ class AbstractDataset(IterableDataset):
         use_new_sampling_method: bool = True,
         world_size_independent: bool = False,
     ):
+        logger.info("Initializing dataset")
         self.world_size = int(os.environ.get("WORLD_SIZE"))
         self.rank = int(os.environ.get("RANK"))
         self.rng = random.Random(seed)
