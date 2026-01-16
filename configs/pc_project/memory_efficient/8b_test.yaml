@@ -12,10 +12,10 @@ common:
 
   # dmodel: 3072 # 50
   # dff: 9216
-  # dmodel: 2160 # 30
-  # dff: 6480
-  dmodel: 1056 # 10
-  dff: 3168
+  dmodel: 2160 # 30
+  dff: 6480
+  # dmodel: 1056 # 10
+  # dff: 3168
 
 
 projected_compression:
@@ -38,7 +38,7 @@ projected_compression:
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
-  gradient_accumulation_steps: 128
+  gradient_accumulation_steps: 32
   n_steps: 4096 
   # 2048
   
@@ -52,7 +52,7 @@ trainer:
   checkpoint:
     save:
       type: nano
-      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b_10p/14_4k" # CHANGE
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b__2node_30p/4k_yeah2" # CHANGE
       interval: 4095
 
   # train_dataloader:
@@ -73,8 +73,10 @@ infrastructure:
       - 8B
       - 30p
       - minitron_importances
+      # - test
       # - magnitude_importances
       # - random_importances
 
-  # slurm:
-  #   time: "0-01:00:00"
+  slurm:
+    # time: "0-01:00:00"
+    nodes: 2
