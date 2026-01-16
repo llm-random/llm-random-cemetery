@@ -38,8 +38,8 @@ projected_compression:
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
-  gradient_accumulation_steps: 128
-  n_steps: 4096 
+  gradient_accumulation_steps: 32
+  n_steps: 6144 
   # 2048
   
   ^learning_rate: 
@@ -52,8 +52,8 @@ trainer:
   checkpoint:
     save:
       type: nano
-      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b_10p/14_4k" # CHANGE
-      interval: 4095
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b__2node_10p/6k" # CHANGE
+      interval: 6143
 
   # train_dataloader:
   #   dataset:
@@ -71,10 +71,12 @@ infrastructure:
       - pc
       - mem_eff
       - 8B
-      - 30p
+      - 10p
       - minitron_importances
+      # - test
       # - magnitude_importances
       # - random_importances
 
-  # slurm:
-  #   time: "0-01:00:00"
+  slurm:
+    # time: "0-01:00:00"
+    nodes: 2
