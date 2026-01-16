@@ -306,9 +306,11 @@ def run(cfg: OmegaConf, metric_logger=None):
     ) = initialize_training_components(cfg, metric_logger)
 
     if model is not None:
-        logger.info(f"Model initialized")
+        logger.info(f"Model initialized 2")
 
         trainer = instantiate(cfg.trainer)
+
+        logger.info(f"trainer initialized")
         trainer(
             model=model,
             optimizer=optimizer,
