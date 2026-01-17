@@ -11,15 +11,21 @@ defaults:
 common:
   sequence_length: 2048
   batch_size: 64
-  kv_heads: 1
-  ^dff: [3200, 3520]
   data_seed: 123
   model_seed: 123
+  
+
+  dmodel: 768
+  dff: 2560
+  n_blocks: 12
+
+  q_heads: ${common.n_blocks}
+  kv_heads: ${common.n_blocks}
 
 trainer:
   gradient_accumulation_steps: 1
   n_steps: 320_001
-  ^learning_rate: [10, 11, 12, 13]
+  learning_rate: 11
   eval_interval: 5000
   eval_long_ctx_interval: -1
   n_eval_long_ctx_steps: 64
@@ -52,7 +58,7 @@ infrastructure:
       - k16
       - context_scaling
       - 42B
-      - MQA
+      - MHA
       - WSD_scheduler
       - fineweb_edu
 
