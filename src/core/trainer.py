@@ -49,16 +49,16 @@ class Trainer:
         self.start_step = self.training_state["next_step"]
         self.device = next(self.model.parameters()).device
         self.loss_interval_100 = 0.0
-        self.eval_iterator = iter(self.eval_dataloader)
+        # self.eval_iterator = iter(self.eval_dataloader)
         self.step = self.start_step - 1
 
-        if self.start_step > 0:
-            n_skip_eval_batches = (
-                (self.start_step - 1) // self.eval_interval * self.n_eval_steps
-            )
-            logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
-            for _ in range(n_skip_eval_batches):
-                next(self.eval_iterator)
+        # if self.start_step > 0:
+        #     n_skip_eval_batches = (
+        #         (self.start_step - 1) // self.eval_interval * self.n_eval_steps
+        #     )
+        #     logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
+        #     for _ in range(n_skip_eval_batches):
+        #         next(self.eval_iterator)
 
         self.loss_averaged_100 = AveMetric(100, "steps/100/train/loss")
         self.time_diff_averaged_100 = AveDiffMetric(100, "steps/100/time", time.time())
@@ -112,8 +112,8 @@ class Trainer:
             if self._should_save_checkpoint:
                 self.save_checkpoint()
 
-            if self._should_evaluate:
-                self.eval()
+            # if self._should_evaluate:
+            #     self.eval()
 
         if self._should_save_final_checkpoint:
             if self.checkpoint.save.type == "nano":
