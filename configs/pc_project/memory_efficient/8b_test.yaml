@@ -12,10 +12,11 @@ common:
 
   # dmodel: 3072 # 50
   # dff: 9216
-  dmodel: 2160 # 30
-  dff: 6480
-  # dmodel: 1056 # 10
-  # dff: 3168
+  # dmodel: 2160 # 30
+  # dff: 6480
+  dmodel: 1056 # 10
+  dff: 3168
+
 
 
 projected_compression:
@@ -27,7 +28,6 @@ projected_compression:
 
   source_model_path: "/net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_1_8B_nano.pt"
   path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/minitron_dimensions_importances.pt"
-  # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances_EXTRA/minitron_dimensions_importances.pt"
   # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/magnitude_dimensions_importances.pt"
   # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/random_dimensions_importances.pt" 
 
@@ -39,15 +39,13 @@ projected_compression:
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
-  gradient_accumulation_steps: 128
-  n_steps: 1024 
+  gradient_accumulation_steps: 32
+  n_steps: 4096 
   # 2048
   
   ^learning_rate: 
     # - 13
     - 14
-    - 15
-    # - 16
 
   distributed:
     fsdp2: null
@@ -55,12 +53,9 @@ trainer:
   checkpoint:
     save:
       type: nano
-      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b_10p/zupelnie_nowe_30p/lol2" # CHANGE
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b__2node_10p/4k_yeah5" # CHANGE
       interval: 4095
 
-
-  scheduler:
-    warmup_steps: 40
 
   # train_dataloader:
   #   dataset:
@@ -78,10 +73,12 @@ infrastructure:
       - pc
       - mem_eff
       - 8B
-      - 30p
+      - 50p
       - minitron_importances
+      # - test
       # - magnitude_importances
       # - random_importances
 
   slurm:
-    time: "0-01:00:00"
+    # time: "0-01:00:00"
+    nodes: 2
