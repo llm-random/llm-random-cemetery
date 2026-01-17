@@ -14,23 +14,8 @@ common:
   # dff: 9216
   # dmodel: 2160 # 30
   # dff: 6480
-  # dmodel: 1056 # 10
-  # dff: 3168
-
-# LLaMA-3 param count: 4,034,214,592.0
-# LLaMA-3 param count: 8,030,261,248
-# llama3 1B 50% compression ratio 0.49762349350654655
-# dmodel: 2752.0, dff: 9632.0
-
-# LLaMA-3 param count: 2,471,626,752.0
-# LLaMA-3 param count: 8,030,261,248
-# llama3 1B 70% compression ratio 0.6922109162244781
-# dmodel: 2048.0, dff: 7168.0
-
-# LLaMA-3 param count: 849,937,408.0
-# LLaMA-3 param count: 8,030,261,248
-# llama3 1B 90% compression ratio 0.8941581871683585
-# dmodel: 1024.0, dff: 3584.0
+  dmodel: 1056 # 10
+  dff: 3168
 
 
 
@@ -43,7 +28,6 @@ projected_compression:
 
   source_model_path: "/net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_1_8B_nano.pt"
   path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/minitron_dimensions_importances.pt"
-  # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances_EXTRA/8b/minitron_dimensions_importances.pt"
   # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/magnitude_dimensions_importances.pt"
   # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/random_dimensions_importances.pt" 
 
@@ -55,15 +39,13 @@ projected_compression:
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
-  gradient_accumulation_steps: 128
-  n_steps: 1024 
+  gradient_accumulation_steps: 32
+  n_steps: 4096 
   # 2048
   
   ^learning_rate: 
-    - 13
+    # - 13
     - 14
-    # - 15
-    # - 16
 
   distributed:
     fsdp2: null
@@ -71,12 +53,9 @@ trainer:
   checkpoint:
     save:
       type: nano
-      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b_10p/zupelnie_nowe_30p/lol7" # CHANGE
+      path: "/net/scratch/hscra/plgrid/plgcrewtool/mem_eff_8b__2node_10p/4k_yeah5" # CHANGE
       interval: 4095
 
-
-  scheduler:
-    warmup_steps: 40
 
   # train_dataloader:
   #   dataset:
@@ -94,13 +73,12 @@ infrastructure:
       - pc
       - mem_eff
       - 8B
-      - 30p
+      - 50p
       - minitron_importances
-      - -DIFFERENT_RATIO
+      # - test
       # - magnitude_importances
       # - random_importances
 
-  cemetery_experiments_dir: "/net/scratch/hscra/plgrid/plgcrewtool/pc_cemetery"
-
   slurm:
-    time: "1-00:00:00"
+    # time: "0-01:00:00"
+    nodes: 2
