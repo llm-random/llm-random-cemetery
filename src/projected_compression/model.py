@@ -576,6 +576,7 @@ class ProjectedEmbedding(nn.Module):
         self.projection = None
         self.result_out_features = result_out_features
         self.initialized_compression = False
+        self.weight = self.embedding.weight
 
     def finalize(self):
         device = "cpu"
