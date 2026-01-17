@@ -13,8 +13,8 @@ common:
   batch_size: 64
   kv_heads: 16
   dff: 2560
-  data_seed: 123
-  # ^data_seed: [124, 125]
+  # data_seed: 123
+  ^data_seed: [124, 125]
   model_seed: 123
   # ^model_seed: [124, 125]
 
