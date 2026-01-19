@@ -41,6 +41,10 @@ class PCTrainer(Trainer):
                 self.model.parameters(), self.gradient_clipping, grad_norm
             )
 
+            # grad_norm = torch.nn.utils.clip_grad_norm_(
+            #     self.model.parameters(), self.gradient_clipping
+            # )
+
             self.log_metrics(loss, grad_norm)
             self.optimizer.step()
             self.optimizer.zero_grad()
