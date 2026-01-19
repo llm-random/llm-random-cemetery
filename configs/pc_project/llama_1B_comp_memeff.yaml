@@ -1,10 +1,10 @@
 defaults:
-  - ../../_misc@_here_: default
-  - ../../_cluster@_here_: entropy
-  - ../../_model/llama@_here_: projected_mem_eff_1B
-  - ../../_dataset@_here_: fineweb
-  - ../../_trainer@_here_: llama
-  - _self_
+  - ../_cluster@_here_: entropy
+  - ../_model/llama@_here_: projected_mem_eff_1B
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - ../_misc@_here_: default
 
 common:
   dmodel: 448
@@ -42,9 +42,9 @@ trainer:
   distributed:
     fsdp2: null
 
-  train_dataloader:
-    dataset:
-      sequence_length: 1024
+  # train_dataloader:
+  #   dataset:
+  #     sequence_length: 1024
 
 
 model:
