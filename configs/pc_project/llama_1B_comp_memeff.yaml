@@ -1,33 +1,18 @@
 defaults:
-  - ../../_misc@_here_: default
-  - ../../_cluster@_here_: entropy
-  - ../../_model/llama@_here_: projected_mem_eff_1B
-  - ../../_dataset@_here_: fineweb
-  - ../../_trainer@_here_: llama
-  - _self_
+  - ../_cluster@_here_: entropy
+  - ../_model/llama@_here_: projected_mem_eff_1B
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - ../_misc@_here_: default
 
 common:
+  sequence_length: 1024
+  batch_size: 512
+
   dmodel: 448
   dff: 1728
-  batch_size: 512
-  sequence_length: 1024
 
-
-projected_compression:
-  modules_to_shard:
-    - src.projected_compression.mem_eff.CompressibleBlock
-    - ${model.source_model.embedding._target_}
-    - ${model.source_model.encoder.block_fn._target_}
-    - ${model.source_model.head._target_}
-
-  source_model_path: /net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_2_1B_nano.pt
-  path_to_importances: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy ACTIVATIONS llama31
-
-  init_norms_with_ones: false
-
-  separate_block_optimizers: false
-
-  adjust_grad_norm: false
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
@@ -42,9 +27,22 @@ trainer:
   distributed:
     fsdp2: null
 
-  train_dataloader:
-    dataset:
-      sequence_length: 1024
+projected_compression:
+  modules_to_shard:
+    - src.projected_compression.mem_eff.CompressibleBlock
+    - ${model.source_model.embedding._target_}
+    - ${model.source_model.encoder.block_fn._target_}
+    - ${model.source_model.head._target_}
+
+  source_model_path: /storage_nvme_3/mstefaniak/pc/llama31b.pt
+  path_to_importances: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy ACTIVATIONS llama31
+
+  init_norms_with_ones: false
+
+  separate_block_optimizers: false
+
+  adjust_grad_norm: false
+
 
 
 model:
