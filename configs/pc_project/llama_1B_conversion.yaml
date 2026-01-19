@@ -1,7 +1,7 @@
 defaults:
-  - ../../_misc@_here_: default
-  - ../../_cluster@_here_: entropy
-  - ../../_model/llama@_here_: 1B
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/llama@_here_: 1B
   - _self_
 
 
@@ -21,6 +21,14 @@ infrastructure:
       - nano
       - pc
       - save_pretrained
+  
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:1
+    # time: "0-0:20:00"
+    # time: "0-3:00:00"
+    # time: "0-8:00:00"
+    time: "0-24:00:00"
 
 init_model_opt_sched_fn: 
   _target_: src.core.llama.save_pretrained_llama_as_nano
