@@ -1,14 +1,16 @@
 defaults:
   - ../../_misc@_here_: default
-  - ../../_cluster@_here_: helios
+  - ../../_cluster@_here_: entropy
   - ../../_model/llama@_here_: projected_mem_eff_1B
   - ../../_dataset@_here_: fineweb
   - ../../_trainer@_here_: llama
   - _self_
 
 common:
+  dmodel: 448
+  dff: 1728
   batch_size: 512
-  sequence_length: 2048
+  sequence_length: 1024
 
 
 projected_compression:
@@ -18,8 +20,8 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: ??? 
-  path_to_importances: ???
+  source_model_path: /net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_2_1B_nano.pt
+  path_to_importances: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy ACTIVATIONS llama31
 
   init_norms_with_ones: false
 
@@ -30,20 +32,23 @@ projected_compression:
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
   gradient_accumulation_steps: 128
-  n_steps: 1024
+  n_steps: 2048
   
-  learning_rate: 14
+  learning_rate: 12
+
+  scheduler:
+    warmup_steps: 40
 
   distributed:
     fsdp2: null
 
-  checkpoint:
-    save:
-      type: nano
-      path: ??? # CHANGE
+  train_dataloader:
+    dataset:
+      sequence_length: 1024
+
 
 model:
-  cast_bfloat16: false # whether to cast bfloat16 when calculating compressed matrix
+  cast_bfloat16: true # whether to cast bfloat16 when calculating compressed matrix
 
 infrastructure:
   metric_logger:
@@ -53,3 +58,12 @@ infrastructure:
       - pc
       - mem_eff
       - 1b
+      - reproduce
+
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    # time: "0-0:20:00"
+    # time: "0-3:00:00"
+    # time: "0-8:00:00"
+    time: "0-24:00:00"
