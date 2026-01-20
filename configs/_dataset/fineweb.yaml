@@ -1,8 +1,7 @@
 defaults:
   - default
   - _self_
-
-
+  
 trainer:
   train_dataloader:
     dataset:
