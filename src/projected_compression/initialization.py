@@ -143,10 +143,10 @@ def create_model(cfg_model, cfg_projected_compression):
         )
 
     # Only layer norms from target_model are used
-    for block in model.source_model.encoder.blocks:
-        block.attention_layer.norm = None
-        block.ff_layer.norm = None
-    model.source_model.head.norm = None
+    # for block in model.source_model.encoder.blocks:
+    #     block.attention_layer.norm = None
+    #     block.ff_layer.norm = None
+    # model.source_model.head.norm = None
     # embedding from source_model is used
     model.target_model.embedding = None
 
