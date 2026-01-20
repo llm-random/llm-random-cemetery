@@ -1,7 +1,7 @@
 defaults:
   - ../_cluster@_here_: entropy
   - ../_model/llama@_here_: projected_mem_eff_1B
-  - ../_trainer@_here_: llama3_1B_distillation
+  - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
   - ../_checkpoints@_here_: none
   - ../_misc@_here_: default
@@ -15,14 +15,12 @@ common:
 
 
 trainer:
-  _target_: src.projected_compression.trainer_distillation.PCDistillationTrainer
+  _target_: src.projected_compression.trainer.PCTrainer
   gradient_accumulation_steps: 8
   n_steps: 2048
   only_compress_model_gradient_clipping: true
-  eval_interval: 1000000
-
   
-  learning_rate: 13
+  learning_rate: 12
 
   scheduler:
     warmup_steps: 40
@@ -42,14 +40,12 @@ projected_compression:
 
   init_norms_with_ones: false
 
-  separate_block_optimizers: false
-  # separate_block_optimizers: true
+  # separate_block_optimizers: false
+  separate_block_optimizers: true
 
   adjust_grad_norm: false
 
-distillation:
-  load:
-    type: pc_memeff_base
+
 
 model:
   cast_bfloat16: true # whether to cast bfloat16 when calculating compressed matrix
@@ -63,11 +59,9 @@ infrastructure:
       - llama_1
       - projected_compression
       - 10p
+      - 30p
+      - 50p
       - mem_eff
-      - reproduce
-      # - shared_teacher
-      - distillation
-      - pr_test
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
