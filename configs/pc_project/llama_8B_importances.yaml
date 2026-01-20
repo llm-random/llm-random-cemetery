@@ -1,5 +1,5 @@
 defaults:
-  - ../_cluster@_here_: helios
+  - ../_cluster@_here_: entropy
   - ../_model@_here_: llama_3_8
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -8,7 +8,7 @@ defaults:
 
 
 common:
-  sequence_length: 1024
+  sequence_length: 2048
   batch_size: 4
 
 
@@ -24,7 +24,7 @@ trainer:
 
    save:
     type: nano
-    path: ??? # CHANGE
+    path: "/storage_nvme_3/mstefaniak/pc/llama8_fw_importances_8m/"
 
 
 infrastructure:
@@ -33,7 +33,7 @@ infrastructure:
     tags:
       - nano
       - pc
-      - llama_1
+      - llama_8
       - IMPORTANCES
       - fineweb
 
