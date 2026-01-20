@@ -143,17 +143,17 @@ def create_model(cfg_model, cfg_projected_compression):
         )
 
     # Only layer norms from target_model are used
-    for block in model.source_model.encoder.blocks:
-        block.attention_layer.norm = None
-        block.ff_layer.norm = None
-    model.source_model.head.norm = None
+    # for block in model.source_model.encoder.blocks:
+    #     block.attention_layer.norm = None
+    #     block.ff_layer.norm = None
+    # model.source_model.head.norm = None
     # embedding from source_model is used
     model.target_model.embedding = None
 
     model = setup_fsdp2_model(model, cfg_projected_compression)
 
     # Initializing model.source_model
-    source_sd = torch.load(
+    source_sd = torch.load( #???
         cfg_projected_compression.source_model_path,
         mmap=True,
         weights_only=True,
@@ -164,9 +164,9 @@ def create_model(cfg_model, cfg_projected_compression):
     source_norms = {}
     for k in list(source_sd.keys()):
         if "norm" in k:
-            source_norms[k] = source_sd.pop(k)
+            source_norms[k] = source_sd.pop(k) #???
 
-    sharded_sd = get_sharded_sd(model.source_model.state_dict(), source_sd)
+    sharded_sd = get_sharded_sd(model.source_model.state_dict(), source_sd) #???
     model.source_model.load_state_dict(sharded_sd, strict=False, assign=True)
 
     # It is used in forward step, but we do not need gradient
