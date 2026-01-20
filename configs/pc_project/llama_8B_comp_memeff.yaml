@@ -1,0 +1,97 @@
+defaults:
+  - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: entropy
+  - ../_model/llama@_here_: projected_mem_eff_8B
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - ../_misc@_here_: default
+
+common:
+  sequence_length: 2048
+  batch_size: 512
+
+ 
+  dmodel: 1056 # 10p
+  dff: 3168
+  # dmodel: 2160 # 30p
+  # dff: 6480
+  # dmodel: 3072 # 50p
+  # dff: 9216
+
+trainer:
+  _target_: src.projected_compression.trainer.PCTrainer
+  gradient_accumulation_steps: 128
+  # gradient_accumulation_steps: 16 # for 2 nodes 8 gpus
+  n_steps: 1024
+  only_compress_model_gradient_clipping: true
+  
+  ^learning_rate: # 10p
+    - 13
+    - 14
+    - 15
+    - 16
+
+  # ^learning_rate: # 30p 
+  #   - 14
+  #   - 15
+  #   - 16
+  #   - 17
+
+  # ^learning_rate:  # 50p
+  #   - 15
+  #   - 16
+  #   - 17
+  #   - 18
+
+  scheduler:
+    warmup_steps: 40
+
+  distributed:
+    fsdp2: null
+
+projected_compression:
+  modules_to_shard:
+    - src.projected_compression.mem_eff.CompressibleBlock
+    - ${model.source_model.embedding._target_}
+    - ${model.source_model.encoder.block_fn._target_}
+    - ${model.source_model.head._target_}
+
+  source_model_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama38b.pt
+  path_to_importances: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/20260120_importances/minitron_dimensions_importances.pt # helios
+
+  # source_model_path: asd
+  # path_to_importances: asd # entropy
+
+  init_norms_with_ones: false
+
+  separate_block_optimizers: true
+
+  adjust_grad_norm: false
+
+
+
+model:
+  cast_bfloat16: true # whether to cast bfloat16 when calculating compressed matrix
+
+infrastructure:
+  metric_logger:
+    name: Llame_PC
+    tags:
+      - nano
+      - pc
+      - llama_8
+      - projected_compression
+      - 10p
+      # - 30p
+      # - 50p
+      - mem_eff
+      - test
+
+  slurm: 
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    # time: "0-0:20:00"
+    # time: "0-3:00:00"
+    # time: "0-8:00:00"
+    time: "0-24:00:00"
