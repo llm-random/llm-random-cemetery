@@ -1,7 +1,7 @@
 defaults:
   - ../_cluster@_here_: entropy
   - ../_model/llama@_here_: projected_mem_eff_1B
-  - ../_trainer@_here_: llama3_1B_distillation
+  - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
   - ../_checkpoints@_here_: none
   - ../_misc@_here_: default
@@ -15,14 +15,12 @@ common:
 
 
 trainer:
-  _target_: src.projected_compression.trainer_distillation.PCDistillationTrainer
+  _target_: src.projected_compression.trainer.PCTrainer
   gradient_accumulation_steps: 8
   n_steps: 2048
   only_compress_model_gradient_clipping: true
-  eval_interval: 1000000
-
   
-  learning_rate: 13
+  learning_rate: 12
 
   scheduler:
     warmup_steps: 40
@@ -47,16 +45,10 @@ projected_compression:
 
   adjust_grad_norm: false
 
-distillation:
-  load:
-    type: pc_memeff_base
 
-init_model_opt_sched_fn: 
-  source_model_for_distillation: true
 
 model:
-  # cast_bfloat16: true 
-  cast_bfloat16: false 
+  cast_bfloat16: true # whether to cast bfloat16 when calculating compressed matrix
 
 infrastructure:
   metric_logger:
@@ -67,10 +59,9 @@ infrastructure:
       - llama_1
       - projected_compression
       - 10p
+      - 30p
+      - 50p
       - mem_eff
-      - reproduce
-      - distillation
-      - cast_bfloat16:false
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
