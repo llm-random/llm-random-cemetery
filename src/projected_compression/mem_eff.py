@@ -180,6 +180,7 @@ class MemoryEfficientProjectedCompression(nn.Module):
         )
 
         if optimizers is None:
+            raise
             for block_target, block_source, block_proj in zip(
                 self.target_model.encoder.blocks,
                 self.source_model.encoder.blocks,
@@ -287,6 +288,10 @@ class MemoryEfficientProjectedCompression(nn.Module):
 
                     torch.nn.utils.clip_grads_with_norm_(
                         block_proj.parameters(), gradient_clipping, grad_norm_to_use
+                    )
+                else:
+                    grad_norm = torch.nn.utils.clip_grad_norm_(
+                        block_proj.parameters(), gradient_clipping
                     )
 
                 optimizer.step()
