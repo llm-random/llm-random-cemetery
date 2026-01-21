@@ -1,28 +1,38 @@
 defaults:
-  - ../_cluster@_here_: entropy
-  - ../_model/llama@_here_: projected_mem_eff_1B
-  - ../_trainer@_here_: llama3_1B_distillation
+  - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: entropy
+  - ../_model/llama@_here_: projected_mem_eff_8B
+  - ../_trainer@_here_: llama3_8B_distillation
   - ../_dataset@_here_: fineweb
   - ../_checkpoints@_here_: none
   - ../_misc@_here_: default
 
 common:
-  sequence_length: 1024
+  sequence_length: 2048
   batch_size: 512
 
-  dmodel: 448
-  dff: 1728
+  #devchange
+  dmodel: 1056 # 10p
+  dff: 3168
+  # dmodel: 2160 # 30p
+  # dff: 6480
+  # dmodel: 3072 # 50p
+  # dff: 9216
 
 
 trainer:
   _target_: src.projected_compression.trainer_distillation.PCDistillationTrainer
-  gradient_accumulation_steps: 8
-  n_steps: 2048
+  gradient_accumulation_steps: 128
+  n_steps: 1024
   only_compress_model_gradient_clipping: true
   eval_interval: 1000000
 
   
-  learning_rate: 13
+  ^learning_rate: # all disillation
+    - 13
+    - 14
+    - 15
+    - 16
 
   scheduler:
     warmup_steps: 40
@@ -30,11 +40,11 @@ trainer:
   distributed:
     fsdp2: null
 
-  # checkpoint: #dev
+  # checkpoint: #devchange
   #   save:
-  #     interval: 1024
+  #     interval: 1023
   #     model_checkpoint_filename: __model_checkpoint_filename.pt
-  #     path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30 # helios
+  #     path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30
   #     training_state_filename: __training_state_filename.pt
   #     type: nano
 
@@ -45,8 +55,11 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: /storage_nvme_3/mstefaniak/pc/llama31b.pt
-  path_to_importances: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt # entropy ACTIVATIONS llama31
+  source_model_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama38b.pt
+  path_to_importances: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/20260120_importances/minitron_dimensions_importances.pt # helios
+
+  # source_model_path: /storage_nvme_3/mstefaniak/pc/llama38b.pt #entropy
+  # path_to_importances: /storage_nvme_3/mstefaniak/pc/llama8_fw_importances_8m/117045/0/minitron_dimensions_importances.pt # entropy ACTIVATIONS llama38
 
   init_norms_with_ones: false
 
@@ -67,16 +80,16 @@ model:
 infrastructure:
   metric_logger:
     name: Llame_PC
-    tags:
+    tags: #devchange
       - nano
       - pc
-      - llama_1
+      - llama_8
       - projected_compression
-      - 10p
       - mem_eff
-      - reproduce
       - distillation
-      - projections_gradclip_01
+      - 10p
+      # - 30p
+      # - 50p
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
