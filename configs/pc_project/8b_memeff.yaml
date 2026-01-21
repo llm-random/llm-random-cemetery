@@ -1,11 +1,11 @@
-# @package _global_
 defaults:
-  - ../../_misc@_here_: default
-  - ../../_cluster@_here_: entropy
-  - ../../_model/llama@_here_: projected_mem_eff_8B
-  - ../../_dataset@_here_: fineweb
-  - ../../_trainer@_here_: llama
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: helios
+  - ../_model/llama@_here_: projected_mem_eff_8B
+  - ../_dataset@_here_: fineweb
+  - ../_trainer@_here_: llama
   - _self_
+
 
 
 init_model_opt_sched_fn: 
@@ -33,7 +33,6 @@ projected_compression:
 
   # source_model_path: "/net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_1_8B_nano.pt"
   # path_to_importances: "/net/scratch/hscra/plgrid/plgcrewtool/importances/8b/minitron_dimensions_importances.pt"
-
   source_model_path: "/net/scratch/hscra/plgrid/plgcrewtool/nano_weights/llama_3_1_8B_nano.pt"
   path_to_importances: "/storage_nvme_1/mpioro/pc/importances/8b/minitron_dimensions_importances.pt"
 
@@ -70,6 +69,3 @@ infrastructure:
       - pc
       - mem_eff
       - 8B
-
-  slurm:
-    gres: gpu:4
