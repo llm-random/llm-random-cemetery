@@ -1,10 +1,9 @@
-# @package _global_
 defaults:
-  - ../../_misc@_here_: default
-  - ../../_cluster@_here_: entropy
-  - ../../_model/llama@_here_: projected_mem_eff_8B
-  - ../../_dataset@_here_: fineweb
-  - ../../_trainer@_here_: llama
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: helios
+  - ../_model/llama@_here_: projected_mem_eff_8B
+  - ../_dataset@_here_: fineweb
+  - ../_trainer@_here_: llama
   - _self_
 
 
@@ -68,6 +67,3 @@ infrastructure:
       - pc
       - mem_eff
       - 8B
-
-  slurm:
-    gres: gpu:1
