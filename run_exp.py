@@ -240,6 +240,7 @@ def submit_experiment(
                         f"tmux attach-session -t {experiment_branch_name}", pty=True
                     )
             except Exception as e:
+                breakpoint()
                 print("Exception while running an experiment: ", e)
 
 
