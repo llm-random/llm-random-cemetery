@@ -14,7 +14,8 @@ def evaluation(cfg, metric_logger):
 
     # dcp.load(model.state_dict(), checkpoint_id=f"{checkpoint_folder}/model")
 
-    id = "/net/scratch/hscra/plgrid/plgcrewtool/tutaj_pc_hej_8b_minitron_testy_17/11472834/0/step_1023/model"
+    # id = "/net/scratch/hscra/plgrid/plgcrewtool/tutaj_pc_hej_8b_minitron_testy_17/11472834/0/step_1023/model"
+    id = "/storage_nvme_1/mpioro/pc/model"
     dcp.load(model.state_dict(), checkpoint_id=id)
 
     model.prepare_compressed_weights()
