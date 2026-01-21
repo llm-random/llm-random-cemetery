@@ -76,7 +76,6 @@ infrastructure:
       - mem_eff
       - reproduce
       - distillation
-      - no_projections_gradclip
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
