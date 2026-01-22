@@ -92,7 +92,9 @@ class MemoryEfficientProjectedCompression(nn.Module):
                             block_source.ff_layer.layer.ff_post_act.weight
                         )
                     )
-
+                self.target_model.embedding = torch.nn.Parameter(
+                    self.source_model.embedding.weight @ self.projections.embedding.T + self.projections.auxiliary_embedding_weights.weight
+                )
                 self.target_model.head.linear.weight.copy_(
                     self.projections.head.get_projected_weight(
                         self.source_model.head.linear.weight
@@ -146,6 +148,7 @@ class MemoryEfficientProjectedCompression(nn.Module):
                         self.source_model.head.linear.weight.bfloat16()
                     )
                 )
+
 
     def pass_gradient_to_projections(
         self, optimizers: List, schedulers, gradient_clipping
