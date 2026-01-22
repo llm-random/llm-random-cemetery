@@ -216,7 +216,8 @@ def submit_experiment(
             experiment_dir = f"{cemetery_dir}/{experiment_branch_name}"
             if connection.run(f"test -d {experiment_dir}", warn=True).failed:
                 connection.run(
-                    f"git clone --depth 1 -b {experiment_branch_name} {cfg.infrastructure.git.remote_url} {experiment_dir}"
+                    # f"git clone --depth 1 -b {experiment_branch_name} {cfg.infrastructure.git.remote_url} {experiment_dir}"
+                    f"git -c pack.threads=1 clone --depth 1 -b {experiment_branch_name} {cfg.infrastructure.git.remote_url} {experiment_dir}"
                 )
             else:
                 print(f"Experiment {experiment_branch_name} already exists. Skipping.")
