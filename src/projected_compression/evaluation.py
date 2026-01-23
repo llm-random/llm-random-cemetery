@@ -60,14 +60,24 @@ def log_eval(metric_logger, eval_results: dict):
 
 def evaluation(cfg, metric_logger):
     model = create_model(cfg.model, cfg.projected_compression)
+    device = model.projections.embedding.device
     original_llama = "meta-llama/Llama-3.1-8B"
     path_to_load = "/storage_nvme_1/mpioro/pc/model" # "/net/scratch/hscra/plgrid/plgcrewtool/tutaj_pc_hej_8b_minitron_testy_17/11472834/0/step_1023/model"
     path_to_save = os.path.join(path_to_load, "converted_to_hf")
     tasks = 'arc_easy,arc_challenge'
     eval_batch_size = 64
 
+
     dcp.load(model.state_dict(), checkpoint_id=path_to_load)
+
+
     model.prepare_compressed_weights()
+
+    with torch.no_grad():
+        test_batch = torch.randint(0, 100_000, (3, 10)).to(device)
+        original_output = model(test_batch)
+        if os.environ.get("RANK", "0") == "0":
+            print('original_output:', original_output)
 
     model_state_dict = get_model_state_dict(
         model=model,
@@ -79,6 +89,17 @@ def evaluation(cfg, metric_logger):
     if os.environ.get("RANK", "0") == "0":
         tokenizer = AutoTokenizer.from_pretrained(original_llama)
         llama = load_pc_state_dict_to_llama(model_state_dict, original_llama=original_llama)
+        llama.to(device)
+        llama.to(torch.bfloat16)
+        with torch.no_grad():
+            llama_output = llama(test_batch).logits
+        print('llama_output:', llama_output)
+        # check that outputs are close
+        assert torch.allclose(
+            # original_output.float(), llama_output.float(),
+            original_output.softmax(dim=-1), llama_output.softmax(dim=-1),
+            atol=1e-5
+        ), "Outputs are not close enough!"
         tokenizer.save_pretrained(path_to_save)
         llama.save_pretrained(path_to_save)
 
