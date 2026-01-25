@@ -5,6 +5,7 @@ import torch.distributed.checkpoint as dcp
 from attr import define
 from src.core.checkpointing import step_checkpoint_path
 from src.core.trainer_distillation import TrainerDistillation
+from statistics import mean
 
 logger = logging.getLogger(__name__)
 
@@ -14,6 +15,7 @@ class PCDistillationTrainer(TrainerDistillation):
     """Works only for mem_eff_pc model with distillation"""
 
     only_compress_model_gradient_clipping: bool
+    grad_norms_acc = [3.0]
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
@@ -26,6 +28,12 @@ class PCDistillationTrainer(TrainerDistillation):
             self.block_optimizers = None
             self.block_schedulers = None
 
+    def gns(self):
+        # if len(self.grad_norms_acc) > 100:
+        if len(self.grad_norms_acc) > 40:
+            self.grad_norms_acc.pop(0)
+        return mean(self.grad_norms_acc)
+
     def train(self):
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
@@ -37,6 +45,18 @@ class PCDistillationTrainer(TrainerDistillation):
             self.model.prepare_compressed_weights()
             loss = self.calculate_loss(batch)
 
+            mean_g = self.gns()
+            if step > 40: #dev
+            # if step > 100: #dev
+            # if step > -1: #dev
+                # currentr_gradient_clipping = self.gradient_clipping
+                # currentr_gradient_clipping = 2*mean_g
+                # currentr_gradient_clipping = self.gradient_clipping + mean_g
+                currentr_gradient_clipping = mean_g if mean_g > 0.15 else 0.15
+            else:
+                currentr_gradient_clipping = 3.0
+                # currentr_gradient_clipping = 300.0
+                
             if self.only_compress_model_gradient_clipping:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
@@ -44,7 +64,8 @@ class PCDistillationTrainer(TrainerDistillation):
                 self.model.pass_gradient_to_projections(
                     self.block_optimizers,
                     self.block_schedulers,
-                    self.gradient_clipping,
+                    # self.gradient_clipping,
+                    currentr_gradient_clipping,
                     shared_gradient_norms=False,
                 )
             else:
@@ -57,6 +78,7 @@ class PCDistillationTrainer(TrainerDistillation):
                 torch.nn.utils.clip_grads_with_norm_(
                     self.model.parameters(), self.gradient_clipping, grad_norm
                 )
+            self.grad_norms_acc.append(grad_norm)
 
             self.log_metrics(loss, grad_norm)
             self.optimizer.step()
