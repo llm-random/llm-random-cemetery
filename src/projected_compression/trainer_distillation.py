@@ -37,6 +37,11 @@ class PCDistillationTrainer(TrainerDistillation):
             self.model.prepare_compressed_weights()
             loss = self.calculate_loss(batch)
 
+            if step > 100: #dev
+                currentr_gradient_clipping = self.gradient_clipping
+            else:
+                currentr_gradient_clipping = 3.0
+                
             if self.only_compress_model_gradient_clipping:
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
