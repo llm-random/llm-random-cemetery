@@ -10,6 +10,9 @@ infrastructure:
     partition: plgrid-gpu-gh200
     time: "2-00:00:00"
 
+  cemetery_experiments_dir: "/net/scratch/hscra/plgrid/plgmstefaniak/exps" #devchange helios
+
+
   script:
     - 'module load ML-bundle/25.04'
     - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano'
