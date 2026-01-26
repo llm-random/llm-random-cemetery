@@ -1,3 +1,8 @@
+defaults:
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: helios
+  - _self_
+
 infrastructure:
   generated_configs_path: generated_eval_configs
   metric_logger:
@@ -11,23 +16,37 @@ infrastructure:
     - 8b
     type: neptune
 
+  slurm:
+    cpus_per_gpu: 12
+    gres: gpu:1
+    job-name: evaluation_8B_pc
+    time: "00-12:00:00"
+
+  cemetery_experiments_dir: "~/llmrandom_cemetery"
 
 init_model_opt_sched_fn:
   _partial_: true
   _target_: main.initialize_just_metric_logger
 
-trainer: []
+trainer: null
 
 evaluator:
   _partial_: true
   _target_: src.core.eval.Evaluator
-  checkpoint_path: "/storage_nvme_3/crewtool/pc/proba2/model_hf"  # CHANGE!
+  checkpoint_path: "/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_checkpoints/PCD_30p_4BT"  # CHANGE!
   tokenizer: "meta-llama/Llama-3.1-8B"
   tasks:
     - wikitext
     - piqa
     - arc_easy
     - arc_challenge
+    - hellaswag
+    - lambada_openai
+    - openbookqa
+    - piqa
+    - sciq
+    - social_iqa
+    - winogrande
 
   limit: null  # No limit, evaluate on full datasets
   device: cuda
