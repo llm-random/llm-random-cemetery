@@ -1,6 +1,6 @@
 defaults:
   - ../_misc@_here_: default
-  - ../_cluster@_here_: helios
+  - ../_cluster@_here_: lem
   - _self_
 
 infrastructure:
@@ -33,7 +33,7 @@ trainer: null
 evaluator:
   _partial_: true
   _target_: src.core.eval.Evaluator
-  checkpoint_path: "/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_checkpoints/HPD_10p_6BT"  # CHANGE!
+  checkpoint_path: "/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_checkpoints/PCD_30p_2BT"  # CHANGE!
   tokenizer: "meta-llama/Llama-3.1-8B"
   tasks:
     - wikitext
