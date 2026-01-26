@@ -1,0 +1,75 @@
+_run_: true
+
+cluster_switch:
+  eval_path_c4: /net/scratch/hscra/plgrid/plgmaciejpioro/c4/validation
+  eval_path_fineweb: /net/scratch/hscra/plgrid/plgmaciejpioro/fineweb-edu/train/train
+  train_path_c4: /net/scratch/hscra/plgrid/plgmaciejpioro/c4/train
+  train_path_fineweb: /net/scratch/hscra/plgrid/plgmaciejpioro/fineweb-edu/train/train
+
+evaluator:
+  _partial_: true
+  _target_: src.core.eval.Evaluator
+  checkpoint_path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_checkpoints/PCD_10p_6BT
+  device: cuda
+  limit: null
+  tasks:
+  - wikitext
+  - piqa
+  - arc_easy
+  - arc_challenge
+  - hellaswag
+  - lambada_openai
+  - openbookqa
+  - piqa
+  - sciq
+  - social_iqa
+  - winogrande
+  tokenizer: meta-llama/Llama-3.1-8B
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_eval_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    _target_: src.definitions.MetricLoggerConfig
+    heavy_metrics_calculation_interval: 100
+    name: downstream_tasks
+    new_neptune_job: true
+    project_name: pmtest/llm-random
+    tags:
+    - eval
+    - 8b
+    type: neptune
+  script:
+  - module load ML-bundle/25.04
+  - export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=$PROJECT_HOME_PATH/pixi
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export XDG_DATA_HOME="PROJECT_HOME_PATH/data"
+  - export XDG_CACHE_HOME="$PROJECT_HOME_PATH/cache"
+  - export XDG_STATE_HOME="$PROJECT_HOME_PATH/state"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: helios
+  slurm:
+    cpus_per_gpu: 12
+    gres: gpu:1
+    job-name: evaluation_8B_pc
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: plgrid-gpu-gh200
+    time: 00-10:00:00
+
+init_model_opt_sched_fn:
+  _partial_: true
+  _target_: main.initialize_just_metric_logger
+
+overrides: []
+
+trainer: null
