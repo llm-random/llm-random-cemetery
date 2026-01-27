@@ -1,5 +1,6 @@
 defaults:
-  - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: helios
+  - ../_cluster@_here_: lem
   - ../_model@_here_: llama_3_8
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: c4 # not used - loads slower
@@ -23,6 +24,9 @@ trainer:
   learning_rate: 1 # not used
   gradient_accumulation_steps: 1 # not used
 
+
+
+
   checkpoint:
     load:
       # type: finalized_pc
@@ -45,4 +49,6 @@ infrastructure:
 
   slurm: 
     gres: gpu:4
+    gres: gpu:4
+    nodes: 2
     time: "0-00:30:00"
