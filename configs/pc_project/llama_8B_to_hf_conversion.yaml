@@ -1,5 +1,6 @@
 defaults:
   - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: lem
   - ../_model@_here_: llama_3_8
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: c4 # not used - loads slower
@@ -11,26 +12,46 @@ common:
   batch_size: 512
 
   #devchange
-  # dmodel: 1056 # 10p
-  # dff: 3168
-  dmodel: 2160 # 30p
-  dff: 6480
   # dmodel: 3072 # 50p
   # dff: 9216
+  dmodel: 2160 # 30p
+  dff: 6480
+  # dmodel: 1056 # 10p
+  # dff: 3168
 
 trainer:
   n_steps: 0 # not used
   learning_rate: 1 # not used
   gradient_accumulation_steps: 1 # not used
 
+
+    # # 50
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/hej50_xd/11545082/3/step_1023 HP_50_1 r
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/50/to_2048steps/11663774/0/step_2047 HP_50_2 r
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/50/to_4096steps/11663756/0/step_4095 HP_50_4 r
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/50/to_6ksteps/11712978/0/step_6143 HP_50_6 r
+
+    # # 30
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/hej30_xd/11533851/1/step_1023 HP_30_1
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/30/to_2048steps/11663814/0/step_2047 HP_30_2
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/30/to_4096steps/11663811/0/step_4095 HP_30_4
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/30/to_6144steps/11663810/0/step_6143 HP_30_6
+
+    # # 10
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/hej2/11531938/0/step_1023 HP_10_1
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/to_2048steps/11663737/0/step_2047 HP_10_2
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/to_4096steps/11663736/0/step_4095 HP_10_4
+    # /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/to_6144steps/11663735/0/step_6143 HP_10_6
+
+
   checkpoint:
     load:
       # type: finalized_pc
       type: nano
-      path: ??? # CHANGE
+      path: /net/scratch/hscra/plgrid/plgcrewtool/hpr/10/hej30_xd/11533851/1/step_1023
     save:
       type: huggingface
-      path: ??? # CHANGE
+      path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama_8_no_distil/HP_30_1
 
 
 infrastructure:
@@ -39,10 +60,13 @@ infrastructure:
     tags:
       - nano
       - pc
-      - llama_1
+      - hard_pruning
+      - llama_8
       - hf_conversion
-      - projected_compression
+  server: mhelios #devchange helios
 
   slurm: 
-    gres: gpu:4
+    gres: gpu:4 # helios
+    # gres: gpu:4
+    # nodes: 2
     time: "0-00:30:00"
