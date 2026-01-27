@@ -1,5 +1,6 @@
 defaults:
-  - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: helios
+  - ../_cluster@_here_: lem
   - ../_model/llama@_here_: projected_mem_eff_8B
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -18,19 +19,19 @@ common:
   #devchange
   # dmodel: 1056 # 10p
   # dff: 3168
-  # dmodel: 2160 # 30p
-  # dff: 6480
-  dmodel: 3072 # 50p
-  dff: 9216
+  dmodel: 2160 # 30p
+  dff: 6480
+  # dmodel: 3072 # 50p
+  # dff: 9216
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
-  gradient_accumulation_steps: 32
+  gradient_accumulation_steps: 32 # not used
   n_steps: 0
   only_compress_model_gradient_clipping: true
 
   #devchange
-  learning_rate: 20
+  learning_rate: 20 # not used
 
   scheduler:
     warmup_steps: 40
@@ -38,14 +39,35 @@ trainer:
   distributed:
     fsdp2: null
 
+  
+  # # 50p
+  # asd
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848178/0
+  # /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4593147/0/step_4095/model 2 # lem
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11890773/0 2
+ 
+
+  # # 30p
+  # asd
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848183/0 2
+  # /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4595407/0/step_4095/model 2 # lem
+  # # # # # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11890787/0 4
+
+
+  # # 10p
+  # asd
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848200/0 2
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848203/0 2
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848205/0 4
+
+
+
   #devchange
   checkpoint:
     load:
-      path: ??? #CHANGE!
+      path: /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4595407/0/step_4095/model #CHANGE!
     save:
-      path: ??? #CHANGE!
-
-
+      path: /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4595407/0/hf #CHANGE!
 
 
 projected_compression:
@@ -55,7 +77,7 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/hf_to_nano_converted/llama8b_in_nano.pt"
+  source_model_path: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/hf_to_nano_converted/llama8b_in_nano.pt" #lem
   path_to_importances: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/importances/8b/minitron_dimensions_importances.pt"
 
   # source_model_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama38b.pt
@@ -81,9 +103,14 @@ infrastructure:
   metric_logger:
     name: PC_to_HF
     tags: 
+      - nano
+      - pc
+      - llama_8
       - MEM_EFF_PC_to_HF
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
-    gres: gpu:4
+    # gres: gpu:4 # helios
+    gres: "gpu:hopper:4" #lem
+    nodes: 2
     time: "0-01:00:00"
