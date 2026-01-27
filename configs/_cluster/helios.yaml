@@ -14,6 +14,7 @@ infrastructure:
     - 'module load ML-bundle/25.04'
     - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi/nano'
     - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
+    - 'export HF_HUB_OFFLINE=1'
     
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'

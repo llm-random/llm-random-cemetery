@@ -17,9 +17,10 @@ class Evaluator:
 
     def eval(self):
         eval_model_args = (
-            f"pretrained={self.checkpoint_path}," f"tokenizer={self.tokenizer}"
+            f"pretrained=crewtool/{self.checkpoint_path}," f"tokenizer={self.tokenizer}"
         )
 
+        base_dir = "/net/storage/pr3/plgrid/plggllmeffi/projected_compression/hf_checkpoints_via_cli"
         results_no_fewshot = evaluator.simple_evaluate(
             model="hf",
             model_args=eval_model_args,
@@ -28,7 +29,7 @@ class Evaluator:
             device=self.device,
             log_samples=False,
         )
-        with open(f"{self.checkpoint_path}/eval_results_no_fewshot.json", "w") as f:
+        with open(f"{base_dir}/{self.checkpoint_path}/eval_results_no_fewshot.json", "w") as f:
             json.dump(results_no_fewshot, f, indent=2, default=str)
 
         self.log_eval(results_no_fewshot, prefix="eval_no_fewshot")
@@ -42,7 +43,7 @@ class Evaluator:
             log_samples=False,
             num_fewshot=5,
         )
-        with open(f"{self.checkpoint_path}/eval_results_with_fewshot5.json", "w") as f:
+        with open(f"{base_dir}/{self.checkpoint_path}/eval_results_with_fewshot5.json", "w") as f:
             json.dump(results_with_fewshot_5, f, indent=2, default=str)
 
         self.log_eval(results_with_fewshot_5, prefix="eval_with_fewshot_5")
