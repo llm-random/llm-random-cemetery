@@ -23,6 +23,16 @@ trainer:
   learning_rate: 1 # not used
   gradient_accumulation_steps: 1 # not used
 
+  # 50p
+
+
+
+  # 30p
+
+
+
+  # 10p
+
   checkpoint:
     load:
       # type: finalized_pc
