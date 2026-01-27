@@ -362,6 +362,7 @@ class CompressibleLinear(nn.Module):
                 else self.base_out_features
             )
             weight = torch.zeros(final_out_features, final_in_features)
+            # self.auxiliary_weight = nn.Parameter(weight, requires_grad=False) #dev Wa
             self.auxiliary_weight = nn.Parameter(weight, requires_grad=True)
 
     def init_projection_weights(self, proj_in_topk_indices, proj_out_topk_indices):
@@ -564,7 +565,8 @@ class Projections(nn.Module):
 
         zeros = torch.zeros(vocab_size, target_dmodel)
         self.auxiliary_embedding_weights = nn.Embedding(
-            vocab_size, target_dmodel, _weight=zeros
+            vocab_size, target_dmodel, _weight=zeros, 
+            # vocab_size, target_dmodel, _weight=zeros, _freeze = True #dev Wa
         )
         # --- Embedding end
 
