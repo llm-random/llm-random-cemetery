@@ -1,7 +1,7 @@
 defaults:
   - ../_cluster@_here_: helios
   # - ../_cluster@_here_: lem
-  - ../_model/llama@_here_: projected_mem_eff_8B
+  - ../_model/llama@_here_: projected_mem_eff_1B #dev
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
   - ../_checkpoints@_here_: none
@@ -17,12 +17,12 @@ common:
   batch_size: 512
 
   #devchange
-  dmodel: 1056 # 10p
-  dff: 3168
-  # dmodel: 2160 # 30p
-  # dff: 6480
-  # dmodel: 3072 # 50p
-  # dff: 9216
+  # dmodel: 448 # 10
+  # dff: 1728
+  # dmodel: 960 # 30
+  # dff: 3840
+  dmodel: 1344 # 50
+  dff: 5376
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
@@ -40,27 +40,24 @@ trainer:
     fsdp2: null
 
   
-  # # 50p
-  # asd PC_50_1
-  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848178/0/step_2047/model 2 PC_50_2 r
-  # /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4593147/0/step_4095/model 2 # lem PC_50_4 fin
-  # # # # # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11890773/0/step_6143/model 4 PC_50_6 wait lem
- 
+  # # 10p
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871431/0/step_2047/model PCD_10_1
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871425/0/step_4095/model PCD_10_2
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871419/0/step_8191/model PCD_10_4
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871418/0/step_12287/model PCD_10_6
 
   # # 30p
-  # asd PC_30_1
-  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848183/0/step_2047/model 2 PC_30_2 r
-  # /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4595407/0/step_4095/model 2 # lem PC_30_4 fix
-  # # # # # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11890787/0/step_6143/model 4 PC_30_6 wait lem
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871432/0/step_2047/model PCD_30_1
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11883622/0/step_4095/model PCD_30_2
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11883745/0/step_8191/model PCD_30_4
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871436/0/step_12287/model PCD_30_6
 
 
-  # # 10p
-  # asd PC_10_1
-  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848200/0/step_2047/model 2 PC_10_2 r
-  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848203/0/step_4095/model 2 PC_10_4 r
-  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11848205/0/step_6143/model 4 PC_10_6 r
-
-
+  # # 50p
+  # /storage_nvme_3/mstefaniak/nano_checkpoints/tmp/118460/0/step_2047/model PCD_50_1
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11883689/0/step_4095/model PCD_50_2
+  # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11883692/0/step_8191/model PCD_50_4
+  # /storage_nvme_3/mstefaniak/nano_checkpoints/tmp/118465/0/step_12287/model PCD_50_6
 
 
 
@@ -68,11 +65,11 @@ trainer:
   checkpoint:
     load:
       # path: /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4595407/0/step_4095/model #CHANGE!
-      path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11871431/0/step_2047/model
+      path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc30/11883689/0/step_4095/model
 
     save:
       # path: /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/tmp/4595407/0/hf #CHANGE!
-      path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama_8_no_distil/PCD_10_1
+      path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama_8_no_distil/PCD_50_4
    
 
 # /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10/11884269/0
@@ -101,7 +98,7 @@ projected_compression:
 
   adjust_grad_norm: false
 
-  original_llama_path: "meta-llama/Llama-3.1-8B"
+  original_llama_path: "meta-llama/Llama-3.2-1B"
 
 
 
@@ -114,9 +111,8 @@ infrastructure:
     tags: 
       - nano
       - pc
-      - llama_8
+      - llama_1
       - MEM_EFF_PC_to_HF
-      - nodes4
   server: mhelios
 
   slurm: 
@@ -124,5 +120,5 @@ infrastructure:
     gres: gpu:4 # helios
     # gres: "gpu:hopper:4" #lem
     # nodes: 2
-    nodes: 4
+    # nodes: 4
     time: "0-01:00:00"
