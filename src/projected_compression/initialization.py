@@ -175,7 +175,7 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
                 source_norms[k] = source_sd.pop(k)
 
     sharded_sd = get_sharded_sd(model.source_model.state_dict(), source_sd)
-    model.source_model.load_state_dict(sharded_sd, strict=False, assign=True)
+    model.source_model.load_state_dict(sharded_sd, strict=True, assign=True)
 
     # It is used in forward step, but we do not need gradient
     model.source_model.embedding.weight.requires_grad = False
