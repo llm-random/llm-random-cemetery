@@ -1,9 +1,9 @@
 infrastructure:
-  server: entropy
+  server: entropy_sftp
   max_concurrent_jobs: null
   slurm:
-    cpus_per_gpu: 16
-    gres: ???
+    cpus_per_task: 2
+    gres: gpu:0
     job-name: test
     mem_per_gpu: 125G
     nodes: 1
@@ -11,7 +11,6 @@ infrastructure:
     time: "2-00:00:00"
 
   script:
-    - '${export_env_variables_placeholders:}'
     - 'export PROJECT_HOME_PATH=/storage_ssd_1/nano'
     - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
 
@@ -19,7 +18,7 @@ infrastructure:
     - 'export HYDRA_FULL_ERROR=1'
 
     # export pixi variables
-    - 'export PIXI_HOME=/storage_ssd_1/nano/pixi'
+    - 'export PIXI_HOME=/storage_ssd_1/nano/pixi_wandb2'
     - 'export PATH="$PIXI_HOME/bin:$PATH"'
     - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
     - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
