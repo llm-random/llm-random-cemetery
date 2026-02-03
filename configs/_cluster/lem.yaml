@@ -13,6 +13,7 @@ infrastructure:
 
   script:
     - 'export HF_HOME="/lustre/pd01/plgrid/plgllmefficont2/crewtool/hf"'
+    - '${export_env_variables_placeholders:}'
 
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'
