@@ -39,8 +39,10 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: pk_mlm
-    project_name: pmtest/tml-bgw
+    type: wandb
+    wandb_entity: ideas_cv
+    project_name: pmtest_tml-bgw
+    name: tiny_remote
     tags:
       - nano
       - pk_mlm
