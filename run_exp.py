@@ -223,6 +223,13 @@ def submit_experiment(
 
             try:
                 connection.run(f"tmux new -d -s {experiment_branch_name}")
+                if "WANDB_API_KEY" in os.environ: 
+                    # connection.run(f"tmux set-environment -t {experiment_branch_name} WANDB_API_KEY {os.environ['WANDB_API_KEY']}")
+                    connection.run(
+                        f'tmux send -t {experiment_branch_name}.0 "export WANDB_API_KEY={os.environ["WANDB_API_KEY"]}" ENTER'
+                    )
+
+                    
                 connection.run(
                     f'tmux send -t {experiment_branch_name}.0 "cd {experiment_dir}" ENTER'
                 )
