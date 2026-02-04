@@ -1,5 +1,5 @@
 defaults:
-  - _cluster@_here_: entropy_a100
+  - _cluster@_here_: entropy
   - _model@_here_: tiny
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -24,12 +24,12 @@ trainer:
 infrastructure:
   max_concurrent_jobs: 1
 
+
   metric_logger:
-    name: tiny_remote
-    tags:
-      - nano
-      - remote
-      - tiny
+    type: wandb
+    wandb_entity: crewtool
+    name: baseline
+    project_name: test_project
 
   slurm:
     time: "00:10:00"
