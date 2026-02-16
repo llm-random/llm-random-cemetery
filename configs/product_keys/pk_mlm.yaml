@@ -10,7 +10,7 @@ defaults:
 
 common:
   sequence_length: 1024
-  batch_size: 64
+  batch_size: 32
   dmodel: 1024
   dff: 2724
   datt: ${common.dmodel}
@@ -46,12 +46,13 @@ infrastructure:
     tags:
       - nano
       - pk_mlm
+      - 2026.02.16-grid
       - "seq_len=${common.sequence_length}"
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
   slurm:
     gres: gpu:2
-    time: "1-00:00:00"
+    time: "2-00:00:00"
     job-name: ${infrastructure.metric_logger.name}
 
 model:
