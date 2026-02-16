@@ -268,7 +268,7 @@ class RoPEProductKeysEncoderAttention(nn.Module):
         # q needs unsqueeze to broadcast: (B, H, S, 1, D) @ (B, H, S, K*K, D).T
         # TODO
         # ! we've calculated both halves separately, we can reuse that
-        scores_final = (q.unsqueeze(-2) * candidates).sum(dim=-1)
+        scores_final = torch.matmul(q.unsqueeze(-2), candidates.transpose(-1, -2)).squeeze(-2)
 
         # Select top K closest combinations
         # selection_indices shape: (B, H, S, K)
