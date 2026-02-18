@@ -307,6 +307,7 @@ class RoPEProductKeysEncoderAttention(nn.Module):
         return self.o_proj(attn_output.transpose(1, 2).contiguous().flatten(-2))
 
 
+# TODO: Paper sugeruje inny LR dla memory layers, też robić grida czy wziąć sugestię z papera?
 class ProductKeysMemory(nn.Module):
     def __init__(
         self,
@@ -370,7 +371,7 @@ class ProductKeysMemory(nn.Module):
 
         # 3. Cartesian Product of Scores
         # Sum every score from the first half with every score from the second half
-        # (BS, H, K, 1) + (BS, H, 1, K) -> (BS, H, K, K)
+        # (BS*Seq, H, K, 1) + (BS*Seq, H, 1, K) -> (BS*Seq, H, K, K)
         all_scores = scores1.unsqueeze(3) + scores2.unsqueeze(2)
 
         # Flatten the KxK grid to K^2 to find the global top-k
@@ -392,19 +393,23 @@ class ProductKeysMemory(nn.Module):
         memory_indices = real_idx1 * self.n_sub_keys + real_idx2
 
         # 5. Read from Memory
-        attn_weights = F.softmax(global_scores, dim=-1)  # (BS, H, K)
+        attn_weights = F.softmax(global_scores, dim=-1)  # (BS*Seq, H, K)
 
-        flat_indices = memory_indices.view(-1)
-        values_selected = self.values(flat_indices)
-        values_selected = values_selected.view(
-            bs * seq_len, self.n_heads, self.k, d_model
+        # Flatten indices and weights to the format expected by embedding_bag
+        # The "bag" dimension is (BS * Seq * Heads), with K elements in each bag
+        flat_indices = memory_indices.view(-1, self.k)
+        flat_weights = attn_weights.view(-1, self.k)
+
+        # Fused Lookup + Weighted Sum
+        # We avoid creating the massive (BS*Seq, H, K, d_model) tensor by using embedding_bag
+        out_flat = F.embedding_bag(
+            input=flat_indices,
+            weight=self.values.weight,
+            per_sample_weights=flat_weights,
+            mode='sum'
         )
 
-        # Weighted sum of retrieved values
-        out_heads = (values_selected * attn_weights.unsqueeze(-1)).sum(dim=2)
-
         # 6. Aggregation
-        # Sum outputs across all heads
-        output = out_heads.sum(dim=1)  # (BS, d_model)
-
-        return output.view(bs, seq_len, d_model)
+        # Restore the correct dimensions: (BS*Seq, H, d_model) -> (BS, Seq, H, d_model)
+        out_flat = out_flat.view(bs, seq_len, self.n_heads, d_model)
+        return out_flat.sum(dim=2)  # Output: (BS, Seq, d_model)
