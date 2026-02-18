@@ -38,6 +38,12 @@ trainer:
       tokenize_fn:
         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
 
+  checkpoint:
+    load:
+      type: huggingface
+      path: /net/scratch/hscra/plgrid/plgggwozdz02/checkpoint
+      model_checkpoint_filename: model.safetensors
+
 
 infrastructure:
   metric_logger:
