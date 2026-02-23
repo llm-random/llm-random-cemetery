@@ -9,7 +9,7 @@ defaults:
   - _self_
 
 common:
-  sequence_length: 2048
+  sequence_length: 1024
   batch_size: 32
   dmodel: 768
   dff: 2042
@@ -21,7 +21,7 @@ common:
 
 trainer:
   gradient_accumulation_steps: 2
-  n_steps: 56000
+  n_steps: 10000
   learning_rate: 1e-3
 
   checkpoint:
