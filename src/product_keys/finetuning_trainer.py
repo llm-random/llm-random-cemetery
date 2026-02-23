@@ -5,7 +5,7 @@ import torch
 from src.core.trainer import Trainer
 
 logger = logging.getLogger(__name__)
-from nano.src.product_keys.finetuning.model_sequence_classifiaction import ModelSequenceClassification
+from src.product_keys.model_sequence_classifiaction import ModelSequenceClassification
 
 # for now focus solely on sst2
 HIDDEN_SIZE = 1024
@@ -32,7 +32,7 @@ class FinetuningTrainer(Trainer):
         if self.freeze_backbone:
             self._freeze_model_layers()
 
-        model = create_classifier_model(model)
+        self.model = create_classifier_model(self.model)
         
     def _freeze_model_layers(self):
         logger.info("Freezing backbone layers...")
