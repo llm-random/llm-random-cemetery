@@ -1,3 +1,4 @@
+import re
 import os
 import hydra
 import yaml
@@ -24,7 +25,7 @@ from src.core.checkpointing import (
     load_training_state,
     get_full_checkpoint_path,
 )
-from src.core.metric_loggers import NeptuneLogger, get_metric_logger
+from src.core.metric_loggers import NeptuneLogger, WandbLogger, get_metric_logger
 from src.core.model import Residual
 import platform
 
@@ -197,9 +198,49 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
                 logger.info("Initialization failed, exiting...")
                 return None, None, None
     model = setup_distributed_training(model, cfg.trainer.distributed)
+
+    optimizer_groups = []
+    # If optimizer_param_groups is defined in config, use generic regex-based grouping
+    if hasattr(cfg.trainer, "optimizer_param_groups") and cfg.trainer.optimizer_param_groups:
+        assigned_param_ids = set()
+        
+        for group_cfg in cfg.trainer.optimizer_param_groups:
+            group_regex = group_cfg.regex
+            group_lr = group_cfg.get("lr", learning_rate)
+            group_params = []
+            group_matches = []
+
+            for name, param in model.named_parameters():
+                if id(param) in assigned_param_ids:
+                    continue
+                
+                if re.search(group_regex, name):
+                    group_params.append(param)
+                    assigned_param_ids.add(id(param))
+                    group_matches.append(name)
+            
+            if group_params:
+                logger.info(f"Optimizer group regex='{group_regex}' lr={group_lr} matched {len(group_params)} params: {group_matches}")
+                optimizer_groups.append({"params": group_params, "lr": group_lr})
+            else:
+                logger.warning(f"Optimizer group regex='{group_regex}' matched no parameters.")
+
+        # Add remaining parameters to the default group
+        default_params = []
+        for name, param in model.named_parameters():
+            if id(param) not in assigned_param_ids:
+                default_params.append(param)
+        
+        if default_params:
+            optimizer_groups.append({"params": default_params, "lr": learning_rate})
+            logger.info(f"Default optimizer group lr={learning_rate} contains {len(default_params)} remaining params.")
+
+    else:
+        # Fallback to simple default group (or previous hardcoded logic if we wanted to keep it, but user asked to generalize)
+        optimizer_groups = [{"params": model.parameters(), "lr": learning_rate}]
+
     optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=learning_rate,
+        optimizer_groups,
         weight_decay=cfg.trainer.weight_decay,
     )
     scheduler = instantiate(cfg.trainer.scheduler)(
@@ -216,6 +257,7 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
         metric_logger = get_metric_logger(
             metric_logger_config=cfg.infrastructure.metric_logger,
             tracker_run_id=training_state["run_id"],
+            full_config=cfg,
         )
 
         # Other loggers do not have `run` method
@@ -237,6 +279,17 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
         )
         metric_logger.run["learning_rate"] = learning_rate
         metric_logger.run["exp_lr"] = exp_lr
+
+    elif isinstance(metric_logger, WandbLogger) and (
+        training_state["run_id"] is None
+        or cfg.infrastructure.metric_logger.new_wandb_job
+    ):
+        # Update wandb config
+        metric_logger.run.log({
+            "learning_rate": learning_rate, 
+            "exp_lr": exp_lr, 
+            "full_save_checkpoints_path": get_full_checkpoint_path(cfg.trainer.checkpoint.save.path)
+        })
 
     torch.manual_seed(cfg.trainer.train_dataloader.dataset.seed)
 
