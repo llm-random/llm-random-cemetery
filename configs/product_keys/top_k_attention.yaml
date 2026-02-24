@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /_cluster/entropy@_here_
+  - /_cluster/helios@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
   - /_dataset/c4@_here_
@@ -31,8 +31,10 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: top_k_attention
-    project_name: pmtest/tml-bgw
+    type: wandb
+    wandb_entity: ideas_cv
+    name: logging_config_test
+    project_name: tml-bgw
     tags:
       - nano
       - top_k_attention
@@ -40,7 +42,7 @@ infrastructure:
       - "seq_len=${common.sequence_length}"
   slurm:
     gres: gpu:1
-    time: "1-00:00:00"
+    time: "0-00:05:00"
     job-name: ${infrastructure.metric_logger.name}
 
 evaluator:
