@@ -1,5 +1,9 @@
 import torch
 import torch.nn as nn
+import logging 
+
+logger = logging.getLogger(__name__)
+
 
 class ModelSequenceClassification(nn.Module):
     def __init__(self, base_model: nn.Module, hidden_size: int, num_labels: int):
@@ -10,9 +14,13 @@ class ModelSequenceClassification(nn.Module):
         
     def forward(self, input_ids, attention_mask=None, labels=None):
         outputs = self.backbone(input_ids)
+
+        logger.info(f"Outputs shape: {outputs.shape}")
         
         hidden_states = outputs[0] if isinstance(outputs, tuple) else outputs
         
+        logger.info(f"Hidden states shape: {hidden_states.shape}")
+
         if attention_mask is not None:
             sequence_lengths = attention_mask.sum(dim=1) - 1
             batch_size = input_ids.shape[0]
