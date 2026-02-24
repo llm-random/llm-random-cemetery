@@ -5,20 +5,20 @@ import torch
 from src.core.trainer import Trainer
 
 logger = logging.getLogger(__name__)
-from nano.src.product_keys.finetuning.model_sequence_classifiaction import ModelSequenceClassification
+from src.product_keys.model_sequence_classifiaction import ModelSequenceClassification
 
 # for now focus solely on sst2
 HIDDEN_SIZE = 1024
 SST2_LABELS: int = 2
 
 
-def create_classifier_model(model: torch.nn.Module) -> torch.nn.Module:
+def create_classifier_model(model: torch.nn.Module, device: torch.device) -> torch.nn.Module:
     logger.info("Printing model shapes...")
     for name, layer in model.named_modules():
-        # We filter for Linear layers to keep the output readable
         if isinstance(layer, torch.nn.Linear):
             logger.info(f"Layer: {name} | Size: {layer.weight.shape}")
-    return ModelSequenceClassification(model, hidden_size=HIDDEN_SIZE, num_labels=SST2_LABELS)
+    
+    return ModelSequenceClassification(model, hidden_size=HIDDEN_SIZE, num_labels=SST2_LABELS).to(device)
 
 
 @define(slots=False)
@@ -32,7 +32,7 @@ class FinetuningTrainer(Trainer):
         if self.freeze_backbone:
             self._freeze_model_layers()
 
-        model = create_classifier_model(model)
+        self.model = create_classifier_model(self.model, self.device)
         
     def _freeze_model_layers(self):
         logger.info("Freezing backbone layers...")
