@@ -330,8 +330,10 @@ class ProductKeysMemory(nn.Module):
 
         # Sub-Keys (Codebooks)
         # Two separate sets of keys for the product quantization
-        self.c1 = nn.Parameter(torch.randn(n_heads, n_sub_keys, query_dim // 2))
-        self.c2 = nn.Parameter(torch.randn(n_heads, n_sub_keys, query_dim // 2))
+        self.c1 = nn.Parameter(torch.empty(n_heads, n_sub_keys, query_dim // 2))
+        self.c2 = nn.Parameter(torch.empty(n_heads, n_sub_keys, query_dim // 2))
+        nn.init.normal_(self.c1, mean=0, std=d_model**-0.5)
+        nn.init.normal_(self.c2, mean=0, std=d_model**-0.5)
 
         # Memory Values
         # The actual values retrieved. Size is (n_sub_keys^2, d_model)
