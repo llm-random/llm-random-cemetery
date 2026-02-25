@@ -28,6 +28,7 @@ common:
   pkm_k: 32
   pkm_query_dim: 512
   pkm_n_heads: 4
+  pkm_indices: [7, 14]
 
 trainer:
   _target_: src.product_keys.trainer.MaskedLMTrainer
@@ -39,8 +40,11 @@ trainer:
   # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
   learning_rate: 1e-3
   optimizer_param_groups:
-    - regex: ".*pkm_layer_fn.*values.*"
+    - regex: ".*ff_layer.layer.values.*"
       lr: 5e-3
+      indices_filter:
+        layer_path: "encoder.blocks"
+        indices: ${common.pkm_indices}
   train_dataloader:
     dataset:
       tokenize_fn:
@@ -67,8 +71,8 @@ infrastructure:
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
   slurm:
-    gres: gpu:2
-    time: "1-00:00:00"
+    gres: gpu:1
+    time: "0-00:10:00"
     job-name: ${infrastructure.metric_logger.name}
 
 model:
@@ -88,9 +92,7 @@ model:
     block_fn:
       _target_: src.product_keys.model.HybridTransformerBlock
       _partial_: true
-      pkm_indices: [7, 14] # Layers 8 and 15 use PKM
-      # pkm_indices: [3, 7, 10, 14]
-      # pkm_indices: [2, 4, 7, 9, 12, 14]
+      pkm_indices: ${common.pkm_indices}
 
       norm_fn:
         _target_: src.core.model.RMSNorm
