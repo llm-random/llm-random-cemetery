@@ -67,8 +67,8 @@ infrastructure:
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
   slurm:
-    gres: gpu:2
-    time: "1-00:00:00"
+    gres: gpu:1
+    time: "0-00:10:00"
     job-name: ${infrastructure.metric_logger.name}
 
 model:

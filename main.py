@@ -378,7 +378,10 @@ def run(cfg: OmegaConf, metric_logger=None):
     if model is not None:
         logger.info(f"Model initialized")
 
-        trainer = instantiate(cfg.trainer)
+        # exclude optimizer_param_groups from trainer kwargs to avoid error
+        trainer_args = OmegaConf.to_container(cfg.trainer, resolve=True)
+        trainer_args.pop("optimizer_param_groups", None)
+        trainer = instantiate(trainer_args)
 
         if "distillation" in cfg:
             if cfg.distillation.load.type == "huggingface":
