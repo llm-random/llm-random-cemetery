@@ -5,7 +5,7 @@ defaults:
   - _dataset@_here_: local_dummy
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _eval@_here_: basic
+  # - _eval@_here_: basic
 
 common:
   sequence_length: 16
@@ -23,12 +23,15 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: tiny_Local
+    type: wandb
+    wandb_entity: ideas_cv
+    name: tiny_local
+    project_name: tml-bgw
     tags:
       - nano
       - local
       - tiny
 
-evaluator:
-  limit: 1
-  device: cpu
+# evaluator:
+#   limit: 1
+#   device: cpu
