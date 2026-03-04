@@ -30,39 +30,50 @@ common:
   pkm_n_heads: 4
   pkm_indices: [7, 14]
 
+# trainer:
+#   _target_: src.product_keys.trainer.MaskedLMTrainer
+#   masking_percentage: 0.2
+#   mask_token_id: 50257
+#   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
+#   gradient_accumulation_steps: 2
+#   n_steps: 77050
+#   learning_rate: 1e-3
+#   ^learning_rate: [5e-4, 1e-3, 2e-3]
+#   optimizer_param_groups:
+#     - regex: ".*ff_layer.layer.values.*"
+#       lr: "${eval:'1.0 * ${trainer.learning_rate}'}"
+#       indices_filter:
+#         layer_path: "encoder.blocks"
+#         indices: ${common.pkm_indices}
+#   train_dataloader:
+#     dataset:
+#       tokenize_fn:
+#         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+#   eval_dataloader:
+#     dataset:
+#       tokenize_fn:
+#         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+
 trainer:
-  _target_: src.product_keys.trainer.MaskedLMTrainer
-  masking_percentage: 0.2
-  mask_token_id: 50257
-  unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
-  gradient_accumulation_steps: 2
   n_steps: 77050
   learning_rate: 1e-3
   ^learning_rate: [5e-4, 1e-3, 2e-3]
   optimizer_param_groups:
     - regex: ".*ff_layer.layer.values.*"
-      lr: "${eval:'1.0 * ${trainer.learning_rate}'}"
+      lr: "${eval:'0.25 * ${trainer.learning_rate}'}"
       indices_filter:
         layer_path: "encoder.blocks"
         indices: ${common.pkm_indices}
-  train_dataloader:
-    dataset:
-      tokenize_fn:
-        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
-  eval_dataloader:
-    dataset:
-      tokenize_fn:
-        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
 
 infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: "pkm"
+    name: pkm_causal_different_lrs_1/4x
     project_name: tml-bgw
     tags:
       - pkm
-      - mlm
+      - clm
       - "pkm_n_sub_keys=${common.pkm_n_sub_keys}"
       - "pkm_k=${common.pkm_k}"
       - "pkm_indices=${model.encoder.block_fn.pkm_indices}"
@@ -106,7 +117,7 @@ model:
         q_heads: ${common.q_heads}
         kv_heads: ${common.kv_heads}
         seq_len: ${common.sequence_length}
-        causal: false
+        causal: true
 
         q_proj_fn:
           _target_: src.projected_compression.model.Linear
