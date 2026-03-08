@@ -26,7 +26,8 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 2
   n_steps: 77050
-  ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
+  # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
+  learning_rate: 1e-3
   train_dataloader:
     dataset:
       tokenize_fn:
@@ -43,15 +44,21 @@ infrastructure:
     wandb_entity: ideas_cv
     name: pk_mlm
     project_name: tml-bgw
+    heavy_metrics_calculation_interval: 10
+    heavy_logging_layers: None
     tags:
       - nano
       - pk_mlm
+      - 2026.03.08
+      # - learned_embeddings
+      # - lr_grid
+      - test
       - "seq_len=${common.sequence_length}"
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
   slurm:
     gres: gpu:2
-    time: "1-00:00:00"
+    time: "0-00:10:00"
     job-name: ${infrastructure.metric_logger.name}
 
 model:
