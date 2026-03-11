@@ -198,6 +198,7 @@ class RoPEProductKeysEncoderAttention(nn.Module):
 
         self.q_pos_emb = nn.Parameter(torch.zeros(seq_len, self.dhead))
         self.k_pos_emb = nn.Parameter(torch.zeros(seq_len, self.dhead))
+        # todo grid on init std
         trunc_normal_(self.q_pos_emb, std=0.02)
         trunc_normal_(self.k_pos_emb, std=0.02)
 
