@@ -27,6 +27,7 @@ trainer:
   gradient_accumulation_steps: 2
   n_steps: 77050
   ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
+  # learning_rate: 1e-3
   train_dataloader:
     dataset:
       tokenize_fn:
@@ -41,11 +42,17 @@ infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: pk_mlm
+    name: pk_mlm_learned_embeddings_qknorm_lr_grid
     project_name: tml-bgw
+    heavy_metrics_calculation_interval: 1000
+    heavy_logging_layers: [0, 10, 15]
     tags:
       - nano
       - pk_mlm
+      - 2026.03.11
+      - learned_embeddings
+      - QKNorm
+      - lr_grid
       - "seq_len=${common.sequence_length}"
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
