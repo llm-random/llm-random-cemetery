@@ -346,7 +346,7 @@ def run(cfg: OmegaConf, metric_logger=None):
 
     evaluator = instantiate(cfg.evaluator)
     if evaluator is not None:
-        evaluator(metric_logger=metric_logger).eval()
+        evaluator(metric_logger=metric_logger, model=model).eval()
 
     cleanup()
 
