@@ -24,11 +24,12 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: tiny_Local
-    tags:
-      - nano
-      - local
-      - tiny
+    type: stdout
+    # name: tiny_Local
+    # tags:
+    #   - nano
+    #   - local
+    #   - tiny
 
 evaluator:
   limit: 1
