@@ -147,45 +147,33 @@ class NanoLM(LM):
 
 @define(slots=False)
 class Evaluator:
-    checkpoint_path: str
     tokenizer: str
     tasks: list[str]
     limit: Optional[int]
-    device: str
     max_length: int
     max_gen_toks: int
     batch_size: int
     metric_logger: MetricLogger
-    model: Optional[nn.Module]
+    model: nn.Module
 
     def eval(self):
-        if self.model is not None:
-            self.model.eval()
-            lm = NanoLM(
-                model=self.model,
-                tokenizer_name=self.tokenizer,
-                max_length=self.max_length,
-                max_gen_toks=self.max_gen_toks,
-                batch_size=self.batch_size,
-            )
-            results = evaluator.simple_evaluate(
-                model=lm,
-                tasks=list(self.tasks),
-                limit=self.limit,
-                log_samples=False,
-            )
-        else:
-            eval_model_args = (
-                f"pretrained={self.checkpoint_path}," f"tokenizer={self.tokenizer}"
-            )
-            results = evaluator.simple_evaluate(
-                model="hf",
-                model_args=eval_model_args,
-                tasks=list(self.tasks),
-                limit=self.limit,
-                device=self.device,
-                log_samples=False,
-            )
+        self.model.eval()
+        lm = NanoLM(
+            model=self.model,
+            tokenizer_name=self.tokenizer,
+            max_length=self.max_length,
+            max_gen_toks=self.max_gen_toks,
+            batch_size=self.batch_size,
+        )
+        # HF datasets requires explicit opt-in for datasets with custom code (e.g. allenai/social_i_qa)
+        os.environ["HF_DATASETS_TRUST_REMOTE_CODE"] = "1"
+        results = evaluator.simple_evaluate(
+            model=lm,
+            tasks=list(self.tasks),
+            limit=self.limit,
+            log_samples=False,
+            confirm_run_unsafe_code=True,
+        )
 
         rank = int(os.environ.get("RANK", 0))
         if rank == 0:
