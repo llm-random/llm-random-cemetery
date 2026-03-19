@@ -1,4 +1,5 @@
 common:
+  tokenizer: gpt2
   model_seed: 123
 
 model:
