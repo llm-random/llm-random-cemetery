@@ -309,8 +309,8 @@ class RoPEProductKeysEncoderAttention(nn.Module):
 
         # Split and aggregate keys (unnormalized)
         k = k.view(batch, self.q_heads, self.m, self.m, self.dhead)
-        k1_unnorm = k[..., : self.dhead_half].mean(-2)  # (B, H, m, d/2)
-        k2_unnorm = k[..., self.dhead_half :].mean(-3)  # (B, H, m, d/2)
+        k1_unnorm = k[..., : self.dhead_half].sum(-2)  # (B, H, m, d/2)
+        k2_unnorm = k[..., self.dhead_half :].sum(-3)  # (B, H, m, d/2)
 
         # Split queries (unnormalized)
         q1_unnorm = q[..., : self.dhead_half]  # (B, H, S, d/2)
