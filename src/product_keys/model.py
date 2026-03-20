@@ -290,8 +290,6 @@ class RoPEProductKeysEncoderAttention(nn.Module):
     def forward(self, x):
         # todo
         # - init scale init only on keys of this layer
-        # - log the norm and std of split keys before and after normalization
-        # - normy macierzy kqv i ich std
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
