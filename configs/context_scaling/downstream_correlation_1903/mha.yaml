@@ -1,11 +1,12 @@
+# @package _global_
 defaults:
-  - ../../_cluster@_here_: entropy
-  - ../../_model/context_scaling@_here_: k16
-  - ../../_trainer@_here_: context_scaling
-  - ../../_dataset@_here_: ctx_scl_dataset
-  - ../../_checkpoints/context_scaling@_here_: shared_entropy
-  - ../../_misc@_here_: default
-  - ../../_eval@_here_: joint
+  - /_cluster@_here_: entropy
+  - /_model/context_scaling@_here_: k16
+  - /_trainer@_here_: context_scaling
+  - /_dataset@_here_: ctx_scl_dataset
+  - /_checkpoints/context_scaling@_here_: shared_entropy
+  - /_misc@_here_: default
+  - /_eval@_here_: joint
   - _self_
 
 common:
@@ -21,7 +22,6 @@ trainer:
   # n_steps: 320_001
   n_steps: 1001
   learning_rate: 11
-  # ^learning_rate: [11, 12, 13]
   eval_interval: 100
   lm_eval_interval: 100
 
@@ -56,8 +56,8 @@ infrastructure:
     gres: gpu:4
     job-name: ${infrastructure.metric_logger.name}
 
-# Add this to the bottom of your YAML:
 hydra:
   sweeper:
     params:
-      "../../_model/context_scaling@_here_": k12,k16,k20
+      "/_model/context_scaling@_here_": k12,k16,k20
+      trainer.learning_rate: 11,12,13
