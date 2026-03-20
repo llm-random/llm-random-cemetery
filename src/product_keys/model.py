@@ -290,8 +290,6 @@ class RoPEProductKeysEncoderAttention(nn.Module):
     def forward(self, x):
         # todo
         # - init scale init only on keys of this layer
-        # - log the norm and std of split keys before and after normalization
-        # - normy macierzy kqv i ich std
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
@@ -311,8 +309,8 @@ class RoPEProductKeysEncoderAttention(nn.Module):
 
         # Split and aggregate keys (unnormalized)
         k = k.view(batch, self.q_heads, self.m, self.m, self.dhead)
-        k1_unnorm = k[..., : self.dhead_half].mean(-2)  # (B, H, m, d/2)
-        k2_unnorm = k[..., self.dhead_half :].mean(-3)  # (B, H, m, d/2)
+        k1_unnorm = k[..., : self.dhead_half].sum(-2)  # (B, H, m, d/2)
+        k2_unnorm = k[..., self.dhead_half :].sum(-3)  # (B, H, m, d/2)
 
         # Split queries (unnormalized)
         q1_unnorm = q[..., : self.dhead_half]  # (B, H, S, d/2)
