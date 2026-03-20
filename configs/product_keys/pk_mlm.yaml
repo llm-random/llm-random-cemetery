@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /_cluster/helios@_here_
+  - /_cluster/entropy@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
   - /_dataset/c4@_here_
@@ -18,15 +18,19 @@ common:
   q_heads: 16
   kv_heads: 16
   vocab_size: 50304
+  # ^init_scale: [0.01, 0.1, 1, 2]
+  init_scale: 0.1
 
 trainer:
   _target_: src.product_keys.trainer.MaskedLMTrainer
   masking_percentage: 0.2
   mask_token_id: 50257
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
-  gradient_accumulation_steps: 2
-  n_steps: 77050
-  ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
+  gradient_accumulation_steps: 4
+  # n_steps: 77050
+  n_steps: 15000
+  # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
+  learning_rate: 2e-3
   train_dataloader:
     dataset:
       tokenize_fn:
@@ -41,11 +45,18 @@ infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: pk_mlm
+    name: pk_mlm_sum
     project_name: tml-bgw
+    heavy_metrics_calculation_interval: 1000
+    heavy_logging_layers: [0, 10, 15]
     tags:
       - nano
       - pk_mlm
+      - 2026.03.20
+      - learned_embeddings
+      - QKNorm
+      # - initialization_grid
+      - "lr=${trainer.learning_rate}"
       - "seq_len=${common.sequence_length}"
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
@@ -73,7 +84,7 @@ model:
           partial_init_fn:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
-            scale: 1
+            scale: ${common.init_scale}
 
         k_proj_fn:
           _target_: src.projected_compression.model.Linear
@@ -83,7 +94,7 @@ model:
           partial_init_fn:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
-            scale: 1
+            scale: ${common.init_scale}
 
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
@@ -95,8 +106,9 @@ model:
           partial_init_fn:
             _target_: src.projected_compression.model.llm_random_weight_init
             _partial_: true
-            scale: 1
+            scale: ${common.init_scale}
 
         rope_base: 500000
         rope_scale_freqs: true
         top_k: 16
+        init_scale: ${common.init_scale}
