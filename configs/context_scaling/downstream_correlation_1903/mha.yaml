@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
   - /_cluster@_here_: lem
-  - /_model/context_scaling@_here_: k16 # k12, k16, k20
+  - /_model/context_scaling@_here_: k20 # k12, k16, k20
   - /_trainer@_here_: context_scaling
   - /_dataset@_here_: ctx_scl_dataset
   - /_checkpoints/context_scaling@_here_: shared_lem
@@ -10,8 +10,8 @@ defaults:
   - _self_
 
 common:
-  sequence_length: 2048
-  batch_size: 64
+  sequence_length: 4096
+  batch_size: 32
   data_seed: 123
   model_seed: 123
 
