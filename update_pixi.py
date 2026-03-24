@@ -144,9 +144,17 @@ def update_remote_pixi(cfg: OmegaConf):
 
         env_commands = "\n".join(env_setup) if env_setup else ""
 
+        # Use per-user XDG directories during install to avoid permission
+        # collisions in shared PIXI_HOME caches on multi-user clusters.
+        user_xdg_root = "${HOME}/.nano-pixi"
+
         # mkdir + copy happen on the compute node, via srun
         base_command = f"""\
 ts=$(date +%Y_%m_%d_%H_%M_%S)
+export XDG_DATA_HOME="{user_xdg_root}/data"
+export XDG_CACHE_HOME="{user_xdg_root}/cache"
+export XDG_STATE_HOME="{user_xdg_root}/state"
+mkdir -p "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
 mkdir -p "$PIXI_HOME"
 
 if [ -f "$PIXI_HOME/pixi.toml" ] || [ -f "$PIXI_HOME/pixi.lock" ]; then
