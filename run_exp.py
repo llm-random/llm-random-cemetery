@@ -135,27 +135,29 @@ def get_experiment_components(
     return config_path, config_name
 
 
-def wait_for_job_id(connection, tmux_pane, tries: int = 3):
+def wait_for_job_id(connection, tmux_pane, timeout_s: float = 30.0):
     """
     Wait for a SLURM job ID to appear in the output of a tmux pane.
 
     Repeatedly checks the pane for a successful `sbatch` message and returns
     the job ID. Raises RuntimeError if an error is found or if no job ID
-    appears after the given number of tries.
+    appears before the timeout elapses.
     """
-    while tries > 0:
+    deadline = time.monotonic() + timeout_s
+    last_output = ""
+    match = None
+
+    while time.monotonic() < deadline:
         output = connection.run(
             f"tmux capture-pane -pt {tmux_pane}.0", hide=True
         ).stdout
+        last_output = output
 
         match = re.search(r"Submitted batch job (\d+)", output)
         if not match:
             match_error = re.search(r"sbatch: error: (.*)\n", output)
             if not match_error:
-                time.sleep(0.5)
-                tries -= 1
-                if tries == 0:
-                    raise RuntimeError("Failed to get job ID from sbatch output.")
+                time.sleep(1.0)
                 continue
             else:
                 err_msg = match_error.group(1)
@@ -163,6 +165,13 @@ def wait_for_job_id(connection, tmux_pane, tries: int = 3):
         else:
             job_id = match.group(1)
             break
+
+    if not match:
+        raise RuntimeError(
+            "Failed to get job ID from sbatch output within "
+            f"{timeout_s:.0f}s. Last tmux pane output:\n{last_output}"
+        )
+
     return job_id
 
 
