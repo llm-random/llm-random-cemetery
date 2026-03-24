@@ -7,7 +7,7 @@ infrastructure:
     job-name: test
     mem_per_gpu: 90G
     nodes: 1
-    partition: plgrid-gpu-gh200
+    partition: plgpkattenion-gpu-gh200
     time: "2-00:00:00"
 
   script:
