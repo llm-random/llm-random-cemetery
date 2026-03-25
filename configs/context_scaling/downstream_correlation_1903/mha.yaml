@@ -17,7 +17,8 @@ common:
 
 trainer:
   gradient_accumulation_steps: 1
-  n_steps: 320_001
+  n_steps: 1001
+  # n_steps: 320_001
   # n_steps: 190_001
   # n_steps: 100_001
   learning_rate: 12
