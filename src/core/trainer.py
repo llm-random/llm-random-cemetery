@@ -49,6 +49,7 @@ class Trainer:
         self.start_step = self.training_state["next_step"]
         self.device = next(self.model.parameters()).device
         self.loss_interval_100 = 0.0
+        self._validate_configuration()
 
         if self.eval_dataloader is not None and hasattr(
             self.eval_dataloader, "__iter__"
@@ -66,6 +67,18 @@ class Trainer:
 
         self.loss_averaged_100 = AveMetric(100, "steps/100/train/loss")
         self.time_diff_averaged_100 = AveDiffMetric(100, "steps/100/time", time.time())
+
+    def _validate_configuration(self):
+        if self.checkpoint is None or self.checkpoint.save.type != "huggingface":
+            return
+
+        ff_layer = self.model.encoder.blocks[0].ff_layer.layer
+        if type(ff_layer).__name__ == "MoE":
+            raise ValueError(
+                "checkpoint.save.type='huggingface' is not supported for MoE "
+                "feedforward layers. Use checkpoint.save.type='nano' or disable "
+                "the final export."
+            )
 
     @property
     def _should_evaluate(self) -> bool:
