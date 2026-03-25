@@ -9,14 +9,10 @@ from torch.nn import (
 )  # used by FSDP, but it keeps getting removed during file formatting
 
 from torch.nn.modules.normalization import RMSNorm as RMSNorm
-from torchtune.modules.position_embeddings import (
-    RotaryPositionalEmbeddings as RotaryPositionalEmbeddings,
-)
 
 from torch.nn import Embedding as Embedding
 
-from src.core.llama import repeat_kv
-from src.core.model import AttentionMechanism
+from src.core.model import AttentionMechanism, repeat_kv
 from torch.nn.init import trunc_normal_
 from torch import zeros as zeros
 import torch.distributed as dist

@@ -154,7 +154,9 @@ ts=$(date +%Y_%m_%d_%H_%M_%S)
 export XDG_DATA_HOME="{user_xdg_root}/data"
 export XDG_CACHE_HOME="{user_xdg_root}/cache"
 export XDG_STATE_HOME="{user_xdg_root}/state"
+export PYTHONPYCACHEPREFIX="${HOME}/.nano-pycache"
 mkdir -p "$XDG_DATA_HOME" "$XDG_CACHE_HOME" "$XDG_STATE_HOME"
+mkdir -p "$PYTHONPYCACHEPREFIX"
 mkdir -p "$PIXI_HOME"
 
 if [ -f "$PIXI_HOME/pixi.toml" ] || [ -f "$PIXI_HOME/pixi.lock" ]; then

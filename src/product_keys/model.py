@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
 import logging
 
-from src.core.model import AttentionMechanism, RoPE
+from src.core.model import AttentionMechanism, RoPE, repeat_kv
 
 logger = logging.getLogger(__name__)
 
@@ -76,8 +76,6 @@ class RoPETopKAttention(nn.Module):
         k = self.rope(k)
 
         v = value_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
-
-        from src.core.llama import repeat_kv
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
@@ -186,8 +184,6 @@ class RoPEProductKeysEncoderAttention(nn.Module):
         k = self.rope(k)
 
         v = value_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
-
-        from src.core.llama import repeat_kv
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)

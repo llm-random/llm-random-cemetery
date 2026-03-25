@@ -36,7 +36,7 @@ python main.py --config-path configs --config-name tiny_local
 python run_exp.py --config-path configs --config-name tiny_remote
 ```
 
-**Note:** `run_exp.py` does not copy pixi files (`pixi.toml`, `pixi.lock`) to the cluster to avoid inflating memory and file count in `$HOME`. Use `update_pixi.py` (see Setup > Remote) to update the pixi environment on the cluster first.
+**Note:** `run_exp.py` does not copy pixi files (`pixi.toml`, `pixi.lock`) to the cluster to avoid inflating memory and file count in `$HOME`. Remote jobs activate Pixi in read-only mode, so use `update_pixi.py` (see Setup > Remote) to update the cluster environment first.
 
 ## Hydra
 Uses [Hydra](https://hydra.cc/) for configuration management. Classes are instantiated via `_target_`:

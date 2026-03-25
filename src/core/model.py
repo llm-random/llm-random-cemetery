@@ -15,9 +15,6 @@ from torch.nn import (
 )  # used by FSDP, but it keeps getting removed during file formatting
 
 from torch.nn.modules.normalization import RMSNorm as RMSNorm, LayerNorm as LayerNorm
-from torchtune.modules.position_embeddings import (
-    RotaryPositionalEmbeddings as RotaryPositionalEmbeddings,
-)
 import logging
 
 logger = logging.getLogger(__name__)
@@ -33,6 +30,19 @@ def llm_random_weight_init(fan_in, scale):
 # linear takes partial function which returns init_fn upon giving fan_in as an input, but sometimes it does not depend on fan_in
 dummy_weight_init = lambda _: trunc_normal_
 dummy_zeros = lambda _: zeros
+
+
+def repeat_kv(hidden_states: torch.Tensor, n_rep: int) -> torch.Tensor:
+    """
+    Equivalent to repeat_interleave along the head axis for KV heads.
+    """
+    batch, num_key_value_heads, slen, head_dim = hidden_states.shape
+    if n_rep == 1:
+        return hidden_states
+    hidden_states = hidden_states[:, :, None, :, :].expand(
+        batch, num_key_value_heads, n_rep, slen, head_dim
+    )
+    return hidden_states.reshape(batch, num_key_value_heads * n_rep, slen, head_dim)
 
 
 class Residual(nn.Module):
@@ -188,8 +198,13 @@ class TransformerBlock(nn.Module):
 class TransformerTower(nn.Module):
     def get_model_dimensions(self):
         # Works only for llama3 transforermer architecture
-        dmodel = self.blocks[0].ff_layer.layer.ff_pre_act.weight.shape[1]
-        dff = self.blocks[0].ff_layer.layer.ff_pre_act.weight.shape[0]
+        ff_layer = self.blocks[0].ff_layer.layer
+        if hasattr(ff_layer, "ff_pre_act"):
+            dmodel = ff_layer.ff_pre_act.weight.shape[1]
+            dff = ff_layer.ff_pre_act.weight.shape[0]
+        else:
+            dmodel = ff_layer.dmodel
+            dff = ff_layer.dff
         datt = self.blocks[0].attention_layer.layer.q_proj.weight.shape[0]
         n_att_heads = self.blocks[0].attention_layer.layer.q_heads
         n_kvatt_heads = self.blocks[0].attention_layer.layer.kv_heads
@@ -412,8 +427,6 @@ class RoPEAttention(nn.Module):
         k = self.rope(k)
 
         v = value_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
-
-        from src.core.llama import repeat_kv
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
