@@ -19,7 +19,7 @@ trainer:
 
   checkpoint:
     save:
-      type: huggingface
+      type: nano
       path: checkpoint
 
 infrastructure:
@@ -29,11 +29,12 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: llm-random-test
-    name: tiny_remote
+    name: moe
     tags:
       - nano
       - remote
       - tiny
+      - moe
 
   slurm:
     time: "00:10:00"
