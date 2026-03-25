@@ -80,10 +80,13 @@ model:
         rope_scale_freqs: true
 
       ff_layer_fn:
-        _target_: src.core.model.SwiGLU
+        _target_: src.core.moe.MoE
         _partial_: true
         dmodel: ${common.dmodel}
         dff: ${common.dff}
+        n_experts: 4
+        top_k: 2
+        capacity_factor: 1.5
         linear_fn:
           _target_: src.core.model.Linear
           _partial_: true
