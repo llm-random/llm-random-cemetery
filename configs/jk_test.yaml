@@ -1,6 +1,6 @@
 defaults:
   - _cluster@_here_: entropy
-  - _model/jk_moe_check@_here_: tiny
+  - _model/llama@_here_: small_moe
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
@@ -29,17 +29,17 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: llm-random-test
-    name: moe
+    name: lbl_moe_torch_bf16
     tags:
       - nano
       - remote
-      - tiny
+      - small
       - moe
+      - torch
 
   slurm:
     time: "00:10:00"
     gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 10
+evaluator: null
