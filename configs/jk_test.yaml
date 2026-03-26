@@ -29,7 +29,7 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: llm-random-test
-    name: moe_fixed
+    name: test_moe
     tags:
       - nano
       - remote
