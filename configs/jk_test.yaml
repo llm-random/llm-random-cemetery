@@ -1,6 +1,6 @@
 defaults:
   - _cluster@_here_: entropy
-  - _model/jk_moe_check@_here_: tiny
+  - _model/llama@_here_: tiny_moe
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
@@ -41,5 +41,4 @@ infrastructure:
     gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 10
+evaluator: null
