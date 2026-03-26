@@ -25,10 +25,11 @@ infrastructure:
     - 'export XDG_DATA_HOME="PROJECT_HOME_PATH/data"'
     - 'export XDG_CACHE_HOME="$PROJECT_HOME_PATH/cache"'
     - 'export XDG_STATE_HOME="$PROJECT_HOME_PATH/state"'
+    - 'export PYTHONPYCACHEPREFIX="$HOME/.nano-pycache"'
     
     # activate pixi
     - 'cd "$PIXI_HOME"'
-    - 'eval "$(pixi shell-hook)"'
+    - 'eval "$(pixi shell-hook --as-is)"'
     - 'cd -'
 
 cluster_switch:
