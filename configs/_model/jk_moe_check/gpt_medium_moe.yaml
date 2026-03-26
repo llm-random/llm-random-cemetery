@@ -1,0 +1,11 @@
+defaults:
+  - base_moe
+  - _self_
+
+common:
+  dmodel: 1024
+  dff: 4096
+  dhead: 64
+  n_blocks: 24
+  q_heads: 16
+  kv_heads: 16
