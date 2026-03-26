@@ -59,13 +59,18 @@ def setup_fsdp2_model(model, fsdp_config):
     modules_to_shard = get_classes_from_dotted_path(fsdp_config.modules_to_shard)
     logger.debug(f"[FSDP2] Sharding model with classes: {modules_to_shard}")
     device_mesh = init_device_mesh("cuda", (torch.distributed.get_world_size(),))
+    param_dtype = getattr(torch, getattr(fsdp_config, "param_dtype", "bfloat16"))
+    reduce_dtype = getattr(torch, getattr(fsdp_config, "reduce_dtype", "float32"))
 
     fsdp2_kwargs = {
         "mp_policy": MixedPrecisionPolicy(
-            param_dtype=torch.bfloat16,
-            reduce_dtype=torch.float32,
+            param_dtype=param_dtype,
+            reduce_dtype=reduce_dtype,
         )
     }
+    logger.info(
+        f"[FSDP2] Using mixed precision policy with param_dtype={param_dtype} and reduce_dtype={reduce_dtype}"
+    )
 
     for module in model.modules():
         if isinstance(module, tuple(modules_to_shard)):
