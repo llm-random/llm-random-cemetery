@@ -1,0 +1,11 @@
+defaults:
+  - base_dense
+  - _self_
+
+common:
+  dmodel: 1280
+  dff: 5120
+  dhead: 64
+  n_blocks: 36
+  q_heads: 20
+  kv_heads: 20

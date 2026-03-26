@@ -1,6 +1,6 @@
 defaults:
-  - _cluster@_here_: entropy_a100
-  - _model@_here_: small
+  - _cluster@_here_: entropy
+  - _model/jk_moe_check@_here_: gpt_medium_dense
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
@@ -10,7 +10,7 @@ defaults:
 
 common:
   sequence_length: 128
-  batch_size: 16
+  batch_size: 128
 
 trainer:
   gradient_accumulation_steps: 1
@@ -19,7 +19,7 @@ trainer:
 
   checkpoint:
     save:
-      type: huggingface
+      type: nano
       path: checkpoint
 
 infrastructure:
@@ -29,11 +29,12 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: llm-random-test
-    name: tiny_remote
+    name: moe
     tags:
       - nano
       - remote
       - tiny
+      - moe
 
   slurm:
     time: "00:10:00"
