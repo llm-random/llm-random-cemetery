@@ -3,12 +3,12 @@ defaults:
   - _self_
 
 common:
-  dmodel: 768
-  dff: 2048
+  dmodel: 1536
+  dff: 4096
   dhead: 64
-  n_blocks: 12
-  q_heads: 32
-  kv_heads: 32
+  n_blocks: 24
+  q_heads: 64
+  kv_heads: 64
 
 model:
   encoder:
