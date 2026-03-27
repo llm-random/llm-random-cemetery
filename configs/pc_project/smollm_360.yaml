@@ -2,9 +2,10 @@ defaults:
   - ../_cluster@_here_: entropy
   - ../_model/smollm@_here_: def_360
   - ../_trainer@_here_: llama
-  - ../_dataset@_here_: fineweb
+  - ../_dataset@_here_: smollm_corpus
   - ../_checkpoints@_here_: none
   - ../_misc@_here_: default
+  - _self_
 
 
 common:
