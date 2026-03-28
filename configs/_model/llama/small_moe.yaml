@@ -23,4 +23,5 @@ model:
         capacity_factor: 1.25
         moe_load_balancing_loss_factor: 0.01
         moe_router_z_loss_factor: 0.001
+        moe_activation_checkpointing: true
         activation_function: swiglu

@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.init import trunc_normal_
+from torch.utils.checkpoint import checkpoint
 import logging
 import math
 
@@ -25,6 +26,7 @@ class MoE(nn.Module):
         capacity_factor: float = 1.25,
         moe_load_balancing_loss_factor: float = 0.0,
         moe_router_z_loss_factor: float = 0.0,
+        moe_activation_checkpointing: bool = False,
         activation_function: str = "swiglu",
         init_scale: float = 1.0,
         **_ignored_kwargs,
@@ -47,6 +49,7 @@ class MoE(nn.Module):
         self.capacity_factor = capacity_factor
         self.moe_load_balancing_loss_factor = moe_load_balancing_loss_factor
         self.moe_router_z_loss_factor = moe_router_z_loss_factor
+        self.moe_activation_checkpointing = moe_activation_checkpointing
         self.is_moe = True
         self.aux_loss = None
         self.moe_load_balancing_loss = None
@@ -62,7 +65,9 @@ class MoE(nn.Module):
         _truncated_normal_(self.gate_weight, dmodel, init_scale)
         _truncated_normal_(self.ff_post_act_weight, dff, init_scale)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def _forward_impl(
+        self, x: torch.Tensor
+    ) -> tuple[torch.Tensor, torch.Tensor | None, torch.Tensor | None]:
         original_shape = x.shape
         hidden_states = x.reshape(-1, self.dmodel)
         num_tokens = hidden_states.size(0)
@@ -153,11 +158,30 @@ class MoE(nn.Module):
             expert_frequency = flat_experts.bincount(minlength=self.num_experts)
             expert_frequency = expert_frequency.to(router_probs.dtype)
             expert_frequency = expert_frequency / expert_frequency.sum().clamp_min(1)
-            self.moe_load_balancing_loss = (
-                self.num_experts * (router_probs.mean(dim=0) * expert_frequency).sum()
+            moe_load_balancing_loss = self.num_experts * (
+                router_probs.mean(dim=0) * expert_frequency
+            ).sum()
+            router_z_loss = torch.logsumexp(router_logits, dim=-1).square().mean()
+        else:
+            moe_load_balancing_loss = None
+            router_z_loss = None
+
+        return output, moe_load_balancing_loss, router_z_loss
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        if self.moe_activation_checkpointing and self.training and x.requires_grad:
+            output, moe_load_balancing_loss, router_z_loss = checkpoint(
+                self._forward_impl,
+                x,
+                use_reentrant=False,
             )
-            self.aux_loss = self.moe_load_balancing_loss
-            self.router_z_loss = torch.logsumexp(router_logits, dim=-1).square().mean()
+        else:
+            output, moe_load_balancing_loss, router_z_loss = self._forward_impl(x)
+
+        if self.training:
+            self.moe_load_balancing_loss = moe_load_balancing_loss
+            self.aux_loss = moe_load_balancing_loss
+            self.router_z_loss = router_z_loss
         else:
             self.aux_loss = None
             self.moe_load_balancing_loss = None
