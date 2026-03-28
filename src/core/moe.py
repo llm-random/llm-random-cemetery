@@ -25,6 +25,7 @@ class MoE(nn.Module):
         capacity_factor: float = 1.25,
         moe_load_balancing_loss_factor: float = 0.0,
         moe_router_z_loss_factor: float = 0.0,
+        moe_activation_checkpointing: bool = False,
         activation_function: str = "swiglu",
         init_scale: float = 1.0,
         **_ignored_kwargs,
@@ -47,6 +48,7 @@ class MoE(nn.Module):
         self.capacity_factor = capacity_factor
         self.moe_load_balancing_loss_factor = moe_load_balancing_loss_factor
         self.moe_router_z_loss_factor = moe_router_z_loss_factor
+        self.moe_activation_checkpointing = moe_activation_checkpointing
         self.is_moe = True
         self.aux_loss = None
         self.moe_load_balancing_loss = None
@@ -153,11 +155,18 @@ class MoE(nn.Module):
             expert_frequency = flat_experts.bincount(minlength=self.num_experts)
             expert_frequency = expert_frequency.to(router_probs.dtype)
             expert_frequency = expert_frequency / expert_frequency.sum().clamp_min(1)
-            self.moe_load_balancing_loss = (
+            moe_load_balancing_loss = (
                 self.num_experts * (router_probs.mean(dim=0) * expert_frequency).sum()
             )
-            self.aux_loss = self.moe_load_balancing_loss
-            self.router_z_loss = torch.logsumexp(router_logits, dim=-1).square().mean()
+            router_z_loss = torch.logsumexp(router_logits, dim=-1).square().mean()
+        else:
+            moe_load_balancing_loss = None
+            router_z_loss = None
+
+        if self.training:
+            self.moe_load_balancing_loss = moe_load_balancing_loss
+            self.aux_loss = moe_load_balancing_loss
+            self.router_z_loss = router_z_loss
         else:
             self.aux_loss = None
             self.moe_load_balancing_loss = None

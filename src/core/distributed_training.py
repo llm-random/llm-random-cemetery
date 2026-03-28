@@ -2,6 +2,12 @@ from torch.distributed.fsdp import fully_shard
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, MixedPrecision
 from torch.distributed.fsdp import MixedPrecisionPolicy
 from torch.distributed.fsdp.wrap import ModuleWrapPolicy
+from torch.distributed.algorithms._checkpoint.checkpoint_wrapper import (
+    CheckpointImpl,
+    apply_activation_checkpointing,
+    checkpoint_wrapper,
+)
+from functools import partial
 import importlib
 import torch
 import os
@@ -10,6 +16,41 @@ import sys
 from torch.distributed.device_mesh import init_device_mesh
 
 logger = logging.getLogger(__name__)
+
+
+def _iter_modules_post_order(module):
+    for child in module.children():
+        yield from _iter_modules_post_order(child)
+    yield module
+
+
+def _should_activation_checkpoint(module):
+    return bool(getattr(module, "moe_activation_checkpointing", False))
+
+
+def _prepare_activation_checkpointing(model):
+    return [
+        module for module in model.modules() if _should_activation_checkpoint(module)
+    ]
+
+
+def _apply_activation_checkpoint_wrappers(model):
+    checkpointed_modules = _prepare_activation_checkpointing(model)
+    if not checkpointed_modules:
+        return
+
+    non_reentrant_wrapper = partial(
+        checkpoint_wrapper,
+        checkpoint_impl=CheckpointImpl.NO_REENTRANT,
+    )
+    apply_activation_checkpointing(
+        model,
+        checkpoint_wrapper_fn=non_reentrant_wrapper,
+        check_fn=_should_activation_checkpoint,
+    )
+    logger.info(
+        f"Applied activation checkpointing wrappers to {len(checkpointed_modules)} module(s)."
+    )
 
 
 def get_classes_from_dotted_path(paths):
@@ -27,6 +68,16 @@ def dynamic_import(dotted_path):
 
 def setup_fsdp1_model(model, fsdp_config):
     classes_to_wrap = get_classes_from_dotted_path(fsdp_config.modules_to_wrap)
+    classes_to_wrap.extend(
+        sorted(
+            {
+                module.__class__
+                for module in model.modules()
+                if _should_activation_checkpoint(module)
+            },
+            key=lambda cls: f"{cls.__module__}.{cls.__qualname__}",
+        )
+    )
     logger.info(f"[FSDP1] Wrapping model with classes: {classes_to_wrap}")
 
     ignore_mixed_precision_classes = get_classes_from_dotted_path(
@@ -52,6 +103,7 @@ def setup_fsdp1_model(model, fsdp_config):
         auto_wrap_policy=ModuleWrapPolicy(classes_to_wrap),
         use_orig_params=True,
     )
+    _apply_activation_checkpoint_wrappers(model)
     return wrapped_model
 
 
@@ -67,11 +119,17 @@ def setup_fsdp2_model(model, fsdp_config):
         )
     }
 
-    for module in model.modules():
-        if isinstance(module, tuple(modules_to_shard)):
+    modules_to_shard_tuple = tuple(modules_to_shard)
+    for module in _iter_modules_post_order(model):
+        if module is model:
+            continue
+        if isinstance(module, modules_to_shard_tuple) or _should_activation_checkpoint(
+            module
+        ):
             fully_shard(module, mesh=device_mesh, **fsdp2_kwargs)
 
     fully_shard(model, mesh=device_mesh, **fsdp2_kwargs)
+    _apply_activation_checkpoint_wrappers(model)
     logger.info(f"Sharding done.")
     return model
 
