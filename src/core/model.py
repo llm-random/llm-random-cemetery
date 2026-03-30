@@ -48,6 +48,11 @@ class Residual(nn.Module):
     def forward(self, x):
         normalized = self.norm(x)
         out = self.layer(normalized)
+        self._log_metrics(x, out)
+        return out + x
+
+    @torch.compiler.disable
+    def _log_metrics(self, x, out):
         if self.metric_logger is not None and self.training:
             self.metric_logger.accumulate_metrics(
                 layer_name=f"{self.log_name}",
@@ -58,7 +63,6 @@ class Residual(nn.Module):
                     "updates": out,
                 },
             )
-        return out + x
 
     @staticmethod
     def intermediate_norms(residual_stream: torch.Tensor, updates: torch.Tensor):
@@ -369,12 +373,11 @@ class RoPE(nn.Module):
         if seq_len > self.length:
             self.length = seq_len
             self.register_freqs()
-        if self.cos.device != x.device or self.cos.dtype != x.dtype:
-            self.cos = self.cos.to(x.device, dtype=x.dtype)
-            self.sin = self.sin.to(x.device, dtype=x.dtype)
         [y1, y2] = torch.chunk(x, chunks=2, dim=-1)
         x_rotated = torch.cat([-y2, y1], dim=-1)
-        return x * self.cos[:seq_len, :] + x_rotated * self.sin[:seq_len, :]
+        cos_scaler = self.cos[:seq_len, :].to(x.device, dtype=x.dtype)
+        sin_scaler = self.sin[:seq_len, :].to(x.device, dtype=x.dtype)
+        return x * cos_scaler + x_rotated * sin_scaler
 
 
 class RoPEAttention(nn.Module):
