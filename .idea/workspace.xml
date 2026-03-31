@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="6c16f3ba-0820-4d55-a533-6c94dadb3bdd" name="Changes" comment="update smollm config files">
+      <change beforePath="$PROJECT_DIR$/configs/_cluster/entropy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_cluster/entropy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_misc/default.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_misc/default.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_model/smollm/base_pc_model.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_model/smollm/base_pc_model.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_135.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_135.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_comp.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_comp.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_importances.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_importances.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_prune.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_1700_prune.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_360.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_360.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_360_comp.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_360_comp.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_360_importances.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_360_importances.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_360_prune.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/pc_project/smollm_360_prune.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/tiny_local.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/tiny_local.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/tiny_remote.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/tiny_remote.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/projected_compression/initialization.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/projected_compression/initialization.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_/home/m1kush/mimuw/research/nano" value="38pUy42gAC9ePAAtS97c6CLdjtk" />
+    </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedChatMode">
+    <option name="chatModeId" value="Ask" />
+  </component>
+  <component name="CopilotUserSelectedModel">
+    <selectedModels>
+      <entry key="edit-panel" value="GPT-5 mini" />
+      <entry key="chat-panel" value="GPT-5.3-Codex" />
+      <entry key="agent-panel" value="GPT-5.3-Codex" />
+    </selectedModels>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;m1kush&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:llm-random/nano.git&quot;,
+    &quot;accountId&quot;: &quot;ce93f2b5-7b86-43f8-b6d1-f68ae2c32cb4&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="38pUy42gAC9ePAAtS97c6CLdjtk" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;#138 on mixture-of-datasets&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/m1kush/mimuw/research/moe-grokking-interp&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-PY-253.32098.74" />
+        <option value="bundled-python-sdk-1cd77e80b48f-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.32098.74" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6c16f3ba-0820-4d55-a533-6c94dadb3bdd" name="Changes" comment="" />
+      <created>1769496256747</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769496256747</updated>
+      <workItem from="1769496258015" duration="133000" />
+      <workItem from="1769496555499" duration="1241000" />
+      <workItem from="1769502978800" duration="353000" />
+      <workItem from="1769503720828" duration="937000" />
+      <workItem from="1769548147918" duration="1647000" />
+      <workItem from="1772193985186" duration="736000" />
+      <workItem from="1772620851274" duration="611000" />
+      <workItem from="1772636924142" duration="937000" />
+      <workItem from="1772638218625" duration="603000" />
+      <workItem from="1772715537397" duration="455000" />
+      <workItem from="1772716004767" duration="761000" />
+      <workItem from="1772732081354" duration="100000" />
+      <workItem from="1773404796107" duration="10000" />
+      <workItem from="1773871156978" duration="2329000" />
+      <workItem from="1774457986933" duration="1286000" />
+      <workItem from="1774462017374" duration="4673000" />
+      <workItem from="1774561224206" duration="2004000" />
+      <workItem from="1774621867334" duration="10562000" />
+      <workItem from="1774778226417" duration="4616000" />
+      <workItem from="1774814901009" duration="281000" />
+      <workItem from="1774877365663" duration="147000" />
+    </task>
+    <task id="LOCAL-00001" summary="update c4.yaml to use dynamic paths for train and eval datasets">
+      <option name="closed" value="true" />
+      <created>1773871396373</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871396373</updated>
+    </task>
+    <task id="LOCAL-00002" summary="update c4.yaml to use dynamic paths for train and eval datasets">
+      <option name="closed" value="true" />
+      <created>1773871458541</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871458542</updated>
+    </task>
+    <task id="LOCAL-00003" summary="update default.yaml to change the train seed value from 1000 to 123 to match eval">
+      <option name="closed" value="true" />
+      <created>1773871528940</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871528940</updated>
+    </task>
+    <task id="LOCAL-00004" summary="fix indentation in datasets.py for better readability">
+      <option name="closed" value="true" />
+      <created>1773871696509</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871696509</updated>
+    </task>
+    <task id="LOCAL-00005" summary="refactor: improve code readability by adjusting indentation and formatting in datasets.py and test_tokenize_fn.py">
+      <option name="closed" value="true" />
+      <created>1773872343727</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872343727</updated>
+    </task>
+    <task id="LOCAL-00006" summary="refactor: remove commented-out print statement in datasets.py for cleaner code">
+      <option name="closed" value="true" />
+      <created>1773872466219</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872466219</updated>
+    </task>
+    <task id="LOCAL-00007" summary="refactor: update type hints for datasets parameter in get_mixture_of_datasets_dataloader for improved clarity">
+      <option name="closed" value="true" />
+      <created>1773872820658</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872820658</updated>
+    </task>
+    <task id="LOCAL-00008" summary="fix: add validation for paths and weights in datasets.py to ensure they are provided and not empty">
+      <option name="closed" value="true" />
+      <created>1773872992163</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872992163</updated>
+    </task>
+    <task id="LOCAL-00009" summary="update smollm config files">
+      <option name="closed" value="true" />
+      <created>1774467816325</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1774467816325</updated>
+    </task>
+    <option name="localTasksCounter" value="10" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="update c4.yaml to use dynamic paths for train and eval datasets" />
+    <MESSAGE value="update default.yaml to change the train seed value from 1000 to 123 to match eval" />
+    <MESSAGE value="fix indentation in datasets.py for better readability" />
+    <MESSAGE value="refactor: improve code readability by adjusting indentation and formatting in datasets.py and test_tokenize_fn.py" />
+    <MESSAGE value="refactor: remove commented-out print statement in datasets.py for cleaner code" />
+    <MESSAGE value="refactor: update type hints for datasets parameter in get_mixture_of_datasets_dataloader for improved clarity" />
+    <MESSAGE value="fix: add validation for paths and weights in datasets.py to ensure they are provided and not empty" />
+    <MESSAGE value="update smollm config files" />
+    <option name="LAST_COMMIT_MESSAGE" value="update smollm config files" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
