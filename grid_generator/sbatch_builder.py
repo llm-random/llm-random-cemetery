@@ -1,7 +1,7 @@
 import shlex
 from typing import Any
 
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict
 
 
 def create_slurm_parameters(slurm_config: DictConfig) -> list[str]:
@@ -49,6 +49,9 @@ def create_program_call(config_folder):
 def generate_sbatch_script(
     slurm_config, config_folder, n_experiments, max_concurrent_jobs, script
 ) -> list[str]:
+    with open_dict(slurm_config):
+        slurm_config['A'] = 'plgllmefficont3'
+
     lines = ["#!/bin/bash -l", ""]
 
     slurm_parameters = create_slurm_parameters(slurm_config)
