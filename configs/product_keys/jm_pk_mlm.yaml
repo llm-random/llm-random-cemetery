@@ -9,8 +9,8 @@ defaults:
   - _self_
 
 common:
-  sequence_length: 512
-  batch_size: 256
+  sequence_length: 1024
+  batch_size: 128
   init_scale: 0.1
 
 trainer:
