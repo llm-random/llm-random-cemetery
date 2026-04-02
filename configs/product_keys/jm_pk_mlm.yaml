@@ -9,25 +9,32 @@ defaults:
   - _self_
 
 common:
-  sequence_length: 256
-  batch_size: 256
+  sequence_length: 1024
+  batch_size: 512
   init_scale: 0.1
+
+model:
+  encoder:
+    block_fn:
+      attention_fn:
+        ^initial_attn_temp: [0.1, 0.25, 0.5, 1.0, 2.0]
+        ^top_k: [16, 4]
 
 trainer:
   _target_: src.product_keys.trainer.MaskedLMTrainer
   masking_percentage: 0.2
   mask_token_id: 50257
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 8
   # n_steps: 77050
-  n_steps: 3000
+  n_steps: 2000
   # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
-  ^learning_rate: [14, 13, 12, 11, 10]
+  ^learning_rate: [14, 12, 10]
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
     final_lr_fraction: 0.1
-    ^warmup_steps: [150, 300, 700, 1500]
+    ^warmup_steps: [200, 500]
   train_dataloader:
     dataset:
       seed: 42
