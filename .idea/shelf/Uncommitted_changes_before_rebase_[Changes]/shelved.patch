@@ -1,0 +1,888 @@
+Index: configs/tiny_remote.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - _cluster@_here_: entropy_a100\n  - _model@_here_: tiny\n  - _trainer@_here_: llama\n  - _dataset@_here_: c4\n  - _checkpoints@_here_: none\n  - _misc@_here_: default\n  - _eval@_here_: basic\n\ncommon:\n  sequence_length: 128\n  batch_size: 16\n\ntrainer:\n  gradient_accumulation_steps: 1\n  n_steps: 100\n  learning_rate: 1e-3\n\n  checkpoint:\n    save:\n      type: huggingface\n      path: checkpoint\n\ninfrastructure:\n  max_concurrent_jobs: 1\n\n  metric_logger:\n    name: tiny_remote\n    tags:\n      - nano\n      - remote\n      - tiny\n\n  slurm:\n    time: \"00:10:00\"\n    gres: gpu:1\n    job-name: ${infrastructure.metric_logger.name}\n\nevaluator:\n  limit: 10
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/tiny_remote.yaml b/configs/tiny_remote.yaml
+--- a/configs/tiny_remote.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/tiny_remote.yaml	(date 1774624613176)
+@@ -1,5 +1,5 @@
+ defaults:
+-  - _cluster@_here_: entropy_a100
++  - _cluster@_here_: entropy
+   - _model@_here_: tiny
+   - _trainer@_here_: llama
+   - _dataset@_here_: c4
+Index: configs/_model/smollm/base_pc_model.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>common:\n  _target_: src.definitions.Common\n  dmodel: ???\n  dff: ???\n  dhead: ???\n  sequence_length: ???\n  base_dmodel: ???\n  base_dff: ???\n  n_blocks: ???\n  q_heads: ???\n  kv_heads: ???\n  vocab_size: 49152\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ???\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\nmodel:\n  _target_: src.projected_compression.model.LLM\n\n  embedding:\n    _target_: src.projected_compression.model.ProjectedEmbedding\n    embedding:\n      _target_: src.projected_compression.model.Embedding\n      num_embeddings: ${common.vocab_size}\n      embedding_dim: ${common.base_dmodel}\n    result_out_features: ${common.dmodel}\n\n  encoder:\n    _target_: src.projected_compression.model.TransformerEncoder\n    n_blocks: ${common.n_blocks}\n    block_fn:\n      _target_: src.projected_compression.model.TransformerBlock\n      _partial_: true\n      norm_fn:\n        _target_: src.core.model.RMSNorm\n        _partial_: true\n        eps: 1e-5\n        normalized_shape: ${common.base_dmodel}\n\n      attention_fn:\n        _target_: src.projected_compression.model.RoPEAttention\n        _partial_: true\n        dmodel: ${common.base_dmodel}\n        q_heads: ${common.q_heads}\n        kv_heads: ${common.kv_heads}\n        seq_len: ${common.sequence_length}\n        q_proj_fn:\n          _target_: src.projected_compression.model.ProjectedLinear\n          _partial_: true\n          result_in_features: ${common.dmodel}\n          result_out_features: null\n          base_in_features: ${common.base_dmodel}\n          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.q_heads} * ${common.dhead}'}\n\n        k_proj_fn:\n          _target_: src.projected_compression.model.ProjectedLinear\n          _partial_: true\n          result_in_features: ${common.dmodel}\n          result_out_features: null\n          base_in_features: ${common.base_dmodel}\n          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads} * ${common.dhead}'}\n\n        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}\n\n        o_proj_fn:\n          _target_: src.projected_compression.model.ProjectedLinear\n          _partial_: true\n          result_in_features: null\n          result_out_features: ${common.dmodel}\n          base_in_features: ${eval:'${model.encoder.block_fn.attention_fn.q_heads} * ${common.dhead}'}\n          base_out_features: ${common.base_dmodel}\n\n        rope_base: 10000\n        rope_scale_freqs: true\n        factor: 32\n        low_freq_factor: 1\n        high_freq_factor: 4\n        original_max_position_embeddings: 8192\n\n      ff_layer_fn:\n        _target_: src.projected_compression.model.ProjectedLlamaFeedForward\n        _partial_: true\n        ff_pre_act_fn:\n          _target_: src.projected_compression.model.ProjectedLinear\n          _partial_: true\n          result_in_features: ${common.dmodel}\n          result_out_features: ${common.dff}\n          base_in_features: ${common.base_dmodel}\n          base_out_features: ${common.base_dff}\n        ff_post_act_fn:\n          _target_: src.projected_compression.model.ProjectedLinear\n          _partial_: true\n          result_in_features: ${common.dff}\n          result_out_features: ${common.dmodel}\n          base_in_features: ${common.base_dff}\n          base_out_features: ${common.base_dmodel}\n        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}\n\n  head:\n    _target_: src.projected_compression.model.TransformerHead\n    linear_fn:\n      _target_: src.projected_compression.model.ProjectedLinear\n      _partial_: true\n      result_in_features: ${common.dmodel}\n      result_out_features: null\n      base_in_features: ${common.base_dmodel}\n      base_out_features: ${model.embedding.num_embeddings}\n    norm_fn:\n        _target_: src.core.model.RMSNorm\n        _partial_: true\n        eps: 1e-5\n        normalized_shape: ${common.base_dmodel} # after projection_init it becames ${common.dmodel}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/_model/smollm/base_pc_model.yaml b/configs/_model/smollm/base_pc_model.yaml
+--- a/configs/_model/smollm/base_pc_model.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/_model/smollm/base_pc_model.yaml	(date 1774562269185)
+@@ -23,10 +23,8 @@
+ 
+   embedding:
+     _target_: src.projected_compression.model.ProjectedEmbedding
+-    embedding:
+-      _target_: src.projected_compression.model.Embedding
+-      num_embeddings: ${common.vocab_size}
+-      embedding_dim: ${common.base_dmodel}
++    num_embeddings: ${common.vocab_size}
++    embedding_dim: ${common.base_dmodel}
+     result_out_features: ${common.dmodel}
+ 
+   encoder:
+@@ -108,7 +106,7 @@
+       result_in_features: ${common.dmodel}
+       result_out_features: null
+       base_in_features: ${common.base_dmodel}
+-      base_out_features: ${model.embedding.num_embeddings}
++      base_out_features: ${common.vocab_size}
+     norm_fn:
+         _target_: src.core.model.RMSNorm
+         _partial_: true
+Index: configs/pc_project/smollm_1700_importances.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_1700\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 4\n\n\ntrainer:\n  gradient_accumulation_steps: 8 # not used\n  n_steps: 0 # not used\n  learning_rate: 1 # not used\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-1.7B\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n\ninfrastructure:\n  metric_logger:\n    name: SMOLLM_training\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - IMPORTANCES\n      - fineweb\n\n  slurm:\n    job-name: importances\n    gres: gpu:1\n    nodes: 1\n    time: \"0-24:00:00\"\n\n\napply_functions:\n  - _target_: src.projected_compression.weight_importances.dummy_importances\n    _partial_: true\n    dmodel: ${common.dmodel}\n    dff: ${common.dff}\n    n_blocks: ${model.encoder.n_blocks}\n    checkpoint_save_path: ${trainer.checkpoint.save.path}\n  - _target_: src.projected_compression.weight_importances.minitron_importances\n    _partial_: true\n    dataloader: ${trainer.train_dataloader}\n    dmodel: ${common.dmodel}\n    dff: ${common.dff}\n    calibration_dataset_size: 8192\n    seq_len: ${common.sequence_length}\n    total_batch_size: ${trainer.train_dataloader.total_batch_size}\n    n_blocks: ${model.encoder.n_blocks}\n    checkpoint_save_path: ${trainer.checkpoint.save.path}\n  - _target_: src.projected_compression.weight_importances.magnitude_importances\n    _partial_: true\n    dmodel: ${common.dmodel}\n    dff: ${common.dff}\n    n_blocks: ${model.encoder.n_blocks}\n    checkpoint_save_path: ${trainer.checkpoint.save.path}\n  - _target_: src.core.utils.finish_exp\n    _partial_: true
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_importances.yaml b/configs/pc_project/smollm_1700_importances.yaml
+--- a/configs/pc_project/smollm_1700_importances.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_importances.yaml	(date 1774623389712)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: def_1700
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+@@ -41,19 +42,19 @@
+ 
+ infrastructure:
+   metric_logger:
+-    name: SMOLLM_training
++    name: SmolLM_1700_importances
+     tags:
+       - nano
+       - pc
+       - smollm_1700
+       - IMPORTANCES
+-      - fineweb
++      - smollm_corpus
+ 
+   slurm:
+-    job-name: importances
++    job-name: importances_smollm_1700
+     gres: gpu:1
+     nodes: 1
+-    time: "0-24:00:00"
++    time: "0-2:00:00"
+ 
+ 
+ apply_functions:
+@@ -79,5 +80,3 @@
+     dff: ${common.dff}
+     n_blocks: ${model.encoder.n_blocks}
+     checkpoint_save_path: ${trainer.checkpoint.save.path}
+-  - _target_: src.core.utils.finish_exp
+-    _partial_: true
+\ No newline at end of file
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: def_1700\n  - ../../_trainer@_here_: llama\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  target_dmodel: 1344\n  target_dff: 5376\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune_50_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - no_distillation\n      - 50p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml	(date 1774623406725)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: def_1700
+   - ../../_trainer@_here_: llama
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -57,7 +61,7 @@
+       - hard_pruning
+       - no_distillation
+       - 50p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+ 
+   slurm:
+@@ -72,4 +76,3 @@
+     target_dmodel: ${common.target_dmodel}
+     target_dff: ${common.target_dff}
+ 
+-
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: def_1700\n  - ../../_trainer@_here_: llama\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  target_dmodel: 960\n  target_dff: 3840\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune_70_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - no_distillation\n      - 70p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml	(date 1774623406771)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: def_1700
+   - ../../_trainer@_here_: llama
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -57,9 +61,8 @@
+       - hard_pruning
+       - no_distillation
+       - 70p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -72,4 +75,3 @@
+     target_dmodel: ${common.target_dmodel}
+     target_dff: ${common.target_dff}
+ 
+-
+Index: configs/pc_project/smollm_360.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_360\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 2048 # 1B tokens\n    # - 4096\n    # - 6144\n    # - 8192\n    # - 12288\n    # - 16384\n\n  learning_rate: 16\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-360M\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_training\n    tags:\n      - nano\n      - pc\n      - smollm_360\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:1\n    time: \"0-24:00:00\"\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_360.yaml b/configs/pc_project/smollm_360.yaml
+--- a/configs/pc_project/smollm_360.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_360.yaml	(date 1774623373158)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: def_360
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+Index: configs/pc_project/smollm_360_importances.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_360\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 4\n\n\ntrainer:\n  gradient_accumulation_steps: 8 # not used\n  n_steps: 0 # not used\n  learning_rate: 1 # not used\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-360M\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n\ninfrastructure:\n  metric_logger:\n    name: Llame_importances\n    tags:\n      - nano\n      - pc\n      - smollm_360\n      - IMPORTANCES\n      - fineweb\n\n  slurm:\n    job-name: importances\n    gres: gpu:1\n    nodes: 1\n    time: \"0-24:00:00\"\n\n\napply_functions:\n  - _target_: src.projected_compression.weight_importances.dummy_importances\n    _partial_: true\n    dmodel: ${common.dmodel}\n    dff: ${common.dff}\n    n_blocks: ${model.encoder.n_blocks}\n    checkpoint_save_path: ${trainer.checkpoint.save.path}\n  - _target_: src.projected_compression.weight_importances.minitron_importances\n    _partial_: true\n    dataloader: ${trainer.train_dataloader}\n    dmodel: ${common.dmodel}\n    dff: ${common.dff}\n    calibration_dataset_size: 8192\n    seq_len: ${common.sequence_length}\n    total_batch_size: ${trainer.train_dataloader.total_batch_size}\n    n_blocks: ${model.encoder.n_blocks}\n    checkpoint_save_path: ${trainer.checkpoint.save.path}\n  - _target_: src.projected_compression.weight_importances.magnitude_importances\n    _partial_: true\n    dmodel: ${common.dmodel}\n    dff: ${common.dff}\n    n_blocks: ${model.encoder.n_blocks}\n    checkpoint_save_path: ${trainer.checkpoint.save.path}\n  - _target_: src.core.utils.finish_exp\n    _partial_: true
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_360_importances.yaml b/configs/pc_project/smollm_360_importances.yaml
+--- a/configs/pc_project/smollm_360_importances.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_360_importances.yaml	(date 1774623954165)
+@@ -80,4 +80,4 @@
+     n_blocks: ${model.encoder.n_blocks}
+     checkpoint_save_path: ${trainer.checkpoint.save.path}
+   - _target_: src.core.utils.finish_exp
+-    _partial_: true
+\ No newline at end of file
++    _partial_: true
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: projected_1700\n  - ../../_trainer@_here_: llama\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  dmodel: 960\n  dff: 3840\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp_70_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      - no_distillation\n      - 70p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml	(date 1774623397348)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: projected_1700
+   - ../../_trainer@_here_: llama
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -57,9 +61,8 @@
+       - projected_compression
+       - no_distillation
+       - 70p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -72,4 +75,3 @@
+     target_dmodel: ${common.dmodel}
+     target_dff: ${common.dff}
+ 
+-
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: def_1700\n  - ../../_trainer@_here_: llama\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  target_dmodel: 448\n  target_dff: 1728\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune_90_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - no_distillation\n      - 90p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml	(date 1774623416609)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: def_1700
+   - ../../_trainer@_here_: llama
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -57,9 +61,8 @@
+       - hard_pruning
+       - no_distillation
+       - 90p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -72,4 +75,3 @@
+     target_dmodel: ${common.target_dmodel}
+     target_dff: ${common.target_dff}
+ 
+-
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: projected_1700\n  - ../../_trainer@_here_: llama\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  dmodel: 1344\n  dff: 5376\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp_50_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      - no_distillation\n      - 50p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml	(date 1774623397288)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: projected_1700
+   - ../../_trainer@_here_: llama
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -57,9 +61,8 @@
+       - projected_compression
+       - no_distillation
+       - 50p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -72,4 +75,3 @@
+     target_dmodel: ${common.dmodel}
+     target_dff: ${common.dff}
+ 
+-
+Index: configs/pc_project/smollm_360_prune.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_360\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n\n  # target_dmodel: 630 # 50\n  # target_dff: 1680\n  target_dmodel: 480 # 35\n  target_dff: 1280\n  # target_dmodel: 330 # 20\n  # target_dff: 880\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 2048 # 1B tokens\n    # - 4096\n    # - 6144\n    # - 8192\n    # - 12288\n    # - 16384\n\n  # learning_rate: null  # 50 1B # CHANGE\n  learning_rate: 7 # 35 1B\n  # learning_rate: 7 # 20 1B\n  \n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-360M\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_360_prune\n    tags:\n      - nano\n      - pc\n      - smollm_360\n      - hard_pruning\n      - 50p\n      # - 35p\n      # - 20p\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_360_prune.yaml b/configs/pc_project/smollm_360_prune.yaml
+--- a/configs/pc_project/smollm_360_prune.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_360_prune.yaml	(date 1774623383619)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: def_360
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: def_1700\n  - ../../_trainer@_here_: smollm_1700_distillation\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  target_dmodel: 448\n  target_dff: 1728\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  eval_interval: 1000000\n  eval_dataloader: None\n  train_dataloader:\n    dataset:\n      seed: 1000\n      tokenize_fn:\n        _target_: src.core.datasets.get_tokenize_fn\n        model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune_distill_90_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - distillation\n      - 90p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml	(date 1774623416779)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: def_1700
+   - ../../_trainer@_here_: smollm_1700_distillation
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -56,9 +60,8 @@
+       - hard_pruning
+       - distillation
+       - 90p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -71,4 +74,3 @@
+     target_dmodel: ${common.target_dmodel}
+     target_dff: ${common.target_dff}
+ 
+-
+Index: configs/_cluster/entropy.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>infrastructure:\n  server: entropy\n  max_concurrent_jobs: null\n  slurm:\n    cpus_per_gpu: 14\n    gres: ???\n    job-name: test\n    mem_per_gpu: 90G\n    nodes: 1\n    partition: h100\n    time: \"2-00:00:00\"\n    \n  script:\n    - '${export_env_variables_placeholders:}'\n    - 'export PROJECT_HOME_PATH=/storage_nvme_4/nano'\n    - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'\n\n    # hydra errors\n    - 'export HYDRA_FULL_ERROR=1'\n\n    # export pixi variables\n    - 'export PIXI_HOME=/storage_nvme_4/nano/pixi_new'\n    - 'export PATH=\"$PIXI_HOME/bin:$PATH\"'\n    - 'export XDG_DATA_HOME=\"$PIXI_HOME/data\"'\n    - 'export XDG_CACHE_HOME=\"$PIXI_HOME/cache\"'\n    - 'export XDG_STATE_HOME=\"$PIXI_HOME/state\"'\n    \n    # activate pixi\n    - 'cd \"$PIXI_HOME\"'\n    - 'eval \"$(pixi shell-hook)\"'\n    - 'cd -'\n\ncluster_switch:\n  train_path_c4: \"/storage_nvme_1/llm-random/datasets/c4/train\"\n  eval_path_c4: \"/storage_nvme_1/llm-random/datasets/c4/validation\"\n  train_path_fineweb: \"/storage_nvme_4/llm-random/datasets/fineweb/train\"\n  eval_path_fineweb: \"/storage_nvme_4/llm-random/datasets/fineweb/train\"\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/_cluster/entropy.yaml b/configs/_cluster/entropy.yaml
+--- a/configs/_cluster/entropy.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/_cluster/entropy.yaml	(date 1774625433021)
+@@ -19,7 +19,7 @@
+     - 'export HYDRA_FULL_ERROR=1'
+ 
+     # export pixi variables
+-    - 'export PIXI_HOME=/storage_nvme_4/nano/pixi_new'
++    - 'export PIXI_HOME=/storage_nvme_4/nano/pixi_md'
+     - 'export PATH="$PIXI_HOME/bin:$PATH"'
+     - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
+     - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
+Index: configs/pc_project/smollm_1700_prune.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_1700\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n\n  # target_dmodel: 448 # 10\n  # target_dff: 1728\n  # target_dmodel: 960 # 30\n  # target_dff: 3840\n  target_dmodel: 1344 # 50\n  target_dff: 5376\n  # target_dmodel: 1728 # 75\n  # target_dff: 6912\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 2048 # 1B tokens\n    # - 4096\n    # - 6144\n    # - 8192\n    # - 12288\n    # - 16384\n\n  # learning_rate: ??? # CHANGE # 10\n  # learning_rate: ??? # CHANGE # 30\n  learning_rate: ??? # CHANGE # 50\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-1.7B\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - 50p\n      # - 30p\n      # - 10p\n      # - 35p\n      # - 20p\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_prune.yaml b/configs/pc_project/smollm_1700_prune.yaml
+--- a/configs/pc_project/smollm_1700_prune.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_prune.yaml	(date 1774623383711)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: def_1700
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: projected_1700\n  - ../../_trainer@_here_: llama\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  dmodel: 448\n  dff: 1728\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn:\n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp_90_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      - no_distillation\n      - 90p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml	(date 1774623397361)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: projected_1700
+   - ../../_trainer@_here_: llama
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -57,9 +61,8 @@
+       - projected_compression
+       - no_distillation
+       - 90p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -72,4 +75,3 @@
+     target_dmodel: ${common.dmodel}
+     target_dff: ${common.dff}
+ 
+-
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: def_1700\n  - ../../_trainer@_here_: smollm_1700_distillation\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  target_dmodel: 1344\n  target_dff: 5376\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  eval_interval: 1000000\n  eval_dataloader: None\n  train_dataloader:\n    dataset:\n      seed: 1000\n      tokenize_fn:\n        _target_: src.core.datasets.get_tokenize_fn\n        model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune_distill_50_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - distillation\n      - 50p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml	(date 1774623416668)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: def_1700
+   - ../../_trainer@_here_: smollm_1700_distillation
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -56,7 +60,7 @@
+       - hard_pruning
+       - distillation
+       - 50p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+ 
+   slurm:
+@@ -71,4 +75,3 @@
+     target_dmodel: ${common.target_dmodel}
+     target_dff: ${common.target_dff}
+ 
+-
+Index: configs/pc_project/smollm_1700.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_1700\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 2048 # 1B tokens\n    # - 4096\n    # - 6144\n    # - 8192\n    # - 12288\n    # - 16384\n\n  learning_rate: 16\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-1.7B\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n\ninfrastructure:\n  metric_logger:\n    name: SMOLLM_training\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700.yaml b/configs/pc_project/smollm_1700.yaml
+--- a/configs/pc_project/smollm_1700.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700.yaml	(date 1774623373193)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: def_1700
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: def_1700\n  - ../../_trainer@_here_: smollm_1700_distillation\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  target_dmodel: 960\n  target_dff: 3840\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  eval_interval: 1000000\n  eval_dataloader: None\n  train_dataloader:\n    dataset:\n      seed: 1000\n      tokenize_fn:\n        _target_: src.core.datasets.get_tokenize_fn\n        model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_prune_distill_70_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - hard_pruning\n      - distillation\n      - 70p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.pruning.prune\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.target_dmodel}\n    target_dff: ${common.target_dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml	(date 1774623416711)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: def_1700
+   - ../../_trainer@_here_: smollm_1700_distillation
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -56,9 +60,8 @@
+       - hard_pruning
+       - distillation
+       - 70p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -71,4 +74,3 @@
+     target_dmodel: ${common.target_dmodel}
+     target_dff: ${common.target_dff}
+ 
+-
+Index: configs/pc_project/smollm_360_comp.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: projected_360\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  \n  dmodel: 480 # 35\n  dff: 1280\n  # dmodel: 330 # 20\n  # dff: 880\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 2048 # 1B tokens\n    # - 4096\n    # - 6144\n    # - 8192\n    # - 12288\n    # - 16384\n\n  # learning_rate: 12 # 50 1B\n  learning_rate: 11 # 35 1B\n  # learning_rate: 11 # 20 1B\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-360M\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-360M\n\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_360_comp_20r\n    tags:\n      - nano\n      - pc\n      - smollm_360\n      - projected_compression\n      # - 50p\n      - 35p\n      # - 20p\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_360_comp.yaml b/configs/pc_project/smollm_360_comp.yaml
+--- a/configs/pc_project/smollm_360_comp.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_360_comp.yaml	(date 1774623373295)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: projected_360
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+Index: configs/pc_project/smollm_1700_comp.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy \n  - ../_model/smollm@_here_: projected_1700\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  \n  # dmodel: 448 # 10\n  # dff: 1728\n  # dmodel: 960 # 30\n  # dff: 3840\n  # dmodel: 1344 # 50\n  # dff: 5376\n  # dmodel: 1728 # 75\n  # dff: 6912\n  dmodel: 1088 # 35\n  dff: 4352\n  # dmodel: 768 # 20\n  # dff: 3072\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 2048 # 1B tokens\n    # - 4096\n    # - 6144\n    # - 8192\n    # - 12288\n    # - 16384\n    \n  # learning_rate: ??? # CHANGE # optimal 10%\n  # learning_rate: ??? # CHANGE # optimal 20%\n  learning_rate: 13 # optimal 35%\n  # learning_rate: ??? # CHANGE # optimal 1B 50%\n  # learning_rate: ??? # CHANGE # optimal 75%\n  # learning_rate: ??? # CHANGE #optimal fo randomi 50%\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-1.7B\"\n   save:\n    type: nano\n    path: ??? # CHANGE\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-1.7B\n\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      # - 10p\n      # - 20p\n      # - 30p\n      - 35p\n      # - 50p\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_comp.yaml b/configs/pc_project/smollm_1700_comp.yaml
+--- a/configs/pc_project/smollm_1700_comp.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_comp.yaml	(date 1774623383632)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy 
+   - ../_model/smollm@_here_: projected_1700
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: projected_1700\n  - ../../_trainer@_here_: smollm_1700_distillation\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  dmodel: 1344\n  dff: 5376\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  eval_interval: 1000000\n  eval_dataloader: None\n  train_dataloader:\n    dataset:\n      seed: 1000\n      tokenize_fn:\n        _target_: src.core.datasets.get_tokenize_fn\n        model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp_distill_50_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      - distillation\n      - 50p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml	(date 1774623397410)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: projected_1700
+   - ../../_trainer@_here_: smollm_1700_distillation
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -56,9 +60,8 @@
+       - projected_compression
+       - distillation
+       - 50p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -71,4 +74,3 @@
+     target_dmodel: ${common.dmodel}
+     target_dff: ${common.dff}
+ 
+-
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: projected_1700\n  - ../../_trainer@_here_: smollm_1700_distillation\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  dmodel: 960\n  dff: 3840\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  eval_interval: 1000000\n  eval_dataloader: None\n  train_dataloader:\n    dataset:\n      seed: 1000\n      tokenize_fn:\n        _target_: src.core.datasets.get_tokenize_fn\n        model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp_distill_70_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      - distillation\n      - 70p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml	(date 1774623406652)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: projected_1700
+   - ../../_trainer@_here_: smollm_1700_distillation
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -56,9 +60,8 @@
+       - projected_compression
+       - distillation
+       - 70p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -71,4 +74,3 @@
+     target_dmodel: ${common.dmodel}
+     target_dff: ${common.dff}
+ 
+-
+Index: configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../../_cluster@_here_: entropy\n  - ../../_model/smollm@_here_: projected_1700\n  - ../../_trainer@_here_: smollm_1700_distillation\n  - ../../_dataset@_here_: fineweb\n  - ../../_checkpoints@_here_: none\n  - ../../_misc@_here_: default\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n  dmodel: 448\n  dff: 1728\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps:\n    - 2048 # 1B tokens\n\n  ^learning_rate:\n    - 11\n    - 12\n    - 13\n    - 14\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n    load:\n      type: huggingface\n      path: \"HuggingFaceTB/SmolLM-1.7B\"\n    save:\n      type: nano\n      path: ??? # CHANGE\n      interval: 2047\n      model_checkpoint_filename: __model_checkpoint_filename.pt\n      training_state_filename: __training_state_filename.pt\n\n  eval_interval: 1000000\n  eval_dataloader: None\n  train_dataloader:\n    dataset:\n      seed: 1000\n      tokenize_fn:\n        _target_: src.core.datasets.get_tokenize_fn\n        model_name: HuggingFaceTB/SmolLM-1.7B\n\ninfrastructure:\n  metric_logger:\n    name: SLLM_1700_comp_distill_90_lr_grid\n    tags:\n      - nano\n      - pc\n      - smollm_1700\n      - projected_compression\n      - distillation\n      - 90p\n      - 1B_tokens\n      - lr_grid\n\n  slurm:\n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:4\n    time: \"0-24:00:00\"\n\napply_functions:\n  - _target_: src.projected_compression.compression.init_compression\n    _partial_: true\n    dimensions_importances_path: ??? # CHANGE\n    target_dmodel: ${common.dmodel}\n    target_dff: ${common.dff}\n\n\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml
+--- a/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml	(date 1774623406695)
+@@ -2,9 +2,10 @@
+   - ../../_cluster@_here_: entropy
+   - ../../_model/smollm@_here_: projected_1700
+   - ../../_trainer@_here_: smollm_1700_distillation
+-  - ../../_dataset@_here_: fineweb
++  - ../../_dataset@_here_: smollm_corpus
+   - ../../_checkpoints@_here_: none
+   - ../../_misc@_here_: default
++  - _self_
+ 
+ common:
+   sequence_length: 1024
+@@ -15,7 +16,10 @@
+ trainer:
+   gradient_accumulation_steps: 8
+   ^n_steps:
+-    - 2048 # 1B tokens
++    # - 2048 # 1B tokens
++    - 4096 # 2B tokens
++    # - 8192 # 4B tokens
++    # - 12288 # 6B tokens
+ 
+   ^learning_rate:
+     - 11
+@@ -56,9 +60,8 @@
+       - projected_compression
+       - distillation
+       - 90p
+-      - 1B_tokens
++      - 2B_tokens
+       - lr_grid
+-
+   slurm:
+     job-name: ${infrastructure.metric_logger.name}
+     gres: gpu:4
+@@ -71,4 +74,3 @@
+     target_dmodel: ${common.dmodel}
+     target_dff: ${common.dff}
+ 
+-
+Index: configs/pc_project/smollm_135.yaml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>defaults:\n  - ../_cluster@_here_: entropy\n  - ../_model/smollm@_here_: def_135\n  - ../_trainer@_here_: llama\n  - ../_dataset@_here_: fineweb\n  - ../_checkpoints@_here_: none\n  - ../_misc@_here_: default\n\n\ncommon:\n  sequence_length: 1024\n  batch_size: 512\n\n\ntrainer:\n  gradient_accumulation_steps: 8\n  ^n_steps: \n    - 4001\n    # - 8001\n    # - 16001\n    # - 24001\n\n  learning_rate: ??? # CHANGE\n\n  scheduler:\n    warmup_steps: 40\n\n  checkpoint:\n   load:\n    type: huggingface\n    path: \"HuggingFaceTB/SmolLM-135M\"\n   save:\n    type: nano\n    path: null #change\n    interval: 2047\n    model_checkpoint_filename: __model_checkpoint_filename.pt\n    training_state_filename: __training_state_filename.pt\n\n  train_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-135M\n\n  eval_dataloader:\n    tokenize_fn: \n      _target_: src.core.datasets.get_tokenize_fn\n      model_name: HuggingFaceTB/SmolLM-135M\n\n\ninfrastructure:\n  metric_logger:\n    name: LLMR_training\n    tags:\n      - nano\n      - pc\n      - smollm_135\n\n  slurm: \n    job-name: ${infrastructure.metric_logger.name}\n    gres: gpu:1\n    time: \"0-24:00:00\"
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/configs/pc_project/smollm_135.yaml b/configs/pc_project/smollm_135.yaml
+--- a/configs/pc_project/smollm_135.yaml	(revision 855c118512886ea377dc4518ebc7864bd0197f1b)
++++ b/configs/pc_project/smollm_135.yaml	(date 1774623373090)
+@@ -2,9 +2,10 @@
+   - ../_cluster@_here_: entropy
+   - ../_model/smollm@_here_: def_135
+   - ../_trainer@_here_: llama
+-  - ../_dataset@_here_: fineweb
++  - ../_dataset@_here_: smollm_corpus
+   - ../_checkpoints@_here_: none
+   - ../_misc@_here_: default
++  - _self_
+ 
+ 
+ common:
