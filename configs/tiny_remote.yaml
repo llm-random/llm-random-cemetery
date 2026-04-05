@@ -33,7 +33,7 @@ trainer:
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt # not tested
       only_weights: false # false not tested
-
+      rewind_data: true
 
   train_dataloader:
     dataset:
