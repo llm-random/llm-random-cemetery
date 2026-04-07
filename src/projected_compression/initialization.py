@@ -1,6 +1,5 @@
 import torch
 from src.core.checkpointing import get_full_checkpoint_path, load_training_state
-from src.core.metric_loggers import NeptuneLogger, get_metric_logger
 from src.core.utils import solve_config_lr
 from main import log_environs, upload_config_file
 from src.core.distributed_training import setup_fsdp2_model
@@ -9,7 +8,8 @@ from hydra.utils import instantiate
 import logging
 import platform
 import os
-from neptune.integrations.python_logger import NeptuneHandler
+# from src.core.metric_loggers import NeptuneLogger, get_metric_logger
+# from neptune.integrations.python_logger import NeptuneHandler #dev
 import torch.distributed.checkpoint as dcp
 
 logger = logging.getLogger(__name__)
@@ -28,32 +28,33 @@ def init_pc_attributes(cfg, metric_logger):
     training_state = load_training_state(cfg.trainer.checkpoint.load)
 
     if metric_logger is None:
-        metric_logger = get_metric_logger(
-            metric_logger_config=instantiate(
-                cfg.infrastructure.metric_logger, _convert_="all"
-            ),
-            neptune_run_id=training_state["run_id"],
-        )
+        raise Exception("Hardcoded Neptune exception")
+        # metric_logger = get_metric_logger(
+        #     metric_logger_config=instantiate(
+        #         cfg.infrastructure.metric_logger, _convert_="all"
+        #     ),
+        #     neptune_run_id=training_state["run_id"],
+        # )
 
-        # Other loggers do not have `run` method
-        if isinstance(metric_logger, NeptuneLogger):
-            npt_handler = NeptuneHandler(run=metric_logger.run)
-            logger.addHandler(npt_handler)
+        # # Other loggers do not have `run` method
+        # if isinstance(metric_logger, NeptuneLogger):
+        #     npt_handler = NeptuneHandler(run=metric_logger.run)
+        #     logger.addHandler(npt_handler)
 
     learning_rate, exp_lr = solve_config_lr(cfg.trainer.learning_rate)
 
-    if isinstance(metric_logger, NeptuneLogger) and (
-        training_state["run_id"] is None
-        or cfg.infrastructure.metric_logger.new_neptune_job
-    ):
-        metric_logger.run["job_config"] = cfg
-        upload_config_file(metric_logger)
-        log_environs(metric_logger)
-        metric_logger.run[f"job/full_save_checkpoints_path"] = get_full_checkpoint_path(
-            cfg.trainer.checkpoint.save.path
-        )
-        metric_logger.run["learning_rate"] = learning_rate
-        metric_logger.run["exp_lr"] = exp_lr
+    # if isinstance(metric_logger, NeptuneLogger) and (
+    #     training_state["run_id"] is None
+    #     or cfg.infrastructure.metric_logger.new_neptune_job
+    # ):
+    #     metric_logger.run["job_config"] = cfg
+    #     upload_config_file(metric_logger)
+    #     log_environs(metric_logger)
+    #     metric_logger.run[f"job/full_save_checkpoints_path"] = get_full_checkpoint_path(
+    #         cfg.trainer.checkpoint.save.path
+    #     )
+    #     metric_logger.run["learning_rate"] = learning_rate
+    #     metric_logger.run["exp_lr"] = exp_lr
 
     torch.manual_seed(cfg.trainer.train_dataloader.dataset.seed)
 
