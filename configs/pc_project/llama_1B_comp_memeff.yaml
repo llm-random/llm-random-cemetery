@@ -10,17 +10,32 @@ common:
   sequence_length: 1024
   batch_size: 512
 
-  dmodel: 448
-  dff: 1728
+  # dmodel: 448 # 10
+  # dff: 1728
+  dmodel: 960 # 30
+  dff: 3840
+  # dmodel: 1344 # 50
+  # dff: 5376
 
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
   gradient_accumulation_steps: 8
-  n_steps: 2048
+  # gradient_accumulation_steps: 4
+  ^n_steps: 
+    - 2048 # 1B tokens
+    # - 4096
+    # - 6144
+    # - 8192
+    # - 12288
+
   only_compress_model_gradient_clipping: true
   
-  learning_rate: 13
+  # learning_rate: 12 # optimal 10%
+  learning_rate: 13 # optimal 30%
+  # learning_rate: 14 # optimal 1B 50%
+  # learning_rate: 15 # optimal 75%
+  # learning_rate: 14 # optimal for randomi 50%
 
   scheduler:
     warmup_steps: 40
@@ -29,6 +44,8 @@ trainer:
     fsdp2: null
 
   eval_dataloader: None
+  eval_interval: 0
+
 
 projected_compression:
   modules_to_shard:
@@ -37,8 +54,11 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: ??? #  special PC_memeff checkpoint from llama_1B_conversion config experiment
-  path_to_importances: ???
+  source_model_path: /storage_nvme_3/mstefaniak/pc/llama31b.pt # entropy ACTIVATIONS
+  path_to_importances: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt
+
+  # source_model_path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama31b.pt # helios ACTIVATIONS
+  # path_to_importances: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_1_fw_importances/minitron_dimensions_importances.pt
 
   init_norms_with_ones: false
 
@@ -48,12 +68,13 @@ projected_compression:
 
 
 
+
 model:
   cast_bfloat16: false
 
 infrastructure:
   metric_logger:
-    name: Llame_PC
+    name: test_llama_pc_memeff
     tags:
       - nano
       - pc
