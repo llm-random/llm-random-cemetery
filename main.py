@@ -281,6 +281,10 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
             scheduler = instantiate(cfg.trainer.scheduler)(
                 optimizer=optimizer, n_steps=cfg.trainer.n_steps
             )
+        elif cfg.trainer.checkpoint.load.reset_scheduler:
+            scheduler = instantiate(cfg.trainer.scheduler)(
+                optimizer=optimizer, n_steps=cfg.trainer.n_steps
+            )
     else:
         raise Exception(
             f"Not recognized load checkpoint format: {cfg.trainer.checkpoint.load.type}"
