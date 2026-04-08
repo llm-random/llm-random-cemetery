@@ -28,6 +28,8 @@ class PCTrainer(Trainer):
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
+            print(f"{os.environ.get('LOCAL_RANK')} - step {step}")
+            
             self.step = step
             self.metric_logger.set_step(step)
             self.model.train()
