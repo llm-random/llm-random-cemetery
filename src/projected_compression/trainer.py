@@ -28,8 +28,10 @@ class PCTrainer(Trainer):
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
+            
             self.step = step
             self.metric_logger.set_step(step)
+            self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
 
             self.model.prepare_compressed_weights()
@@ -66,6 +68,11 @@ class PCTrainer(Trainer):
 
             if self._should_save_final_checkpoint:
                 self.save_checkpoint()
+            
+            if self._should_evaluate:
+                self.eval()
+
+            self.metric_logger.flush() # <--- THIS SENDS TO WANDB
 
     def save_checkpoint(self):
         checkpoint_folder = step_checkpoint_path(self.checkpoint.save.path, self.step)
