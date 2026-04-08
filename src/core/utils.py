@@ -11,7 +11,8 @@ def create_batch_fingerprint(batch):
         result = prefix_part + suffix_part
         return result
 
-    first_row = prefix_suffix_only(batch[0]).numpy().tolist()
+    # first_row = prefix_suffix_only(batch[0]).numpy().tolist()
+    first_row = [prefix_suffix_only(batch[0])]
     middle_row = prefix_suffix_only(batch[len(batch) // 2]).numpy().tolist()
     last_row = prefix_suffix_only(batch[-1]).numpy().tolist()
 
