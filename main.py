@@ -306,9 +306,11 @@ def run(cfg: OmegaConf, metric_logger=None):
 
     if model is not None:
         logger.info(f"Model initialized")
+        print(f"{os.environ.get('LOCAL_RANK')} - ami") #dev
 
         trainer = instantiate(cfg.trainer)
 
+        print(f"{os.environ.get('LOCAL_RANK')} - trainer") #dev
         if "distillation" in cfg:
             if cfg.distillation.load.type == "huggingface":
                 teacher_model = instantiate(
