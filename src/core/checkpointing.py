@@ -38,6 +38,29 @@ class TrainingState(Stateful):
         self.scheduler.load_state_dict(state_dict["scheduler"])
 
 
+class ModelAndOptimizerState(Stateful):
+    def __init__(self, model, optimizer):
+        self.model = model
+        self.optimizer = optimizer
+
+    def state_dict(self):
+        model_state_dict, optimizer_state_dict = get_state_dict(
+            self.model, self.optimizer
+        )
+        return {
+            "model": model_state_dict,
+            "optim": optimizer_state_dict,
+        }
+
+    def load_state_dict(self, state_dict):
+        set_state_dict(
+            self.model,
+            self.optimizer,
+            model_state_dict=state_dict["model"],
+            optim_state_dict=state_dict["optim"],
+        )
+
+
 def step_checkpoint_path(path, step):
     full_config_path = get_full_checkpoint_path(path)
     return f"{full_config_path}/step_{step}"
@@ -116,7 +139,7 @@ def _find_latest_checkpoint(path: str) -> str:
     return max(files, key=os.path.getmtime)
 
 
-def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
+def load_checkpoint_from_file(load_config, model, optimizer, scheduler, load_scheduler=True):
     checkpoint_path = load_config.path
     if checkpoint_path is None:
         return
@@ -127,7 +150,10 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
             or model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard"
         ):
             # Sharded load
-            state_dict = {"app": TrainingState(model, optimizer, scheduler)}
+            if load_scheduler:
+                state_dict = {"app": TrainingState(model, optimizer, scheduler)}
+            else:
+                state_dict = {"app": ModelAndOptimizerState(model, optimizer)}
             dcp.load(state_dict=state_dict, checkpoint_id=checkpoint_path)
             logger.debug(f"Loaded sharded checkpoint from '{checkpoint_path}'")
         else:
@@ -139,6 +165,6 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
             logger.info(f"Loading model from '{checkpoint_path}'")
             model.load_state_dict(checkpoint["model"])
             optimizer.load_state_dict(checkpoint["optim"])
-            scheduler.load_state_dict(checkpoint["scheduler"])
-            logger.info(f"Loaded non-sharded sheduler from '{checkpoint_path}'")
+            if load_scheduler:
+                scheduler.load_state_dict(checkpoint["scheduler"])
             logger.debug(f"Loaded non-sharded checkpoint from '{checkpoint_path}'")
