@@ -28,8 +28,10 @@ class PCTrainer(Trainer):
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
         ):
+            
             self.step = step
             self.metric_logger.set_step(step)
+            self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
 
             self.model.prepare_compressed_weights()
@@ -39,14 +41,14 @@ class PCTrainer(Trainer):
                 grad_norm = torch.nn.utils.clip_grad_norm_(
                     self.model.parameters(), self.gradient_clipping
                 )
-                self.model.pass_gradient_to_projections(
+                _, projection_grad_norms = self.model.pass_gradient_to_projections(
                     self.block_optimizers,
                     self.block_schedulers,
                     self.gradient_clipping,
                     shared_gradient_norms=False,
                 )
             else:
-                grad_norm = self.model.pass_gradient_to_projections(
+                grad_norm, projection_grad_norms = self.model.pass_gradient_to_projections(
                     self.block_optimizers,
                     self.block_schedulers,
                     self.gradient_clipping,
@@ -57,6 +59,7 @@ class PCTrainer(Trainer):
                 )
 
             self.log_metrics(loss, grad_norm)
+            self.log_projection_grad_norms(projection_grad_norms)
             self.optimizer.step()
             self.optimizer.zero_grad()
             self.scheduler.step()
@@ -66,6 +69,21 @@ class PCTrainer(Trainer):
 
             if self._should_save_final_checkpoint:
                 self.save_checkpoint()
+            
+            if self._should_evaluate:
+                self.eval()
+
+            self.metric_logger.flush() # <--- THIS SENDS TO WANDB
+
+    def log_projection_grad_norms(self, projection_grad_norms):
+        if not projection_grad_norms:
+            return
+        total_proj_norm = torch.norm(
+            torch.stack([n.float() for n in projection_grad_norms])
+        )
+        self.metric_logger.log("train/projection_grad_norm", total_proj_norm.item())
+        for i, norm in enumerate(projection_grad_norms):
+            self.metric_logger.log(f"train/projection_grad_norm_block_{i}", norm.item())
 
     def save_checkpoint(self):
         checkpoint_folder = step_checkpoint_path(self.checkpoint.save.path, self.step)
