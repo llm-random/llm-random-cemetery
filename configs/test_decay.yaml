@@ -1,0 +1,40 @@
+defaults:
+  - _cluster@_here_: entropy
+  - _model@_here_: tiny
+  - _trainer@_here_: llama
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _misc@_here_: default
+
+common:
+  sequence_length: 16
+  batch_size: 2
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 1001
+  learning_rate: 1e-3
+
+  checkpoint:
+    save:
+      type: nano
+      interval: 200
+      path: test_decay_ckpts
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+
+infrastructure:
+  max_concurrent_jobs: 1
+
+  metric_logger:
+    name: test_decay
+    tags:
+      - nano
+      - remote
+      - tiny
+      - test_decay_local
+
+  slurm:
+    time: "00:10:00"
+    gres: gpu:1
+    job-name: ${infrastructure.metric_logger.name}
