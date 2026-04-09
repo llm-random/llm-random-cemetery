@@ -269,8 +269,10 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
         model, optimizer, scheduler = get_model_optimizer_scheduler(
             cfg, model, learning_rate
         )
+        reset_scheduler = cfg.trainer.checkpoint.load.get("reset_scheduler", False)
         load_checkpoint_from_file(
-            cfg.trainer.checkpoint.load, model, optimizer, scheduler
+            cfg.trainer.checkpoint.load, model, optimizer, scheduler,
+            load_scheduler=not (cfg.trainer.checkpoint.load.only_weights or reset_scheduler),
         )
         if cfg.trainer.checkpoint.load.only_weights:
             optimizer = torch.optim.AdamW(
@@ -280,6 +282,10 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
             )
             scheduler = instantiate(cfg.trainer.scheduler)(
                 optimizer=optimizer, n_steps=cfg.trainer.n_steps
+            )
+        elif reset_scheduler:
+            scheduler = instantiate(cfg.trainer.scheduler)(
+                optimizer=optimizer
             )
     else:
         raise Exception(
