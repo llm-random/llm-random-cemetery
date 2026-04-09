@@ -223,6 +223,7 @@ class MemoryEfficientProjectedCompression(nn.Module):
 
             grads = [v.grad for v in self.parameters() if v.grad is not None]
             final_grad_norm = torch.nn.utils.get_total_norm(grads)
+            return final_grad_norm, []
         else:
             projection_blocks_grad_norms = []
             grads = [v.grad for v in self.parameters() if v.grad is not None]
@@ -304,7 +305,7 @@ class MemoryEfficientProjectedCompression(nn.Module):
                 grads + projection_blocks_grad_norms
             )
 
-        return final_grad_norm
+        return final_grad_norm, projection_blocks_grad_norms
 
     def backward_compressed_weights(self, proj, source_weight, target_weight):
         source_weight = source_weight.detach()
