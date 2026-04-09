@@ -108,6 +108,17 @@ class Trainer:
 
             grad_norm = self.clip_gradient()
 
+            if int(os.environ.get("RANK", 0)) == 0:
+                head_emb_params = [p for n, p in self.model.named_parameters()
+                                   if p.grad is not None and ("head" in n or "embedding" in n)]
+                block_params = [p for n, p in self.model.named_parameters()
+                                if p.grad is not None and ("head" not in n and "embedding" not in n)]
+                if head_emb_params and block_params:
+                    import torch
+                    he_norm = torch.nn.utils.get_total_norm(head_emb_params)
+                    bl_norm = torch.nn.utils.get_total_norm([p.grad for p in block_params])
+                    print(f"[PC_GRAD_NORM_DEBUG] head+emb={he_norm.item():.4f} blocks={bl_norm.item():.4f} total={grad_norm.item():.4f}", flush=True)
+
             self.log_metrics(loss, grad_norm)
 
             self.optimizer.step()
