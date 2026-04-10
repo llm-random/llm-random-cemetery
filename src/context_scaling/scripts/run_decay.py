@@ -1,5 +1,6 @@
 import os
 import copy
+import datetime
 import warnings
 import logging
 from pathlib import Path
@@ -70,7 +71,7 @@ def build_decay_config(
             "training_state_filename": "__training_state_filename.pt",
             "only_weights": False,
             "reset_scheduler": True,
-            "rewind_data": True,
+            "rewind_data": False,
         },
         "save": {
             "type": "nano",
@@ -268,7 +269,7 @@ def main():
     )
     parser.add_argument("--tags", nargs="+", required=True)
     parser.add_argument("--negative_tags", nargs="+", default=None)
-    parser.add_argument("--out_dir", type=str, default="decay_grid")
+    parser.add_argument("--out_dir", type=str, default=None)
     parser.add_argument(
         "--decay_fraction",
         type=float,
@@ -314,6 +315,11 @@ def main():
 
     args = parser.parse_args()
 
+    if args.out_dir is None:
+        now = datetime.datetime.now()
+        args.out_dir = str(
+            Path("outputs") / now.strftime("%Y-%m-%d") / now.strftime("%H-%M-%S")
+        )
     out_dir = Path(args.out_dir)
     config_dir = out_dir / "generated_configs"
 
