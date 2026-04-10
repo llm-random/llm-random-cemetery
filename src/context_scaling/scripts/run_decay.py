@@ -1,5 +1,6 @@
 import os
 import copy
+import datetime
 import warnings
 import logging
 from pathlib import Path
@@ -39,12 +40,24 @@ def build_decay_config(
     source_step: int,
     decay_steps: int,
     save_base_path: str,
+    train_data_seed: int,
 ) -> dict:
     """Modify a training config for a pure-decay run from a checkpoint."""
     cfg = copy.deepcopy(base_config)
 
     # Training runs from source_step to source_step + decay_steps
     cfg["trainer"]["n_steps"] = source_step + decay_steps
+
+    # Fire lm_eval exactly once at the final training step (step == n_steps - 1)
+    if cfg["trainer"].get("lm_eval_interval", 0) > 0:
+        cfg["trainer"]["lm_eval_interval"] = cfg["trainer"]["n_steps"] - 1
+
+    original_train_seed = cfg["trainer"]["train_dataloader"]["dataset"]["seed"]
+    assert train_data_seed != original_train_seed, (
+        f"train_data_seed ({train_data_seed}) must differ from the base run's "
+        f"training data seed ({original_train_seed})."
+    )
+    cfg["trainer"]["train_dataloader"]["dataset"]["seed"] = train_data_seed
 
     # Pure linear decay from peak LR to 0
     cfg["trainer"]["scheduler"] = {
@@ -70,7 +83,7 @@ def build_decay_config(
             "training_state_filename": "__training_state_filename.pt",
             "only_weights": False,
             "reset_scheduler": True,
-            "rewind_data": True,
+            "rewind_data": False,
         },
         "save": {
             "type": "nano",
@@ -171,6 +184,7 @@ def generate_configs(args):
                 source_step=step,
                 decay_steps=decay_steps,
                 save_base_path=save_path,
+                train_data_seed=args.train_data_seed,
             )
             configs.append(decay_cfg)
 
@@ -268,7 +282,7 @@ def main():
     )
     parser.add_argument("--tags", nargs="+", required=True)
     parser.add_argument("--negative_tags", nargs="+", default=None)
-    parser.add_argument("--out_dir", type=str, default="decay_grid")
+    parser.add_argument("--out_dir", type=str, default=None)
     parser.add_argument(
         "--decay_fraction",
         type=float,
@@ -280,6 +294,13 @@ def main():
         type=str,
         default=None,
         help="Base path for saving decay run checkpoints. If not set, decay runs won't save checkpoints.",
+    )
+    parser.add_argument(
+        "--train_data_seed",
+        type=int,
+        required=True,
+        help="Seed for the training data stream in decay runs. Shared across all "
+        "generated jobs; must differ from the base run's training data seed.",
     )
     parser.add_argument(
         "--steps",
@@ -314,6 +335,11 @@ def main():
 
     args = parser.parse_args()
 
+    if args.out_dir is None:
+        now = datetime.datetime.now()
+        args.out_dir = str(
+            Path("outputs") / now.strftime("%Y-%m-%d") / now.strftime("%H-%M-%S")
+        )
     out_dir = Path(args.out_dir)
     config_dir = out_dir / "generated_configs"
 
