@@ -219,9 +219,22 @@ class Trainer:
             if isinstance(self.model, FSDP):
                 return self.model.clip_grad_norm_(self.gradient_clipping)
             else:
-                return torch.nn.utils.clip_grad_norm_(
-                    self.model.parameters(), self.gradient_clipping
+                # Plain clip_grad_norm_ on FSDP2 DTensor sharded grads only computes
+                # the local shard norm without cross-rank reduction, underestimating
+                # the global norm by ~sqrt(world_size). Compute it correctly:
+                params = [p for p in self.model.parameters() if p.grad is not None]
+                local_norm_sq = torch.tensor(0.0, device=self.device)
+                for p in params:
+                    g = p.grad
+                    local_g = g.to_local() if hasattr(g, "to_local") else g
+                    local_norm_sq += local_g.float().norm(2.0) ** 2
+                if dist.is_initialized():
+                    dist.all_reduce(local_norm_sq, op=dist.ReduceOp.SUM)
+                total_norm = local_norm_sq.sqrt()
+                torch.nn.utils.clip_grads_with_norm_(
+                    params, self.gradient_clipping, total_norm
                 )
+                return total_norm
 
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
@@ -231,6 +244,19 @@ class Trainer:
         self.metric_logger.log("train/loss", loss.item())
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         self.metric_logger.log("train/grad_norm", grad_norm.item())
+
+        # Debug: log block-0 projection grad norm for comparison with PC_memeff
+        if hasattr(self.model, 'encoder') and hasattr(self.model.encoder, 'blocks'):
+            block0 = self.model.encoder.blocks[0]
+            local_norm_sq = torch.tensor(0.0, device=self.device)
+            for p in block0.parameters():
+                if p.grad is not None:
+                    g = p.grad.to_local() if hasattr(p.grad, 'to_local') else p.grad
+                    local_norm_sq += g.float().norm(2.0) ** 2
+            if dist.is_initialized():
+                dist.all_reduce(local_norm_sq, op=dist.ReduceOp.SUM)
+            if os.environ.get("RANK", "0") == "0":
+                print(f"[OLD_PC_NORM_DEBUG] block_0_norm={local_norm_sq.sqrt().item():.4f} total_grad_norm={grad_norm.item():.4f}")
 
         self.loss_averaged_100.log(self.metric_logger, loss.item())
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
