@@ -1,0 +1,12 @@
+_target_: src.core.moe.MoE
+_partial_: true
+dmodel: ${common.dmodel}
+dff: ${common.dff}
+num_experts: ???
+num_experts_per_tok: ???
+capacity_factor: 1.25
+moe_load_balancing_loss_factor: 0.0
+moe_router_z_loss_factor: 0.0
+normalize_router_logits: false
+activation_function: swiglu
+init_scale: 1.0
