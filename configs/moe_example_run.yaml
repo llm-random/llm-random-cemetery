@@ -1,6 +1,6 @@
 defaults:
   - _cluster@_here_: entropy
-  - _model/llama@_here_: small_moe
+  - _model/llama@_here_: small
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
@@ -38,7 +38,7 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: llm-random-test
-    name: moe_2gpu
+    name: final2_dense_2gpu
     tags:
       - nano
       - remote

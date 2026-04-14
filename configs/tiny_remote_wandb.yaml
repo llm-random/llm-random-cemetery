@@ -1,25 +1,25 @@
 defaults:
-  - _cluster@_here_: entropy_a100
-  - _model@_here_: tiny
+  - _cluster@_here_: entropy
+  - _model@_here_: small
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _eval@_here_: basic
+  # - _eval@_here_: basic
 
 common:
-  sequence_length: 128
-  batch_size: 16
+  sequence_length: 1024
+  batch_size: 64
 
 trainer:
   gradient_accumulation_steps: 1
-  n_steps: 100
+  n_steps: 1001
   learning_rate: 1e-3
 
-  checkpoint:
-    save:
-      type: huggingface
-      path: checkpoint
+  # checkpoint:
+  #   save:
+  #     type: huggingface
+  #     path: checkpoint
 
 infrastructure:
   max_concurrent_jobs: 1
@@ -35,9 +35,9 @@ infrastructure:
       - tiny
 
   slurm:
-    time: "00:10:00"
+    time: "00:30:00"
     gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 10
+# evaluator:
+#   limit: 10
