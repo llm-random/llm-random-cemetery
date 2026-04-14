@@ -1,8 +1,10 @@
 import logging
 import os
 import torch
+import torch.distributed as dist
 from src.core.checkpointing import step_checkpoint_path
 from src.core.trainer import Trainer
+from src.projected_compression.mem_eff import get_global_grad_norm
 from attr import define
 import torch.distributed.checkpoint as dcp
 
@@ -12,6 +14,7 @@ logger = logging.getLogger(__name__)
 @define(slots=False)
 class PCTrainer(Trainer):
     only_compress_model_gradient_clipping: bool
+    only_target_model_gradient_clipping: bool = False
 
     def __attrs_post_init__(self):
         super().__attrs_post_init__()
@@ -37,7 +40,23 @@ class PCTrainer(Trainer):
             self.model.prepare_compressed_weights()
             loss = self.calculate_loss(batch)
 
-            if self.only_compress_model_gradient_clipping:
+            if self.only_target_model_gradient_clipping:
+                # Clip target model params (Wc + norms) globally as a normal model,
+                # then propagate those clipped Wc grads to projection params unclipped.
+                target_params_with_grad = [p for p in self.model.target_model.parameters() if p.grad is not None]
+                target_norm = get_global_grad_norm(target_params_with_grad)
+                if self.gradient_clipping:
+                    torch.nn.utils.clip_grads_with_norm_(
+                        target_params_with_grad, self.gradient_clipping, target_norm
+                    )
+                total_grad_norm, projection_grad_norms = self.model.pass_gradient_to_projections(
+                    self.block_optimizers,
+                    self.block_schedulers,
+                    gradient_clipping=None,
+                    shared_gradient_norms=False,
+                )
+                grad_norm = target_norm
+            elif self.only_compress_model_gradient_clipping:
                 total_grad_norm, projection_grad_norms = self.model.pass_gradient_to_projections(
                     self.block_optimizers,
                     self.block_schedulers,
