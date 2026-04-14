@@ -1,22 +1,36 @@
 defaults:
   - _cluster@_here_: entropy
-  - _model@_here_: tiny
+  - _model/context_scaling@_here_: tiny
   - _trainer@_here_: context_scaling
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _eval@_here_: incontext
+  # - _eval@_here_: incontext
 
 common:
   tokenizer: gpt2
-  sequence_length: 2048
-  batch_size: 32
+  sequence_length: 5000
+  batch_size: 1
+  vocab_size: 50257
+
+  dmodel: 512
+  dff: 1536
+  datt: 512
+  n_blocks: 8
+  q_heads: 8
+  kv_heads: 8
+
+# model:
+#   encoder:
+#     block_fn:
+#       attention_fn:
+#         compile: false
 
 trainer:
   gradient_accumulation_steps: 1
-  n_steps: 101
-  learning_rate: 1e-3
-  lm_eval_interval: 100  # 0 = disabled; set to N to run lm_eval every N steps during training
+  n_steps: 1001
+  learning_rate: 5e-4
+  lm_eval_interval: 0  # 0 = disabled; set to N to run lm_eval every N steps during training
 
   checkpoint:
     save:
@@ -58,9 +72,9 @@ infrastructure:
       - tiny
 
   slurm:
-    time: "02:00:00"
-    gres: gpu:4
+    time: "00:30:00"
+    gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
-evaluator:
-  limit: 16
+# evaluator:
+#   limit: 16
