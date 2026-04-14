@@ -1,5 +1,6 @@
 defaults:
-  - base_moe_model
+  - base_model
+  - override /ff_layer@model.encoder.block_fn.ff_layer_fn: moe
   - _self_
 
 common:
