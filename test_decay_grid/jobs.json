@@ -1,0 +1,14 @@
+[
+  {
+    "array_idx": 0,
+    "ckpt_load_path": "test_decay_ckpts/151996/0/step_200",
+    "decay_steps": 222,
+    "config_path": "test_decay_grid/generated_configs/config_0.yaml"
+  },
+  {
+    "array_idx": 1,
+    "ckpt_load_path": "test_decay_ckpts/151996/0/step_600",
+    "decay_steps": 666,
+    "config_path": "test_decay_grid/generated_configs/config_1.yaml"
+  }
+]

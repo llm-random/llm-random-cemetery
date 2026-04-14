@@ -3,7 +3,7 @@
 evaluator:
   _partial_: true
   _target_: src.core.eval.Evaluator
-  tokenizer: ${common.tokenizer}
+  tokenizer: meta-llama/Llama-3.1-8B
   tasks:
     - piqa
   limit: 1
