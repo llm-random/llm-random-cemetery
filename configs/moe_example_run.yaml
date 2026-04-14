@@ -38,7 +38,7 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: llm-random-test
-    name: moe_2gpu
+    name: final2_moe_2gpu
     tags:
       - nano
       - remote
