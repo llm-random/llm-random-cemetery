@@ -18,7 +18,7 @@ model:
 
 trainer:
   gradient_accumulation_steps: 1
-  n_steps: 1000
+  n_steps: 1001
   learning_rate: 5e-4
 
   train_dataloader:
