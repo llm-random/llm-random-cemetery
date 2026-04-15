@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from src.core.checkpointing import get_full_checkpoint_path, load_training_state
 from src.core.metric_loggers import WandbLogger, get_metric_logger
 from src.core.utils import solve_config_lr
@@ -61,10 +62,15 @@ def init_pc_attributes(cfg, metric_logger):
     if cfg.projected_compression.separate_block_optimizers:
         target_model_optimize_params = get_target_model_optimize_params(model)
 
+        cpu_offload = cfg.projected_compression.get("cpu_offload_projections", False)
         target_model_optimizer = torch.optim.AdamW(
             target_model_optimize_params,
             lr=learning_rate,
             weight_decay=cfg.trainer.weight_decay,
+            # When cpu_offload is active, head/embedding projections are plain GPU tensors
+            # while target_model norms are FSDP2 DTensors.  _foreach ops cannot mix the two,
+            # so fall back to per-param scalar ops (params here are tiny, no perf cost).
+            foreach=not cpu_offload,
         )
         scheduler_fn = instantiate(cfg.trainer.scheduler)
         target_model_scheduler = scheduler_fn(
@@ -132,11 +138,14 @@ def get_target_model_optimize_params(model):
 
 
 def create_model(cfg_model, cfg_projected_compression, source_model_for_distillation):
+    cpu_offload_projections = cfg_projected_compression.get("cpu_offload_projections", False)
+
     with torch.device("meta"):
         model = instantiate(
             cfg_model,
             path_to_importances=cfg_projected_compression.path_to_importances,
             adjust_grad_norm=cfg_projected_compression.adjust_grad_norm,
+            cpu_offload_projections=cpu_offload_projections,
             _convert_="all",
         )
 
@@ -149,7 +158,19 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
     # embedding from source_model is used
     model.target_model.embedding = None
 
+    if cpu_offload_projections:
+        # Temporarily detach projections and source_model from the model before FSDP2
+        # so that only target_model gets sharded. Projections and source weights will
+        # live as plain CPU tensors — no VRAM used for them.
+        projections_module = model._modules.pop("projections")
+        source_model_module = model._modules.pop("source_model")
+
     model = setup_fsdp2_model(model, cfg_projected_compression)
+
+    if cpu_offload_projections:
+        # Re-attach as plain (non-FSDP2) submodules.
+        model.projections = projections_module
+        model.source_model = source_model_module
 
     # Initializing model.source_model
     source_sd = torch.load(
@@ -168,12 +189,23 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
             else:
                 source_norms[k] = source_sd.pop(k)
 
-    sharded_sd = get_sharded_sd(model.source_model.state_dict(), source_sd)
-    model.source_model.load_state_dict(sharded_sd, strict=False, assign=True)
+    if cpu_offload_projections:
+        # Load source model directly as plain CPU tensors — no FSDP2 sharding.
+        model.source_model.to_empty(device="cpu")
+        model.source_model.load_state_dict(source_sd, strict=False, assign=True)
+    else:
+        sharded_sd = get_sharded_sd(model.source_model.state_dict(), source_sd)
+        model.source_model.load_state_dict(sharded_sd, strict=False, assign=True)
 
     # Source model weights are frozen — they provide fixed basis for projections.
     for param in model.source_model.parameters():
         param.requires_grad = False
+
+    if cpu_offload_projections:
+        # Embedding and head projections run on GPU — only encoder blocks are CPU-offloaded.
+        # Move the corresponding source weights to GPU so the GPU path has everything it needs.
+        model.source_model.embedding = model.source_model.embedding.to('cuda')
+        model.source_model.head = model.source_model.head.to('cuda')
 
     # Initializing model.target_model
     model.target_model.to_empty(device="cuda")
@@ -238,10 +270,17 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
                 block.attention_layer.layer.rope.register_freqs()
 
     # Initializing model.projections
-    model.projections.to_empty(device="cuda")
+    proj_device = "cpu" if cpu_offload_projections else "cuda"
+    model.projections.to_empty(device=proj_device)
     model.projections.init_projection_weights(
         cfg_projected_compression.path_to_importances
     )
+
+    if cpu_offload_projections:
+        # Embedding and head projections run on GPU — move them off CPU after init.
+        model.projections.embedding = nn.Parameter(model.projections.embedding.data.to('cuda'))
+        model.projections.auxiliary_embedding_weights = model.projections.auxiliary_embedding_weights.to('cuda')
+        model.projections.head = model.projections.head.to('cuda')
 
     return model
 
