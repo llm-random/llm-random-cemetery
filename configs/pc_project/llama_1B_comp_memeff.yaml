@@ -13,8 +13,8 @@ common:
 
   # dmodel: 448 # 10
   # dff: 1728
-  dmodel: 960 # 30
-  dff: 3840
+  # dmodel: 960 # 30
+  # dff: 3840
   # dmodel: 1344 # 50
   # dff: 5376
 
@@ -32,10 +32,10 @@ trainer:
     # - 12288
 
   # gradient_clipping: 0.0625
-  # gradient_clipping: 0.125
+  gradient_clipping: 0.125
   # gradient_clipping: 0.25
   # gradient_clipping: 0.5
-  gradient_clipping: 1.0
+  # gradient_clipping: 1.0
   # gradient_clipping: 2.0
 
   # only_compress_model_gradient_clipping: false  # approximate PC 2x backward
@@ -43,13 +43,13 @@ trainer:
 
   # only_target_model_gradient_clipping: false            # no target clipping
   # only_target_model_gradient_clipping: 10.0
-  # only_target_model_gradient_clipping: 1.0
+  only_target_model_gradient_clipping: 1.0
   # only_target_model_gradient_clipping: 0.5            # clip target model + per-block projections at 0.5
-  only_target_model_gradient_clipping: 0.25            # clip target model + per-block projections at 0.5
+  # only_target_model_gradient_clipping: 0.25            # clip target model + per-block projections at 0.5
   # only_target_model_gradient_clipping: "no_projection_clip"  # clip target model only, projections unclipped
   
-  # learning_rate: 12 # optimal 10%
-  learning_rate: 13 # optimal 30%
+  learning_rate: 12 # optimal 10%
+  # learning_rate: 13 # optimal 30%
   # learning_rate: 14 # optimal 1B 50%
   # learning_rate: 15 # optimal 75%
   # learning_rate: 14 # optimal for randomi 50%
@@ -84,6 +84,9 @@ projected_compression:
 
   adjust_grad_norm: false
 
+  # cpu_offload_projections: true   # move all projection + source weights to CPU (saves GPU VRAM)
+  cpu_offload_projections: false
+
 
 
 model:
@@ -105,7 +108,7 @@ infrastructure:
       # - gc_00625
       # - 30p
       # - 50p
-      - dont_cast_16
+      # - dont_cast_16
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
