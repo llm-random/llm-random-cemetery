@@ -13,8 +13,8 @@ common:
 
   # dmodel: 448 # 10
   # dff: 1728
-  dmodel: 960 # 30
-  dff: 3840
+  # dmodel: 960 # 30
+  # dff: 3840
   # dmodel: 1344 # 50
   # dff: 5376
 
@@ -33,9 +33,9 @@ trainer:
 
   # gradient_clipping: 0.0625
   # gradient_clipping: 0.125
-  # gradient_clipping: 0.25
+  gradient_clipping: 0.25
   # gradient_clipping: 0.5
-  gradient_clipping: 1.0
+  # gradient_clipping: 1.0
   # gradient_clipping: 2.0
 
   # only_compress_model_gradient_clipping: false  # approximate PC 2x backward
@@ -83,6 +83,9 @@ projected_compression:
   # separate_block_optimizers: false
 
   adjust_grad_norm: false
+
+  # cpu_offload_projections: true   # move all projection + source weights to CPU (saves GPU VRAM)
+  cpu_offload_projections: false
 
 
 
