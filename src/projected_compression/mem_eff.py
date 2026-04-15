@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.distributed as dist
@@ -10,7 +11,9 @@ from torch.distributed.tensor import distribute_tensor, DTensor
 def get_global_grad_norm(params_or_grads, device=None):
     """Compute true global L2 grad norm for FSDP2 Shard(0) DTensor grads.
     torch.nn.utils.get_total_norm only computes local-shard norms without
-    cross-rank reduction, underestimating by ~sqrt(world_size)."""
+    cross-rank reduction, underestimating by ~sqrt(world_size).
+    For CPU tensors (plain params, no FSDP2), all_reduce is skipped since
+    NCCL doesn't support CPU tensors and all ranks already hold identical values."""
     local_norm_sq = torch.tensor(0.0)
     for g in params_or_grads:
         if isinstance(g, nn.Parameter):
@@ -21,8 +24,8 @@ def get_global_grad_norm(params_or_grads, device=None):
         if device is None:
             device = local_g.device
             local_norm_sq = local_norm_sq.to(device)
-        local_norm_sq += local_g.float().norm(2.0) ** 2
-    if dist.is_initialized():
+        local_norm_sq += local_g.float().to(local_norm_sq.device).norm(2.0) ** 2
+    if dist.is_initialized() and local_norm_sq.device.type != 'cpu':
         dist.all_reduce(local_norm_sq, op=dist.ReduceOp.SUM)
     return local_norm_sq.sqrt()
 
@@ -36,12 +39,14 @@ class MemoryEfficientProjectedCompression(nn.Module):
         path_to_importances: str,
         cast_bfloat16: bool,
         adjust_grad_norm: bool,
+        cpu_offload_projections: bool = False,
     ):
         super().__init__()
         self.source_model = source_model
         self.target_model = target_model
         self.cast_bfloat16 = cast_bfloat16
         self.adjust_grad_norm = adjust_grad_norm
+        self.cpu_offload_projections = cpu_offload_projections
         self.projections = Projections(
             q_heads=target_model.encoder.blocks[0].attention_layer.layer.q_heads,
             kv_heads=target_model.encoder.blocks[0].attention_layer.layer.kv_heads,
@@ -64,109 +69,93 @@ class MemoryEfficientProjectedCompression(nn.Module):
         x = self.target_model.head(x)
         return x
 
+    def _get_source_weight(self, w):
+        """Return source weight, optionally cast to bfloat16."""
+        return w.bfloat16() if self.cast_bfloat16 else w
+
+    def _copy_projected_weight(self, proj_comp, source_weight, target_weight):
+        """Compute projected weight and copy into target_weight.
+        CPU offload path (source_weight on CPU): rank 0 computes on CPU, broadcasts the
+        full result via NCCL to all ranks, then distribute_tensor shards it into each
+        rank's GPU DTensor.
+        GPU path: proj_comp may be plain GPU (not FSDP2-wrapped) when cpu_offload is
+        active but this specific module (head/embedding) is kept on GPU.  In that case
+        get_projected_weight returns a plain tensor, so we distribute_tensor it manually
+        before copying into the DTensor target.  When proj is FSDP2-wrapped the result
+        is already a DTensor and a direct copy works."""
+        if self.cpu_offload_projections and source_weight.device.type == 'cpu':
+            rank = dist.get_rank() if dist.is_initialized() else 0
+            result_gpu = torch.empty(target_weight.shape, device='cuda', dtype=torch.float32)
+            if rank == 0:
+                result_gpu.copy_(proj_comp.get_projected_weight(self._get_source_weight(source_weight)))
+            if dist.is_initialized():
+                dist.broadcast(result_gpu, src=0)
+            target_weight.data.copy_(
+                distribute_tensor(result_gpu, target_weight.device_mesh, target_weight.placements)
+            )
+        else:
+            result = proj_comp.get_projected_weight(self._get_source_weight(source_weight))
+            if hasattr(target_weight, 'device_mesh') and not hasattr(result, 'device_mesh'):
+                # Plain-tensor result (non-FSDP2 proj) into a DTensor target — distribute first.
+                target_weight.data.copy_(
+                    distribute_tensor(result, target_weight.device_mesh, target_weight.placements)
+                )
+            else:
+                target_weight.copy_(result)
+
+    def _ensure_cpu_threads(self):
+        """Set intra-op thread count once for rank 0 CPU matmuls.
+        SLURM sets OMP_NUM_THREADS=cpus_per_gpu which caps BLAS thread pools.
+        torch.set_num_threads() only affects PyTorch's own small ops — large matmuls
+        dispatch to BLAS (MKL/OpenBLAS) with a separate thread pool.
+        We call BLAS's own runtime API via ctypes to override the cap."""
+        if hasattr(self, '_cpu_threads_configured'):
+            return
+        self._cpu_threads_configured = True
+        if not dist.is_initialized() or dist.get_rank() == 0:
+            # Use SLURM's per-task allocation if available — os.cpu_count() returns
+            # all node CPUs (80), but SLURM only binds rank 0 to cpus_per_gpu cores.
+            # Setting BLAS to 80 threads on 14 physical cores causes context-switch
+            # overhead and hurts throughput vs. using the exact allocation.
+            n_cpus = int(os.environ.get("SLURM_CPUS_PER_TASK", os.cpu_count() or 80))
+            torch.set_num_threads(n_cpus)
+            import ctypes
+            for lib, fn in [
+                ("libmkl_rt.so", "MKL_Set_Num_Threads"),
+                ("libopenblas.so", "openblas_set_num_threads"),
+                ("libopenblas.so.0", "openblas_set_num_threads"),
+            ]:
+                try:
+                    getattr(ctypes.CDLL(lib), fn)(ctypes.c_int(n_cpus))
+                    break
+                except (OSError, AttributeError):
+                    pass
+
     def prepare_compressed_weights(self):
         """
         Copies the projected weights from source_model to target_model using the projections.
         cast_bfloat16: whether to cast the source weights to bfloat16 before projection. This argument only exists to have backward compatibility with previous implementation.
                        after testing, we can remove it and never cast to bfloat16.
+        cpu_offload_projections: projection/source weights live on CPU; result is scattered
+                                 to the GPU-resident Shard(0) DTensor target weights.
         """
+        if self.cpu_offload_projections:
+            self._ensure_cpu_threads()
         with torch.no_grad():
-            if not self.cast_bfloat16:
-                for block_target, block_source, block_proj in zip(
-                    self.target_model.encoder.blocks,
-                    self.source_model.encoder.blocks,
-                    self.projections.blocks,
-                ):
-                    block_target.attention_layer.layer.q_proj.weight.copy_(
-                        block_proj.compressible_q.get_projected_weight(
-                            block_source.attention_layer.layer.q_proj.weight
-                        )
-                    )
-                    block_target.attention_layer.layer.k_proj.weight.copy_(
-                        block_proj.compressible_k.get_projected_weight(
-                            block_source.attention_layer.layer.k_proj.weight
-                        )
-                    )
-                    block_target.attention_layer.layer.v_proj.weight.copy_(
-                        block_proj.compressible_v.get_projected_weight(
-                            block_source.attention_layer.layer.v_proj.weight
-                        )
-                    )
-                    block_target.attention_layer.layer.o_proj.weight.copy_(
-                        block_proj.compressible_o.get_projected_weight(
-                            block_source.attention_layer.layer.o_proj.weight
-                        )
-                    )
+            for block_target, block_source, block_proj in zip(
+                self.target_model.encoder.blocks,
+                self.source_model.encoder.blocks,
+                self.projections.blocks,
+            ):
+                self._copy_projected_weight(block_proj.compressible_q,   block_source.attention_layer.layer.q_proj.weight,   block_target.attention_layer.layer.q_proj.weight)
+                self._copy_projected_weight(block_proj.compressible_k,   block_source.attention_layer.layer.k_proj.weight,   block_target.attention_layer.layer.k_proj.weight)
+                self._copy_projected_weight(block_proj.compressible_v,   block_source.attention_layer.layer.v_proj.weight,   block_target.attention_layer.layer.v_proj.weight)
+                self._copy_projected_weight(block_proj.compressible_o,   block_source.attention_layer.layer.o_proj.weight,   block_target.attention_layer.layer.o_proj.weight)
+                self._copy_projected_weight(block_proj.compressible_ff_pre,  block_source.ff_layer.layer.ff_pre_act.weight,  block_target.ff_layer.layer.ff_pre_act.weight)
+                self._copy_projected_weight(block_proj.compressible_ff_gate, block_source.ff_layer.layer.gate.weight,        block_target.ff_layer.layer.gate.weight)
+                self._copy_projected_weight(block_proj.compressible_ff_post, block_source.ff_layer.layer.ff_post_act.weight, block_target.ff_layer.layer.ff_post_act.weight)
 
-                    block_target.ff_layer.layer.ff_pre_act.weight.copy_(
-                        block_proj.compressible_ff_pre.get_projected_weight(
-                            block_source.ff_layer.layer.ff_pre_act.weight
-                        )
-                    )
-                    block_target.ff_layer.layer.gate.weight.copy_(
-                        block_proj.compressible_ff_gate.get_projected_weight(
-                            block_source.ff_layer.layer.gate.weight
-                        )
-                    )
-                    block_target.ff_layer.layer.ff_post_act.weight.copy_(
-                        block_proj.compressible_ff_post.get_projected_weight(
-                            block_source.ff_layer.layer.ff_post_act.weight
-                        )
-                    )
-
-                self.target_model.head.linear.weight.copy_(
-                    self.projections.head.get_projected_weight(
-                        self.source_model.head.linear.weight
-                    )
-                )
-            else:
-                for block_target, block_source, block_proj in zip(
-                    self.target_model.encoder.blocks,
-                    self.source_model.encoder.blocks,
-                    self.projections.blocks,
-                ):
-                    block_target.attention_layer.layer.q_proj.weight.copy_(
-                        block_proj.compressible_q.get_projected_weight(
-                            block_source.attention_layer.layer.q_proj.weight.bfloat16()
-                        )
-                    )
-                    block_target.attention_layer.layer.k_proj.weight.copy_(
-                        block_proj.compressible_k.get_projected_weight(
-                            block_source.attention_layer.layer.k_proj.weight.bfloat16()
-                        )
-                    )
-                    block_target.attention_layer.layer.v_proj.weight.copy_(
-                        block_proj.compressible_v.get_projected_weight(
-                            block_source.attention_layer.layer.v_proj.weight.bfloat16()
-                        )
-                    )
-                    block_target.attention_layer.layer.o_proj.weight.copy_(
-                        block_proj.compressible_o.get_projected_weight(
-                            block_source.attention_layer.layer.o_proj.weight.bfloat16()
-                        )
-                    )
-
-                    block_target.ff_layer.layer.ff_pre_act.weight.copy_(
-                        block_proj.compressible_ff_pre.get_projected_weight(
-                            block_source.ff_layer.layer.ff_pre_act.weight.bfloat16()
-                        )
-                    )
-                    block_target.ff_layer.layer.gate.weight.copy_(
-                        block_proj.compressible_ff_gate.get_projected_weight(
-                            block_source.ff_layer.layer.gate.weight.bfloat16()
-                        )
-                    )
-                    block_target.ff_layer.layer.ff_post_act.weight.copy_(
-                        block_proj.compressible_ff_post.get_projected_weight(
-                            block_source.ff_layer.layer.ff_post_act.weight.bfloat16()
-                        )
-                    )
-
-                self.target_model.head.linear.weight.copy_(
-                    self.projections.head.get_projected_weight(
-                        self.source_model.head.linear.weight.bfloat16()
-                    )
-                )
+            self._copy_projected_weight(self.projections.head, self.source_model.head.linear.weight, self.target_model.head.linear.weight)
 
     def pass_gradient_to_projections(
         self, optimizers: List, schedulers, gradient_clipping, shared_gradient_norms
@@ -309,18 +298,95 @@ class MemoryEfficientProjectedCompression(nn.Module):
 
         return final_grad_norm, projection_blocks_grad_norms, None, None
 
+    def _backward_embedding_cpu(self):
+        """Compute CPU grads for projections.embedding and auxiliary_embedding_weights
+        from the GPU combined-embedding gradient.
+
+        _combined_embedding is a plain GPU tensor (not a DTensor), so FSDP2 does NOT
+        all_reduce its grad.  We must do it manually before computing projection grads,
+        otherwise each rank's grad only reflects its own data shard and params diverge.
+
+        After all_reduce, rank 0 computes projection grads and broadcasts the small
+        result (proj_emb_grad, ~7.5 MB).  The large aux_emb_grad (0.5 GB) is moved
+        CPU-locally on each rank — no broadcast needed since it's the same everywhere
+        after all_reduce."""
+        if not hasattr(self, '_combined_embedding') or self._combined_embedding is None:
+            return
+        if self._combined_embedding.grad is None:
+            return
+
+        # Correctness: all_reduce so all ranks see the globally accumulated grad.
+        if dist.is_initialized():
+            dist.all_reduce(self._combined_embedding.grad, op=dist.ReduceOp.SUM)
+
+        rank = dist.get_rank() if dist.is_initialized() else 0
+
+        # aux_emb_grad = emb_grad  (same on all ranks after all_reduce, each rank copies locally)
+        aux_emb_grad_cpu = self._combined_embedding.grad.cpu()  # [vocab, target_dmodel]
+
+        # proj_emb_grad: rank 0 computes (big matmul), result broadcast to all (~7.5 MB).
+        proj_emb_grad_gpu = torch.empty(self.projections.embedding.shape, device='cuda', dtype=torch.float32)
+        if rank == 0:
+            source_emb = self.source_model.embedding.weight.detach()  # [vocab, base_dmodel] CPU
+            # d(loss)/d(P_emb) = emb_grad.T @ source_emb    shape [target_dmodel, base_dmodel]
+            proj_emb_grad_gpu.copy_(aux_emb_grad_cpu.T @ source_emb)
+        if dist.is_initialized():
+            dist.broadcast(proj_emb_grad_gpu, src=0)
+
+        self.projections.embedding.grad = proj_emb_grad_gpu.cpu()
+        self.projections.auxiliary_embedding_weights.weight.grad = aux_emb_grad_cpu
+        self._combined_embedding.grad = None
+
     def backward_compressed_weights(self, proj, source_weight, target_weight):
-        source_weight = source_weight.detach()
-        if self.cast_bfloat16:
-            source_weight = source_weight.bfloat16()
-        weights = proj.get_projected_weight(source_weight)
-        weights.backward(target_weight.grad)
-        target_weight.grad = None
-        # DTensor autograd outside FSDP2's context leaves gradients as Partial(sum).
-        # Redistribute to Shard(0) to match FSDP2's reduce-scatter behavior.
-        for p in proj.parameters():
-            if p.grad is not None and hasattr(p.grad, 'redistribute'):
-                p.grad = p.grad.redistribute(placements=p.placements)
+        if (self.cpu_offload_projections
+                and source_weight.device.type == 'cpu'
+                and hasattr(target_weight.grad, 'to_local')):
+            # CPU offload path: rank 0 runs backward, broadcasts grads to all ranks.
+            # target_weight.grad is a Shard(0) DTensor → gather full grad on GPU
+            # (all ranks participate in this collective).
+            from torch.distributed.tensor import Replicate
+            wc_grad_gpu = target_weight.grad.redistribute(placements=[Replicate()]).to_local()
+            target_weight.grad = None
+
+            rank = dist.get_rank() if dist.is_initialized() else 0
+            if rank == 0:
+                src_w = source_weight.detach()
+                if self.cast_bfloat16:
+                    src_w = src_w.bfloat16()
+                weights = proj.get_projected_weight(src_w)
+                weights.backward(wc_grad_gpu.cpu())
+
+            # Broadcast each projection param's grad from rank 0 → all ranks.
+            for p in proj.parameters():
+                grad_buf = torch.empty(p.shape, device='cuda', dtype=p.dtype)
+                if rank == 0 and p.grad is not None:
+                    grad_buf.copy_(p.grad)
+                    p.grad = None
+                if dist.is_initialized():
+                    dist.broadcast(grad_buf, src=0)
+                p.grad = grad_buf.cpu()
+        else:
+            # GPU path: proj params may be plain tensors (non-FSDP2, e.g. head/embedding
+            # with cpu_offload) or DTensors (normal non-cpu_offload case).
+            source_weight = source_weight.detach()
+            if self.cast_bfloat16:
+                source_weight = source_weight.bfloat16()
+            weights = proj.get_projected_weight(source_weight)
+
+            wc_grad = target_weight.grad
+            if hasattr(wc_grad, 'to_local') and not hasattr(weights, 'device_mesh'):
+                # DTensor grad but plain-tensor result (non-FSDP2 proj on GPU).
+                # Gather the full grad before passing to backward.
+                from torch.distributed.tensor import Replicate
+                wc_grad = wc_grad.redistribute(placements=[Replicate()]).to_local()
+
+            weights.backward(wc_grad)
+            target_weight.grad = None
+            # DTensor autograd outside FSDP2's context leaves gradients as Partial(sum).
+            # Redistribute to Shard(0) to match FSDP2's reduce-scatter behavior.
+            for p in proj.parameters():
+                if p.grad is not None and hasattr(p.grad, 'redistribute'):
+                    p.grad = p.grad.redistribute(placements=p.placements)
 
 
 class CompressibleLinear(nn.Module):
