@@ -47,7 +47,7 @@ infrastructure:
 
   slurm:
     time: "0-02:00:00"
-    gres: gpu:2
+    gres: gpu:1
     job-name: ${infrastructure.metric_logger.name}
 
 evaluator: null
