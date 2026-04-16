@@ -28,6 +28,21 @@ class PCTrainer(Trainer):
             self.block_optimizers = None
             self.block_schedulers = None
 
+    def _clip_model_grads(self, grad_norm):
+        """Clip all model grads with a pre-computed global norm.
+        When cpu_offload_projections is active, some params (head/embedding projections)
+        are plain GPU tensors while target_model params are FSDP2 DTensors.
+        torch._foreach_mul_ cannot mix the two, so we split by grad type."""
+        if not self.gradient_clipping:
+            return
+        params_with_grads = [p for p in self.model.parameters() if p.grad is not None]
+        dtensor_grads = [p for p in params_with_grads if hasattr(p.grad, 'device_mesh')]
+        plain_grads   = [p for p in params_with_grads if not hasattr(p.grad, 'device_mesh')]
+        if dtensor_grads:
+            torch.nn.utils.clip_grads_with_norm_(dtensor_grads, self.gradient_clipping, grad_norm)
+        if plain_grads:
+            torch.nn.utils.clip_grads_with_norm_(plain_grads, self.gradient_clipping, grad_norm)
+
     def train(self):
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
@@ -66,9 +81,7 @@ class PCTrainer(Trainer):
                     shared_gradient_norms=False,
                 )
                 grad_norm = total_grad_norm
-                torch.nn.utils.clip_grads_with_norm_(
-                    self.model.parameters(), self.gradient_clipping, grad_norm
-                )
+                self._clip_model_grads(grad_norm)
             else:
                 total_grad_norm, projection_grad_norms, head_norm, embedding_norm = self.model.pass_gradient_to_projections(
                     self.block_optimizers,
@@ -77,9 +90,7 @@ class PCTrainer(Trainer):
                     shared_gradient_norms=True,
                 )
                 grad_norm = total_grad_norm
-                torch.nn.utils.clip_grads_with_norm_(
-                    self.model.parameters(), self.gradient_clipping, grad_norm
-                )
+                self._clip_model_grads(grad_norm)
 
             self.log_metrics(loss, grad_norm)
             self.metric_logger.log("train/total_grad_norm", total_grad_norm.item())
