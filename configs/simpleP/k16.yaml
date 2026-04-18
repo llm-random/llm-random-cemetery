@@ -1,5 +1,5 @@
 defaults:
-  - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: helios
   - ../_model/context_scaling@_here_: k16
   - ../_trainer@_here_: context_scaling
   - ../_dataset@_here_: ctx_scl_dataset
