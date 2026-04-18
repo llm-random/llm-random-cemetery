@@ -1,7 +1,7 @@
 defaults:
-  # - ../_cluster@_here_: entropy
-  - ../_cluster@_here_: lem
-  # - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: entropy #switch
+  # - ../_cluster@_here_: lem
+  - ../_cluster@_here_: helios
   - ../_model/llama@_here_: projected_mem_eff_8B
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -39,21 +39,22 @@ trainer:
   #   - 32
   #   - 64
 
-  n_steps: 1024
+  n_steps: 100
+  # n_steps: 1024
   # n_steps: 2048
   # n_steps: 4096
   # n_steps: 6144
   
   # learning_rate: 13 # 10p optimal # 14
-  # learning_rate: 15 # 30p optimal # 16
+  learning_rate: 15 # 30p optimal # 16
   # learning_rate: 15 # 50p optimal # 14 -> 15?
   # learning_rate: 14 # 50p optimal # 14 -> 15?
-  ^learning_rate: 
-    # - 12
-    # - 13
-    # - 14
-    - 15
-    # - 16
+  # ^learning_rate: 
+  #   # - 12
+  #   # - 13
+  #   # - 14
+    # - 15
+  #   # - 16
 
   scheduler:
     warmup_steps: 40
@@ -64,20 +65,23 @@ trainer:
   eval_dataloader: None
   eval_interval: 0
 
+  # Path to the original HuggingFace LLaMA 3 8B model directory.
+  # If set, saves an fp32 HF-format checkpoint alongside the dcp checkpoint for lm_eval.
+  # original_llama_path: /path/to/llama3_8B_hf
 
   # --- Gradient clipping ---
   # Single value applied to whichever params are being clipped (see modes below).
   # gradient_clipping: 0.0625
-  # gradient_clipping: 0.125
+  gradient_clipping: 0.125
   # gradient_clipping: 0.25
   # gradient_clipping: 0.5
   # gradient_clipping: 1.0
   # gradient_clipping: 2.0
-  ^gradient_clipping: 
-    - 0.0625
-    - 0.125
-    - 0.25
-    - 0.5
+  # ^gradient_clipping: 
+  #   - 0.0625
+  #   - 0.125
+  #   - 0.25
+  #   - 0.5
 
   # --- Gradient clipping mode (pick one) ---
   #
@@ -107,18 +111,17 @@ trainer:
   # only_compress_model_gradient_clipping: false
   # only_target_model_gradient_clipping: false
 
-  # checkpoint:
-  #   save: #only way to save PC_memeff model
-  #     interval: 1023
-  #     # interval: 2047
-  #     # interval: 4095
-  #     # interval: 6143
-  #     model_checkpoint_filename: __model_checkpoint_filename.pt
-  #     path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/test # lem new
-  #     # path: /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/test # lem
-  #     # path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/llama_8/pc10 # helios
-  #     training_state_filename: __training_state_filename.pt
-  #     type: nano
+  original_llama_path: meta-llama/Llama-3.1-8B
+
+  checkpoint:
+    save:
+      interval: 0  # 0 = only save at the end of training
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      # path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/test # lem new
+      # path: /lustre/pd01/plgrid/plgllmefficont2/projected_compression/checkpoints/test # lem
+      path: /net/scratch/hscra/plgrid/plgmstefaniak/checkpoints/test # helios      
+      training_state_filename: __training_state_filename.pt
+      type: hf_only  # "nano" | "hf_only" | "nano_and_hf"
 
 projected_compression:
   modules_to_shard:
@@ -130,11 +133,11 @@ projected_compression:
   # source_model_path: /storage_nvme_3/mstefaniak/pc/llama38b.pt # entropy
   # path_to_importances: /storage_nvme_3/mstefaniak/pc/llama8_fw_importances_8m/117045/0/minitron_dimensions_importances.pt
 
-  source_model_path: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/hf_to_nano_converted/llama8b_in_nano.pt"
-  path_to_importances: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/importances/8b/minitron_dimensions_importances.pt" # LEM
+  # source_model_path: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/hf_to_nano_converted/llama8b_in_nano.pt"
+  # path_to_importances: "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/importances/8b/minitron_dimensions_importances.pt" # LEM
 
-  # source_model_path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama38b.pt
-  # path_to_importances: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/20260120_importances/minitron_dimensions_importances.pt # helios
+  source_model_path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama38b.pt
+  path_to_importances: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/20260120_importances/minitron_dimensions_importances.pt # helios
 
   init_norms_with_ones: false
 
@@ -175,7 +178,8 @@ infrastructure:
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
-    gres: "gpu:hopper:4" # lem
-    # gres: gpu:4 # helios, entropy
-    nodes: 2
-    time: "1-00:00:00"
+    # gres: "gpu:hopper:4" # lem
+    gres: gpu:4 # helios, entropy
+    # nodes: 2
+    # time: "1-00:00:00"
+    time: "0-10:00:00"
