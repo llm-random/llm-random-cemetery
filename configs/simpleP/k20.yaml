@@ -1,5 +1,5 @@
 defaults:
-  - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: helios
   - ../_model/context_scaling@_here_: k20
   - ../_trainer@_here_: context_scaling
   - ../_dataset@_here_: ctx_scl_dataset
@@ -25,10 +25,10 @@ simpleP:
 
 infrastructure:
   metric_logger:
-    name: simpleP3_k20
+    name: simpleP4_k20
     tags:
       - nano
-      - simpleP3
+      - simpleP4
       - k20
 
   slurm:
