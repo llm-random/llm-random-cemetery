@@ -227,6 +227,9 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
             weight_decay=cfg.trainer.weight_decay,
         )
 
+    for i, group in enumerate(optimizer.param_groups):
+        logger.info(f"optimizer group {i}: lr={group['lr']}, n_params={sum(p.numel() for p in group['params']):,}")
+
     scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer)
 
     return model, optimizer, scheduler
