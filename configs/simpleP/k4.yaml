@@ -1,5 +1,5 @@
 defaults:
-  - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: lem
   - ../_model/context_scaling@_here_: k4
   - ../_trainer@_here_: context_scaling
   - ../_dataset@_here_: ctx_scl_dataset
@@ -25,10 +25,10 @@ simpleP:
 
 infrastructure:
   metric_logger:
-    name: simpleP3_k4
+    name: simpleP4_k4
     tags:
       - nano
-      - simpleP3
+      - simpleP4
       - k4
 
   slurm:
