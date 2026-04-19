@@ -15,7 +15,8 @@ trainer:
   gradient_accumulation_steps: 1
   n_steps: 5001
   # ^learning_rate: [5]
-  ^learning_rate: [5, 7, 9, 11, 13]
+  # ^learning_rate: [5, 7, 9, 11, 13]
+  ^learning_rate: [4, 6, 8, 10, 12]
   eval_interval: 500
 
 simpleP:
