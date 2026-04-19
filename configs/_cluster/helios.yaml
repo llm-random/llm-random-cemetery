@@ -13,8 +13,7 @@ infrastructure:
   script:
     - '${export_env_variables_placeholders:}'
     - 'module load ML-bundle/25.04'
-    - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmefficont3/nano'
-    - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
+    - 'export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi3/nano'
     
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'
@@ -34,5 +33,5 @@ infrastructure:
 cluster_switch:
   train_path_c4: "/net/storage/pr3/plgrid/plggllmeffi3/datasets/c4/train"
   eval_path_c4: "/net/storage/pr3/plgrid/plggllmeffi3/datasets/c4/validation"
-  train_path_fineweb: "/net/storage/pr3/plgrid/plggllmeffi3/datasets/fineweb-edu/train/train"
-  eval_path_fineweb: "/net/storage/pr3/plgrid/plggllmeffi3/datasets/fineweb-edu/train/train"
+  train_path_fineweb: "/net/storage/pr3/plgrid/plggllmeffi3/datasets/fineweb/train"
+  eval_path_fineweb: "/net/storage/pr3/plgrid/plggllmeffi3/datasets/fineweb/train"
