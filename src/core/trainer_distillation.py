@@ -65,12 +65,12 @@ class TrainerDistillation(Trainer):
         Returns:
             distillation_loss: KL divergence loss
         """
-        # Apply temperature scaling
+        # Apply temperature scaling; cast to bf16 to halve peak VRAM (~2GB → ~1GB per tensor)
         student_log_probs = F.log_softmax(
-            student_logits / self.distillation_temperature, dim=-1
+            (student_logits / self.distillation_temperature).to(torch.bfloat16), dim=-1
         )
         teacher_probs = F.softmax(
-            teacher_logits / self.distillation_temperature, dim=-1
+            (teacher_logits / self.distillation_temperature).to(torch.bfloat16), dim=-1
         )
 
         # KL divergence loss
