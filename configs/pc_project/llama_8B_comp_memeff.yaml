@@ -40,16 +40,16 @@ trainer:
   # learning_rate: 15 # 30p optimal # 16
   # learning_rate: 15 # 50p optimal # 14 -> 15?
   # learning_rate: 14 # 50p optimal # 14 -> 15?
-  ^learning_rate: 
+  # ^learning_rate: 
     # - 12
-    - 13
+    # - 13
     # - 14
     # - 15
     # - 16
 
-  # learning_rate: 12 # 10p
-  # learning_rate: 15 # 30p
   # learning_rate: 15 # 50p
+  # learning_rate: 15 # 30p
+  learning_rate: 13 # 10p
 
   scheduler:
     warmup_steps: 40
