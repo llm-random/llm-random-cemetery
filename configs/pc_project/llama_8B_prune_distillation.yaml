@@ -46,7 +46,7 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: Llame_HP
+    name: llama_hp_prune_distil
     tags:
       - nano
       - pc
