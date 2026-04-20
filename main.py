@@ -301,7 +301,7 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
             f"optimizer group {i}: lr={group['lr']}, n_params={sum(p.numel() for p in group['params']):,}"
         )
 
-    if simpleP_cfg:
+    if simpleP_cfg and simpleP_cfg.get("debug_hooks", False):
         register_simpleP_debug_hooks(optimizer, model)
 
     scheduler = instantiate(cfg.trainer.scheduler)(optimizer=optimizer)
@@ -388,7 +388,8 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
                     param_groups,
                     weight_decay=cfg.trainer.weight_decay,
                 )
-                register_simpleP_debug_hooks(optimizer, model)
+                if simpleP_cfg.get("debug_hooks", False):
+                    register_simpleP_debug_hooks(optimizer, model)
             else:
                 optimizer = torch.optim.AdamW(
                     model.parameters(),
