@@ -1,6 +1,19 @@
 infrastructure:
   server: helios
   max_concurrent_jobs: null
+  checkpoint:
+    save:
+      type: nano
+      interval: ???
+      path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints 
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+    load:
+      type: nano
+      path: null
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt # not tested
+      only_weights: false # false not tested
   slurm:
     cpus_per_gpu: 12
     gres: ???
