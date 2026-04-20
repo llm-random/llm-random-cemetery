@@ -57,6 +57,7 @@ infrastructure:
       - "n_layers=${common.n_blocks}"
       - "dmodel=${common.dmodel}"
       - seed=${trainer.train_dataloader.dataset.seed}
+      - find_optimal_lr
   slurm:
     gres: gpu:2
     time: "1-00:00:00"
