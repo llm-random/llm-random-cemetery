@@ -76,7 +76,7 @@ infrastructure:
       - gres=${infrastructure.slurm.gres}
       - speedtest
   slurm:
-    gres: gpu:2
+    gres: gpu:4
     time: "0-00:15:00"
     job-name: ${infrastructure.metric_logger.name}
 
