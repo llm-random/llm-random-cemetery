@@ -4,7 +4,7 @@ defaults:
   - /_model/tiny@_here_
   - /product_keys/pk_model@_here_
   - /_trainer/llama@_here_
-  - /_dataset/c4@_here_
+  - /_dataset/sst2@_here_
   - /_checkpoints/none@_here_
   - /_misc/default@_here_
   - _self_
@@ -13,8 +13,10 @@ defaults:
 trainer:
   _target_: src.product_keys.finetuning_trainer.FinetuningTrainer
   gradient_accumulation_steps: 2
-  n_steps: 200
+  n_steps: 20000
   learning_rate: 1e-3
+  d_model: ${common.dmodel}
+  vocab_size: ${common.vocab_size}
 
   checkpoint:
     load:
