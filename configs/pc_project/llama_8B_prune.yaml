@@ -71,7 +71,7 @@ infrastructure:
     # time: "0-10:00:00" # 10p
     # time: "0-12:00:00" # 30p
     # time: "0-14:00:00" # 50p
-    time: "1-00:00:00" # 50p
+    time: "2-00:00:00" # 50p
  
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
