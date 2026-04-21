@@ -8,13 +8,13 @@ defaults:
 
 common:
   tokenizer: gpt2
-  sequence_length: 128
+  sequence_length: 512
   batch_size: 128
 
 trainer:
   gradient_accumulation_steps: 1
   n_steps: 1001
-  learning_rate: 1e-3
+  learning_rate: 9
   lm_eval_interval: 0
 
   checkpoint:
@@ -52,6 +52,6 @@ infrastructure:
       - test_decay
 
   slurm:
-    time: "00:10:00"
-    gres: gpu:1
+    time: "00:30:00"
+    gres: gpu:2
     job-name: ${infrastructure.metric_logger.name}
