@@ -27,7 +27,7 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 4
   # n_steps: 77050
-  n_steps: 15
+  n_steps: 105
   # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
   learning_rate: 2e-3
   scheduler:
@@ -46,7 +46,7 @@ trainer:
         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
   checkpoint:
     save:
-      interval: -1
+      interval: 100
     load:
       path: null
       only_weights: false # false not tested
@@ -56,7 +56,7 @@ infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: pk_mlm_bring_back_rope_test_saving
+    name: pk_mlm_gg_${now:%Y-%m-%d_%H-%M-%S}
     project_name: tml-bgw
     heavy_metrics_calculation_interval: 1000
     heavy_logging_layers: [0, 10, 15]
@@ -78,8 +78,12 @@ infrastructure:
     job-name: ${infrastructure.metric_logger.name}
 
 model:
+  _target_: src.product_keys.model.LLM
   encoder:
+    _target_: src.product_keys.model.TransformerEncoder
     block_fn:
+      _target_: src.product_keys.model.TransformerBlock
+      _partial_: true
       attention_fn:
         _target_: src.product_keys.model.RoPEProductKeysEncoderAttention
         _partial_: true

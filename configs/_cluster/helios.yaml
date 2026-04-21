@@ -54,12 +54,12 @@ trainer:
     save:
       type: nano
       interval: -1
-      path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints 
+      path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/plgggwozdz02 
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt
     load:
       type: nano
-      path: null
+      path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/plgggwozdz02
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt # not tested
       only_weights: false # false not tested
