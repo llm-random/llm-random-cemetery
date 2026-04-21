@@ -13,7 +13,7 @@ defaults:
 trainer:
   _target_: src.product_keys.finetuning_trainer.FinetuningTrainer
   gradient_accumulation_steps: 2
-  n_steps: 200
+  n_steps: 20000
   learning_rate: 1e-3
 
   checkpoint:
