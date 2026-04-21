@@ -16,7 +16,7 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 4
   # n_steps: 77050
-  n_steps: 105
+  n_steps: 15001
   # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
   learning_rate: 2e-3
   scheduler:
@@ -35,7 +35,7 @@ trainer:
         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
   checkpoint:
     save:
-      interval: 100
+      interval: -1
     load:
       path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/plgggwozdz02/16187802/0/step_104
       only_weights: false # false not tested
@@ -63,7 +63,7 @@ infrastructure:
       - seed=${trainer.train_dataloader.dataset.seed}
   slurm:
     gres: gpu:2
-    time: "0-01:00:00"
+    time: "1-00:00:00"
     job-name: ${infrastructure.metric_logger.name}
 
 
