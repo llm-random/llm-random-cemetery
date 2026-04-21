@@ -5,11 +5,29 @@ defaults:
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
+  - override /ff_layer@model.encoder.block_fn.ff_layer_fn: moe
+  - _self_
 
 common:
   tokenizer: gpt2
   sequence_length: 512
   batch_size: 128
+
+simpleP:
+  base_dmodel: 256  
+
+model:
+  encoder:
+    block_fn:
+      ff_layer_fn:
+        num_experts: 4
+        topk: 1
+        capacity_factor: 1.25
+        moe_load_balancing_loss_factor: 0.01
+        moe_router_z_loss_factor: 0.001
+        normalize_router_logits: false
+        activation_function: swiglu
+        init_scale: ${common.init_scale}
 
 trainer:
   gradient_accumulation_steps: 1
@@ -46,10 +64,11 @@ infrastructure:
   max_concurrent_jobs: 1
 
   metric_logger:
-    name: test_decay
+    name: test_decay_moe
     tags:
       - nano
-      - test_decay
+      - test_decay_moe
+      - moe
 
   slurm:
     time: "00:30:00"
