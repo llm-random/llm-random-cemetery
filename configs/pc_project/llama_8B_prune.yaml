@@ -12,12 +12,12 @@ common:
   sequence_length: 2048
   batch_size: 512
 
-  # target_dmodel: 1056 # 10p
-  # target_dff: 3168
+  target_dmodel: 1056 # 10p
+  target_dff: 3168
   # target_dmodel: 2160 # 30p
   # target_dff: 6480
-  target_dmodel: 3072 # 50p
-  target_dff: 9216
+  # target_dmodel: 3072 # 50p
+  # target_dff: 9216
 
 
 trainer:
@@ -29,9 +29,9 @@ trainer:
     - 1024
     # - 100
 
-  learning_rate: 13 #optimal fo 50p
+  # learning_rate: 13 #optimal fo 50p
   # learning_rate: 13 #optimal fo 30p
-  # learning_rate: 9 #optimal fo 10p # optimal lrs may vary in longer trainings
+  learning_rate: 9 #optimal fo 10p # optimal lrs may vary in longer trainings
 
   scheduler:
     warmup_steps: 40
@@ -58,9 +58,9 @@ infrastructure:
       - pc
       - llama_8
       - hard_pruning
-      # - 10p
+      - 10p
       # - 30p
-      - 50p
+      # - 50p
       # - test
 
   slurm:
@@ -71,7 +71,7 @@ infrastructure:
     # time: "0-10:00:00" # 10p
     # time: "0-12:00:00" # 30p
     # time: "0-14:00:00" # 50p
-    time: "1-00:00:00" # 50p
+    time: "2-00:00:00" # 50p
  
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
