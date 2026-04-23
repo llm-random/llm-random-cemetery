@@ -1,5 +1,6 @@
 defaults:
-  - ../_cluster@_here_: entropy
+  # - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: lem
   - ../_model@_here_: llama_3_1
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -46,8 +47,8 @@ trainer:
     type: huggingface
     path: "meta-llama/Llama-3.2-1B" 
    save:  
-    type: nano
-    path: ??? # CHANGE
+    type: huggingface
+    path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results # lem new
 
 
 infrastructure:
@@ -74,6 +75,6 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
     _partial_: true
-    dimensions_importances_path: ??? # CHANGE
+    dimensions_importances_path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama_1_fw_importances/minitron_dimensions_importances.pt # CHANGE
     target_dmodel: ${common.target_dmodel}
     target_dff: ${common.target_dff}
