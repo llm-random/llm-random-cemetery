@@ -1,0 +1,263 @@
+_run_: true
+
+cluster_switch:
+  eval_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation
+  eval_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  train_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/train
+  train_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+
+common:
+  _target_: src.definitions.Common
+  batch_size: 64
+  datt: ${common.dmodel}
+  dff: 2724
+  dmodel: 1024
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  kv_heads: 16
+  model_type: gpt
+  n_blocks: 16
+  q_heads: 16
+  sequence_length: 1024
+  vocab_size: 50304
+
+evaluator: null
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_logging_layers:
+    - 0
+    - 10
+    - 15
+    heavy_metrics_calculation_interval: 8000
+    name: pk_attn_lr_grid
+    new_neptune_job: true
+    new_wandb_job: true
+    project_name: tml-bgw
+    tags:
+    - nano
+    - pk_mlm
+    - pk_attn
+    - 2026.04.23
+    - RoPE
+    - optimized_attention
+    - learning_rate_grid
+    - fineweb
+    - lr=${trainer.learning_rate}
+    - seq_len=${common.sequence_length}
+    - n_layers=${common.n_blocks}
+    - dmodel=${common.dmodel}
+    - warmup_steps=${trainer.scheduler.warmup_steps}
+    - seed=${trainer.train_dataloader.dataset.seed}
+    - gres=${infrastructure.slurm.gres}
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ml CUDA/12.4.0
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano/$USER
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=$PROJECT_HOME_PATH/pixi
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export HF_DATASETS_TRUST_REMOTE_CODE=1
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: lem
+  slurm:
+    cpus_per_gpu: 12
+    gres: gpu:hopper:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: plgrid-lem-gpu-h100
+    time: 2-00:00:00
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.trunc_normal_
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.product_keys.model.RoPEProductKeysEncoderAttentionOptimized
+        dmodel: ${common.dmodel}
+        init_scale: ${common.init_scale}
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'(${common.datt} // ${model.encoder.block_fn.attention_fn.q_heads})
+            * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: ${common.init_scale}
+        kv_heads: ${common.kv_heads}
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.datt}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: ${common.init_scale}
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.datt}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: ${common.init_scale}
+        rope_base: 500000
+        rope_scale_freqs: true
+        seq_len: ${common.sequence_length}
+        top_k: 16
+        v_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'(${common.datt} // ${model.encoder.block_fn.attention_fn.q_heads})
+            * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: ${common.init_scale}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: ${common.init_scale}
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: ${common.init_scale}
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.llm_random_weight_init
+        scale: ${common.init_scale}
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+overrides:
+- trainer.learning_rate=0.0005
+
+trainer:
+  _partial_: true
+  _target_: src.product_keys.trainer.MaskedLMTrainer
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: false
+      path: null
+      training_state_filename: __training_state_filename.pt
+      type: nano
+    save:
+      interval: 8000
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset:
+      _target_: src.core.datasets.FineWebEduDataset
+      path: ${cluster_switch.eval_path_fineweb}
+      seed: 123
+      sequence_length: ${common.sequence_length}
+      shuffle: true
+      split: train
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 2
+    total_batch_size: ${common.batch_size}
+  eval_interval: 100
+  gradient_accumulation_steps: 4
+  gradient_clipping: 1.0
+  learning_rate: 0.0005
+  mask_token_id: 50257
+  masking_percentage: 0.2
+  n_eval_steps: 10
+  n_steps: 8001
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: 800
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset:
+      _target_: src.core.datasets.FineWebEduDataset
+      path: ${cluster_switch.train_path_fineweb}
+      seed: 42
+      sequence_length: ${common.sequence_length}
+      shuffle: true
+      split: train
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 2
+    total_batch_size: ${common.batch_size}
+  unmaskable_special_tokens:
+  - 50256
+  - 50257
+  weight_decay: 0.1
