@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /_cluster/lem@_here_
+  - /_cluster/entropy@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
   - /_dataset/c4@_here_
@@ -26,7 +26,8 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 2
   n_steps: 80001
-  ^learning_rate: [2e-4, 5e-4, 1e-3]
+  # ^learning_rate: [2e-4, 5e-4, 1e-3]
+  learning_rate: 5e-4
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
@@ -55,7 +56,8 @@ infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: baseline_full_run
+    # name: baseline_full_run
+    name: baseline_test_qk_norm
     project_name: tml-bgw
     heavy_metrics_calculation_interval: 8000
     heavy_logging_layers: [0, 10, 15]
@@ -63,18 +65,21 @@ infrastructure:
       - nano
       - baseline
       - 2026.04.23
+      - test_baselineqknorm
+      # - learning_rate_grid
+      # - full_run
+      - lr=${trainer.learning_rate}
+      - seq_len=${common.sequence_length}
+      - n_layers=${common.n_blocks}
+      - dmodel=${common.dmodel}
       - warmup_steps=${trainer.scheduler.warmup_steps}
-      - learning_rate_grid
-      - full_run
-      - "lr=${trainer.learning_rate}"
-      - "seq_len=${common.sequence_length}"
-      - "n_layers=${common.n_blocks}"
-      - "dmodel=${common.dmodel}"
       - seed=${trainer.train_dataloader.dataset.seed}
       - gres=${infrastructure.slurm.gres}
   slurm:
-    gres: gpu:hopper:4
-    time: "1-00:00:00"
+    # gres: gpu:hopper:4
+    gres: gpu:2
+    # time: "1-00:00:00"
+    time: "0-00:10:00"
     job-name: ${infrastructure.metric_logger.name}
 
 model:
@@ -101,7 +106,7 @@ model:
         normalized_shape: ${common.dmodel}
 
       attention_fn:
-        _target_: src.projected_compression.model.RoPEAttention
+        _target_: src.product_keys.model.RoPEAttentionQKNorm
         _partial_: true
         dmodel: ${common.dmodel}
         q_heads: ${common.q_heads}
