@@ -24,9 +24,9 @@ trainer:
   gradient_accumulation_steps: 32 # 50p # 30p # 10p
   ^n_steps: 
     - 6144
-    - 4096
-    - 2048
-    - 1024
+    # - 4096
+    # - 2048
+    # - 1024
     # - 100
 
   learning_rate: 13 #optimal fo 50p
@@ -71,7 +71,7 @@ infrastructure:
     # time: "0-10:00:00" # 10p
     # time: "0-12:00:00" # 30p
     # time: "0-14:00:00" # 50p
-    time: "1-00:00:00" # 50p
+    time: "2-00:00:00" # 50p
  
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
