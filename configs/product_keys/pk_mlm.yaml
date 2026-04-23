@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /_cluster/lem@_here_
+  - /_cluster/entropy@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
   - /_dataset/c4@_here_
@@ -27,8 +27,8 @@ trainer:
   gradient_accumulation_steps: 4
   # n_steps: 15000
   n_steps: 80000
-  ^learning_rate: [2e-4, 5e-4, 1e-3]
-  # learning_rate: 2e-3
+  # ^learning_rate: [2e-4, 5e-4, 1e-3]
+  learning_rate: 1e-3
   scheduler:
     _partial_: true
     _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
@@ -47,7 +47,8 @@ trainer:
         _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
   checkpoint:
     save:
-      interval: 8000
+      # todo enable it for the full run
+      interval: -1
     load:
       path: null
       only_weights: false # false not tested
@@ -57,7 +58,7 @@ infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: pk_mlm_bring_back_rope_fullrun
+    name: pk_mlm_rope_speedtest
     project_name: tml-bgw
     heavy_metrics_calculation_interval: 8000
     heavy_logging_layers: [0, 10, 15]
@@ -65,19 +66,22 @@ infrastructure:
       - nano
       - pk_mlm
       - 2026.04.23
-      - warmup_steps=${trainer.scheduler.warmup_steps}
       - RoPE
-      - learning_rate_grid
-      - full_run
-      - "lr=${trainer.learning_rate}"
-      - "seq_len=${common.sequence_length}"
-      - "n_layers=${common.n_blocks}"
-      - "dmodel=${common.dmodel}"
+      - speedtest
+      - non_optimized
+      # - learning_rate_grid
+      # - full_run
+      - warmup_steps=${trainer.scheduler.warmup_steps}
+      - lr=${trainer.learning_rate}
+      - seq_len=${common.sequence_length}
+      - n_layers=${common.n_blocks}
+      - dmodel=${common.dmodel}
       - seed=${trainer.train_dataloader.dataset.seed}
       - gres=${infrastructure.slurm.gres}
   slurm:
-    gres: gpu:hopper:4
-    time: "2-00:00:00"
+    # gres: gpu:hopper:4
+    gres: gpu:2
+    time: "0-00:30:00"
     job-name: ${infrastructure.metric_logger.name}
 
 model:
