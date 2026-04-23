@@ -1,0 +1,40 @@
+defaults:
+  - ../_cluster@_here_: lem
+  # - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: entropy
+  - ../_misc@_here_: default
+
+wandb:
+  entity: ideas_cv
+  project: llm-random-test
+  name: hf_eval
+  tags:
+    - eval
+    - hf_model
+    - llama_8
+
+default_tokenizer: meta-llama/Llama-3.1-8B
+
+tasks:
+  - arc_easy
+  - arc_challenge
+  - hellaswag
+  - winogrande
+  - piqa
+  - mmlu
+
+limit: null  # set to e.g. 100 for quick test
+
+device: cuda
+
+infrastructure:
+  slurm:
+    gres: "gpu:hopper:1"  # lem — 1 GPU is enough for lm_eval inference
+    # gres: gpu:1          # helios / entropy
+    time: "1-00:00:00"
+
+models:
+  - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/llama8b_10p_1024
+    name: llama8b_10p_1024steps
+  - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/llama8b_30p_1024
+    name: llama8b_30p_1024steps
