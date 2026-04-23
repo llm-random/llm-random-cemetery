@@ -199,6 +199,7 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
                 return None, None, None
     model = setup_distributed_training(model, cfg.trainer.distributed)
     optimizer = torch.optim.AdamW(
+        # edit: pass param groups
         model.parameters(),
         lr=learning_rate,
         weight_decay=cfg.trainer.weight_decay,
@@ -315,6 +316,7 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
         load_checkpoint_from_file(
             cfg.trainer.checkpoint.load, model, optimizer, scheduler
         )
+        # it's by default true, so it will overload param groups, fix it
         if cfg.trainer.checkpoint.load.only_weights:
             optimizer = torch.optim.AdamW(
                 model.parameters(),
