@@ -175,3 +175,142 @@ class MoE(nn.Module):
             self.router_z_loss = None
 
         return output
+
+    def _compute_v2(self, x: torch.Tensor):
+        # Pure function: no self.* writes, all shapes depend only on input shape.
+        # Safe to wrap with torch.compile.
+        original_shape = x.shape
+        hidden_states = x.reshape(-1, self.dmodel)
+        num_tokens = hidden_states.size(0)
+
+        router_logits = torch.einsum(
+            "th,eh->te",
+            hidden_states,
+            self.router_weight,
+        )
+        router_logits = router_logits.to(dtype=torch.float32)
+        router_probs = F.softmax(router_logits, dim=-1)
+        topk_probs, selected_experts = torch.topk(
+            router_probs,
+            k=self.topk,
+            dim=-1,
+        )
+
+        flat_tokens = torch.arange(
+            num_tokens, device=hidden_states.device, dtype=torch.long
+        ).repeat_interleave(self.topk)
+        flat_experts = selected_experts.reshape(-1)
+        flat_weights = topk_probs.reshape(-1)
+        total_assignments = flat_experts.numel()
+        capacity = max(
+            1,
+            math.ceil(self.capacity_factor * total_assignments / self.num_experts),
+        )
+        weight_order = torch.argsort(flat_weights, descending=True, stable=True)
+        grouped_order = torch.argsort(flat_experts[weight_order], stable=True)
+        sort_order = weight_order[grouped_order]
+        sorted_experts = flat_experts[sort_order]
+        sorted_tokens = flat_tokens[sort_order]
+        sorted_weights = flat_weights[sort_order]
+
+        # Static-shape offsets (replaces bincount)
+        sorted_onehot = F.one_hot(
+            sorted_experts, num_classes=self.num_experts
+        ).to(torch.long)
+        expert_counts = sorted_onehot.sum(0)
+        expert_offsets = expert_counts.cumsum(0) - expert_counts
+        slot_in_expert = (
+            torch.arange(total_assignments, device=hidden_states.device)
+            - expert_offsets[sorted_experts]
+        )
+        valid = slot_in_expert < capacity
+        # Invalid assignments go to the per-expert dump slot at index `capacity`
+        dump = torch.full_like(slot_in_expert, capacity)
+        safe_slot = torch.where(valid, slot_in_expert, dump)
+        dispatch_index = sorted_experts * (capacity + 1) + safe_slot
+
+        valid_f = valid.to(sorted_weights.dtype)
+        zeroed_weights = sorted_weights * valid_f
+        if self.normalize_router_logits:
+            token_weight_sums = zeroed_weights.new_zeros(num_tokens)
+            token_weight_sums.index_add_(0, sorted_tokens, zeroed_weights)
+            denom = token_weight_sums.index_select(0, sorted_tokens).clamp_min(1e-9)
+            final_weights = zeroed_weights / denom
+        else:
+            final_weights = zeroed_weights
+
+        # Mask source so dump-slot writes are deterministic zeros
+        masked_input = hidden_states[sorted_tokens] * valid_f.to(
+            hidden_states.dtype
+        ).unsqueeze(-1)
+        flat_slots = self.num_experts * (capacity + 1)
+        expert_inputs = hidden_states.new_zeros(flat_slots, self.dmodel)
+        expert_inputs.index_copy_(0, dispatch_index, masked_input)
+        expert_inputs = expert_inputs.view(
+            self.num_experts,
+            capacity + 1,
+            self.dmodel,
+        )
+        ff_pre_act = torch.einsum(
+            "ech,edh->ecd",
+            expert_inputs,
+            self.ff_pre_act_weight,
+        )
+        gate = torch.einsum(
+            "ech,edh->ecd",
+            expert_inputs,
+            self.gate_weight,
+        )
+        expert_outputs = torch.einsum(
+            "ecd,ehd->ech",
+            ff_pre_act * F.silu(gate),
+            self.ff_post_act_weight,
+        )
+
+        token_updates = expert_outputs.view(flat_slots, self.dmodel).index_select(
+            0, dispatch_index
+        )
+        token_updates = token_updates * final_weights.to(
+            hidden_states.dtype
+        ).unsqueeze(-1)
+        output = hidden_states.new_zeros(num_tokens, self.dmodel)
+        output = output.index_add(0, sorted_tokens, token_updates)
+        output = output.reshape(original_shape)
+
+        # Losses always computed (cheap); outer forward drops them in eval mode
+        flat_onehot = F.one_hot(
+            flat_experts, num_classes=self.num_experts
+        ).to(router_probs.dtype)
+        expert_frequency = flat_onehot.sum(0)
+        expert_frequency = expert_frequency / expert_frequency.sum().clamp_min(1)
+        lb_loss = (
+            self.num_experts * (router_probs.mean(dim=0) * expert_frequency).sum()
+        )
+        rz_loss = torch.logsumexp(router_logits, dim=-1).square().mean()
+
+        return output, lb_loss, rz_loss
+
+    def forward_2(self, x: torch.Tensor) -> torch.Tensor:
+        output, lb_loss, rz_loss = self._compute_v2(x)
+        self.moe_load_balancing_loss = lb_loss if self.training else None
+        self.router_z_loss = rz_loss if self.training else None
+        return output
+
+
+class MoECompilable(MoE):
+    # Static-shape MoE using the `_compute_v2` path. With compile=True the inner
+    # compute is wrapped in torch.compile; losses are assigned outside the
+    # compiled region to avoid graph breaks on `self.*` writes.
+    def __init__(self, *args, compile: bool = False, **kwargs):
+        super().__init__(*args, **kwargs)
+        if compile:
+            self._compute_v2 = torch.compile(
+                self._compute_v2,
+                mode="max-autotune-no-cudagraphs",
+            )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        output, lb_loss, rz_loss = self._compute_v2(x)
+        self.moe_load_balancing_loss = lb_loss if self.training else None
+        self.router_z_loss = rz_loss if self.training else None
+        return output
