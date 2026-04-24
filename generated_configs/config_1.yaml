@@ -1,0 +1,289 @@
+_run_: true
+
+cluster_switch:
+  eval_path_c4: /storage_nvme_1/llm-random/datasets/c4/validation
+  eval_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+  train_path_c4: /storage_nvme_1/llm-random/datasets/c4/train
+  train_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+
+common:
+  _target_: src.definitions.Common
+  batch_size: 128
+  data_seed: 123
+  datt: ${eval:'64  * ${common.n_blocks}'}
+  dff: ${eval:'160 * ${common.n_blocks}'}
+  dmodel: ${eval:'64  * ${common.n_blocks}'}
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  kv_heads: ${common.n_blocks}
+  model_seed: 123
+  model_type: gpt
+  n_blocks: 12
+  q_heads: ${common.n_blocks}
+  sequence_length: 1024
+  tokenizer: gpt2
+  vocab_size: 50304
+
+downstream_evaluator:
+  _partial_: true
+  _target_: src.core.eval.Evaluator
+  batch_size: 32
+  limit: null
+  max_gen_toks: 8
+  max_length: ${common.sequence_length}
+  tasks:
+  - arc_easy
+  - arc_challenge
+  - hellaswag
+  - piqa
+  - winogrande
+  - openbookqa
+  - sciq
+  - social_iqa
+  - lambada_standard
+  tokenizer: ${common.tokenizer}
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 250
+    name: main_grid_1
+    new_wandb_job: true
+    project_name: llm-random-test
+    tags:
+    - nano
+    - main_grid_1_test
+    - dense
+    - mha
+    - simpleP_k12
+    - k12
+    - bs${common.batch_size}
+    - lr${trainer.learning_rate}
+    - ${now:%Y-%m-%d}
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/storage_nvme_2/nano/$USER
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=$PROJECT_HOME_PATH/pixi
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export HF_DATASETS_TRUST_REMOTE_CODE=1
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: entropy
+  slurm:
+    cpus_per_gpu: 14
+    gres: gpu:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: h100
+    time: 0-04:00:00
+
+model:
+  _target_: src.core.model.LLM
+  embedding:
+    _target_: src.core.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.core.model.trunc_normal_
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.core.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.core.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.core.model.RoPEAttention
+        compile: true
+        dmodel: ${common.dmodel}
+        k_proj_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'(${common.datt} // ${model.encoder.block_fn.attention_fn.q_heads})
+            * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.trunc_normal_init
+            scale: ${common.init_scale}
+        kv_heads: ${common.kv_heads}
+        o_proj_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.datt}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.trunc_normal_init
+            scale: ${common.init_scale}
+        pre_attn_fn:
+          _partial_: true
+          _target_: src.core.model.QKNorm
+          k_norm_fn:
+            _partial_: true
+            _target_: src.core.model.RMSNorm
+            eps: 1.0e-06
+            normalized_shape: ${eval:'(${common.datt} // ${common.q_heads})'}
+          q_norm_fn:
+            _partial_: true
+            _target_: src.core.model.RMSNorm
+            eps: 1.0e-06
+            normalized_shape: ${eval:'(${common.datt} // ${common.q_heads})'}
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.datt}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.trunc_normal_init
+            scale: ${common.init_scale}
+        rope_base: 500000
+        rope_scale_freqs: true
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.core.model.SwiGLU
+        compile: false
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.trunc_normal_init
+            scale: ${common.init_scale}
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.trunc_normal_init
+            scale: ${common.init_scale}
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.core.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.core.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.core.model.trunc_normal_init
+        scale: ${common.init_scale}
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+overrides:
+- trainer.fixed_eval=True
+
+simpleP:
+  base_dmodel: 768
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: null
+      training_state_filename: __training_state_filename.pt
+      type: nano
+    save:
+      interval: -1
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: /storage_nvme_2/nano/$USER/models
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  downstream_eval_interval: -1
+  eval_dataloader:
+    _target_: src.context_scaling.dataset.get_dataloader
+    dataset:
+      _target_: src.context_scaling.dataset.AbstractDataset
+      data_generator:
+        _partial_: true
+        _target_: src.context_scaling.dataset.get_dataset
+        load_dataset_fn: null
+        path: ${cluster_switch.eval_path_fineweb}
+        shuffle: false
+      sample_packer_fn:
+        _partial_: true
+        _target_: src.context_scaling.dataset.new_packer
+      seed: ${eval:'${common.data_seed} + 1000000'}
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.core.datasets.gpt2_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 0
+    total_batch_size: 128
+  eval_interval: 100
+  final_downstream_eval: false
+  fixed_eval: true
+  gradient_accumulation_steps: 1
+  gradient_clipping: 1.0
+  learning_rate: 10
+  n_eval_steps: 10
+  n_steps: 2001
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.WSDScheduler
+    decay_steps: 0
+    n_steps: ${trainer.n_steps}
+    warmup_steps: 1000
+  train_dataloader:
+    _target_: src.context_scaling.dataset.get_dataloader
+    dataset:
+      _target_: src.context_scaling.dataset.AbstractDataset
+      data_generator:
+        _partial_: true
+        _target_: src.context_scaling.dataset.get_dataset
+        load_dataset_fn: null
+        path: ${cluster_switch.train_path_fineweb}
+        shuffle: true
+      sample_packer_fn:
+        _partial_: true
+        _target_: src.context_scaling.dataset.new_packer
+      seed: ${common.data_seed}
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.core.datasets.gpt2_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 0
+    total_batch_size: ${common.batch_size}
+  weight_decay: 0.1

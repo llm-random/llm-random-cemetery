@@ -1,10 +1,10 @@
 # @package _global_
 defaults:
-  - /_cluster@_here_:                lem
+  - /_cluster@_here_:                entropy
   - /_model/context_scaling@_here_:  template
   - /_trainer@_here_:                context_scaling
   - /_dataset@_here_:                fineweb
-  - /_checkpoints/context_scaling@_here_: lem_1
+  - /_checkpoints/context_scaling@_here_: shared_entropy
   - /_infrastructure@_here_:         default
   - /_downstream_eval@_here_:        joint
 
@@ -15,14 +15,22 @@ defaults:
 
 common:
   n_blocks: 12
-  ^batch_size: [8, 16, 32, 64]
+  # ^batch_size: [8, 16, 32, 64]
+  batch_size: 128
   sequence_length: 1024
 
 trainer:
-  n_steps: 16_000
-  ^learning_rate: [4, 6, 8, 10, 11, 12]
-  eval_interval: 500
-  fixed_eval: true
+  n_steps: 2_001
+  # ^learning_rate: [4, 6, 8, 10, 11, 12]
+  learning_rate: 10
+  eval_interval: 100
+  n_eval_steps: 10
+  downstream_eval_interval: -1
+  ^fixed_eval: [false, true]
+  scheduler:
+    warmup_steps: 1000
+  eval_dataloader:
+    total_batch_size: 128
 
 infrastructure:
   metric_logger:
@@ -30,7 +38,7 @@ infrastructure:
     name: main_grid_1
     tags:
       - nano
-      - main_grid_1
+      - main_grid_1_test
       - dense
       - mha
       - simpleP_k12
@@ -41,5 +49,5 @@ infrastructure:
 
   slurm:
     time: "0-04:00:00"
-    gres: gpu:hopper:4
+    gres: gpu:4
     job-name: ${infrastructure.metric_logger.name}
