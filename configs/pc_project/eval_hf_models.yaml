@@ -1,0 +1,52 @@
+defaults:
+  - ../_cluster@_here_: lem
+  # - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: entropy
+  - ../_misc@_here_: default
+
+wandb:
+  entity: ideas_cv
+  project: llm-random-test
+  name: hf_eval
+  tags:
+    - eval
+    - hf_model
+    - llama_8
+    - pcd
+    - 50p
+
+default_tokenizer: meta-llama/Llama-3.1-8B
+
+tasks:
+  - arc_easy
+  - arc_challenge
+  - hellaswag
+  - piqa
+  - winogrande
+  - openbookqa
+  - sciq
+  - social_iqa
+  - lambada_openai
+
+limit: null  # set to e.g. 100 for quick test
+output_dir: null  # null = save results next to each model checkpoint
+batch_size: 32
+num_fewshot: 5
+
+device: cuda
+
+infrastructure:
+  slurm:
+    gres: "gpu:hopper:1"  # lem — 1 GPU is enough for lm_eval inference
+    # gres: gpu:1          # helios / entropy
+    time: "1-00:00:00"
+
+models:
+  - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097541/0/step_1023/hf
+    name: llama8b_pcd_50p_1024steps
+  - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097542/1/step_2047/hf
+    name: llama8b_pcd_50p_2048steps
+  - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097543/2/step_4095/hf
+    name: llama8b_pcd_50p_4096steps
+  - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097540/3/step_6143/hf
+    name: llama8b_pcd_50p_6144steps
