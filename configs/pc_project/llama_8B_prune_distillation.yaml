@@ -24,9 +24,9 @@ trainer:
   # gradient_accumulation_steps: 128 # 1x node
   ^n_steps: 
     - 6144
-    - 4096
-    - 2048
-    - 1024
+    # - 4096
+    # - 2048
+    # - 1024
     # - 100
 
   learning_rate: 13 #optimal fo 50p
