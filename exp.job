@@ -1,0 +1,36 @@
+#!/bin/bash -l
+
+#SBATCH --cpus-per-gpu=12
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=test
+#SBATCH --mem-per-gpu=90G
+#SBATCH --nodes=1
+#SBATCH --partition=plgrid-gpu-gh200
+#SBATCH --time=0-02:00:00
+
+#---------- SCRIPT ----------
+export WANDB_API_KEY="__WANDB_API_KEY_PLACEHOLDER__"
+export HF_TOKEN="__HF_TOKEN_PLACEHOLDER__"
+module load ML-bundle/25.04
+export PROJECT_HOME_PATH=$PLG_GROUPS_STORAGE/plggllmeffi3/pc
+export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+export HF_DATASETS_CACHE="$PROJECT_HOME_PATH/hf_datasets"
+export HF_MODULES_CACHE="$PROJECT_HOME_PATH/hf_modules"
+export HYDRA_FULL_ERROR=1
+export PIXI_HOME=$PROJECT_HOME_PATH/pixi
+export PATH="$HOME/.pixi/bin:$PATH"
+export XDG_DATA_HOME="$PROJECT_HOME_PATH/data"
+export XDG_CACHE_HOME="$PROJECT_HOME_PATH/cache"
+export XDG_STATE_HOME="$PROJECT_HOME_PATH/state"
+export RATTLER_CACHE_DIR="$XDG_CACHE_HOME/rattler"
+export UV_CACHE_DIR="$XDG_CACHE_HOME/uv"
+export PIXI_CACHE_DIR="$XDG_CACHE_HOME/pixi"
+export HF_DATASETS_TRUST_REMOTE_CODE=1
+cd "$PIXI_HOME"
+eval "$(pixi shell-hook)"
+cd -
+#-------- SCRIPT END --------
+
+python evaluate_hf_models.py \
+  --config-path=configs/pc_project \
+  --config-name=eval_hf_models
