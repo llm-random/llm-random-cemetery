@@ -1,6 +1,7 @@
 defaults:
   # - ../_cluster@_here_: entropy
   - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: lem
   - ../_model@_here_: llama_3_8
   - ../_trainer@_here_: llama3_8B_distillation
   - ../_dataset@_here_: fineweb
@@ -23,9 +24,9 @@ trainer:
   gradient_accumulation_steps: 32 # 50p # 30p # 10p 2x nodes
   # gradient_accumulation_steps: 128 # 1x node
   ^n_steps: 
-    - 6144
-    - 4096
-    - 2048
+    # - 6144
+    # - 4096
+    # - 2048
     - 1024
     # - 100
 
