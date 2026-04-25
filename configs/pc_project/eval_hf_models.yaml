@@ -1,0 +1,143 @@
+defaults:
+  # - ../_cluster@_here_: lem
+  - ../_cluster@_here_: helios
+  # - ../_cluster@_here_: entropy
+  - ../_misc@_here_: default
+
+wandb:
+  entity: ideas_cv
+  project: llm-random-test
+  name: hf_eval
+  tags:
+    - eval
+    - hf_model
+    - llama_8
+    - pc
+    # - pcd
+    # - hp
+    # - hpd
+    # - 10p
+    # - 30p
+    # - 50p
+    - 0_numshot
+    - test
+
+default_tokenizer: meta-llama/Llama-3.1-8B
+
+tasks:
+  - arc_easy
+  - arc_challenge
+  - hellaswag
+  - piqa
+  - winogrande
+  - openbookqa
+  - sciq
+  - social_iqa
+  - lambada_openai
+
+limit: null  # set to e.g. 100 for quick test
+output_dir: null  # null = save results next to each model checkpoint
+batch_size: 4
+num_fewshot: 0
+
+device: cuda
+
+infrastructure:
+  slurm:
+    # gres: "gpu:hopper:1"  # lem — 1 GPU is enough for lm_eval inference
+    gres: gpu:1          # helios / entropy
+    # time: "1-00:00:00"
+    time: "0-02:00:00" # test
+
+models:
+  # # PCD 50p
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097541/0/step_1023/hf
+  #   name: llama8b_pcd_50p_1BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097542/1/step_2047/hf
+  #   name: llama8b_pcd_50p_2BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097543/2/step_4095/hf
+  #   name: llama8b_pcd_50p_4BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097540/3/step_6143/hf
+  #   name: llama8b_pcd_50p_6BT_ns0
+
+  # # PCD 30p
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5098055/0/step_1023/hf
+  #   name: llama8b_pcd_30p_1BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5098254/1/step_2047/hf
+  #   name: llama8b_pcd_30p_2BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5098310/2/step_4095/hf
+  #   name: llama8b_pcd_30p_4BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097544/3/step_6143/hf
+  #   name: llama8b_pcd_30p_6BT_ns0
+
+  # # PCD 10p
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5098951/0/step_1023/hf
+  #   name: llama8b_pcd_10p_1BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5099183/1/step_2047/hf
+  #   name: llama8b_pcd_10p_2BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5099184/2/step_4095/hf
+  #   name: llama8b_pcd_10p_4BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5097546/3/step_6143/hf
+  #   name: llama8b_pcd_10p_6BT_ns0
+
+  # # PC 10p
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5111007/3/step_1023/hf
+  #   name: llama8b_pc_10p_1BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5111011/2/step_2047/hf
+  #   name: llama8b_pc_10p_2BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5111010/1/step_4095/hf
+  #   name: llama8b_pc_10p_4BT_ns0
+  # - path: /lustre/pd03/plgrid/plgllmefficont3/mstefaniak/checkpoints/results/5111009/0/step_6143/hf
+  #   name: llama8b_pc_10p_6BT_ns0
+
+  # # PC 50p
+  # - path: asd
+  #   name: llama8b_pc_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_pc_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_pc_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_pc_50p_BT_ns0
+
+  # # PC 30p
+  # - path: asd
+  #   name: llama8b_pc_30p_BT_ns0
+  # - path: asd
+  #   name: llama8b_pc_30p_BT_ns0
+  # - path: asd
+  #   name: llama8b_pc_30p_BT_ns0
+  # - path: asd
+  #   name: llama8b_pc_30p_BT_ns0
+
+  # # HP 50p
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+
+  # # HP 30p
+  # - path: asd
+  #   name: llama8b_hp_30p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_30p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_30p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_30p_BT_ns0 
+
+  # # HPD 50p
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+  # - path: asd
+  #   name: llama8b_hp_50p_BT_ns0
+
+  
