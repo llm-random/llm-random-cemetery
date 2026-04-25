@@ -1,0 +1,202 @@
+             JOBID  PARTITION                                               NAME            USER ST       TIME  NODES TIME_LEFT  TRES_PER_NODE                  PRIORITY             START_TIME
+           5099097 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-21T10:41:24
+           5099098 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-21T14:57:59
+           5098150 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098151 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098152 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098153 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098154 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098155 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098156 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098157 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098158 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098159 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098160 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098161 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098162 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098163 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098164 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098165 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098166 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098167 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098168 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098169 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098170 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098171 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098172 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098173 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098174 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098175 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098176 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098177 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098178 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098179 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098180 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098181 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098182 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098183 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098184 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098185 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098186 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098187 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098188 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098189 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098190 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098191 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098192 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098193 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098194 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098195 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098196 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098197 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098198 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098199 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098200 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098201 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098202 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098203 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098204 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098205 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098206 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098207 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098208 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098209 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098210 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098211 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098212 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098213 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098214 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098215 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098216 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098217 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098218 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098219 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098220 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098221 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098222 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098223 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098224 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098225 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098226 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098227 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098228 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098229 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098230 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098231 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098232 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098233 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098234 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098235 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098236 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098237 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098238 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098239 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098240 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5098241 plgrid-lem                                 abstract_submit.sh      plgtymem12 PD       0:00      1 3-00:00:00 gres/gpu:hopper:4,gres/storage 0.00000035  2026-04-22T17:31:49
+           5099099 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099100 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099101 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099102 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099103 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099104 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099105 plgrid-lem train_model-name-gine_exp-binary_block_3_split-non        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099106 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099107 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099108 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099109 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099110 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099111 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099112 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099113 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099114 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099115 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099116 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099117 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099118 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099119 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099120 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099121 plgrid-lem train_model-name-gat_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099122 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099123 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099124 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099125 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099126 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099127 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099128 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099129 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099130 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099131 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099132 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099133 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099134 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099135 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099136 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099137 plgrid-lem train_model-name-gcn_exp-binary_block_3_split-none        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099138 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099139 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099140 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099141 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099142 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099143 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099144 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099145 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099146 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099147 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099148 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099149 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099150 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099151 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099152 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099153 plgrid-lem train_model-name-schnet_exp-binary_block_3_split-n        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099161 plgrid-lem train_model-name-graph_gps_exp-binary_block_3_spli        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099162 plgrid-lem train_model-name-graph_gps_exp-binary_block_3_spli        plgrwozn PD       0:00      1 1-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000016  2026-04-22T17:31:49
+           5099752 plgrid-lem                                        update_pixi       plgmtboro PD       0:00      1 2-00:00:00 gres/gpu:hopper:1,gres/storage 0.00000013  2026-04-22T17:31:49
+           4388337 lem-cpu-in                       sys/dashboard/sys/stterminal          mrkraj PD       0:00      1 1:00:00    gres/storage:local:50G,gres/st 0.00002578                  N/A
+4997581_[214-222%4 plgrid-lem                                            hh-full    plgatkaw8921 PD       0:00      1 12:00:00   gres/storage:local:200G,gres/s 0.00000253                  N/A
+5010335_[202-209%4 plgrid-lem                                             hh-nov    plgatkaw8921 PD       0:00      1 6:00:00    gres/storage:local:200G,gres/s 0.00000253                  N/A
+             JOBID  PARTITION                                     NAME            USER ST       TIME  NODES TIME_LEFT  TRES_PER_NODE                  
+           5099697 lem-cpu-in                        interactive-wcss:     plggildiehl  R      15:54      1 44:06      gres/storage:local:50G,gres/st 
+           5099419 lem-cpu-in             sys/dashboard/sys/stterminal      mackar4902  R    1:31:11      1 3:28:49    gres/storage:local:50G,gres/st 
+           5099589 lem-cpu-in                        interactive-wcss:        as217317  R      47:30      1 12:30      gres/storage:local:50G,gres/st 
+           5099624 lem-cpu-in                        interactive-wcss:          annach  R      39:48      1 20:12      gres/storage:local:50G,gres/st 
+           5099591 lem-cpu-in                        interactive-wcss:      gabchi5762  R      47:21      1 12:39      gres/storage:local:50G,gres/st 
+           5083444 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:15:08      1 2-19:44:52 gres/storage:local:200G,gres/s 
+           5083290 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:45:08      1 2-19:14:52 gres/storage:local:200G,gres/s 
+           5083450 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:13:08      1 2-19:46:52 gres/storage:local:200G,gres/s 
+           5083448 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:14:13      1 2-19:45:47 gres/storage:local:200G,gres/s 
+           5083443 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:16:08      1 2-19:43:52 gres/storage:local:200G,gres/s 
+           5083423 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:22:08      1 2-19:37:52 gres/storage:local:200G,gres/s 
+           5083424 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:22:08      1 2-19:37:52 gres/storage:local:200G,gres/s 
+           5083420 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:23:08      1 2-19:36:52 gres/storage:local:200G,gres/s 
+           5083414 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:24:14      1 2-19:35:46 gres/storage:local:200G,gres/s 
+           5083373 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:31:08      1 2-19:28:52 gres/storage:local:200G,gres/s 
+           5083375 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:31:08      1 2-19:28:52 gres/storage:local:200G,gres/s 
+           5083368 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:33:08      1 2-19:26:52 gres/storage:local:200G,gres/s 
+           5083369 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:33:08      1 2-19:26:52 gres/storage:local:200G,gres/s 
+           5083293 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:43:08      1 2-19:16:52 gres/storage:local:200G,gres/s 
+           5083291 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:44:16      1 2-19:15:44 gres/storage:local:200G,gres/s 
+           5083256 plgrid-lem                               DMC_MemSAC     plgmwojtala  R 4-04:54:16      1 2-19:05:44 gres/storage:local:200G,gres/s 
+           5099428 plgrid-lem                             dip_c44h24s4      plgptecmer  R    1:21:14      1 2-22:38:46 gres/storage:local:200G,gres/s 
+           5099457 plgrid-lem                          dip_opt_c44h24s      plgptecmer  R    1:21:14      1 2-22:38:46 gres/storage:local:200G,gres/s 
+           5099459 plgrid-lem                             dip_c44h24s4      plgptecmer  R    1:21:14      1 2-22:38:46 gres/storage:local:200G,gres/s 
+           5098148 plgrid-lem                       abstract_submit.sh      plgtymem12  R       3:40      1 2-23:56:20 gres/gpu:hopper:4,gres/storage 
+           5098149 plgrid-lem                       abstract_submit.sh      plgtymem12  R       3:40      1 2-23:56:20 gres/gpu:hopper:4,gres/storage 
+         5097546_3 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    1:51:40      1 2-22:08:20 gres/gpu:hopper:4,gres/storage 
+         5097546_1 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    2:12:40      1 2-21:47:20 gres/gpu:hopper:4,gres/storage 
+         5097546_2 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    2:12:40      1 2-21:47:20 gres/gpu:hopper:4,gres/storage 
+         5097545_3 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    3:38:40      1 2-20:21:20 gres/gpu:hopper:4,gres/storage 
+         5097546_0 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    3:38:40      1 2-20:21:20 gres/gpu:hopper:4,gres/storage 
+         5097545_2 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    4:17:09      1 2-19:42:51 gres/gpu:hopper:4,gres/storage 
+         5098070_3 plgrid-lem                         llama8_pc_memeff   plgmstefaniak  R    7:13:06      2 2-16:46:54 gres/gpu:hopper:4,gres/storage 
+         5097545_0 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    6:07:06      1 2-17:52:54 gres/gpu:hopper:4,gres/storage 
+         5097545_1 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R    6:07:06      1 2-17:52:54 gres/gpu:hopper:4,gres/storage 
+         5098070_2 plgrid-lem                         llama8_pc_memeff   plgmstefaniak  R    7:22:06      2 2-16:37:54 gres/gpu:hopper:4,gres/storage 
+         5098070_1 plgrid-lem                         llama8_pc_memeff   plgmstefaniak  R    8:11:06      2 2-15:48:54 gres/gpu:hopper:4,gres/storage 
+         5097544_3 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R   10:15:05      2 2-13:44:55 gres/gpu:hopper:4,gres/storage 
+         5097544_2 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R   13:37:36      2 2-10:22:24 gres/gpu:hopper:4,gres/storage 
+         5097540_3 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R   15:52:06      2 2-08:07:54 gres/gpu:hopper:4,gres/storage 
+           5096800 plgrid-lem                       abstract_submit.sh      plgtymem12  R   22:02:19      1 2-01:57:41 gres/gpu:hopper:4,gres/storage 
+         5097540_1 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R   16:25:06      2 2-07:34:54 gres/gpu:hopper:4,gres/storage 
+         5097540_2 plgrid-lem                 llama8_pc_memeff_distils   plgmstefaniak  R   16:25:06      2 2-07:34:54 gres/gpu:hopper:4,gres/storage 
+           5099096 plgrid-lem train_model-name-gine_exp-binary_block_3        plgrwozn  R      21:08      1 23:38:52   gres/gpu:hopper:1,gres/storage 
+           5099094 plgrid-lem train_model-name-gine_exp-binary_block_3        plgrwozn  R      36:09      1 23:23:51   gres/gpu:hopper:1,gres/storage 

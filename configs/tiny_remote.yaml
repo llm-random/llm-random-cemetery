@@ -1,5 +1,5 @@
 defaults:
-  - _cluster@_here_: entropy_a100
+  - _cluster@_here_: lem
   - _model@_here_: tiny
   - _trainer@_here_: llama
   - _dataset@_here_: c4
@@ -25,15 +25,20 @@ infrastructure:
   max_concurrent_jobs: 1
 
   metric_logger:
-    name: tiny_remote
+    type: wandb
+    wandb_entity: ideas_cv
+    name: lem_test
+    project_name: tml-bgw
     tags:
       - nano
       - remote
       - tiny
+      - test
 
   slurm:
     time: "00:10:00"
-    gres: gpu:1
+    # todo prepend hopper when running on lem
+    gres: gpu:hopper:1
     job-name: ${infrastructure.metric_logger.name}
 
 evaluator:
