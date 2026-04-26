@@ -15,8 +15,8 @@ defaults:
 
 common:
   n_blocks: 12
-  # ^batch_size: [8, 16, 32]
-  batch_size: 64
+  ^batch_size: [8, 16, 32]
+  # batch_size: 64
   sequence_length: 2048
   data_seed: 301  # eval seed is 22, so never use it as train seed
 
@@ -49,7 +49,8 @@ infrastructure:
       - ${now:%Y-%m-%d}
 
   slurm:
-    time: "0-04:00:00"
-    # gres: gpu:hopper:1
-    gres: gpu:hopper:2
+    # time: "0-04:00:00"
+    time: "0-10:00:00"
+    gres: gpu:hopper:1
+    # gres: gpu:hopper:2
     job-name: ${infrastructure.metric_logger.name}
