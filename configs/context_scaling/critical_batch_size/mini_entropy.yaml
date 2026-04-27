@@ -15,17 +15,18 @@ defaults:
 
 common:
   n_blocks: 12
-  ^batch_size: [8, 16, 32]
+  # ^batch_size: [8, 16, 32]
+  batch_size: 8
   sequence_length: 2048
   data_seed: 301  # eval seed is 22, so never use it as train seed
 
 trainer:
   # token-matched: 8001 steps @ bs=128 -> (8000 * 128 / bs) + 1
-  n_steps: ${eval:'500 * 128 // ${common.batch_size} + 1'}
-  learning_rate: 11
+  n_steps: ${eval:'10000 * 32 // ${common.batch_size} + 2001'}
+  ^learning_rate: [11, 12, 13, 14]
   eval_interval: 100  # remove for longer runs
   scheduler:
-    warmup_steps: ${eval:'(500 * 128 // ${common.batch_size}) // 10'}
+    warmup_steps: 2000
 
 # downstream_evaluator:
 #   eval_interval: 0
