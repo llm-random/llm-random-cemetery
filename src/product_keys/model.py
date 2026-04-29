@@ -147,6 +147,9 @@ class RoPETopKAttention(nn.Module):
 
         if attention_mask is not None:
             pad_mask = attention_mask.unsqueeze(1).unsqueeze(2) == 0
+            logger.info(f"Pad mask shape: {pad_mask.shape}")
+            logger.info(f"Attention scores shape: {attention_scores.shape}")
+            x = 1 / 0
             attention_scores = attention_scores.masked_fill(pad_mask, float("-inf"))
 
         if self.top_k_before_softmax:
@@ -415,7 +418,10 @@ class RoPEProductKeysEncoderAttention(nn.Module):
         # attn_scores = attn_scores.masked_fill(causal_mask, float("-inf"))
         
         if attention_mask is not None:
-            pad_mask = attention_mask.unsqueeze(1).unsqueeze(2) == 0
+            pad_mask = attention_mask.unsqueeze(1).unsqueeze(-1).unsqueeze(-1) == 0
+            # logger.info(f"Pad mask shape: {pad_mask.shape}")
+            # logger.info(f"Attention scores shape: {attn_scores.shape}")
+            # x = 1 / 0
             attn_scores = attn_scores.masked_fill(pad_mask, float("-inf"))
 
         attn_weights = F.softmax(attn_scores, dim=-1)
