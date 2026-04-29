@@ -55,9 +55,9 @@ class ModelSequenceClassification(nn.Module):
 
         # logits = self.score(cls_token_hidden_states)
 
-        if self.count % 5 == 0:
-            logger.info(f"Logits shape: {logits.shape}")
-            logger.info(f"{logits=}")
+        # if self.count % 5 == 0:
+        #     logger.info(f"Logits shape: {logits.shape}")
+        #     logger.info(f"{logits=}")
 
         self.count += 1
 

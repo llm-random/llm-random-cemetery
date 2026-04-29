@@ -18,6 +18,18 @@ trainer:
   d_model: ${common.dmodel}
   vocab_size: ${common.vocab_size}
 
+  train_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+
+  eval_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+
   checkpoint:
     load:
       type: nano
