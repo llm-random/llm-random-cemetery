@@ -8,8 +8,8 @@ defaults:
   - /_infrastructure@_here_:         default
   # - /_downstream_eval@_here_:        joint
 
-  - /_feedforward:                   dense  # moe
-  - /_attention:                     mha  # mqa
+  - /_feedforward:                   moe
+  - /_attention:                     mha
   - /_parameterization:              simpleP_k12
   - _self_
 
@@ -34,7 +34,7 @@ infrastructure:
     tags:
       - nano
       - workshop
-      - dense
+      - moe
       - mha
       - k${common.n_blocks}
       - ${now:%Y-%m-%d}
