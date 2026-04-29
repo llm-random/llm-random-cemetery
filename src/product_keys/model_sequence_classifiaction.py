@@ -16,8 +16,12 @@ class TransformerHead(nn.Module):
 
     def forward(self, x):
         x = self.norm(x)
-        # logger.info(f"{x[:, :4, :4]=}")
-        return self.linear(x)
+        logger.info(f"After norm shape: {x.shape}")
+        logger.info(f"x normalized = {x[:, :4, :4]}")
+        x =  self.linear(x)
+        logger.info(f"After linear shape: {x.shape}")
+        logger.info(f"x linear = {x[:, :4, :4]}")
+        return x
 
 
 class ModelSequenceClassification(nn.Module):
@@ -55,10 +59,10 @@ class ModelSequenceClassification(nn.Module):
 
         # logits = self.score(cls_token_hidden_states)
 
-        if self.count % 5 == 0:
-            logger.info(f"Logits shape: {logits.shape}")
-            logger.info(f"{logits=}")
+        # if self.count % 5 == 0:
+        #     logger.info(f"Logits shape: {logits.shape}")
+        #     logger.info(f"{logits=}")
 
-        self.count += 1
+        # self.count += 1
 
         return logits
