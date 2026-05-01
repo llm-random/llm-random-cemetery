@@ -1,0 +1,52 @@
+defaults:
+  - _cluster@_here_: local
+  - _model@_here_: tiny
+  - _trainer@_here_: context_scaling
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _infrastructure@_here_: default
+
+common:
+  sequence_length: 16
+  batch_size: 2
+  data_seed: 123
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 6
+  learning_rate: 1e-3
+  eval_interval: 0
+  n_eval_steps: 0
+  downstream_eval_interval: 0
+  fixed_eval: false
+  scheduler:
+    warmup_steps: 2
+
+  checkpoint:
+    save:
+      type: nano
+      interval: -1
+      steps: [3]
+      path: /tmp/chain_test
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+
+    load:
+      type: nano
+      path: /tmp/chain_test
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+      only_weights: false
+      reset_scheduler: false
+      rewind_data: true
+
+infrastructure:
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: tiny_chain_test
+    tags:
+      - nano
+      - local
+      - tiny
+
+downstream_evaluator: null
