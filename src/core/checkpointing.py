@@ -70,10 +70,12 @@ def save_training_state(
 
 def get_full_checkpoint_path(path):
     slurm_array_task_id = os.getenv("SLURM_ARRAY_TASK_ID")
-    slurm_job_id = os.getenv("SLURM_JOB_ID")
+    # EXPERIMENT_ID stays constant across chained sbatch submissions; falls back
+    # to SLURM_JOB_ID for non-chained runs.
+    job_id = os.getenv("EXPERIMENT_ID") or os.getenv("SLURM_JOB_ID")
 
-    if slurm_array_task_id and slurm_job_id:
-        return f"{path}/{slurm_job_id}/{slurm_array_task_id}"
+    if slurm_array_task_id and job_id:
+        return f"{path}/{job_id}/{slurm_array_task_id}"
     else:
         return f"{path}"
 
@@ -98,6 +100,13 @@ def load_training_state(load_config):
         )
         return training_start_config
     os.makedirs(load_path, exist_ok=True)
+    resolved = _resolve_load_path(load_path)
+    if resolved is None:
+        logger.info(
+            f"No prior step_* checkpoint under '{load_path}'. Starting training from scratch."
+        )
+        return training_start_config
+    load_path = resolved
 
     training_state_path = f"{load_path}/{load_config.training_state_filename}"
     if os.path.isfile(training_state_path):
@@ -112,17 +121,40 @@ def load_training_state(load_config):
 
 
 def _find_latest_checkpoint(path: str) -> str:
-    files = [os.path.join(path, f) for f in os.listdir(path)]
-    if not files:
-        logger.info(f"No checkpoints in '{path}'")
-        return
+    if not os.path.isdir(path):
+        return None
+    step_dirs = []
+    for f in os.listdir(path):
+        if not f.startswith("step_"):
+            continue
+        try:
+            step_dirs.append((int(f[len("step_"):]), os.path.join(path, f)))
+        except ValueError:
+            continue
+    if not step_dirs:
+        logger.info(f"No step_* checkpoints in '{path}'")
+        return None
+    return max(step_dirs, key=lambda x: x[0])[1]
 
-    return max(files, key=os.path.getmtime)
+
+def _resolve_load_path(load_path: str) -> str:
+    # If load_path is a step_X dir, use it directly. Otherwise treat it as the
+    # cell parent dir and pick the highest step_*. Returns None if neither.
+    if load_path is None:
+        return None
+    if not os.path.isdir(load_path):
+        return load_path
+    if os.path.basename(load_path.rstrip("/")).startswith("step_"):
+        return load_path
+    return _find_latest_checkpoint(load_path)
 
 
 def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
-    checkpoint_path = load_config.path
+    checkpoint_path = _resolve_load_path(load_config.path)
     if checkpoint_path is None:
+        logger.info(
+            "No prior checkpoint to load — keeping freshly initialized weights."
+        )
         return
 
     # reset_scheduler is used by run_decay.py to swap in a fresh LinearLR schedule.

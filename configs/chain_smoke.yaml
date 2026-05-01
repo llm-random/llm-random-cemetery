@@ -1,0 +1,67 @@
+defaults:
+  - _cluster@_here_: entropy
+  - _model@_here_: tiny
+  - _trainer@_here_: context_scaling
+  - _dataset@_here_: c4
+  - _checkpoints@_here_: none
+  - _infrastructure@_here_: default
+
+common:
+  tokenizer: gpt2
+  sequence_length: 128
+  batch_size: 8
+  data_seed: 1
+
+trainer:
+  gradient_accumulation_steps: 1
+  n_steps: 500
+  learning_rate: 1e-3
+  eval_interval: 0
+  n_eval_steps: 0
+  scheduler:
+    warmup_steps: 10
+
+  checkpoint:
+    save:
+      type: nano
+      interval: 20
+      path: /storage_nvme_2/nano/j321m/models/chain_smoke
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+
+    load:
+      type: nano
+      path: /storage_nvme_2/nano/j321m/models/chain_smoke
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+      only_weights: false
+      reset_scheduler: false
+      rewind_data: true
+
+  train_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.core.datasets.gpt2_tokenize_fn
+
+  eval_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.core.datasets.gpt2_tokenize_fn
+
+chain:
+  n_jobs: 2
+
+infrastructure:
+  max_concurrent_jobs: 1
+
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: chain_smoke
+    tags:
+      - nano
+      - chain_smoke
+
+  slurm:
+    time: "00:01:30"
+    gres: gpu:1
+    job-name: ${infrastructure.metric_logger.name}
