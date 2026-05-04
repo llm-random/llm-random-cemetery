@@ -12,10 +12,10 @@ common:
   sequence_length: 1024
   batch_size: 512
 
-  target_dmodel: 448 # 10
-  target_dff: 1728
-  # target_dmodel: 960 # 30
-  # target_dff: 3840
+  # target_dmodel: 448 # 10
+  # target_dff: 1728
+  target_dmodel: 960 # 30
+  target_dff: 3840
   # target_dmodel: 1344 # 50
   # target_dff: 5376
 
@@ -30,8 +30,10 @@ trainer:
     - 8192
     - 12288
 
-  learning_rate: 12 #optimal fo 10%
-  # learning_rate: 11 #optimal fo 30%
+  distillation_alpha: 1.0 ##########################
+
+  # learning_rate: 12 #optimal fo 10%
+  learning_rate: 11 #optimal fo 30%
   # learning_rate: 11 #optimal fo 50%
 
   scheduler:
@@ -61,9 +63,9 @@ infrastructure:
       - llama_1
       - hard_pruning
       - distillation
-      # - ta10b
-      - 10p
-      # - 30p
+      - only_distillation
+      # - 10p
+      - 30p
       # - 50p
   
   slurm:
@@ -71,6 +73,7 @@ infrastructure:
     gres: "gpu:hopper:4" #lem
     # gres: gpu:4 #helios entropy
     time: "1-00:00:00"
+    # time: "0-12:00:00"
  
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
