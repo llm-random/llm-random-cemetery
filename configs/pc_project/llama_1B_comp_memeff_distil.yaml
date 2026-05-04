@@ -24,6 +24,8 @@ trainer:
   _target_: src.projected_compression.trainer_distillation.PCDistillationTrainer
   gradient_accumulation_steps: 8
 
+  distillation_alpha: 1.0 ##########################
+
   # n_steps: 2048
   # n_steps: 4096
   # n_steps: 8192
@@ -104,6 +106,7 @@ infrastructure:
       - llama_1
       - projected_compression
       - distillation
+      - only_distillation
       - mem_eff
       - 10p
       # - 30p
@@ -113,4 +116,5 @@ infrastructure:
     job-name: ${infrastructure.metric_logger.name}
     # gres: gpu:4
     gres: "gpu:hopper:4" # lem
-    time: "0-24:00:00"
+    # time: "0-24:00:00"
+    time: "0-12:00:00"
