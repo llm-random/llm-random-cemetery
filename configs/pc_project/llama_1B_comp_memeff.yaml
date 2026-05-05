@@ -12,12 +12,12 @@ common:
   sequence_length: 1024
   batch_size: 512
 
-  dmodel: 448 # 10%
-  dff: 1728
+  # dmodel: 448 # 10%
+  # dff: 1728
   # dmodel: 960  # 30%
   # dff: 3840
-  # dmodel: 1344 # 50%
-  # dff: 5376
+  dmodel: 1344 # 50%
+  dff: 5376
 
 
 trainer:
@@ -61,7 +61,7 @@ trainer:
   # Mode A-C: same as B but also clip proj grads per-block at the same threshold.
   only_compress_model_gradient_clipping: false
   # only_target_model_gradient_clipping: 0.25
-  only_target_model_gradient_clipping: 1.0
+  only_target_model_gradient_clipping: 1.0 #best
   # ^only_target_model_gradient_clipping: 
   #   - 10
   #   - 1
@@ -76,7 +76,7 @@ trainer:
   # only_target_model_gradient_clipping: false
 
   # learning_rate: 12 # optimal 10%
-  learning_rate: 13 # optimal 30%
+  learning_rate: 13 # optimal 10% 30% 50% !ALLLLLLLLLLLLLLL
   # learning_rate: 14 # optimal 50%
   # learning_rate: 15 # optimal 75%
 
@@ -150,9 +150,9 @@ infrastructure:
       - llama_1
       - projected_compression
       - mem_eff
-      - 10p
+      # - 10p
       # - 30p
-      # - 50p
+      - 50p
 
   slurm:
     job-name: ${infrastructure.metric_logger.name}
