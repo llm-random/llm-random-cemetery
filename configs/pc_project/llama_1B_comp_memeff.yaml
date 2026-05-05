@@ -75,8 +75,8 @@ trainer:
   # only_compress_model_gradient_clipping: false
   # only_target_model_gradient_clipping: false
 
-  # learning_rate: 12 # optimal 10%
-  learning_rate: 13 # optimal 30%
+  learning_rate: 12 # optimal 10%
+  # learning_rate: 13 # optimal 30%
   # learning_rate: 14 # optimal 50%
   # learning_rate: 15 # optimal 75%
 
