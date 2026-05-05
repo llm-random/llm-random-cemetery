@@ -1,6 +1,6 @@
 # @package _global_
 defaults:
-  - /_cluster/helios@_here_
+  - /_cluster/lem@_here_
   - /_model/tiny@_here_
   - /product_keys/pk_model@_here_
   - /_trainer/llama@_here_
@@ -16,7 +16,7 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 4
   # n_steps: 77050
-  n_steps: 15001
+  n_steps: 10
   # ^learning_rate: [1e-4, 2e-4, 5e-4, 1e-3, 2e-3, 5e-3]
   learning_rate: 2e-3
   scheduler:
