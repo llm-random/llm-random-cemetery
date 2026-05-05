@@ -145,16 +145,15 @@ class FinetuningTrainer(TrainerWithVocabSize):
         texts, labels, attention_masks = batch
         
         def _hack_for_python_garbage_collection(texts_chunk, labels_chunk, attention_masks_chunk):
-            logger.info(f"Texts chunk: {texts_chunk}")
-            logger.info(f"Labels chunk: {labels_chunk}")
-            logger.info(f"Attention masks chunk: {attention_masks_chunk}")
+            # logger.info(f"Texts chunk: {texts_chunk}")
+            # logger.info(f"Labels chunk: {labels_chunk}")
+            # logger.info(f"Attention masks chunk: {attention_masks_chunk}")
             logits = self.model(texts_chunk, attention_mask=attention_masks_chunk)
-            logger.info(f"Logits: {logits}")
-            logger.info(f"Labels: {labels_chunk}")
+            # logger.info(f"Logits: {logits}")
+            # logger.info(f"Labels: {labels_chunk}")
            
             loss = self.loss_fct(logits, labels_chunk)
-            logger.info(f"Loss: {loss}")
-            x = 1 / 0
+            # logger.info(f"Loss: {loss}")
             loss = loss / self.gradient_accumulation_steps
             return loss
 
