@@ -1,6 +1,7 @@
 # @package _global_
 defaults:
-  - /_cluster/helios@_here_
+#   - /_cluster/helios@_here_
+  - /_cluster/lem@_here_
   - /_model/tiny@_here_
   - /product_keys/pk_model@_here_
   - /_trainer/llama@_here_
@@ -9,11 +10,23 @@ defaults:
   - /_misc/default@_here_
   - _self_
 
+common:
+  batch_size: 64
+  datt: 1024
+  dff: 2724
+  dmodel: 1024
+  kv_heads: 16
+  n_blocks: 16
+  q_heads: 16
+  sequence_length: 1024
+  vocab_size: 50304
+
 
 trainer:
   _target_: src.product_keys.finetuning_trainer.FinetuningTrainer
   gradient_accumulation_steps: 4
-  n_steps: 20000
+  # n_steps: 20000
+  n_steps: 10
   learning_rate: 1e-3
   d_model: ${common.dmodel}
   vocab_size: ${common.vocab_size}
@@ -33,7 +46,10 @@ trainer:
   checkpoint:
     load:
       type: nano
-      path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/plgggwozdz02/16187802/0/step_104
+      # path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/plgggwozdz02/16187802/0/step_104
+      # baseline path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/16174592/15/step_14999
+      # path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/model_checkpoints/16179708/4/step_14999
+      path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints/5110806/0/step_80000
       model_checkpoint_filename: model_checkpoint.pt
       training_state_filename: training_state.pt
       only_weights: false 
@@ -51,7 +67,8 @@ infrastructure:
       - "seq_len=${common.sequence_length}"
       - "n_layers=${common.n_blocks}"
   slurm:
-    gres: gpu:2
+    # gres: gpu:2
+    gres: gpu:hopper:4
     time: "1-00:00:00"
     job-name: ${infrastructure.metric_logger.name}
 
