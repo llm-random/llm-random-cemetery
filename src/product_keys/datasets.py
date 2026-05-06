@@ -157,7 +157,7 @@ def glue_collate_wrapper(examples):
 
     collated_inputs = collate_wrapper(inputs)
     collated_labels = torch.tensor(labels, dtype=torch.int64)
-    collated_attention_masks = collate_wrapper(attention_masks)
+    collated_attention_masks = collate_wrapper(attention_masks).bool()
 
     # logger.info(f"{collated_inputs.shape=}")
     # logger.info(f"{collated_labels.shape=}")
