@@ -63,6 +63,7 @@ infrastructure:
       - 90p
       - 2B_tokens
       - lr_grid
+      - mas
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
@@ -71,6 +72,6 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
     _partial_: true
-    dimensions_importances_path: /home/m1kush/llmrandom_cemetery/SmolLM_1700_importances_2026-03-28_15-44-28/None/144636/0/minitron_dimensions_importances.pt # CHANGE
+    dimensions_importances_path: /storage_nvme_3/mstefaniak/pc/importances_smoll/177095/0/minitron_dimensions_importances.pt #entropy
     target_dmodel: ${common.dmodel}
     target_dff: ${common.dff}
