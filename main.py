@@ -316,6 +316,7 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
         load_checkpoint_from_file(
             cfg.trainer.checkpoint.load, model, optimizer, scheduler
         )
+        logging.info(f"Loaded model, now will check if optimizer and scheduler too")
         if cfg.trainer.checkpoint.load.only_weights:
             optimizer = torch.optim.AdamW(
                 model.parameters(),
