@@ -1,0 +1,32 @@
+#!/bin/bash -l
+
+#SBATCH --cpus-per-gpu=20
+#SBATCH --gres=gpu:1
+#SBATCH --job-name=test
+#SBATCH --mem-per-gpu=90G
+#SBATCH --nodes=1
+#SBATCH --partition=h100
+#SBATCH --time=0-12:00:00
+
+#---------- SCRIPT ----------
+export WANDB_API_KEY="__WANDB_API_KEY_PLACEHOLDER__"
+export HF_TOKEN="__HF_TOKEN_PLACEHOLDER__"
+export PROJECT_HOME_PATH=/storage_nvme_3/mstefaniak/pc
+export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+export HF_DATASETS_CACHE="$PROJECT_HOME_PATH/hf_datasets"
+export HF_MODULES_CACHE="$PROJECT_HOME_PATH/hf_modules"
+export HF_DATASETS_TRUST_REMOTE_CODE=1
+export HYDRA_FULL_ERROR=1
+export PIXI_HOME=/storage_nvme_4/nano/pixi_new
+export PATH="$PIXI_HOME/bin:$PATH"
+export XDG_DATA_HOME="$PIXI_HOME/data"
+export XDG_CACHE_HOME="$PIXI_HOME/cache"
+export XDG_STATE_HOME="$PIXI_HOME/state"
+cd "$PIXI_HOME"
+eval "$(pixi shell-hook)"
+cd -
+#-------- SCRIPT END --------
+
+python evaluate_hf_models.py \
+  --config-path=configs/pc_project \
+  --config-name=eval_hf_models
