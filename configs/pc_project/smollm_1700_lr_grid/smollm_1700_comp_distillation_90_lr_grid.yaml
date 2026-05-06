@@ -36,12 +36,12 @@ trainer:
     load:
       type: huggingface
       path: "HuggingFaceTB/SmolLM-1.7B"
-    # save:
-    #   type: nano
-    #   path: /storage_nvme_1/md/checkpoints
-    #   interval: ${eval:'${trainer.n_steps} - 1'}
-    #   model_checkpoint_filename: __model_checkpoint_filename.pt
-    #   training_state_filename: __training_state_filename.pt
+    save:
+      type: hf_only
+      path: /storage_nvme_3/mstefaniak/pc/checkpoints
+      interval: 0
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
 
   eval_interval: 1000000
   eval_dataloader: None
@@ -63,6 +63,7 @@ infrastructure:
       - 90p
       - 2B_tokens
       - lr_grid
+      - mas
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
@@ -71,6 +72,6 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.compression.init_compression
     _partial_: true
-    dimensions_importances_path: /home/m1kush/llmrandom_cemetery/SmolLM_1700_importances_2026-03-28_15-44-28/None/144636/0/minitron_dimensions_importances.pt # CHANGE
+    dimensions_importances_path: /storage_nvme_3/mstefaniak/pc/importances_smoll/177095/0/minitron_dimensions_importances.pt #entropy
     target_dmodel: ${common.dmodel}
     target_dff: ${common.dff}
