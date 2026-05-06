@@ -35,7 +35,7 @@ class TrainingState(Stateful):
             model_state_dict=state_dict["model"],
             optim_state_dict=state_dict["optim"],
         )
-        self.scheduler.load_state_dict(state_dict["scheduler"])
+        self.scheduler.load_state_dict(state_dict["scheduler"], strict=False)
 
 
 def step_checkpoint_path(path, step):
