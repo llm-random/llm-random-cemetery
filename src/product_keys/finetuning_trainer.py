@@ -32,18 +32,18 @@ def create_classifier_model(model: torch.nn.Module,
                             device: torch.device,
                             d_model: int,
                             distributed: Optional[dict] = None) -> torch.nn.Module:
-    logger.info("Printing model shapes...")
+    logger.debug("Printing model shapes...")
     for name, layer in model.named_modules():
-        logger.info(f"Layer name: {name}")
+        logger.debug(f"Layer name: {name}")
 
         if hasattr(layer, 'weight') and layer.weight is not None:
-            logger.info(f"Layer: {name} | Size: {layer.weight.shape}")
+            logger.debug(f"Layer: {name} | Size: {layer.weight.shape}")
     
     model = ModelSequenceClassification(model, d_model=d_model, num_labels=SST2_LABELS,
                                         distributed=distributed).to(device)
 
     model_dtypes = set([param.dtype for param in model.parameters()])
-    logger.info(f"Model dtypes: {list(model_dtypes)}")
+    logger.debug(f"Model dtypes: {list(model_dtypes)}")
     return model
 
 
@@ -145,16 +145,12 @@ class FinetuningTrainer(TrainerWithVocabSize):
         texts, labels, attention_masks = batch
         
         def _hack_for_python_garbage_collection(texts_chunk, labels_chunk, attention_masks_chunk):
-            logger.info(f"Texts chunk: {texts_chunk}")
-            logger.info(f"Labels chunk: {labels_chunk}")
-            logger.info(f"Attention masks chunk: {attention_masks_chunk}")
+            # logger.info(f"Attention masks chunk: {attention_masks_chunk}")
             logits = self.model(texts_chunk, attention_mask=attention_masks_chunk)
-            logger.info(f"Logits: {logits}")
-            logger.info(f"Labels: {labels_chunk}")
+            # logger.info(f"Logits: {logits}")
+            # logger.info(f"Labels: {labels_chunk}")
            
             loss = self.loss_fct(logits, labels_chunk)
-            logger.info(f"Loss: {loss}")
-            x = 1 / 0
             loss = loss / self.gradient_accumulation_steps
             return loss
 
