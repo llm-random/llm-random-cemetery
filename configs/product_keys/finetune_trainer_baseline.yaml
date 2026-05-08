@@ -4,8 +4,9 @@ defaults:
   - /_cluster/lem@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
-  - /_dataset/mnli@_here_
+  # - /_dataset/mnli@_here_
   # - /_dataset/sst2@_here_
+  - /_dataset/imdb@_here_
   - /_checkpoints/none@_here_
   - /_misc/default@_here_
   - _self_
@@ -68,7 +69,7 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: tml-bgw
-    name: baseline-finetunetrainer-mnli-${now:%Y-%m-%d_%H-%M-%S}
+    name: baseline-finetunetrainer-${trainer.train_dataloader.dataset.task_name}
     tags:
       - nano
       - pk_mlm
