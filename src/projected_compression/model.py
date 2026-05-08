@@ -283,6 +283,11 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        # if attention_mask is not None:
+        #     logger.info(f"Attention mask: {attention_mask}")
+        #     x = 1 / 0
+
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=self.causal, attention_mask=attention_mask
         )
