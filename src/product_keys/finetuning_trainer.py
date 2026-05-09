@@ -74,15 +74,18 @@ class FinetuningTrainer(TrainerWithVocabSize):
 
         logger.info(f"{self.distributed=}")
 
-        if self.freeze_backbone:
-            self._freeze_model_layers()
-
         self.model = create_classifier_model(
             model=self.model,
             device=self.device,
             d_model=self.d_model,
             num_labels=self.num_labels,
             distributed=self.distributed)
+
+        if self.freeze_backbone:
+            self._freeze_model_layers()
+            
+        trainable_params = [p for p in self.model.parameters() if p.requires_grad]
+        self.optimizer.param_groups[0]['params'] = trainable_params
 
         self.eval_dataset = self.eval_dataloader.dataset
         self.full_eval_dataloader = DataLoader(
@@ -100,13 +103,17 @@ class FinetuningTrainer(TrainerWithVocabSize):
         logger.info("Freezing backbone layers...")
         for name, param in self.model.named_parameters():
             should_train = any(mod in name for mod in self.trainable_modules)
-            
             if not should_train:
                 param.requires_grad = False
             else:
                 param.requires_grad = True
 
-    
+    def _print_trainable_parameters(self):
+        print("Trainable parameters:")
+        for name, param in self.model.named_parameters():
+            if param.requires_grad:
+                print(name)
+
     def train(self):
         for step, batch in zip(
             range(self.start_step, self.n_steps), self.train_dataloader
