@@ -6,7 +6,8 @@ defaults:
   - /product_keys/pk_model@_here_
   - /_trainer/llama@_here_
   # - /_dataset/sst2@_here_
-  - /_dataset/mnli@_here_
+  # - /_dataset/mnli@_here_
+  - /_dataset/imdb@_here_
   - /_checkpoints/none@_here_
   - /_misc/default@_here_
   - _self_
