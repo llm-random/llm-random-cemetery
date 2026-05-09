@@ -4,8 +4,9 @@ defaults:
   - /_cluster/lem@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
-  - /_dataset/mnli@_here_
+  # - /_dataset/mnli@_here_
   # - /_dataset/sst2@_here_
+  - /_dataset/imdb@_here_
   - /_checkpoints/none@_here_
   - /_misc/default@_here_
   - _self_
@@ -24,12 +25,14 @@ common:
 
 trainer:
   _target_: src.product_keys.finetuning_trainer.FinetuningTrainer
+  eval_interval: 50
   gradient_accumulation_steps: 4
   # n_steps: 20000
-  n_steps: 20000
+  n_steps: 5000
   full_eval_rows: 2000
-  learning_rate: 2e-4
-  # ^learning_rate: [2e-4, 5e-4, 1e-3, 2e-3]
+  # learning_rate: 2e-4
+  # ^learning_rate: [2e-4, 5e-4, 1e-4 , 2e-3]
+  ^learning_rate: [5e-4, 1e-4, 2e-3]
   d_model: ${common.dmodel}
   vocab_size: ${common.vocab_size}
 
@@ -68,7 +71,7 @@ infrastructure:
     type: wandb
     wandb_entity: ideas_cv
     project_name: tml-bgw
-    name: baseline-finetunetrainer-mnli-${now:%Y-%m-%d_%H-%M-%S}
+    name: baseline-finetunetrainer-${trainer.train_dataloader.dataset.task_name}
     tags:
       - nano
       - pk_mlm
