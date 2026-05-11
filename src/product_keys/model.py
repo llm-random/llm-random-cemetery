@@ -739,6 +739,7 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         # [OPTIMIZATION 1] PyTorch's take_along_dim is completely equivalent to expand+gather but faster
         k1_selected = torch.take_along_dim(k1_vecs, idx_in_k1.unsqueeze(-1), dim=3)
         k2_selected = torch.take_along_dim(k2_vecs, idx_in_k2.unsqueeze(-1), dim=3)
+        # use true k as final k, select them in the same way we select values (by indicies)
         final_k = torch.cat([k1_selected, k2_selected], dim=-1)
 
         # Gather final spatial indices
