@@ -31,7 +31,7 @@ trainer:
   n_steps: 7000
   full_eval_rows: 2000
   learning_rate: 2e-4
-  # ^learning_rate: [2e-4, 5e-4, 1e-4 , 2e-3]
+  # ^learning_rate: [5e-4, 1e-4 , 2e-3]
   freeze_backbone: true
   trainable_modules: ["head"]
   d_model: ${common.dmodel}
