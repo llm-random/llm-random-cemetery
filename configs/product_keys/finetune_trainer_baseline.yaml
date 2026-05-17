@@ -1,7 +1,7 @@
 # @package _global_
 defaults:
-  - /_cluster/helios@_here_
-  # - /_cluster/lem@_here_
+  # - /_cluster/helios@_here_
+  - /_cluster/lem@_here_
   - /_model/tiny@_here_
   - /_trainer/llama@_here_
   # - /_dataset/mnli@_here_
@@ -31,8 +31,8 @@ trainer:
   n_steps: 7000
   full_eval_rows: 2000
   # learning_rate: 2e-4
-  # ^learning_rate: [2e-4, 5e-4, 1e-4 , 2e-3]
-  ^learning_rate: [5e-4, 2e-3]
+  ^learning_rate: [2e-4, 5e-4, 1e-4 , 2e-3]
+  # ^learning_rate: [5e-4, 2e-3]
   freeze_backbone: true
   trainable_modules: ["head"]
   d_model: ${common.dmodel}
@@ -50,7 +50,12 @@ trainer:
         seq_len: ${common.sequence_length}
 
   eval_dataloader:
+    collate_fn:
+      _target_: src.product_keys.datasets.glue_split_collate_wrapper
+      _partial_: true
     dataset:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      split_values: [256, 512]
       shuffle: false
       tokenize_fn:
         seq_len: ${common.sequence_length}
@@ -58,8 +63,8 @@ trainer:
   checkpoint:
     load:
       type: nano
-      # path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints/5110804/0/step_80000
-      path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/finetune_checkpoints/baseline_full_run
+      path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints/5110804/0/step_80000
+      # path: /net/storage/pr3/plgrid/plggllmeffi3/pk_attention/finetune_checkpoints/baseline_full_run
       model_checkpoint_filename: model_checkpoint.pt
       training_state_filename: training_state.pt
       only_weights: true 
@@ -67,14 +72,13 @@ trainer:
     save:
       type: nano
       interval: 4000
-      # path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints/
 
 infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
     project_name: tml-bgw
-    name: baseline-finetunetrainer-${oc.select:model.freeze_backbone, false}-"${trainer.train_dataloader.dataset.task_name}
+    name: baseline-finetunetrainer-freeze-"${trainer.train_dataloader.dataset.task_name}
     tags:
       - nano
       - pk_mlm
