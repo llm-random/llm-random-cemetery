@@ -10,21 +10,9 @@ from src.product_keys.trainer import TrainerWithVocabSize
 from src.core.utils import create_batch_fingerprint
 from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger, WandbLogger
 from src.product_keys.model_sequence_classifiaction import ModelSequenceClassification
-from src.product_keys.datasets import GlueDataset
+from src.product_keys.datasets import GlueDataset, FullIterDataset, GlueLengthSplitDataset
 import math
 
-
-
-class FullIterDataset(IterableDataset):
-    def __init__(self, dataset: GlueDataset):
-        self.dataset = dataset
-
-    def __iter__(self):
-        return self.dataset.full_iter()
-
-
-# for now focus solely on sst2
-# SST2_LABELS: int = 2
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +52,7 @@ def create_classifier_model(model: torch.nn.Module,
 class FinetuningTrainer(TrainerWithVocabSize):
     d_model: int
     num_labels: int
-    full_eval_rows: int
+    full_eval_rows: Optional[int] = None
     freeze_backbone: bool = field(default=False)
     trainable_modules: list = field(factory=list)
     loss_fct = torch.nn.CrossEntropyLoss()
@@ -87,10 +75,23 @@ class FinetuningTrainer(TrainerWithVocabSize):
         trainable_params = [p for p in self.model.parameters() if p.requires_grad]
         self.optimizer.param_groups[0]['params'] = trainable_params
 
-        self.eval_dataset = self.eval_dataloader.dataset
+        self.eval_function = self.eval
+        eval_dataset = self.eval_dataloader.dataset
 
-        self.full_eval_batches = int(math.ceil(self.full_eval_rows / self.eval_dataloader.batch_size))
-            
+        is_length_split = isinstance(eval_dataset, GlueLengthSplitDataset)
+        assert not (is_length_split and self.full_eval_rows is None), "full_eval_rows is required for length split dataset in eval"
+
+        if self.full_eval_rows is not None:
+            self.eval_dataset = eval_dataset
+            self.eval_function = self.full_eval_length_split if is_length_split else self.eval
+        
+        if is_length_split:
+            self.split_values = eval_dataset.split_values + [float("inf")]
+
+        self.full_eval_batches = (
+            int(math.ceil(self.full_eval_rows / self.eval_dataloader.batch_size)) 
+            if self.full_eval_rows is not None else None
+        )
         
     def _freeze_model_layers(self):
         logger.info("Freezing backbone layers...")
@@ -129,14 +130,12 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 self.save_checkpoint()
 
             if self._should_evaluate:
-                # self.eval()
-                self.full_eval()
+                self.eval_function()
 
         if self._should_save_final_checkpoint:
             self.save_checkpoint()
         
-        # self.eval()
-        self.full_eval()
+        self.eval_function()
 
     @override
     def eval(self):
@@ -203,13 +202,9 @@ class FinetuningTrainer(TrainerWithVocabSize):
         world_size = float(os.environ.get("WORLD_SIZE", 1))
         return avg_loss / world_size
 
-
-    def full_eval(self):
-        self.model.eval()
+    def _get_full_eval_iterator(self):
         saved_step = self.step
-        self.metric_logger.set_step(None)  # disables heavy logging
-        losses = []
-        eval_fingerprint = []
+        self.metric_logger.set_step(None)
         full_eval_dataloader = DataLoader(
             FullIterDataset(self.eval_dataset),
             batch_size=self.eval_dataloader.batch_size,
@@ -218,7 +213,16 @@ class FinetuningTrainer(TrainerWithVocabSize):
             num_workers=self.eval_dataloader.num_workers,
         )
         eval_iter = iter(full_eval_dataloader)
+        return eval_iter
 
+
+    def full_eval(self):
+        self.model.eval()
+        saved_step = self.step
+        self.metric_logger.set_step(None)  # disables heavy logging
+        losses = []
+        eval_fingerprint = []
+        eval_iter = self._get_full_eval_iterator()
 
         with torch.no_grad():
             for _ in range(self.full_eval_batches):
@@ -241,5 +245,53 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 f"steps/eval/batch", self.step, str(eval_fingerprint)
             )
 
-        self.step = saved_step 
+        self.step = saved_step
 
+    def full_eval_length_split(self):
+        self.model.eval()
+        saved_step = self.step
+        self.metric_logger.set_step(None)  # disables heavy logging
+        losses = []
+        eval_fingerprint = []
+        eval_iter = self._get_full_eval_iterator()
+
+        losses = {split_value: [] for split_value in self.split_values}
+
+        def handle_split_batch(batch):
+            text, _, _ = batch
+            text_fingerprint = create_batch_fingerprint(text)
+            eval_fingerprint.extend(text_fingerprint)
+            loss = self.calculate_loss(batch)
+            return loss
+            
+
+        with torch.no_grad():
+            for _ in range(self.full_eval_batches):
+                batch_list = next(eval_iter)
+
+                for i, batch in enumerate(batch_list):
+                    if batch is None:
+                        continue
+                    split_value = self.split_values[i]
+                    loss = handle_split_batch(batch)      
+                    losses[split_value].append(loss.item())
+                
+                self.metric_logger.flush_accumulated_metrics(self.step)
+            
+            min_value = 0
+            for split_value, loss_list in losses.items():
+                if len(loss_list) > 0:
+                    avg_loss = torch.tensor(loss_list).mean()
+                    self.metric_logger.log(f"steps/eval/loss_({min_value}-{split_value})", self.step, avg_loss.item())
+                    if not isinstance(self.metric_logger, (WandbLogger)):
+                        self.metric_logger.log(
+                            f"tokens/eval/loss_({min_value}-{split_value})", self.processed_tokens, avg_loss.item()
+                        )
+                min_value = split_value
+
+        if self._should_log_eval_input:
+            self.metric_logger.log(
+                f"steps/eval/batch", self.step, str(eval_fingerprint)
+            )
+
+        self.step = saved_step
