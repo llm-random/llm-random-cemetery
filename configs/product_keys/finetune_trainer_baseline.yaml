@@ -50,7 +50,12 @@ trainer:
         seq_len: ${common.sequence_length}
 
   eval_dataloader:
+    collate_fn:
+      _target_: src.product_keys.datasets.glue_split_collate_wrapper
+      _partial_: true
     dataset:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      split_values: [256, 512]
       shuffle: false
       tokenize_fn:
         seq_len: ${common.sequence_length}
