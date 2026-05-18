@@ -206,8 +206,6 @@ class FinetuningTrainer(TrainerWithVocabSize):
         return avg_loss / world_size
 
     def _get_full_eval_iterator(self):
-        saved_step = self.step
-        self.metric_logger.set_step(None)
         full_eval_dataloader = DataLoader(
             FullIterDataset(self.eval_dataset),
             batch_size=self.eval_dataloader.batch_size,
@@ -215,8 +213,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
             pin_memory=self.eval_dataloader.pin_memory,
             num_workers=self.eval_dataloader.num_workers,
         )
-        eval_iter = iter(full_eval_dataloader)
-        return eval_iter
+        return iter(full_eval_dataloader)
 
 
     def full_eval(self):
@@ -262,7 +259,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
 
         def make_dummy_batch():
             seq_len = self.eval_dataset.sequence_length
-            bsz = max(1, self.gradient_accumulation_steps)
+            bsz = self.eval_dataloader.batch_size
             dummy_text = torch.zeros((bsz, seq_len), dtype=torch.long)
             dummy_labels = torch.zeros((bsz,), dtype=torch.long)
             dummy_mask = torch.zeros((bsz, seq_len), dtype=torch.bool)
@@ -277,6 +274,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
             return loss
 
         with torch.no_grad():
+            batch_count = 0
             while True:
                 exhausted = torch.tensor([0.0], device=self.device)  # 0=ok, 1=done
                 try:
@@ -289,6 +287,10 @@ class FinetuningTrainer(TrainerWithVocabSize):
                     torch.distributed.all_reduce(exhausted, op=torch.distributed.ReduceOp.MAX)
 
                 if exhausted[0] > 0.0:
+                    break
+
+                batch_count += 1
+                if self.full_eval_batches is not None and batch_count > self.full_eval_batches:
                     break
 
                 has_data = torch.zeros(n_splits, device=self.device)
