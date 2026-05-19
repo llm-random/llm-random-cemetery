@@ -1,0 +1,127 @@
+"""Local setup for context-scaling eval. Run before run_ctx_eval.py.
+
+Hydra entrypoint. Fetches wandb runs matching eval.tags / eval.negative_tags,
+writes {out_dir}/jobs.json and per-run yaml_cache/<run_id>.yaml. Inspect the
+json, then submit via run_ctx_eval.py.
+"""
+import json
+import sys
+from pathlib import Path
+
+import hydra
+import yaml
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / "src/context_scaling/scripts"))
+
+from grid_generator.sbatch_builder import create_slurm_parameters  # noqa: E402
+from setup_eval import resolve_model_step  # noqa: E402
+from wandb_utils import (  # noqa: E402
+    WANDB_PROJECT,
+    get_wandb_table,
+    save_yaml_config_from_row,
+)
+
+SBATCH_NAME = "ctx_eval.sbatch"
+
+
+def _build_sbatch(cfg, n_jobs: int) -> str:
+    """Build the eval sbatch: SLURM directives from cfg.infrastructure.slurm,
+    activation block + srun line are static (don't vary across pixi clusters)."""
+    lines = ["#!/bin/bash -l", ""]
+    lines.append(f"#SBATCH --array=0-{n_jobs - 1}")
+    lines.append("#SBATCH --requeue")
+    lines.extend(create_slurm_parameters(cfg.infrastructure.slurm))
+    lines.extend(
+        [
+            "",
+            "set -euo pipefail",
+            "",
+            "export PROJECT_HOME_PATH=/storage_nvme_2/nano/$USER",
+            "export HYDRA_FULL_ERROR=1",
+            "export PIXI_HOME=$PROJECT_HOME_PATH/pixi",
+            "export HF_HOME=$PROJECT_HOME_PATH/hf_cache",
+            'export PATH="$HOME/.pixi/bin:$PATH"',
+            "",
+            'cd "$PIXI_HOME"',
+            'eval "$(pixi shell-hook)"',
+            "cd -",
+            "",
+            "# avoid Triton/Inductor cache collisions across array tasks",
+            "export TORCH_COMPILE_DISABLE=1",
+            'export PYTHONPATH="$(pwd):${PYTHONPATH:-}"',
+            "export MASTER_ADDR=127.0.0.1",
+            "export MASTER_PORT=$((20000 + (SLURM_ARRAY_JOB_ID % 20000) + SLURM_ARRAY_TASK_ID))",
+            "export RANK=0",
+            "export WORLD_SIZE=1",
+            "export LOCAL_RANK=0",
+            "",
+            "srun --export=ALL --ntasks=1 --nodes=1 --gpus=1 "
+            "python src/context_scaling/scripts/ctx_eval.py",
+        ]
+    )
+    return "\n".join(lines) + "\n"
+
+
+@hydra.main(version_base=None, config_path="../../../configs", config_name="ctx_eval")
+def main(cfg):
+    eval_cfg = cfg.eval
+    out_dir = Path(eval_cfg.out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    negative_tags = list(eval_cfg.negative_tags) if eval_cfg.negative_tags else None
+    df = get_wandb_table(
+        tags=list(eval_cfg.tags),
+        project=WANDB_PROJECT,
+        negative_tags=negative_tags,
+    )
+    df.to_csv(out_dir / "main.csv", index=False)
+
+    yaml_dir = out_dir / "yaml_cache"
+    records = []
+    for _, row in df.iterrows():
+        run_id = str(row["sys/id"])
+        ckpt_path = str(row.get("summary/full_save_checkpoints_path", ""))
+
+        yaml_path = yaml_dir / f"{run_id}.yaml"
+        if not yaml_path.exists() or yaml_path.stat().st_size == 0:
+            save_yaml_config_from_row(row, yaml_path)
+
+        with open(yaml_path, "r", encoding="utf-8") as f:
+            run_cfg = yaml.safe_load(f)
+        seq_len = run_cfg["common"]["sequence_length"]
+        if eval_cfg.seq_len is not None and eval_cfg.seq_len < seq_len:
+            seq_len = int(eval_cfg.seq_len)
+
+        # explicit model_step skips the filesystem check in resolve_model_step;
+        # required since setup runs locally where cluster ckpt paths don't exist
+        if eval_cfg.model_step is not None:
+            model_step = int(eval_cfg.model_step)
+        else:
+            model_step = resolve_model_step(ckpt_path, None)
+
+        records.append(
+            {
+                "jobID": run_id,
+                "ckpt_path": ckpt_path,
+                "yaml_config_path": str(yaml_path),
+                "seq_len": seq_len,
+                "model_step": model_step,
+                "wandb_project": WANDB_PROJECT,
+            }
+        )
+
+    jobs_path = out_dir / "jobs.json"
+    with open(jobs_path, "w", encoding="utf-8") as f:
+        json.dump(records, f, ensure_ascii=False, indent=2)
+    print(f"wrote {len(records)} jobs → {jobs_path}")
+
+    sbatch_path = out_dir / SBATCH_NAME
+    sbatch_path.write_text(_build_sbatch(cfg, len(records)))
+    print(f"wrote sbatch → {sbatch_path} (array=0-{len(records) - 1})")
+    print("next: pixi run python src/context_scaling/scripts/run_ctx_eval.py")
+
+
+if __name__ == "__main__":
+    main()

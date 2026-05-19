@@ -1,10 +1,31 @@
 from pathlib import Path
 import pandas as pd
+import torch
 import wandb
 import yaml
 
 
 WANDB_PROJECT = "ideas_cv/llm-random-test"
+
+
+def upload_mean_loss_to_wandb(
+    run_id: str,
+    project: str,
+    mean_losses: torch.Tensor,
+    model_step: int,
+    eval_seq_len: int,
+):
+    """Resume the existing wandb run and write the per-position mean loss to its summary."""
+    parts = project.split("/", 1)
+    entity, proj = (parts[0], parts[1]) if len(parts) == 2 else (None, project)
+
+    run = wandb.init(entity=entity, project=proj, id=run_id, resume="must")
+    try:
+        key = f"eval/per_position_loss/step{model_step}_seq{eval_seq_len}"
+        run.summary[key] = [float(v) for v in mean_losses.tolist()]
+        print(f"✅ wandb run {run_id} summary updated: {key}")
+    finally:
+        run.finish()
 
 
 def get_wandb_table(
