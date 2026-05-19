@@ -1,0 +1,10 @@
+[
+  {
+    "jobID": "utqqlviw",
+    "ckpt_path": "/storage_nvme_4/nano/models/restart/",
+    "yaml_config_path": "2503_restart/yaml_cache/utqqlviw.yaml",
+    "seq_len": 2048,
+    "model_step": 320000,
+    "wandb_project": "ideas_cv/llm-random-test"
+  }
+]
