@@ -1,0 +1,21 @@
+defaults:
+  - _cluster@_here_: entropy
+  - _infrastructure@_here_: default
+  - _self_
+
+infrastructure:
+  server: entropy
+  slurm:
+    gres: gpu:1
+    job-name: ctx_eval
+    time: "01:00:00"
+
+eval:
+  tags: [2503_restart]
+  negative_tags: [remove]
+  out_dir: 2503_restart
+  dataset_dir: /storage_nvme_1/llm-random/datasets/c4/long_context_2048n8192
+  seq_len: 2048
+  batch_size: 32
+  model_step: 320000
+  name: ${eval.out_dir}
