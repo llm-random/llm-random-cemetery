@@ -1,0 +1,38 @@
+[
+  {
+    "jobID": "nghufpsf",
+    "ckpt_path": "/lustre/pd03/plgrid/plgllmefficont3/context_scaling/models/4979490/0",
+    "yaml_config_path": "2503_grid/yaml_cache/nghufpsf.yaml",
+    "seq_len": 2048,
+    "model_step": [32000, 64000, 96000, 128000, 160000, 192000, 224000, 256000, 288000, 320000],
+    "wandb_project": "ideas_cv/llm-random-test",
+    "common.dmodel": 1280,
+    "common.kv_heads": 1,
+    "common.dff": 3200,
+    "common.sequence_length": 2048
+  },
+  {
+    "jobID": "c6hj2s1p",
+    "ckpt_path": "/lustre/pd03/plgrid/plgllmefficont3/context_scaling/models/4972525/1",
+    "yaml_config_path": "2503_grid/yaml_cache/c6hj2s1p.yaml",
+    "seq_len": 2048,
+    "model_step": [32000, 64000, 96000, 128000, 160000, 192000, 224000, 256000, 288000, 320000],
+    "wandb_project": "ideas_cv/llm-random-test",
+    "common.dmodel": 1280,
+    "common.kv_heads": 20,
+    "common.dff": 3200,
+    "common.sequence_length": 2048
+  },
+  {
+    "jobID": "dnkw7o35",
+    "ckpt_path": "/lustre/pd03/plgrid/plgllmefficont3/context_scaling/models/4982092/0",
+    "yaml_config_path": "2503_grid/yaml_cache/dnkw7o35.yaml",
+    "seq_len": 2048,
+    "model_step": [32000, 64000, 96000, 128000, 160000, 192000, 224000, 256000, 288000, 320000],
+    "wandb_project": "ideas_cv/llm-random-test",
+    "common.dmodel": 1280,
+    "common.kv_heads": 1,
+    "common.dff": 5120,
+    "common.sequence_length": 2048
+  }
+]
