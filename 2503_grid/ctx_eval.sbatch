@@ -1,0 +1,40 @@
+#!/bin/bash -l
+
+#SBATCH --array=0-29
+#SBATCH --requeue
+#SBATCH --cpus-per-gpu=12
+#SBATCH --gres=gpu:hopper:1
+#SBATCH --job-name=ctx_eval
+#SBATCH --mem-per-gpu=90G
+#SBATCH --nodes=1
+#SBATCH --partition=plgrid-lem-gpu-h100
+#SBATCH --time=00:30:00
+
+#---------- SCRIPT ----------
+ml CUDA/12.4.0
+export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano/$USER
+export HYDRA_FULL_ERROR=1
+export PIXI_HOME=$PROJECT_HOME_PATH/pixi
+export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+export PATH="$HOME/.pixi/bin:$PATH"
+export HF_DATASETS_TRUST_REMOTE_CODE=1
+cd "$PIXI_HOME"
+eval "$(pixi shell-hook)"
+cd -
+export TORCH_COMPILE_DISABLE=1
+#-------- SCRIPT END --------
+
+
+export MASTER_ADDR=$(scontrol show hostname ${SLURM_NODELIST} | head -n 1)
+if [ -z "${SLURM_ARRAY_TASK_ID}" ]; then
+    export MASTER_PORT=$((40000 + ${SLURM_JOB_ID} % 10000))
+else
+    export MASTER_PORT=$((30000 + (${SLURM_JOB_ID} % 1250) * 8 + (${SLURM_ARRAY_TASK_ID} % 8)))
+fi
+
+srun torchrun --nnodes=${SLURM_NNODES} \
+  --nproc-per-node=${SLURM_GPUS_ON_NODE} \
+  --rdzv-id=${SLURM_JOBID} \
+  --rdzv-backend=c10d \
+  --rdzv-endpoint=${MASTER_ADDR}:${MASTER_PORT} \
+  src/context_scaling/scripts/ctx_eval.py
