@@ -13,6 +13,13 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+_DATASET_METRIC_LOGGER = None
+
+
+def set_dataset_metric_logger(metric_logger):
+    global _DATASET_METRIC_LOGGER
+    _DATASET_METRIC_LOGGER = metric_logger
+
 
 def take_circular(iterable, start, stop):
     cycle = itertools.cycle(iterable)
@@ -110,6 +117,7 @@ class GenericDataset(IterableDataset):
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
         self.data_generator = None
+        self.current_epoch = 0
         self._load_dataset(path, split, seed, tokenize_fn, shuffle)
 
     def _load_hf_dataset(self, path, split):
@@ -176,6 +184,7 @@ class GenericDataset(IterableDataset):
     def get_infinite_sampler(self):
         epoch = 0
         while True:
+            self.current_epoch = epoch
             self.data_generator.set_epoch(epoch)
             for next_sample in self.data_generator:
                 yield next_sample
@@ -250,6 +259,20 @@ class MixtureOfDatasets(IterableDataset):
             except StopIteration:
                 dataset_iterators[chosen_index] = iter(self.datasets[chosen_index])
                 sample = next(dataset_iterators[chosen_index])
+            if self.rank == 0 and step % 100 == 0:
+                if _DATASET_METRIC_LOGGER is not None:
+                    _DATASET_METRIC_LOGGER.log("data/mixture_step", step)
+                    _DATASET_METRIC_LOGGER.log("data/mixture_dataset_id", chosen_index)
+                    _DATASET_METRIC_LOGGER.log(
+                        "data/mixture_dataset_epoch",
+                        self.datasets[chosen_index].current_epoch,
+                    )
+                logger.info(
+                    "mixture step %d: dataset=%s epoch=%d",
+                    step,
+                    self.paths[chosen_index],
+                    self.datasets[chosen_index].current_epoch,
+                )
             if self.rank == 0:
                 logger.debug(
                     f"{self.split}, step {step}: Chose dataset {self.paths[chosen_index]}"

@@ -11,6 +11,7 @@ from grid_generator.sbatch_builder import generate_sbatch_script
 import resolver as _  # I should be able to ignore this line by linter, but ~ things like # ignore did not work
 import logging
 from omegaconf import OmegaConf
+from src.core.datasets import set_dataset_metric_logger
 
 import os
 import torch
@@ -216,6 +217,7 @@ def initialize_training_components(cfg: OmegaConf, metric_logger=None):
             full_config=cfg,
         )
 
+    set_dataset_metric_logger(metric_logger)
     learning_rate, exp_lr = solve_config_lr(cfg.trainer.learning_rate)
 
     if isinstance(metric_logger, WandbLogger) and (

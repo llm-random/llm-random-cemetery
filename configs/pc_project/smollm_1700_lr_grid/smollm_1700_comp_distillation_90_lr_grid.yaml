@@ -23,9 +23,6 @@ trainer:
 
   ^learning_rate:
     - 11
-    - 12
-    - 13
-    - 14
 
   scheduler:
     warmup_steps: 40
