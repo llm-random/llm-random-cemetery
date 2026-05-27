@@ -2,7 +2,7 @@ defaults:
   - ../../_cluster@_here_: entropy
   - ../../_model/smollm@_here_: projected_1700
   - ../../_trainer@_here_: smollm_1700_distillation
-  - ../../_dataset@_here_: smollm_corpus
+  - ../../_dataset@_here_: fineweb
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
   - _self_
@@ -48,7 +48,7 @@ trainer:
 
 infrastructure:
   metric_logger:
-    name: SLLM_1700_comp_distill_90_lr_grid
+    name: SLLM_1700_fineweb_comp_distill_90_lr_grid
     tags:
       - nano
       - pc
@@ -58,6 +58,7 @@ infrastructure:
       - 90p
       - 2B_tokens
       - lr_grid
+      - fineweb
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
