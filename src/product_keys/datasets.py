@@ -300,17 +300,24 @@ def glue_collate_wrapper(examples):
 
 
 def glue_split_collate_wrapper(examples):
+    """Collate a batch of per-split sample lists into a list of per-split tensors.
+
+    examples: list[list[tuple | None]] of shape [batch_size, n_splits]
+    Returns:  list[batch_tensor | None]  of length n_splits
+
+    A split's batch is set to None if ANY item in the batch for that split is
+    None (i.e. the split ran out of data).  This avoids silently producing
+    variable-size batches that would cause shape mismatches under FSDP.
+    """
     collated = []
-    for example in zip(*examples):
-        valid_items = [item for item in example if item is not None]
-        if valid_items:
-            try:
-                collated.append(glue_collate_wrapper(valid_items))
-            except Exception as e:
-                # logger.error(f"Error collating example: {e}")
-                collated.append(None)
-        else:
+    for example in zip(*examples):          # iterate over splits
+        if any(item is None for item in example):
             collated.append(None)
+        else:
+            try:
+                collated.append(glue_collate_wrapper(list(example)))
+            except Exception as e:
+               collated.append(None)
     return collated
 
 
