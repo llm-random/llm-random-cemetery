@@ -4,7 +4,7 @@ import logging
 import torch
 import torch.nn
 from torch.utils.data import DataLoader, IterableDataset
-from typing import Optional, override
+from typing import NamedTuple, Optional, override
 
 from src.product_keys.trainer import TrainerWithVocabSize
 from src.core.utils import create_batch_fingerprint
@@ -12,6 +12,12 @@ from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger, Wand
 from src.product_keys.model_sequence_classifiaction import ModelSequenceClassification
 from src.product_keys.datasets import GlueDataset, FullIterDataset, GlueLengthSplitDataset
 import math
+
+
+class LossResult(NamedTuple):
+    loss: torch.Tensor
+    correct: int
+    total: int
 
 
 logger = logging.getLogger(__name__)
@@ -116,7 +122,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
             self.metric_logger.set_step(step)
             self.model.train()
 
-            loss = self.calculate_loss(batch)
+            loss = self.calculate_loss(batch).loss
 
             grad_norm = self.clip_gradient()
 
@@ -150,7 +156,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 text, _, _ = batch
                 text_fingerprint = create_batch_fingerprint(text)
                 eval_fingerprint.extend(text_fingerprint)
-                loss = self.calculate_loss(batch)
+                loss = self.calculate_loss(batch).loss
                 losses.append(loss.item())
                 self.metric_logger.flush_accumulated_metrics(self.step)
             avg_loss = torch.tensor(losses).mean()
@@ -168,17 +174,12 @@ class FinetuningTrainer(TrainerWithVocabSize):
         self.step = saved_step 
 
     @override
-    def calculate_loss(self, batch, is_dummy=False):
+    def calculate_loss(self, batch, is_dummy=False) -> LossResult:
         texts, labels, attention_masks = batch
-        
-        def _hack_for_python_garbage_collection(texts_chunk, labels_chunk, attention_masks_chunk):
-            logits = self.model(texts_chunk, attention_mask=attention_masks_chunk)
-           
-            loss = self.loss_fct(logits, labels_chunk)
-            loss = loss / self.gradient_accumulation_steps
-            return loss
 
         losses = []
+        correct = 0
+        total = 0
         texts_chunks = texts.chunk(self.gradient_accumulation_steps)
         labels_chunks = labels.chunk(self.gradient_accumulation_steps)
         attention_masks_chunks = attention_masks.chunk(self.gradient_accumulation_steps)
@@ -187,27 +188,40 @@ class FinetuningTrainer(TrainerWithVocabSize):
             texts_chunk = texts_chunk.to(self.device)
             labels_chunk = labels_chunk.to(self.device)
             attention_masks_chunk = attention_masks_chunk.to(self.device)
-            
-            loss = _hack_for_python_garbage_collection(texts_chunk, labels_chunk, attention_masks_chunk)
-            
+
+            def _hack_for_python_garbage_collection(texts_chunk, labels_chunk, attention_masks_chunk):
+                logits = self.model(texts_chunk, attention_mask=attention_masks_chunk)
+                loss = self.loss_fct(logits, labels_chunk)
+                loss = loss / self.gradient_accumulation_steps
+                preds = logits.detach().argmax(dim=-1)
+                chunk_correct = (preds == labels_chunk).sum().item()
+                chunk_total = labels_chunk.size(0)
+                return loss, chunk_correct, chunk_total
+
+            loss, chunk_correct, chunk_total = _hack_for_python_garbage_collection(
+                texts_chunk, labels_chunk, attention_masks_chunk
+            )
+
             if self.model.training:
                 loss.backward()
 
             losses.append(loss.item())
+            correct += chunk_correct
+            total += chunk_total
 
         if is_dummy:
             losses = [0.0] * len(losses)
+            correct = 0
+            total = 0
 
         avg_loss = torch.tensor(losses, device=self.device).sum()
         if torch.distributed.is_initialized():
             torch.distributed.all_reduce(avg_loss, op=torch.distributed.ReduceOp.SUM)
 
         world_size = float(os.environ.get("WORLD_SIZE", 1))
-        return avg_loss / world_size
+        return LossResult(loss=avg_loss / world_size, correct=correct, total=total)
 
     def _get_full_eval_iterator(self):
-        saved_step = self.step
-        self.metric_logger.set_step(None)
         full_eval_dataloader = DataLoader(
             FullIterDataset(self.eval_dataset),
             batch_size=self.eval_dataloader.batch_size,
@@ -215,8 +229,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
             pin_memory=self.eval_dataloader.pin_memory,
             num_workers=self.eval_dataloader.num_workers,
         )
-        eval_iter = iter(full_eval_dataloader)
-        return eval_iter
+        return iter(full_eval_dataloader)
 
 
     def full_eval(self):
@@ -224,6 +237,8 @@ class FinetuningTrainer(TrainerWithVocabSize):
         saved_step = self.step
         self.metric_logger.set_step(None)  # disables heavy logging
         losses = []
+        correct_count = 0
+        total_count = 0
         eval_fingerprint = []
         eval_iter = self._get_full_eval_iterator()
 
@@ -233,8 +248,10 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 text, _, _ = batch
                 text_fingerprint = create_batch_fingerprint(text)
                 eval_fingerprint.extend(text_fingerprint)
-                loss = self.calculate_loss(batch)
-                losses.append(loss.item())
+                result = self.calculate_loss(batch)
+                losses.append(result.loss.item())
+                correct_count += result.correct
+                total_count += result.total
                 self.metric_logger.flush_accumulated_metrics(self.step)
             avg_loss = torch.tensor(losses).mean()
             self.metric_logger.log("steps/eval/loss", self.step, avg_loss.item())
@@ -242,6 +259,13 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 self.metric_logger.log(
                     "tokens/eval/loss", self.processed_tokens, avg_loss.item()
                 )
+            if total_count > 0:
+                accuracy = correct_count / total_count
+                self.metric_logger.log("steps/eval/accuracy", self.step, accuracy)
+                if not isinstance(self.metric_logger, (WandbLogger)):
+                    self.metric_logger.log(
+                        "tokens/eval/accuracy", self.processed_tokens, accuracy
+                    )
 
         if self._should_log_eval_input:
             self.metric_logger.log(
@@ -258,11 +282,13 @@ class FinetuningTrainer(TrainerWithVocabSize):
         eval_iter = self._get_full_eval_iterator()
 
         losses = {split_value: [] for split_value in self.split_values}
+        correct_counts = {split_value: 0 for split_value in self.split_values}
+        total_counts = {split_value: 0 for split_value in self.split_values}
         n_splits = len(self.split_values)
 
         def make_dummy_batch():
             seq_len = self.eval_dataset.sequence_length
-            bsz = max(1, self.gradient_accumulation_steps)
+            bsz = self.eval_dataloader.batch_size
             dummy_text = torch.zeros((bsz, seq_len), dtype=torch.long)
             dummy_labels = torch.zeros((bsz,), dtype=torch.long)
             dummy_mask = torch.zeros((bsz, seq_len), dtype=torch.bool)
@@ -273,10 +299,11 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 text, _, _ = batch
                 text_fingerprint = create_batch_fingerprint(text)
                 eval_fingerprint.extend(text_fingerprint)
-            loss = self.calculate_loss(batch, is_dummy=is_dummy)
-            return loss
+            result = self.calculate_loss(batch, is_dummy=is_dummy)
+            return result
 
         with torch.no_grad():
+            batch_count = 0
             while True:
                 exhausted = torch.tensor([0.0], device=self.device)  # 0=ok, 1=done
                 try:
@@ -289,6 +316,10 @@ class FinetuningTrainer(TrainerWithVocabSize):
                     torch.distributed.all_reduce(exhausted, op=torch.distributed.ReduceOp.MAX)
 
                 if exhausted[0] > 0.0:
+                    break
+
+                batch_count += 1
+                if self.full_eval_batches is not None and batch_count > self.full_eval_batches:
                     break
 
                 has_data = torch.zeros(n_splits, device=self.device)
@@ -309,10 +340,12 @@ class FinetuningTrainer(TrainerWithVocabSize):
                         batch = make_dummy_batch()
 
                     split_value = self.split_values[i]
-                    loss = handle_split_batch(batch, is_dummy=is_dummy)
+                    result = handle_split_batch(batch, is_dummy=is_dummy)
 
                     if not is_dummy:
-                        losses[split_value].append(loss.item())
+                        losses[split_value].append(result.loss.item())
+                        correct_counts[split_value] += result.correct
+                        total_counts[split_value] += result.total
 
                 self.metric_logger.flush_accumulated_metrics(self.step)
 
@@ -325,6 +358,14 @@ class FinetuningTrainer(TrainerWithVocabSize):
                         self.metric_logger.log(
                             f"tokens/eval/loss_({min_value}-{split_value})", self.processed_tokens, avg_loss.item()
                         )
+                    total = total_counts[split_value]
+                    if total > 0:
+                        accuracy = correct_counts[split_value] / total
+                        self.metric_logger.log(f"steps/eval/accuracy_({min_value}-{split_value})", self.step, accuracy)
+                        if not isinstance(self.metric_logger, (WandbLogger)):
+                            self.metric_logger.log(
+                                f"tokens/eval/accuracy_({min_value}-{split_value})", self.processed_tokens, accuracy
+                            )
                 min_value = split_value
 
         if self._should_log_eval_input:
