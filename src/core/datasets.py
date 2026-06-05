@@ -110,6 +110,7 @@ class GenericDataset(IterableDataset):
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
         self.data_generator = None
+        self.current_epoch = 0
         self._load_dataset(path, split, seed, tokenize_fn, shuffle)
 
     def _load_hf_dataset(self, path, split):
@@ -176,6 +177,7 @@ class GenericDataset(IterableDataset):
     def get_infinite_sampler(self):
         epoch = 0
         while True:
+            self.current_epoch = epoch
             self.data_generator.set_epoch(epoch)
             for next_sample in self.data_generator:
                 yield next_sample
@@ -250,11 +252,7 @@ class MixtureOfDatasets(IterableDataset):
             except StopIteration:
                 dataset_iterators[chosen_index] = iter(self.datasets[chosen_index])
                 sample = next(dataset_iterators[chosen_index])
-            if self.rank == 0:
-                logger.debug(
-                    f"{self.split}, step {step}: Chose dataset {self.paths[chosen_index]}"
-                )
-            yield sample
+            yield sample, chosen_index
 
 
 def collate_wrapper(examples):
@@ -303,10 +301,20 @@ def get_mixture_of_datasets_dataloader(
         world_size_independent=world_size_independent,
     )
 
+    def _collate_mixture(examples):
+        samples, dataset_ids = zip(*examples)
+        batch_tensor = torch.from_numpy(np.array(samples))
+        dataset_ids_tensor = torch.tensor(dataset_ids, dtype=torch.int64)
+        return batch_tensor, {
+            "dataset_ids": dataset_ids_tensor,
+            "weights": [float(w) for w in dataset_weights],
+            "num_datasets": len(dataset_weights),
+        }
+
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size_per_device,
-        collate_fn=collate_fn,
+        collate_fn=_collate_mixture,
         pin_memory=True,
         num_workers=num_workers,
     )

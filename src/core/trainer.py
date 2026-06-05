@@ -104,11 +104,12 @@ class Trainer:
             self.metric_logger.set_step(step)
             self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
+            batch, batch_meta = self._split_batch_and_meta(batch)
             loss = self.calculate_loss(batch)
 
             grad_norm = self.clip_gradient()
 
-            self.log_metrics(loss, grad_norm)
+            self.log_metrics(loss, grad_norm, batch_meta)
 
             self.optimizer.step()
             self.optimizer.zero_grad()
@@ -199,6 +200,7 @@ class Trainer:
         with torch.no_grad():
             for _ in range(self.n_eval_steps):
                 batch = next(self.eval_iterator)
+                batch, _ = self._split_batch_and_meta(batch)
                 batch_fingerprint = create_batch_fingerprint(batch)
                 eval_fingerprint.extend(batch_fingerprint)
                 batch = batch.to(self.device)
@@ -226,7 +228,48 @@ class Trainer:
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
 
-    def log_metrics(self, loss, grad_norm):
+    def _split_batch_and_meta(self, batch):
+        if (
+            isinstance(batch, (tuple, list))
+            and len(batch) == 2
+            and isinstance(batch[1], dict)
+            and "dataset_ids" in batch[1]
+        ):
+            return batch[0], batch[1]
+        return batch, None
+
+    def _log_mixture_counts(self, batch_meta):
+        if not batch_meta:
+            return
+
+        dataset_ids = batch_meta.get("dataset_ids")
+        if dataset_ids is None:
+            return
+
+        if isinstance(dataset_ids, torch.Tensor):
+            dataset_ids_cpu = dataset_ids.detach().to("cpu")
+        else:
+            dataset_ids_cpu = torch.tensor(dataset_ids, dtype=torch.int64)
+
+        batch_size = int(dataset_ids_cpu.numel())
+        if batch_size == 0:
+            return
+
+        num_datasets = int(batch_meta.get("num_datasets", int(dataset_ids_cpu.max()) + 1))
+        counts = torch.bincount(dataset_ids_cpu, minlength=num_datasets).tolist()
+        weights = batch_meta.get("weights")
+
+        self.metric_logger.log("data/mixture_batch_size", batch_size)
+        for idx, count in enumerate(counts):
+            self.metric_logger.log(f"data/mixture_count_{idx}", int(count))
+            if weights is not None and idx < len(weights):
+                expected = float(weights[idx]) * batch_size
+                self.metric_logger.log(f"data/mixture_expected_{idx}", expected)
+                self.metric_logger.log(
+                    f"data/mixture_delta_{idx}", float(count) - expected
+                )
+
+    def log_metrics(self, loss, grad_norm, batch_meta=None):
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/loss", loss.item())
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
@@ -234,6 +277,7 @@ class Trainer:
 
         self.loss_averaged_100.log(self.metric_logger, loss.item())
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
+        self._log_mixture_counts(batch_meta)
 
         self.metric_logger.flush_accumulated_metrics()
 
@@ -300,3 +344,6 @@ class Trainer:
             logger.info(
                 f"Saved non-sharded Finalized PC model checkpoint in '{checkpoint_path}'"
             )
+
+
+

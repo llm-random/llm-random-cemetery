@@ -159,13 +159,14 @@ class TrainerDistillation(Trainer):
 
         return avg_total_loss / world_size
 
-    def log_metrics(self, loss, grad_norm):
+    def log_metrics(self, loss, grad_norm, batch_meta=None):
         """Override to add distillation-specific metrics"""
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         self.metric_logger.log("train/grad_norm", grad_norm.item())
 
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
+        self._log_mixture_counts(batch_meta)
 
         # Add distillation-specific metrics
         if hasattr(self, "_last_ce_loss"):
@@ -199,6 +200,7 @@ class TrainerDistillation(Trainer):
         with torch.no_grad():
             for _ in range(self.n_eval_steps):
                 batch = next(self.eval_iterator)
+                batch, _ = self._split_batch_and_meta(batch)
                 batch_fingerprint = create_batch_fingerprint(batch)
                 eval_fingerprint.extend(batch_fingerprint)
                 batch = batch.to(self.device)
