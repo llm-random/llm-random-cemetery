@@ -9,7 +9,7 @@ defaults:
 
 common:
   sequence_length: 1024
-  batch_size: 512
+  batch_size: 512 #add logging composition
   target_dmodel: 1344
   target_dff: 5376
 
