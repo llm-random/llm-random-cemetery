@@ -1,5 +1,6 @@
 import os
 import time
+from collections import defaultdict
 import torch
 import torch.nn.functional as F
 from attr import define
@@ -83,7 +84,7 @@ class TrainerDistillation(Trainer):
         # Scale by temperature^2 to normalize
         return kl_loss * (self.distillation_temperature**2)
 
-    def calculate_loss(self, batch):
+    def calculate_loss(self, batch, batch_meta=None):
         """Override to compute both CE loss and distillation loss"""
 
         def _compute_losses(input_ids, target_ids):
@@ -98,74 +99,176 @@ class TrainerDistillation(Trainer):
             # Move target_ids to same device as student_logits
             target_ids = target_ids.to(student_logits.device)
 
-            # Cross-entropy loss (standard supervised loss)
-            ce_loss = F.cross_entropy(
+            # Cross-entropy loss (standard supervised loss) as per-sample means
+            per_token_ce_loss = F.cross_entropy(
                 student_logits.flatten(0, -2),
                 target_ids.reshape(-1).long(),
-                reduction="mean",
+                reduction="none",
+            ).view(student_logits.shape[0], -1)
+            ce_loss_per_sample = per_token_ce_loss.mean(dim=1)
+            ce_loss = ce_loss_per_sample.mean()
+
+            # Distillation loss (KL divergence between student and teacher) as per-sample means
+            student_log_probs = F.log_softmax(
+                student_logits / self.distillation_temperature, dim=-1
+            )
+            teacher_probs = F.softmax(
+                teacher_logits / self.distillation_temperature, dim=-1
+            )
+            per_token_kl_loss = F.kl_div(
+                student_log_probs,
+                teacher_probs,
+                reduction="none",
+            ).sum(dim=-1)
+            distill_loss_per_sample = (
+                per_token_kl_loss.mean(dim=1) * (self.distillation_temperature**2)
+            )
+            distill_loss = distill_loss_per_sample.mean()
+
+            total_loss_per_sample = (
+                (1.0 - self.distillation_alpha) * ce_loss_per_sample
+                + self.distillation_alpha * distill_loss_per_sample
+            )
+            total_loss = total_loss_per_sample.mean()
+
+            scaled_total_loss = total_loss / self.gradient_accumulation_steps
+            scaled_ce_loss = ce_loss / self.gradient_accumulation_steps
+            scaled_distill_loss = distill_loss / self.gradient_accumulation_steps
+
+            return (
+                scaled_total_loss,
+                scaled_ce_loss,
+                scaled_distill_loss,
+                ce_loss_per_sample,
+                distill_loss_per_sample,
+                total_loss_per_sample,
             )
 
-            # Distillation loss (KL divergence between student and teacher)
-            distill_loss = self.compute_distillation_loss(
-                student_logits, teacher_logits
-            )
+        total_loss_sum = torch.tensor(0.0, device=self.device)
+        ce_loss_sum = torch.tensor(0.0, device=self.device)
+        distill_loss_sum = torch.tensor(0.0, device=self.device)
+        total_sample_count = torch.tensor(0.0, device=self.device)
+        ce_sample_count = torch.tensor(0.0, device=self.device)
+        distill_sample_count = torch.tensor(0.0, device=self.device)
 
-            # Combined loss
-            total_loss = (
-                1.0 - self.distillation_alpha
-            ) * ce_loss + self.distillation_alpha * distill_loss
+        per_dataset_total_losses = defaultdict(list)
+        per_dataset_ce_losses = defaultdict(list)
+        per_dataset_distill_losses = defaultdict(list)
 
-            total_loss = total_loss / self.gradient_accumulation_steps
-            ce_loss = ce_loss / self.gradient_accumulation_steps
-            distill_loss = distill_loss / self.gradient_accumulation_steps
+        dataset_ids = None
+        if batch_meta is not None and batch_meta.get("dataset_ids") is not None:
+            dataset_ids = batch_meta["dataset_ids"]
+            if isinstance(dataset_ids, torch.Tensor):
+                dataset_ids = dataset_ids.detach().to(torch.int64)
+            else:
+                dataset_ids = torch.tensor(dataset_ids, dtype=torch.int64)
 
-            return total_loss, ce_loss, distill_loss
+        batch_chunks = batch.chunk(self.gradient_accumulation_steps)
+        if dataset_ids is not None:
+            dataset_id_chunks = dataset_ids.chunk(self.gradient_accumulation_steps)
+        else:
+            dataset_id_chunks = [None] * len(batch_chunks)
 
-        total_losses = []
-        ce_losses = []
-        distill_losses = []
-
-        for batch_chunk in batch.chunk(self.gradient_accumulation_steps):
+        for batch_chunk, dataset_id_chunk in zip(batch_chunks, dataset_id_chunks):
             input_ids, target_ids = self._preprocess_input(batch_chunk)
             input_ids = input_ids.to(self.device)
 
             if self.model.training:
                 self._update_processed_tokens(input_ids)
 
-            total_loss, ce_loss, distill_loss = _compute_losses(input_ids, target_ids)
+            (
+                total_loss,
+                ce_loss,
+                distill_loss,
+                ce_loss_per_sample,
+                distill_loss_per_sample,
+                total_loss_per_sample,
+            ) = _compute_losses(input_ids, target_ids)
 
             if self.model.training:
                 total_loss.backward()
 
-            total_losses.append(total_loss.item())
-            ce_losses.append(ce_loss.item())
-            distill_losses.append(distill_loss.item())
+            total_loss_sum += total_loss_per_sample.detach().sum()
+            ce_loss_sum += ce_loss_per_sample.detach().sum()
+            distill_loss_sum += distill_loss_per_sample.detach().sum()
+            total_sample_count += torch.tensor(
+                total_loss_per_sample.numel(), device=self.device, dtype=torch.float32
+            )
+            ce_sample_count += torch.tensor(
+                ce_loss_per_sample.numel(), device=self.device, dtype=torch.float32
+            )
+            distill_sample_count += torch.tensor(
+                distill_loss_per_sample.numel(), device=self.device, dtype=torch.float32
+            )
+
+            if dataset_id_chunk is not None:
+                dataset_id_list = dataset_id_chunk.detach().to("cpu").tolist()
+                ce_sample_values = ce_loss_per_sample.detach().to("cpu").tolist()
+                distill_sample_values = distill_loss_per_sample.detach().to("cpu").tolist()
+                total_sample_values = total_loss_per_sample.detach().to("cpu").tolist()
+
+                for dataset_id in sorted(set(int(x) for x in dataset_id_list)):
+                    sample_indices = [
+                        i
+                        for i, current_id in enumerate(dataset_id_list)
+                        if int(current_id) == dataset_id
+                    ]
+                    if not sample_indices:
+                        continue
+
+                    per_dataset_total_losses[dataset_id].extend(
+                        [total_sample_values[i] for i in sample_indices]
+                    )
+                    per_dataset_ce_losses[dataset_id].extend(
+                        [ce_sample_values[i] for i in sample_indices]
+                    )
+                    per_dataset_distill_losses[dataset_id].extend(
+                        [distill_sample_values[i] for i in sample_indices]
+                    )
 
         # Average and synchronize across devices
-        avg_total_loss = torch.tensor(total_losses, device=self.device).sum()
-        avg_ce_loss = torch.tensor(ce_losses, device=self.device).sum()
-        avg_distill_loss = torch.tensor(distill_losses, device=self.device).sum()
+        avg_total_loss = total_loss_sum
+        avg_ce_loss = ce_loss_sum
+        avg_distill_loss = distill_loss_sum
+        avg_total_count = total_sample_count
+        avg_ce_count = ce_sample_count
+        avg_distill_count = distill_sample_count
 
         if dist.is_initialized():
             dist.all_reduce(avg_total_loss, op=dist.ReduceOp.SUM)
             dist.all_reduce(avg_ce_loss, op=dist.ReduceOp.SUM)
             dist.all_reduce(avg_distill_loss, op=dist.ReduceOp.SUM)
-
-        world_size = float(os.environ["WORLD_SIZE"])
+            dist.all_reduce(avg_total_count, op=dist.ReduceOp.SUM)
+            dist.all_reduce(avg_ce_count, op=dist.ReduceOp.SUM)
+            dist.all_reduce(avg_distill_count, op=dist.ReduceOp.SUM)
 
         # Store individual losses for logging
-        self._last_ce_loss = avg_ce_loss / world_size
-        self._last_distill_loss = avg_distill_loss / world_size
+        self._last_ce_loss = avg_ce_loss / avg_ce_count
+        self._last_distill_loss = avg_distill_loss / avg_distill_count
+        self._last_total_loss = avg_total_loss / avg_total_count
+        self._last_per_dataset_total_losses = {
+            int(dataset_id): float(torch.tensor(values).mean().item())
+            for dataset_id, values in per_dataset_total_losses.items()
+        }
+        self._last_per_dataset_ce_losses = {
+            int(dataset_id): float(torch.tensor(values).mean().item())
+            for dataset_id, values in per_dataset_ce_losses.items()
+        }
+        self._last_per_dataset_distill_losses = {
+            int(dataset_id): float(torch.tensor(values).mean().item())
+            for dataset_id, values in per_dataset_distill_losses.items()
+        }
 
-        return avg_total_loss / world_size
+        return self._last_total_loss
 
-    def log_metrics(self, loss, grad_norm):
+    def log_metrics(self, loss, grad_norm, batch_meta=None):
         """Override to add distillation-specific metrics"""
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         self.metric_logger.log("train/grad_norm", grad_norm.item())
 
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
+        self._log_mixture_counts(batch_meta)
 
         # Add distillation-specific metrics
         if hasattr(self, "_last_ce_loss"):
@@ -173,6 +276,40 @@ class TrainerDistillation(Trainer):
             self.metric_logger.log("train/loss", self._last_ce_loss.item())
             self.metric_logger.log("train/total_loss", loss.item())
             self.metric_logger.log("train/distill_loss", self._last_distill_loss.item())
+
+            dataset_ids = []
+            if batch_meta is not None and batch_meta.get("dataset_ids") is not None:
+                if isinstance(batch_meta["dataset_ids"], torch.Tensor):
+                    dataset_ids = sorted(set(batch_meta["dataset_ids"].detach().to("cpu").tolist()))
+                else:
+                    dataset_ids = sorted(set(int(x) for x in batch_meta["dataset_ids"]))
+
+            for dataset_id in dataset_ids:
+                if dataset_id in getattr(self, "_last_per_dataset_ce_losses", {}):
+                    self.metric_logger.log(
+                        f"train/loss_dataset_{dataset_id}",
+                        self._last_per_dataset_ce_losses[dataset_id],
+                    )
+                    self.metric_logger.log(
+                        f"train/total_loss_dataset_{dataset_id}",
+                        self._last_per_dataset_total_losses[dataset_id],
+                    )
+                    self.metric_logger.log(
+                        f"train/distill_loss_dataset_{dataset_id}",
+                        self._last_per_dataset_distill_losses[dataset_id],
+                    )
+                    self._log_rolling_metric(
+                        f"train/loss_dataset_{dataset_id}",
+                        self._last_per_dataset_ce_losses[dataset_id],
+                    )
+                    self._log_rolling_metric(
+                        f"train/total_loss_dataset_{dataset_id}",
+                        self._last_per_dataset_total_losses[dataset_id],
+                    )
+                    self._log_rolling_metric(
+                        f"train/distill_loss_dataset_{dataset_id}",
+                        self._last_per_dataset_distill_losses[dataset_id],
+                    )
 
             self.loss_averaged_100.log(self.metric_logger, self._last_ce_loss.item())
             self.total_loss_averaged_100.log(self.metric_logger, loss.item())
@@ -195,20 +332,28 @@ class TrainerDistillation(Trainer):
         ce_losses = []
         distill_losses = []
         eval_fingerprint = []
+        per_dataset_ce_losses = defaultdict(list)
+        per_dataset_distill_losses = defaultdict(list)
 
         with torch.no_grad():
             for _ in range(self.n_eval_steps):
                 batch = next(self.eval_iterator)
+                batch, batch_meta = self._split_batch_and_meta(batch)
                 batch_fingerprint = create_batch_fingerprint(batch)
                 eval_fingerprint.extend(batch_fingerprint)
                 batch = batch.to(self.device)
 
-                loss = self.calculate_loss(batch)
+                loss = self.calculate_loss(batch, batch_meta=batch_meta)
                 losses.append(loss.item())
 
                 if hasattr(self, "_last_ce_loss"):
                     ce_losses.append(self._last_ce_loss.item())
                     distill_losses.append(self._last_distill_loss.item())
+
+                for dataset_id, dataset_loss in getattr(self, "_last_per_dataset_ce_losses", {}).items():
+                    per_dataset_ce_losses[dataset_id].append(dataset_loss)
+                for dataset_id, dataset_loss in getattr(self, "_last_per_dataset_distill_losses", {}).items():
+                    per_dataset_distill_losses[dataset_id].append(dataset_loss)
 
                 self.metric_logger.flush_accumulated_metrics()
 
@@ -221,6 +366,16 @@ class TrainerDistillation(Trainer):
                 self.metric_logger.log("eval/loss", avg_ce_loss.item())
                 self.metric_logger.log("eval/distill_loss", avg_distill_loss.item())
                 self.metric_logger.log("eval/total_loss", avg_loss.item())
+                for dataset_id, dataset_values in sorted(per_dataset_ce_losses.items()):
+                    self.metric_logger.log(
+                        f"eval/loss_dataset_{dataset_id}",
+                        float(torch.tensor(dataset_values).mean().item()),
+                    )
+                for dataset_id, dataset_values in sorted(per_dataset_distill_losses.items()):
+                    self.metric_logger.log(
+                        f"eval/distill_loss_dataset_{dataset_id}",
+                        float(torch.tensor(dataset_values).mean().item()),
+                    )
             else:
                 self.metric_logger.log("eval/loss", avg_loss.item())
 
