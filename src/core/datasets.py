@@ -14,11 +14,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def take_circular(iterable, start, stop):
-    cycle = itertools.cycle(iterable)
-    return itertools.islice(cycle, start, stop)
-
-
 def get_tokenize_fn(model_name: str):
     """
     Factory function to create a tokenize function for a given model.
@@ -89,7 +84,7 @@ class GenericDataset(IterableDataset):
 
     def __init__(
         self,
-        sequence_length,
+        sequence_length: int,
         tokenize_fn: Callable,
         path: Optional[str] = None,
         split: Optional[str] = None,
@@ -101,7 +96,7 @@ class GenericDataset(IterableDataset):
         self.world_size = int(os.environ.get("WORLD_SIZE"))
         self.rank = int(os.environ.get("RANK"))
         self.rng = random.Random(seed)
-        self.sequence_length = sequence_length
+        self.sequence_length = int(sequence_length)
         self.tokenize_fn = tokenize_fn
         self.path = path
         self.split = split
@@ -110,16 +105,37 @@ class GenericDataset(IterableDataset):
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
         self.data_generator = None
+        self.current_epoch = 0
         self._load_dataset(path, split, seed, tokenize_fn, shuffle)
 
-    def _load_hf_dataset(self, path, split):
+    def _load_hf_dataset(self, path, split, seed):
         logger.debug(f"Loading dataset from path '{path}'")
         hf_dataset = load_from_disk(path)
+        if split is not None:
+            if hasattr(hf_dataset, "keys") and split in hf_dataset:
+                hf_dataset = hf_dataset[split]
+            elif hasattr(hf_dataset, "train_test_split"):
+                split_name = split.lower()
+                split_map = hf_dataset.train_test_split(
+                    test_size=0.01,
+                    seed=seed,
+                    shuffle=True,
+                )
+                if split_name in {"validation", "eval", "test"}:
+                    hf_dataset = split_map["test"]
+                elif split_name == "train":
+                    hf_dataset = split_map["train"]
+                else:
+                    raise KeyError(
+                        f"Split '{split}' not found in dataset loaded from '{path}', and no fallback mapping is defined."
+                    )
+            else:
+                raise KeyError(f"Split '{split}' not found in dataset loaded from '{path}'")
         hf_dataset = hf_dataset.to_iterable_dataset(num_shards=self.NUM_SHARDS)
         return hf_dataset
 
     def _load_dataset(self, path, split, seed, tokenize_fn, shuffle: bool):
-        hf_dataset = self._load_hf_dataset(path, split)
+        hf_dataset = self._load_hf_dataset(path, split, seed)
 
         if not self.world_size_independent:
             hf_dataset = split_dataset_by_node(
@@ -160,7 +176,11 @@ class GenericDataset(IterableDataset):
                 ) > self.sequence_length:
                     sample_start = self.rng.randint(0, len(buffer) - 1)
                     sample_end = sample_start + self.sequence_length
-                    input_ids = list(take_circular(buffer, sample_start, sample_end))
+                    if sample_end <= len(buffer):
+                        input_ids = buffer[sample_start:sample_end]
+                    else:
+                        overflow = sample_end - len(buffer)
+                        input_ids = buffer[sample_start:] + buffer[:overflow]
                     yield input_ids
                     buffer, document_lengths = [], []
 
@@ -176,6 +196,7 @@ class GenericDataset(IterableDataset):
     def get_infinite_sampler(self):
         epoch = 0
         while True:
+            self.current_epoch = epoch
             self.data_generator.set_epoch(epoch)
             for next_sample in self.data_generator:
                 yield next_sample
@@ -190,8 +211,8 @@ class MixtureOfDatasets(IterableDataset):
         self,
         sequence_length,
         tokenize_fn: Callable,
-        paths: Optional[List[str]] = None,
-        weights: Optional[List[float]] = None,
+        paths=None,
+        weights=None,
         split: Optional[str] = None,
         seed: Optional[int] = None,
         use_new_sampling_method: bool = True,
@@ -201,7 +222,7 @@ class MixtureOfDatasets(IterableDataset):
         self.world_size = int(os.environ.get("WORLD_SIZE"))
         self.rank = int(os.environ.get("RANK"))
         self.rng = random.Random(seed)
-        self.sequence_length = sequence_length
+        self.sequence_length = int(sequence_length)
         self.tokenize_fn = tokenize_fn
         self.paths = paths
         self.weights = weights
@@ -250,11 +271,7 @@ class MixtureOfDatasets(IterableDataset):
             except StopIteration:
                 dataset_iterators[chosen_index] = iter(self.datasets[chosen_index])
                 sample = next(dataset_iterators[chosen_index])
-            if self.rank == 0:
-                logger.debug(
-                    f"{self.split}, step {step}: Chose dataset {self.paths[chosen_index]}"
-                )
-            yield sample
+            yield sample, chosen_index
 
 
 def collate_wrapper(examples):
@@ -303,10 +320,20 @@ def get_mixture_of_datasets_dataloader(
         world_size_independent=world_size_independent,
     )
 
+    def _collate_mixture(examples):
+        samples, dataset_ids = zip(*examples)
+        batch_tensor = torch.from_numpy(np.array(samples))
+        dataset_ids_tensor = torch.tensor(dataset_ids, dtype=torch.int64)
+        return batch_tensor, {
+            "dataset_ids": dataset_ids_tensor,
+            "weights": [float(w) for w in dataset_weights],
+            "num_datasets": len(dataset_weights),
+        }
+
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size_per_device,
-        collate_fn=collate_fn,
+        collate_fn=_collate_mixture,
         pin_memory=True,
         num_workers=num_workers,
     )

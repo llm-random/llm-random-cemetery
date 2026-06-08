@@ -1,17 +1,17 @@
 defaults:
   - ../../_cluster@_here_: entropy
-  - ../../_model/smollm@_here_: def_1700
-  - ../../_trainer@_here_: llama
-  - ../../_dataset@_here_: smollm_corpus
+  - ../../_model/smollm@_here_: projected_1700
+  - ../../_trainer@_here_: smollm_1700_distillation
+  - ../../_dataset@_here_: fineweb
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
   - _self_
 
 common:
   sequence_length: 1024
-  batch_size: 512 #add logging composition
-  target_dmodel: 1344
-  target_dff: 5376
+  batch_size: 512
+  dmodel: 448
+  dff: 1728
 
 trainer:
   gradient_accumulation_steps: 8
@@ -23,10 +23,6 @@ trainer:
 
   ^learning_rate:
     - 11
-    - 12
-    - 13
-    - 14
-    - 15
 
   scheduler:
     warmup_steps: 40
@@ -42,37 +38,35 @@ trainer:
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt
 
+  eval_interval: 1000000
+  eval_dataloader: None
   train_dataloader:
-    tokenize_fn:
-      _target_: src.core.datasets.get_tokenize_fn
-      model_name: HuggingFaceTB/SmolLM-1.7B
-
-  eval_dataloader:
+    seed: 1000
     tokenize_fn:
       _target_: src.core.datasets.get_tokenize_fn
       model_name: HuggingFaceTB/SmolLM-1.7B
 
 infrastructure:
   metric_logger:
-    name: SLLM_1700_prune_50_lr_grid
+    name: SLLM_1700_fineweb_comp_distill_90_lr_grid
     tags:
       - nano
       - pc
       - smollm_1700
-      - hard_pruning
-      - no_distillation
-      - 50p
+      - projected_compression
+      - distillation
+      - 90p
       - 2B_tokens
       - lr_grid
-
+      - fineweb
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
     time: "0-24:00:00"
 
 apply_functions:
-  - _target_: src.projected_compression.pruning.prune
+  - _target_: src.projected_compression.compression.init_compression
     _partial_: true
     dimensions_importances_path: /home/m1kush/llmrandom_cemetery/SmolLM_1700_importances_2026-03-28_15-44-28/None/144636/0/minitron_dimensions_importances.pt # CHANGE
-    target_dmodel: ${common.target_dmodel}
-    target_dff: ${common.target_dff}
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}

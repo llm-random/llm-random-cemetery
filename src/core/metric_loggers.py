@@ -1,12 +1,11 @@
 import os
 import statistics
+from collections import deque
 from omegaconf import OmegaConf
 import wandb
 import torch
 from typing import Optional
 from abc import ABC, abstractmethod
-from abc import ABC, abstractmethod
-import torch.distributed as dist
 import logging
 
 logger = logging.getLogger(__name__)
@@ -94,11 +93,16 @@ class WandbLogger(MetricLogger):
         self._pending = {}
 
         if self.should_log and self.run is not None:
+            wandb.define_metric("train/*", step_metric="step")
+            wandb.define_metric("eval/*", step_metric="step")
+            wandb.define_metric("data/*", step_metric="step")
+            wandb.define_metric("100/*", step_metric="step")
             wandb.define_metric("steps/*", step_metric="step")
             wandb.define_metric("tokens/*", step_metric="token_count")
 
     def log(self, name, value):
         if self.should_log:
+            self._pending[name] = value
             self._pending[f"steps/{name}"] = value
             self._pending[f"tokens/{name}"] = value
 
@@ -200,13 +204,20 @@ class AveMetric:
     def __init__(self, average_tail_len, name):
         self.name = name
         self.tail_len = average_tail_len
-        self.metric_stack = []
+        self.metric_stack = deque(maxlen=average_tail_len)
 
     def log(self, mlogger: MetricLogger, metric_val):
         self.metric_stack.append(metric_val)
-        if len(self.metric_stack) >= self.tail_len:
+        if len(self.metric_stack) == self.tail_len:
             mlogger.log(self.name, statistics.mean(self.metric_stack))
-            self.metric_stack = []
+
+
+class RollingAveMetric:
+    def __init__(self, window_len, name):
+        self._delegate = AveMetric(window_len, name)
+
+    def log(self, mlogger: MetricLogger, metric_val):
+        self._delegate.log(mlogger, metric_val)
 
 
 class AveDiffMetric(AveMetric):

@@ -23,9 +23,6 @@ trainer:
 
   ^learning_rate:
     - 11
-    - 12
-    - 13
-    - 14
 
   scheduler:
     warmup_steps: 40
@@ -41,10 +38,17 @@ trainer:
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt
 
-  eval_interval: 1000000
-  eval_dataloader: None
+  eval_interval: 100
+  eval_dataloader:
+    ^seed:
+      - 42
   train_dataloader:
-    seed: 1000
+    ^seed:
+      - 1000
+#      - 1001
+#      - 1002
+#      - 1003
+#      - 1004
     tokenize_fn:
       _target_: src.core.datasets.get_tokenize_fn
       model_name: HuggingFaceTB/SmolLM-1.7B
