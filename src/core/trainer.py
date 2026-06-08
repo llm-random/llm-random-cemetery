@@ -1,5 +1,6 @@
 import os
 import time
+from collections import defaultdict
 from attr import define
 import torch
 import torch.nn.functional as F
@@ -19,7 +20,7 @@ from src.core.checkpointing import (
     save_training_state,
     step_checkpoint_path,
 )
-from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger
+from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger, RollingAveMetric
 from src.core.utils import cast_state_dict_to_tensors, create_batch_fingerprint
 
 logger = logging.getLogger(__name__)
@@ -49,6 +50,7 @@ class Trainer:
         self.start_step = self.training_state["next_step"]
         self.device = next(self.model.parameters()).device
         self.loss_interval_100 = 0.0
+        self._rolling_metric_averagers = {}
 
         if self.eval_dataloader is not None and hasattr(
             self.eval_dataloader, "__iter__"
@@ -66,6 +68,13 @@ class Trainer:
 
         self.loss_averaged_100 = AveMetric(100, "100/train/loss")
         self.time_diff_averaged_100 = AveDiffMetric(100, "100/time", time.time())
+
+    def _log_rolling_metric(self, metric_name, metric_value):
+        averager = self._rolling_metric_averagers.get(metric_name)
+        if averager is None:
+            averager = RollingAveMetric(100, f"100/{metric_name}")
+            self._rolling_metric_averagers[metric_name] = averager
+        averager.log(self.metric_logger, metric_value)
 
     @property
     def _should_evaluate(self) -> bool:
@@ -104,11 +113,12 @@ class Trainer:
             self.metric_logger.set_step(step)
             self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
-            loss = self.calculate_loss(batch)
+            batch, batch_meta = self._split_batch_and_meta(batch)
+            loss = self.calculate_loss(batch, batch_meta=batch_meta)
 
             grad_norm = self.clip_gradient()
 
-            self.log_metrics(loss, grad_norm)
+            self.log_metrics(loss, grad_norm, batch_meta)
 
             self.optimizer.step()
             self.optimizer.zero_grad()
@@ -154,7 +164,7 @@ class Trainer:
 
         return input_ids, target_ids
 
-    def calculate_loss(self, batch):
+    def calculate_loss(self, batch, batch_meta=None):
         def _hack_for_python_garbage_collection(input_ids, target_ids):
             """we want to have no reference to model output while backpropagating to allow torch to free memory,
             so we wrap loss calculation in a function"""
@@ -163,32 +173,83 @@ class Trainer:
             # Tensors should be on the same device for loss calculation #TODO check
             target_ids = target_ids.to(predicted_ids.device)
 
-            mask_loss = F.cross_entropy(
+            per_token_loss = F.cross_entropy(
                 predicted_ids.flatten(0, -2),
                 target_ids.reshape(-1).long(),
                 reduction="none",
             )
-            loss = mask_loss.mean() / self.gradient_accumulation_steps
-            return loss
+            per_sample_loss = per_token_loss.view(predicted_ids.shape[0], -1).mean(dim=1)
+            loss = per_sample_loss.mean() / self.gradient_accumulation_steps
+            return loss, per_sample_loss
 
-        losses = []
-        for batch_chunk in batch.chunk(self.gradient_accumulation_steps):
+        total_loss_sum = torch.tensor(0.0, device=self.device)
+        total_sample_count = torch.tensor(0.0, device=self.device)
+
+        dataset_ids = None
+        if batch_meta is not None and batch_meta.get("dataset_ids") is not None:
+            dataset_ids = batch_meta["dataset_ids"]
+            if isinstance(dataset_ids, torch.Tensor):
+                dataset_ids = dataset_ids.detach().to(torch.int64)
+            else:
+                dataset_ids = torch.tensor(dataset_ids, dtype=torch.int64)
+
+        if dataset_ids is not None:
+            num_datasets = int(batch_meta.get("num_datasets", int(dataset_ids.max().item()) + 1))
+            dataset_loss_sum = torch.zeros(num_datasets, device=self.device)
+            dataset_sample_count = torch.zeros(num_datasets, device=self.device)
+        else:
+            num_datasets = None
+            dataset_loss_sum = None
+            dataset_sample_count = None
+
+        batch_chunks = batch.chunk(self.gradient_accumulation_steps)
+        if dataset_ids is not None:
+            dataset_id_chunks = dataset_ids.chunk(self.gradient_accumulation_steps)
+        else:
+            dataset_id_chunks = [None] * len(batch_chunks)
+
+        for batch_chunk, dataset_id_chunk in zip(batch_chunks, dataset_id_chunks):
             input_ids, target_ids = self._preprocess_input(batch_chunk)
             input_ids = input_ids.to(self.device)
             if self.model.training:
                 self._update_processed_tokens(input_ids)
 
-            loss = _hack_for_python_garbage_collection(input_ids, target_ids)
+            loss, per_sample_loss = _hack_for_python_garbage_collection(input_ids, target_ids)
             if self.model.training:
                 loss.backward()
-            losses.append(loss.item())
 
-        # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
-        avg_loss = torch.tensor(losses, device=loss.device).sum()
+            total_loss_sum += per_sample_loss.detach().sum()
+            total_sample_count += per_sample_loss.new_tensor(float(per_sample_loss.numel()))
+
+            if dataset_id_chunk is not None:
+                dataset_id_chunk = dataset_id_chunk.detach().to(device=per_sample_loss.device, dtype=torch.int64)
+                per_sample_loss_detached = per_sample_loss.detach()
+                for dataset_id in range(num_datasets):
+                    sample_mask = dataset_id_chunk == dataset_id
+                    if sample_mask.any():
+                        dataset_loss_sum[dataset_id] += per_sample_loss_detached[sample_mask].sum()
+                        dataset_sample_count[dataset_id] += sample_mask.sum().to(
+                            device=per_sample_loss.device, dtype=torch.float32
+                        )
+
+        avg_loss = total_loss_sum
         if dist.is_initialized():
             dist.all_reduce(avg_loss, op=dist.ReduceOp.SUM)
+            dist.all_reduce(total_sample_count, op=dist.ReduceOp.SUM)
+            if dataset_loss_sum is not None:
+                dist.all_reduce(dataset_loss_sum, op=dist.ReduceOp.SUM)
+                dist.all_reduce(dataset_sample_count, op=dist.ReduceOp.SUM)
 
-        return avg_loss / float(os.environ["WORLD_SIZE"])
+        self._last_loss = avg_loss / total_sample_count
+        self._last_per_dataset_losses = {}
+        if dataset_loss_sum is not None:
+            for dataset_id in range(num_datasets):
+                if dataset_sample_count[dataset_id] > 0:
+                    self._last_per_dataset_losses[dataset_id] = float(
+                        (dataset_loss_sum[dataset_id] / dataset_sample_count[dataset_id]).item()
+                    )
+
+        return self._last_loss
 
     def eval(self):
         self.model.eval()
@@ -196,17 +257,26 @@ class Trainer:
         self.metric_logger.set_step(None)  # disables heavy logging
         losses = []
         eval_fingerprint = []
+        per_dataset_losses = defaultdict(list)
         with torch.no_grad():
             for _ in range(self.n_eval_steps):
                 batch = next(self.eval_iterator)
+                batch, batch_meta = self._split_batch_and_meta(batch)
                 batch_fingerprint = create_batch_fingerprint(batch)
                 eval_fingerprint.extend(batch_fingerprint)
                 batch = batch.to(self.device)
-                loss = self.calculate_loss(batch)
+                loss = self.calculate_loss(batch, batch_meta=batch_meta)
                 losses.append(loss.item())
+                for dataset_id, dataset_loss in getattr(self, "_last_per_dataset_losses", {}).items():
+                    per_dataset_losses[dataset_id].append(dataset_loss)
                 self.metric_logger.flush_accumulated_metrics()
             avg_loss = torch.tensor(losses).mean()
             self.metric_logger.log("eval/loss", avg_loss.item())
+            for dataset_id, dataset_values in sorted(per_dataset_losses.items()):
+                self.metric_logger.log(
+                    f"eval/loss_dataset_{dataset_id}",
+                    float(torch.tensor(dataset_values).mean().item()),
+                )
 
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
@@ -226,7 +296,48 @@ class Trainer:
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
 
-    def log_metrics(self, loss, grad_norm):
+    def _split_batch_and_meta(self, batch):
+        if (
+            isinstance(batch, (tuple, list))
+            and len(batch) == 2
+            and isinstance(batch[1], dict)
+            and "dataset_ids" in batch[1]
+        ):
+            return batch[0], batch[1]
+        return batch, None
+
+    def _log_mixture_counts(self, batch_meta):
+        if not batch_meta:
+            return
+
+        dataset_ids = batch_meta.get("dataset_ids")
+        if dataset_ids is None:
+            return
+
+        if isinstance(dataset_ids, torch.Tensor):
+            dataset_ids_cpu = dataset_ids.detach().to("cpu")
+        else:
+            dataset_ids_cpu = torch.tensor(dataset_ids, dtype=torch.int64)
+
+        batch_size = int(dataset_ids_cpu.numel())
+        if batch_size == 0:
+            return
+
+        num_datasets = int(batch_meta.get("num_datasets", int(dataset_ids_cpu.max()) + 1))
+        counts = torch.bincount(dataset_ids_cpu, minlength=num_datasets).tolist()
+        weights = batch_meta.get("weights")
+
+        self.metric_logger.log("data/mixture_batch_size", batch_size)
+        for idx, count in enumerate(counts):
+            self.metric_logger.log(f"data/mixture_count_{idx}", int(count))
+            if weights is not None and idx < len(weights):
+                expected = float(weights[idx]) * batch_size
+                self.metric_logger.log(f"data/mixture_expected_{idx}", expected)
+                self.metric_logger.log(
+                    f"data/mixture_delta_{idx}", float(count) - expected
+                )
+
+    def log_metrics(self, loss, grad_norm, batch_meta=None):
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/loss", loss.item())
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
@@ -234,6 +345,12 @@ class Trainer:
 
         self.loss_averaged_100.log(self.metric_logger, loss.item())
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
+        self._log_mixture_counts(batch_meta)
+
+        for dataset_id, dataset_loss in sorted(getattr(self, "_last_per_dataset_losses", {}).items()):
+            metric_name = f"train/loss_dataset_{dataset_id}"
+            self.metric_logger.log(metric_name, dataset_loss)
+            self._log_rolling_metric(metric_name, dataset_loss)
 
         self.metric_logger.flush_accumulated_metrics()
 
@@ -300,3 +417,6 @@ class Trainer:
             logger.info(
                 f"Saved non-sharded Finalized PC model checkpoint in '{checkpoint_path}'"
             )
+
+
+
