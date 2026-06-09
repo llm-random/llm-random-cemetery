@@ -14,11 +14,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def take_circular(iterable, start, stop):
-    cycle = itertools.cycle(iterable)
-    return itertools.islice(cycle, start, stop)
-
-
 def get_tokenize_fn(model_name: str):
     """
     Factory function to create a tokenize function for a given model.
@@ -89,7 +84,7 @@ class GenericDataset(IterableDataset):
 
     def __init__(
         self,
-        sequence_length,
+        sequence_length: int,
         tokenize_fn: Callable,
         path: Optional[str] = None,
         split: Optional[str] = None,
@@ -110,16 +105,37 @@ class GenericDataset(IterableDataset):
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
         self.data_generator = None
+        self.current_epoch = 0
         self._load_dataset(path, split, seed, tokenize_fn, shuffle)
 
-    def _load_hf_dataset(self, path, split):
+    def _load_hf_dataset(self, path, split, seed):
         logger.debug(f"Loading dataset from path '{path}'")
         hf_dataset = load_from_disk(path)
+        if split is not None:
+            if hasattr(hf_dataset, "keys") and split in hf_dataset:
+                hf_dataset = hf_dataset[split]
+            elif hasattr(hf_dataset, "train_test_split"):
+                split_name = split.lower()
+                split_map = hf_dataset.train_test_split(
+                    test_size=0.01,
+                    seed=seed,
+                    shuffle=True,
+                )
+                if split_name in {"validation", "eval", "test"}:
+                    hf_dataset = split_map["test"]
+                elif split_name == "train":
+                    hf_dataset = split_map["train"]
+                else:
+                    raise KeyError(
+                        f"Split '{split}' not found in dataset loaded from '{path}', and no fallback mapping is defined."
+                    )
+            else:
+                raise KeyError(f"Split '{split}' not found in dataset loaded from '{path}'")
         hf_dataset = hf_dataset.to_iterable_dataset(num_shards=self.NUM_SHARDS)
         return hf_dataset
 
     def _load_dataset(self, path, split, seed, tokenize_fn, shuffle: bool):
-        hf_dataset = self._load_hf_dataset(path, split)
+        hf_dataset = self._load_hf_dataset(path, split, seed)
 
         if not self.world_size_independent:
             hf_dataset = split_dataset_by_node(
