@@ -14,11 +14,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def take_circular(iterable, start, stop):
-    cycle = itertools.cycle(iterable)
-    return itertools.islice(cycle, start, stop)
-
-
 def get_tokenize_fn(model_name: str):
     """
     Factory function to create a tokenize function for a given model.
@@ -89,7 +84,7 @@ class GenericDataset(IterableDataset):
 
     def __init__(
         self,
-        sequence_length,
+        sequence_length: int,
         tokenize_fn: Callable,
         path: Optional[str] = None,
         split: Optional[str] = None,
