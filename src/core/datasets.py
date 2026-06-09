@@ -14,11 +14,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def take_circular(iterable, start, stop):
-    cycle = itertools.cycle(iterable)
-    return itertools.islice(cycle, start, stop)
-
-
 def get_tokenize_fn(model_name: str):
     """
     Factory function to create a tokenize function for a given model.
@@ -89,7 +84,7 @@ class GenericDataset(IterableDataset):
 
     def __init__(
         self,
-        sequence_length,
+        sequence_length: int,
         tokenize_fn: Callable,
         path: Optional[str] = None,
         split: Optional[str] = None,
@@ -97,6 +92,7 @@ class GenericDataset(IterableDataset):
         use_new_sampling_method: bool = True,
         shuffle: bool = True,
         world_size_independent: bool = False,
+        eval_fraction: Optional[float] = None,
     ):
         self.world_size = int(os.environ.get("WORLD_SIZE"))
         self.rank = int(os.environ.get("RANK"))
@@ -109,12 +105,20 @@ class GenericDataset(IterableDataset):
         self.use_new_sampling_method = use_new_sampling_method
         self.shuffle = shuffle
         self.world_size_independent = world_size_independent
+        self.eval_fraction = eval_fraction
         self.data_generator = None
         self._load_dataset(path, split, seed, tokenize_fn, shuffle)
 
     def _load_hf_dataset(self, path, split):
         logger.debug(f"Loading dataset from path '{path}'")
         hf_dataset = load_from_disk(path)
+        if self.eval_fraction is not None:
+            n = len(hf_dataset)
+            eval_size = int(self.eval_fraction * n)
+            if split == "train":
+                hf_dataset = hf_dataset.select(range(n - eval_size))
+            else:
+                hf_dataset = hf_dataset.select(range(n - eval_size, n))
         hf_dataset = hf_dataset.to_iterable_dataset(num_shards=self.NUM_SHARDS)
         return hf_dataset
 
@@ -192,6 +196,7 @@ class MixtureOfDatasets(IterableDataset):
         tokenize_fn: Callable,
         paths: Optional[List[str]] = None,
         weights: Optional[List[float]] = None,
+        eval_fractions: Optional[List[Optional[int]]] = None,
         split: Optional[str] = None,
         seed: Optional[int] = None,
         use_new_sampling_method: bool = True,
@@ -217,6 +222,9 @@ class MixtureOfDatasets(IterableDataset):
         if len(paths) == 0 or len(weights) == 0:
             raise ValueError("'paths' and 'weights' must not be empty.")
 
+        if eval_fractions is None:
+            eval_fractions = [None] * len(paths)
+
         self.datasets = [
             GenericDataset(
                 sequence_length=sequence_length,
@@ -227,8 +235,9 @@ class MixtureOfDatasets(IterableDataset):
                 use_new_sampling_method=use_new_sampling_method,
                 shuffle=shuffle,
                 world_size_independent=world_size_independent,
+                eval_fraction=eval_fraction,
             )
-            for path in paths
+            for path, eval_size in zip(paths, eval_fractions)
         ]
 
     def __iter__(self):
@@ -276,6 +285,7 @@ def get_mixture_of_datasets_dataloader(
 ):
     dataset_paths = [d["path"] for d in datasets]
     dataset_weights = [d["weight"] for d in datasets]
+    dataset_eval_fractions = [d.get("eval_fraction", None) for d in datasets]
 
     # Validate paths exist
     for path in dataset_paths:
@@ -297,6 +307,7 @@ def get_mixture_of_datasets_dataloader(
         tokenize_fn=tokenize_fn,
         paths=dataset_paths,
         weights=dataset_weights,
+        eval_fractions=dataset_eval_fractions,
         seed=seed,
         use_new_sampling_method=use_new_sampling_method,
         shuffle=shuffle,

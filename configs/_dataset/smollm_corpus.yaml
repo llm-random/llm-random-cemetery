@@ -8,12 +8,16 @@ trainer:
     datasets:
       - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
         weight: 0.7
+        eval_fraction: 0.1
       - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
         weight: 0.15
+        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/python-edu
         weight: 0.08
+        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
         weight: 0.07
+        eval_fraction: 0.1
     dataset_split: train
     num_workers: 2
     tokenize_fn:
@@ -25,12 +29,16 @@ trainer:
     datasets:
       - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
         weight: 0.7
+        eval_fraction: 0.1
       - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
         weight: 0.15
+        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/python-edu
         weight: 0.08
+        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
         weight: 0.07
+        eval_fraction: 0.1
     dataset_split: validation
     num_workers: 1
     tokenize_fn:
