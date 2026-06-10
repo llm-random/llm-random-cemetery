@@ -6,31 +6,48 @@ trainer:
   train_dataloader:
     _target_: src.core.datasets.get_mixture_of_datasets_dataloader
     datasets:
-      - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
-        weight: 0.7
-      - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
-        weight: 0.15
+#      - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
+#        weight: 0.7
+#        eval_fraction: 0.1
+#      - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
+#        weight: 0.15
+#        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/python-edu
-        weight: 0.08
-      - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
-        weight: 0.07
+        weight: 1.0
+        eval_fraction: 0.1
+#      - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
+#        weight: 0.07
+#        eval_fraction: 0.1
     dataset_split: train
     num_workers: 2
     tokenize_fn:
       _target_: src.core.datasets.get_tokenize_fn
       model_name: HuggingFaceTB/SmolLM-1.7B
 
+  per_dataset_dataloaders:
+    _target_: src.core.datasets.get_per_dataset_dataloaders
+    datasets: ${trainer.train_dataloader.datasets}
+    tokenize_fn: ${trainer.train_dataloader.tokenize_fn}
+    total_batch_size: ${common.batch_size}
+    sequence_length: ${common.sequence_length}
+    num_workers: 1
+    seed: 42
+
   eval_dataloader:
     _target_: src.core.datasets.get_mixture_of_datasets_dataloader
     datasets:
       - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
         weight: 0.7
+        eval_fraction: 0.1
       - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
         weight: 0.15
+        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/python-edu
         weight: 0.08
+        eval_fraction: 0.1
       - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
         weight: 0.07
+        eval_fraction: 0.1
     dataset_split: validation
     num_workers: 1
     tokenize_fn:
