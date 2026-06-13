@@ -192,3 +192,6 @@ checkpoints
 
 # MAS (madragonse)
 *mastest*
+
+plots_wandb_bgw.ipynb
+plots_wandb.ipynb
