@@ -25,10 +25,11 @@ trainer:
   eval_interval: 25
   gradient_accumulation_steps: 4
   # n_steps: 20000
-  n_steps: 1000
+  n_steps: 4500
   full_eval_rows: 2000
   # learning_rate: 2e-4
-  ^learning_rate: [5e-4, 1e-5, 2e-4, 2e-5, 2e-3]
+  # ^learning_rate: [5e-4, 1e-5, 2e-4, 2e-5, 2e-3]
+  ^learning_rate: [1e-4, 5e-5, 1e-3]
   freeze_backbone: false
   trainable_modules: ["head"]
   d_model: ${common.dmodel}
