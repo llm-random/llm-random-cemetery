@@ -2,7 +2,7 @@ defaults:
   - ../../_cluster@_here_: entropy
   - ../../_model/smollm@_here_: projected_1700
   - ../../_trainer@_here_: smollm_1700_distillation
-  - ../../_dataset@_here_: smollm_corpus
+  - ../../_dataset@_here_: fineweb
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
   - _self_
@@ -16,15 +16,13 @@ common:
 trainer:
   gradient_accumulation_steps: 8
   ^n_steps:
-#     - 2048 # 1B tokens
-     - 4096 # 2B tokens
-#     - 8192 # 4B tokens
+    # - 2048 # 1B tokens
+    - 4096 # 2B tokens
+    # - 8192 # 4B tokens
     # - 12288 # 6B tokens
 
   ^learning_rate:
-#    - 10
-#    - 11
-    - 12
+    - 11
 
   scheduler:
     warmup_steps: 40
@@ -40,24 +38,17 @@ trainer:
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt
 
-  eval_interval: 50
-  eval_dataloader:
-    ^seed:
-      - 42
+  eval_interval: 1000000
+  eval_dataloader: None
   train_dataloader:
-    ^seed:
-      - 1000
-#      - 1001
-#      - 1002
-#      - 1003
-#      - 1004
+    seed: 1000
     tokenize_fn:
       _target_: src.core.datasets.get_tokenize_fn
       model_name: HuggingFaceTB/SmolLM-1.7B
 
 infrastructure:
   metric_logger:
-    name: fineweb-edu-dedup-debug
+    name: SLLM_1700_fineweb_comp_distill_90_lr_grid
     tags:
       - nano
       - pc
@@ -67,6 +58,7 @@ infrastructure:
       - 90p
       - 2B_tokens
       - lr_grid
+      - fineweb
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
