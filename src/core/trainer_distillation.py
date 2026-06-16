@@ -224,6 +224,8 @@ class TrainerDistillation(Trainer):
             else:
                 self.metric_logger.log("eval/loss", avg_loss.item())
 
+        self._log_per_dataset_losses(self.per_dataset_eval_iterators, "eval")
+
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
 
