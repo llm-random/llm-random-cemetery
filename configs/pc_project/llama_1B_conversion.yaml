@@ -14,7 +14,7 @@ trainer:
       path: "meta-llama/Llama-3.2-1B"
 
     save:
-      path: ???
+      path: /lustre/pd03/plgrid/plgllmefficont3/$USER/pc/llama1b_in_nano.pt
 
 infrastructure:
   metric_logger:
