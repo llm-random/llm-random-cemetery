@@ -11,10 +11,10 @@ trainer:
   checkpoint:
     load:
       type: huggingface
-      path: "meta-llama/Llama-3.2-1B"
+      path: "Qwen/Qwen3.5-0.8B-Base"
 
     save:
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/llama1b_in_nano.pt
+      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/qwen08b_in_nano.pt
 
 infrastructure:
   metric_logger:
@@ -23,6 +23,7 @@ infrastructure:
       - nano
       - pc
       - save_pretrained
+      - qwen
   
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
