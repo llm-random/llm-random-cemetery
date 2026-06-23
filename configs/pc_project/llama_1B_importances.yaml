@@ -1,5 +1,5 @@
 defaults:
-  - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: lem
   - ../_model@_here_: llama_3_1
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -24,7 +24,7 @@ trainer:
 
    save:
     type: nano
-    path: ??? # CHANGE
+    path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/1b # CHANGE
 
 
 infrastructure:
@@ -39,7 +39,7 @@ infrastructure:
 
   slurm:
     job-name: importances_llama_1
-    gres: gpu:1
+    gres: gpu:hopper:1
     nodes: 1
     time: "0-2:00:00"
 
