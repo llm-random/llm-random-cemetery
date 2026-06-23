@@ -24,7 +24,7 @@ trainer:
 
    save:
     type: nano
-    path: ??? # CHANGE
+    path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/1b # CHANGE
 
 
 infrastructure:
