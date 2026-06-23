@@ -12,8 +12,8 @@ common:
   batch_size: 64
   dmodel: 1024
   dff: 2724
-  # datt: ${common.dmodel}
-  ^datt: [1024, 512, 256, 128, 64, 32, 16]
+  datt: ${common.dmodel}
+  # ^datt: [1024, 512, 256, 128, 64, 32, 16]
   n_blocks: 16
   q_heads: 16
   kv_heads: 16
@@ -58,7 +58,7 @@ infrastructure:
   metric_logger:
     type: wandb
     wandb_entity: ideas_cv
-    name: baseline_smaller_attn_dim_grid
+    name: baseline
     project_name: tml-bgw
     heavy_metrics_calculation_interval: 8000
     heavy_logging_layers: [0, 10, 15]

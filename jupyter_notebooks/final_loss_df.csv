@@ -1,0 +1,9 @@
+,run_id,grid_variable,lr,final_loss,status
+0,kd0e2zvq,baseline_lr_grid_k24,0.001,1.9619140625,complete
+1,kj9fsyh5,baseline_lr_grid_k24,0.005,1.780175805091858,complete
+2,9ek8ez0j,baseline_lr_grid_k24,0.002,1.833593726158142,complete
+3,1zo0s7ag,pk_attn_lr_grid_k24,0.001,2.3865723609924316,complete
+4,birbi78q,baseline_lr_grid_k24,0.01,1.7589843273162842,complete
+5,dhrqqegk,pk_attn_lr_grid_k24,0.002,2.2095704078674316,complete
+6,614gv5pv,pk_attn_lr_grid_k24,0.005,2.134716749191284,complete
+7,49c0iwb9,pk_attn_lr_grid_k24,0.01,2.1923828125,complete
