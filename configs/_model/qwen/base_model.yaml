@@ -18,7 +18,7 @@ model:
 
   embedding:
     _target_: src.projected_compression.model.TransformerEmbedding
-    vocab_size: 128256
+    vocab_size: 151936
     dmodel: ${common.dmodel}
     init_fn:
       _target_: src.projected_compression.model.trunc_normal_
@@ -33,11 +33,11 @@ model:
       norm_fn:
         _target_: src.core.model.RMSNorm
         _partial_: true
-        eps: 1e-5
+        eps: 1e-6
         normalized_shape: ${common.dmodel}
 
       attention_fn:
-        _target_: src.projected_compression.model.RoPEAttention
+        _target_: src.projected_compression.model.QwenAttention
         _partial_: true
         dmodel: ${common.dmodel}
         q_heads: ${common.q_heads}
@@ -65,7 +65,7 @@ model:
 
         v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
 
-        o_proj_fn: 
+        o_proj_fn:
           _target_: src.projected_compression.model.Linear
           _partial_: true
           in_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.q_heads}'}
@@ -75,8 +75,16 @@ model:
             _partial_: true
             scale: 1
 
-        rope_base: 500000
-        rope_scale_freqs: true
+        q_norm_fn:
+          _target_: src.core.model.RMSNorm
+          _partial_: true
+          eps: 1e-6
+          normalized_shape: ${common.dhead}
+
+        k_norm_fn: ${model.encoder.block_fn.attention_fn.q_norm_fn}
+
+        rope_base: 1000000
+        rope_scale_freqs: false
 
   head:
     _target_: src.projected_compression.model.TransformerHead
@@ -92,5 +100,5 @@ model:
     norm_fn:
       _target_: src.core.model.RMSNorm
       _partial_: true
-      eps: 1e-5
+      eps: 1e-6
       normalized_shape: ${common.dmodel}
