@@ -1,0 +1,265 @@
+_run_: true
+
+cluster_switch:
+  eval_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation
+  eval_path_eurlex: /lustre/pd03/plgrid/plgllmefficont3/datasets/lex_glue/eurlex/test
+  eval_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  eval_path_imdb: /lustre/pd03/plgrid/plgllmefficont3/datasets/imdb/test
+  eval_path_mnli: /lustre/pd03/plgrid/plgllmefficont3/datasets/mnli/validation
+  eval_path_sst2: /lustre/pd03/plgrid/plgllmefficont3/datasets/sst2/validation
+  train_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/train
+  train_path_eurlex: /lustre/pd03/plgrid/plgllmefficont3/datasets/lex_glue/eurlex/train
+  train_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  train_path_imdb: /lustre/pd03/plgrid/plgllmefficont3/datasets/imdb/train
+  train_path_mnli: /lustre/pd03/plgrid/plgllmefficont3/datasets/mnli/train
+  train_path_sst2: /lustre/pd03/plgrid/plgllmefficont3/datasets/sst2/train
+
+common:
+  _target_: src.definitions.Common
+  batch_size: 64
+  datt: 1024
+  dff: 2724
+  dmodel: 1024
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  kv_heads: 16
+  model_type: gpt
+  n_blocks: 16
+  q_heads: 16
+  sequence_length: 1024
+  vocab_size: 50304
+
+evaluator: null
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: baseline-finetunetrainer-split-eval-${trainer.train_dataloader.dataset.task_name}-lr
+    new_neptune_job: true
+    new_wandb_job: true
+    project_name: tml-bgw
+    tags:
+    - nano
+    - pk_mlm
+    - finetuning
+    - seq_len=${common.sequence_length}
+    - n_layers=${common.n_blocks}
+    - lr=${trainer.learning_rate}
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=$PROJECT_HOME_PATH/$USER/pixi
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export XDG_DATA_HOME="$PIXI_HOME/data"
+  - export XDG_CACHE_HOME="$PIXI_HOME/cache"
+  - export XDG_STATE_HOME="$PIXI_HOME/state"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: lem
+  slurm:
+    account: plgllmefficont3
+    cpus_per_gpu: 16
+    gres: gpu:hopper:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 220G
+    nodes: 1
+    partition: plgrid-lem-gpu-h100
+    time: 1-00:00:00
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.trunc_normal_
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.RoPEAttention
+        causal: false
+        dmodel: ${common.dmodel}
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'(${common.datt} // ${model.encoder.block_fn.attention_fn.q_heads})
+            * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        kv_heads: ${common.kv_heads}
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.datt}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.datt}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        rope_base: 500000
+        rope_scale_freqs: true
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.llm_random_weight_init
+        scale: 1
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+overrides:
+- trainer.learning_rate=5e-05
+
+trainer:
+  _partial_: true
+  _target_: src.product_keys.finetuning_trainer.FinetuningTrainer
+  checkpoint:
+    load:
+      model_checkpoint_filename: model_checkpoint.pt
+      only_weights: true
+      path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints/5110804/0/step_80000
+      training_state_filename: training_state.pt
+      type: nano
+    save:
+      interval: 4000
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: null
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  d_model: ${common.dmodel}
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    collate_fn:
+      _partial_: true
+      _target_: src.product_keys.datasets.glue_split_collate_wrapper
+    dataset:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      path: ${cluster_switch.eval_path_sst2}
+      seed: 123
+      sequence_length: ${common.sequence_length}
+      shuffle: false
+      split: validation
+      split_values:
+      - 256
+      - 512
+      task_name: sst2
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 8
+    total_batch_size: ${common.batch_size}
+  eval_interval: 25
+  freeze_backbone: false
+  full_eval_rows: 2000
+  gradient_accumulation_steps: 4
+  gradient_clipping: 1.0
+  learning_rate: 5.0e-05
+  n_eval_steps: 10
+  n_steps: 2300
+  num_labels: 2
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: ${eval:'int(${trainer.n_steps} * 0.10)'}
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    collate_fn:
+      _partial_: true
+      _target_: src.product_keys.datasets.glue_collate_wrapper
+    dataset:
+      _target_: src.product_keys.datasets.GlueDataset
+      path: ${cluster_switch.train_path_sst2}
+      seed: 123
+      sequence_length: ${common.sequence_length}
+      shuffle: true
+      split: train
+      task_name: sst2
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 8
+    total_batch_size: ${common.batch_size}
+  trainable_modules:
+  - head
+  vocab_size: ${common.vocab_size}
+  weight_decay: 0.1
