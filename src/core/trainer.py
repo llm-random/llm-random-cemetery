@@ -1,9 +1,9 @@
 import os
 import time
-from attr import define
+from attr import define, field
 import torch
 import torch.nn.functional as F
-from typing import Optional
+from typing import List, Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -43,6 +43,7 @@ class Trainer:
     learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
+    per_dataset_dataloaders: Optional[List] = field(default=None, kw_only=True)  # list of (name, eval_dl)
 
     def __attrs_post_init__(self):
         self.processed_tokens = self.training_state["processed_tokens"]
@@ -56,6 +57,14 @@ class Trainer:
             self.eval_iterator = iter(self.eval_dataloader)
         self.step = self.start_step - 1
 
+        if self.per_dataset_dataloaders:
+            self.per_dataset_eval_iterators = [
+                (name, iter(dl))
+                for name, dl in self.per_dataset_dataloaders
+            ]
+        else:
+            self.per_dataset_eval_iterators = []
+
         if self.start_step > 0:
             n_skip_eval_batches = (
                 (self.start_step - 1) // self.eval_interval * self.n_eval_steps
@@ -63,6 +72,9 @@ class Trainer:
             logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
             for _ in range(n_skip_eval_batches):
                 next(self.eval_iterator)
+            for _, it in self.per_dataset_eval_iterators:
+                for _ in range(n_skip_eval_batches):
+                    next(it)
 
         self.loss_averaged_100 = AveMetric(100, "100/train/loss")
         self.time_diff_averaged_100 = AveDiffMetric(100, "100/time", time.time())
@@ -190,6 +202,22 @@ class Trainer:
 
         return avg_loss / float(os.environ["WORLD_SIZE"])
 
+    def _log_per_dataset_losses(self, iterators: List, log_prefix: str):
+        """Compute and log per-dataset loss for the given iterators."""
+        with torch.no_grad():
+            for name, iterator in iterators:
+                losses = []
+                for _ in range(self.n_eval_steps):
+                    batch = next(iterator).to(self.device)
+                    loss = self.calculate_loss(batch)
+                    # Use CE loss when available (distillation trainer stores it as _last_ce_loss)
+                    losses.append(getattr(self, "_last_ce_loss", loss).item())
+                    self.metric_logger.flush_accumulated_metrics()
+                self.metric_logger.log(
+                    f"{log_prefix}/{name}/loss",
+                    torch.tensor(losses).mean().item(),
+                )
+
     def eval(self):
         self.model.eval()
         saved_step = self.step
@@ -207,6 +235,8 @@ class Trainer:
                 self.metric_logger.flush_accumulated_metrics()
             avg_loss = torch.tensor(losses).mean()
             self.metric_logger.log("eval/loss", avg_loss.item())
+
+        self._log_per_dataset_losses(self.per_dataset_eval_iterators, "eval")
 
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
