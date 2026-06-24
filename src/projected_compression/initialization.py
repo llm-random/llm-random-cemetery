@@ -202,8 +202,13 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
 
     # We have set source_layer to None, so we do not want to
     source_norms = {}
+    qk_norms = {}
     for k in list(source_sd.keys()):
-        if "norm" in k:
+        if "q_norm" in k or "k_norm" in k:
+            # Qwen QK-norm: dhead-sized, not compressed. Clone but leave in source_sd
+            # so the frozen source QwenAttention loads them (no leftover meta params).
+            qk_norms[k] = source_sd[k].clone().detach()
+        elif "norm" in k:
             if source_model_for_distillation:
                 source_norms[k] = source_sd[k].clone().detach()
             else:
@@ -288,6 +293,24 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
         if source_model_for_distillation:
             for i, block in enumerate(model.source_model.encoder.blocks):
                 block.attention_layer.layer.rope.register_freqs()
+
+    # Qwen QK-norm: copied source -> target verbatim (dhead unchanged, no top-k).
+    # Kept FROZEN for simplicity; possibly suboptimal (trainable could re-adapt as
+    # projections drift, but needs optimizer + mem_eff grad-norm wiring too).
+    for i, block in enumerate(model.target_model.encoder.blocks):
+        attn = block.attention_layer.layer
+        if getattr(attn, "q_norm", None) is None:
+            break  # non-Qwen attention (e.g. Llama) has no QK-norm
+        for norm_name in ("q_norm", "k_norm"):
+            src = qk_norms[
+                f"encoder.blocks.{i}.attention_layer.layer.{norm_name}.weight"
+            ]
+            tgt = getattr(attn, norm_name).weight
+            if hasattr(tgt, "device_mesh"):
+                tgt.data.copy_(distribute_tensor(src, tgt.device_mesh, tgt.placements))
+            else:
+                tgt.data.copy_(src.to(tgt.device))
+            tgt.requires_grad_(False)
 
     # Initializing model.projections.
     # In the FSDP2 case all projections params (including CompressibleBlock weights) are
