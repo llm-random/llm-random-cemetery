@@ -22,10 +22,13 @@ trainer:
     # - 12288 # 6B tokens
 
   ^learning_rate:
-    - 11
-    - 12
-    - 13
-    - 14
+    - 8
+    # - 9
+    # - 10
+    # - 11
+    # - 12
+    # - 13
+    # - 14
 
   scheduler:
     warmup_steps: 40
@@ -41,13 +44,11 @@ trainer:
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt
 
-  eval_interval: 1000000
-  eval_dataloader: None
+  eval_interval: 50
+  eval_dataloader:
+    seed: 42
   train_dataloader:
     seed: 1000
-    tokenize_fn:
-      _target_: src.core.datasets.get_tokenize_fn
-      model_name: HuggingFaceTB/SmolLM-1.7B
 
 infrastructure:
   metric_logger:
@@ -64,7 +65,7 @@ infrastructure:
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
-    time: "0-24:00:00"
+    time: "0-8:00:00"
 
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
