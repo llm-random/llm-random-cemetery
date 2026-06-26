@@ -1,6 +1,6 @@
 defaults:
   - ../_cluster@_here_: lem
-  - ../_model/llama@_here_: projected_mem_eff_1B
+  - ../_model/qwen@_here_: projected_mem_eff_1.7B
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
   - ../_checkpoints@_here_: none
@@ -10,24 +10,24 @@ common:
   sequence_length: 1024
   batch_size: 512
 
-  dmodel: 448
-  dff: 1728
+  dmodel: 1024 # ~50% parameter compression
+  dff: 3072 # ~50% parameter compression
 
 
 trainer:
   _target_: src.projected_compression.trainer.PCTrainer
   gradient_accumulation_steps: 8
   # n_steps: 2048
-  n_steps: 4
+  n_steps: 100
 
   only_compress_model_gradient_clipping: false
   only_target_model_gradient_clipping: 1.0 #best  
 
-  learning_rate: 13
+  ^learning_rate: [10, 11, 12, 13, 14, 15, 16, 17]
 
   scheduler:
     # warmup_steps: 40
-    warmup_steps: 2
+    warmup_steps: 10
 
   distributed:
     fsdp2: null
@@ -35,7 +35,7 @@ trainer:
   eval_dataloader: None
   eval_interval: 0
 
-  original_llama_path: meta-llama/Llama-3.2-1B
+  original_llama_path: Qwen/Qwen3-1.7B-Base
   checkpoint:
     save: #switch
       interval: 0  # 0 = only save at the end of training
@@ -53,8 +53,8 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/llama1b_in_nano.pt #  special PC_memeff checkpoint from llama_1B_conversion config experiment
-  path_to_importances: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/1b/5401128/0/minitron_dimensions_importances.pt
+  source_model_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/qwen3_1_7b_in_nano.pt #  special PC_memeff checkpoint from qwen config experiment
+  path_to_importances: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/qwen/1_7B/5403539/0/minitron_dimensions_importances.pt
 
   init_norms_with_ones: false
 
@@ -70,11 +70,12 @@ model:
 
 infrastructure:
   metric_logger:
-    name: Llame_PC
+    name: Queen_PC
     tags:
       - nano
       - pc
-      - llama_1
+      - qwen
+      - 1.7B
       - projected_compression
       - mem_eff
       - 10p
@@ -84,4 +85,4 @@ infrastructure:
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:hopper:4
-    time: "0-24:00:00"
+    time: "0-1:00:00"
