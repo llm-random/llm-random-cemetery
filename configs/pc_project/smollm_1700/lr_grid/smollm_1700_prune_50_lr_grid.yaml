@@ -10,8 +10,8 @@ defaults:
 common:
   sequence_length: 1024
   batch_size: 512
-  target_dmodel: 448
-  target_dff: 1728
+  target_dmodel: 1344
+  target_dff: 5376
 
 trainer:
   gradient_accumulation_steps: 8
@@ -22,10 +22,14 @@ trainer:
     # - 12288 # 6B tokens
 
   ^learning_rate:
+    - 8
+    - 9
+    - 10
     - 11
-    - 12
-    - 13
-    - 14
+    # - 12
+    # - 13
+#    - 14
+#    - 15
 
   scheduler:
     warmup_steps: 40
@@ -41,28 +45,25 @@ trainer:
       model_checkpoint_filename: __model_checkpoint_filename.pt
       training_state_filename: __training_state_filename.pt
 
-  train_dataloader:
-    tokenize_fn:
-      _target_: src.core.datasets.get_tokenize_fn
-      model_name: HuggingFaceTB/SmolLM-1.7B
-
+  eval_interval: 50
   eval_dataloader:
-    tokenize_fn:
-      _target_: src.core.datasets.get_tokenize_fn
-      model_name: HuggingFaceTB/SmolLM-1.7B
+    seed: 42
+  train_dataloader:
+    seed: 1000
 
 infrastructure:
   metric_logger:
-    name: SLLM_1700_prune_90_lr_grid
+    name: SLLM_1700_prune_50_lr_grid
     tags:
       - nano
       - pc
       - smollm_1700
       - hard_pruning
       - no_distillation
-      - 90p
+      - 50p
       - 2B_tokens
       - lr_grid
+
   slurm:
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:4
