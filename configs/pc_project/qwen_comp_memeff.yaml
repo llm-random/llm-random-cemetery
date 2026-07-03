@@ -83,6 +83,7 @@ infrastructure:
       - 1.7B
       - projected_compression
       - mem_eff
+      - lm_retraining
       # - 10p
       # - 30p
       - 50p
