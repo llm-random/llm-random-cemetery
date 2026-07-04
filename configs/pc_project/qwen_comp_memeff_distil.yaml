@@ -87,6 +87,7 @@ infrastructure:
       - 1.7B
       - projected_compression
       - distillation
+      - 1B_train
       - mem_eff
       - 50p
 
