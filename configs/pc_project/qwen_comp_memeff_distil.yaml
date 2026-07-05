@@ -29,7 +29,7 @@ trainer:
   only_compress_model_gradient_clipping: false
   only_target_model_gradient_clipping: 1.0 #best
 
-  ^learning_rate: [13, 14, 15, 16]
+  ^learning_rate: [11, 12]
 
   scheduler:
     warmup_steps: 40
@@ -87,6 +87,7 @@ infrastructure:
       - 1.7B
       - projected_compression
       - distillation
+      - 1B_train
       - mem_eff
       - 50p
 
