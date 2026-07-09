@@ -1,9 +1,9 @@
 import os
 import time
-from attr import define
+from attr import define, field
 import torch
 import torch.nn.functional as F
-from typing import Optional
+from typing import List, Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -43,18 +43,37 @@ class Trainer:
     learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
+    per_dataset_dataloaders: Optional[List] = field(default=None, kw_only=True)  # list of (name, eval_dl)
+    # Loss-spike guard: skip the optimizer update (but keep the gradients out of
+    # future accumulation) when a step's loss is anomalously high relative to a
+    # running EMA of recent losses. This protects Adam's optimizer state from
+    # being knocked into a bad basin by a directionally-bad update, which is a
+    # known cause of the multi-hundred-step "ringing" loss spikes seen after
+    # aggressive pruning/distillation. kw_only so subclasses (e.g.
+    # TrainerDistillation) can keep adding required fields after it.
+    loss_spike_ema_decay: float = field(default=0.99, kw_only=True)
+    loss_spike_threshold_multiplier: float = field(default=10.0, kw_only=True)
 
     def __attrs_post_init__(self):
         self.processed_tokens = self.training_state["processed_tokens"]
         self.start_step = self.training_state["next_step"]
         self.device = next(self.model.parameters()).device
         self.loss_interval_100 = 0.0
+        self.loss_ema = None
 
         if self.eval_dataloader is not None and hasattr(
             self.eval_dataloader, "__iter__"
         ):
             self.eval_iterator = iter(self.eval_dataloader)
         self.step = self.start_step - 1
+
+        if self.per_dataset_dataloaders:
+            self.per_dataset_eval_iterators = [
+                (name, iter(dl))
+                for name, dl in self.per_dataset_dataloaders
+            ]
+        else:
+            self.per_dataset_eval_iterators = []
 
         if self.start_step > 0:
             n_skip_eval_batches = (
@@ -63,6 +82,9 @@ class Trainer:
             logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
             for _ in range(n_skip_eval_batches):
                 next(self.eval_iterator)
+            for _, it in self.per_dataset_eval_iterators:
+                for _ in range(n_skip_eval_batches):
+                    next(it)
 
         self.loss_averaged_100 = AveMetric(100, "100/train/loss")
         self.time_diff_averaged_100 = AveDiffMetric(100, "100/time", time.time())
@@ -97,19 +119,41 @@ class Trainer:
         )
 
     def train(self):
-        for step, batch in zip(
-            range(self.start_step, self.n_steps), self.train_dataloader
-        ):
+        # step only advances on a real applied update (not a skipped one), so the
+        # LR schedule, checkpoint/eval cadence, and total training budget are all
+        # defined in terms of n_steps *real* updates - a skip doesn't shrink that
+        # count, it just costs an extra batch pulled from the dataloader.
+        train_iterator = iter(self.train_dataloader)
+        step = self.start_step
+
+        while step < self.n_steps:
             self.step = step
             self.metric_logger.set_step(step)
             self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
+
+            try:
+                batch = next(train_iterator)
+            except StopIteration:
+                logger.warning(
+                    f"train_dataloader exhausted at step {step} (target n_steps="
+                    f"{self.n_steps}); stopping early."
+                )
+                break
+
             loss = self.calculate_loss(batch)
 
             grad_norm = self.clip_gradient()
+            loss_value = loss.item()
+
+            if self._is_loss_spike(loss_value):
+                self.log_skipped_update(loss_value, grad_norm)
+                self.optimizer.zero_grad()
+                self.metric_logger.flush()
+                continue  # retry this step index with the next batch
 
             self.log_metrics(loss, grad_norm)
-
+            self._update_loss_ema(loss_value)
             self.optimizer.step()
             self.optimizer.zero_grad()
             self.scheduler.step()
@@ -121,6 +165,8 @@ class Trainer:
                 self.eval()
 
             self.metric_logger.flush()
+
+            step += 1
 
         if self._should_save_final_checkpoint:
             if self.checkpoint.save.type == "nano":
@@ -190,6 +236,22 @@ class Trainer:
 
         return avg_loss / float(os.environ["WORLD_SIZE"])
 
+    def _log_per_dataset_losses(self, iterators: List, log_prefix: str):
+        """Compute and log per-dataset loss for the given iterators."""
+        with torch.no_grad():
+            for name, iterator in iterators:
+                losses = []
+                for _ in range(self.n_eval_steps):
+                    batch = next(iterator).to(self.device)
+                    loss = self.calculate_loss(batch)
+                    # Use CE loss when available (distillation trainer stores it as _last_ce_loss)
+                    losses.append(getattr(self, "_last_ce_loss", loss).item())
+                    self.metric_logger.flush_accumulated_metrics()
+                self.metric_logger.log(
+                    f"{log_prefix}/{name}/loss",
+                    torch.tensor(losses).mean().item(),
+                )
+
     def eval(self):
         self.model.eval()
         saved_step = self.step
@@ -207,6 +269,8 @@ class Trainer:
                 self.metric_logger.flush_accumulated_metrics()
             avg_loss = torch.tensor(losses).mean()
             self.metric_logger.log("eval/loss", avg_loss.item())
+
+        self._log_per_dataset_losses(self.per_dataset_eval_iterators, "eval")
 
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
@@ -226,11 +290,50 @@ class Trainer:
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
 
+    def _is_loss_spike(self, loss_value: float) -> bool:
+        """True if loss_value is more than loss_spike_threshold_multiplier times
+        the running EMA of past (non-skipped) losses. Returns False until the EMA
+        has been seeded by at least one real step."""
+        return (
+            self.loss_ema is not None
+            and loss_value > self.loss_spike_threshold_multiplier * self.loss_ema
+        )
+
+    def _update_loss_ema(self, loss_value: float):
+        if self.loss_ema is None:
+            self.loss_ema = loss_value
+        else:
+            self.loss_ema = (
+                self.loss_spike_ema_decay * self.loss_ema
+                + (1 - self.loss_spike_ema_decay) * loss_value
+            )
+
+    def log_skipped_update(self, loss_value, grad_norm):
+        """Called instead of log_metrics when a step's update is skipped due to
+        an anomalous loss. Deliberately does NOT log to train/loss (or
+        train/total_loss for distillation) so the spike doesn't pollute the main
+        loss curve; the raw value is recorded under separate train/skipped_*
+        metrics instead, alongside a stdout warning for visibility."""
+        logger.warning(
+            f"Skipping optimizer update at step {self.step}: loss={loss_value:.4f} "
+            f"exceeds {self.loss_spike_threshold_multiplier}x running loss EMA "
+            f"({self.loss_ema:.4f}). Gradients discarded; loss NOT logged to train/loss."
+        )
+        self.metric_logger.set_tokens(self.processed_tokens)
+        self.metric_logger.log("train/update_skipped", 1)
+        self.metric_logger.log("train/skipped_loss", loss_value)
+        self.metric_logger.log("train/loss_ema", self.loss_ema)
+        if grad_norm is not None:
+            self.metric_logger.log("train/skipped_grad_norm", grad_norm.item())
+
+        self.metric_logger.flush_accumulated_metrics()
+
     def log_metrics(self, loss, grad_norm):
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/loss", loss.item())
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         self.metric_logger.log("train/grad_norm", grad_norm.item())
+        self.metric_logger.log("train/update_skipped", 0)
 
         self.loss_averaged_100.log(self.metric_logger, loss.item())
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
