@@ -12,7 +12,8 @@ common:
   batch_size: 512
 
   # base: dmodel 2048, dff 6144
-  ^target_dmodel: [448, 960, 1344]
+  # ^target_dmodel: [448, 960, 1344]
+  ^target_dmodel: [960]
   target_dff: "${eval:'${common.target_dmodel} * 3'}"
 
 
@@ -21,11 +22,11 @@ trainer:
   ^n_steps:
     # - 2048 # 1B tokens  <3h
     - 4096 # 2B tokens    <6h
-    - 8192 # 4B tokens    <12h
-    - 16384 # 8B tokens   <24h
+    # - 8192 # 4B tokens    <12h
+    # - 16384 # 8B tokens   <24h
 
   # ^learning_rate: [10, 11, 12]
-  learning_rate: 11
+  learning_rate: 10
 
   scheduler:
     warmup_steps: 40
