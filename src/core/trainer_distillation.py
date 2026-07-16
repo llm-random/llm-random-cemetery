@@ -164,6 +164,7 @@ class TrainerDistillation(Trainer):
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         self.metric_logger.log("train/grad_norm", grad_norm.item())
+        self.metric_logger.log("train/update_skipped", 0)
 
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
 
@@ -223,6 +224,8 @@ class TrainerDistillation(Trainer):
                 self.metric_logger.log("eval/total_loss", avg_loss.item())
             else:
                 self.metric_logger.log("eval/loss", avg_loss.item())
+
+        self._log_per_dataset_losses(self.per_dataset_eval_iterators, "eval")
 
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
