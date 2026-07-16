@@ -1,0 +1,274 @@
+_run_: true
+
+apply_functions:
+- _partial_: true
+  _target_: src.projected_compression.pruning.prune
+  dimensions_importances_path: /home/grid/users/plgm1kush/None/144636/0/minitron_dimensions_importances.pt
+  target_dff: ${common.target_dff}
+  target_dmodel: ${common.target_dmodel}
+
+cluster_switch:
+  eval_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation
+  eval_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  train_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/train
+  train_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+
+common:
+  _target_: src.definitions.Common
+  batch_size: 512
+  dff: 8192
+  dhead: 64
+  dmodel: 2048
+  kv_heads: 32
+  n_blocks: 24
+  q_heads: 32
+  sequence_length: 1024
+  target_dff: 5376
+  target_dmodel: 1344
+  vocab_size: 49152
+
+evaluator: null
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: SLLM_1700_prune_50
+    new_wandb_job: true
+    project_name: pc_smollm
+    tags:
+    - nano
+    - pc
+    - smollm_1700
+    - hard_pruning
+    - no_distillation
+    - 50p
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ${export_env_variables_placeholders:}
+  - export HF_HOME="/lustre/pd01/plgrid/plgllmefficont2/crewtool/hf"
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=/home/grid/users/plgm1kush/.pixi
+  - export PATH="$PIXI_HOME/bin:$PATH"
+  - export XDG_DATA_HOME="$PIXI_HOME/data"
+  - export XDG_CACHE_HOME="$PIXI_HOME/cache"
+  - export XDG_STATE_HOME="$PIXI_HOME/state"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: lem
+  slurm:
+    account: plgllmefficont3
+    cpus_per_gpu: 16
+    gres: gpu:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 220G
+    nodes: 1
+    partition: plgrid-lem-gpu-h100
+    time: 0-24:00:00
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.trunc_normal_
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.RoPEAttention
+        dmodel: ${common.dmodel}
+        factor: 32
+        high_freq_factor: 4
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        kv_heads: ${common.kv_heads}
+        low_freq_factor: 1
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.q_heads}'}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        original_max_position_embeddings: 8192
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.q_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        rope_base: 10000
+        rope_scale_freqs: true
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${model.embedding.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.llm_random_weight_init
+        scale: 1
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+overrides:
+- trainer.n_steps=8192
+- trainer.learning_rate=10
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: HuggingFaceTB/SmolLM-1.7B
+      training_state_filename: null
+      type: huggingface
+    save:
+      interval: ${eval:'${trainer.n_steps} - 1'}
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: /lustre/pd03/plgrid/plgllmefficont3/md/checkpoints
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_mixture_of_datasets_dataloader
+    dataset_split: validation
+    datasets:
+    - eval_fraction: 0.1
+      path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
+      weight: 0.7
+    - eval_fraction: 0.1
+      path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
+      weight: 0.15
+    - eval_fraction: 0.1
+      path: /storage_nvme_2/llm-random/datasets/python-edu
+      weight: 0.08
+    - eval_fraction: 0.1
+      path: /storage_nvme_2/llm-random/datasets/open-web-math/train
+      weight: 0.07
+    num_workers: 1
+    seed: 42
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: HuggingFaceTB/SmolLM-1.7B
+    total_batch_size: ${common.batch_size}
+    use_new_sampling_method: true
+    world_size_independent: false
+  eval_interval: 50
+  gradient_accumulation_steps: 8
+  gradient_clipping: 1.0
+  learning_rate: 10
+  n_eval_steps: 10
+  n_steps: 8192
+  per_dataset_dataloaders:
+    _target_: src.core.datasets.get_per_dataset_dataloaders
+    datasets: ${trainer.eval_dataloader.datasets}
+    num_workers: ${trainer.eval_dataloader.num_workers}
+    seed: ${trainer.eval_dataloader.seed}
+    sequence_length: ${common.sequence_length}
+    shuffle: ${trainer.eval_dataloader.shuffle}
+    tokenize_fn: ${trainer.eval_dataloader.tokenize_fn}
+    total_batch_size: ${common.batch_size}
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: ${eval:'${trainer.n_steps} // 100'}
+  train_dataloader:
+    _target_: src.core.datasets.get_mixture_of_datasets_dataloader
+    dataset_split: train
+    datasets:
+    - eval_fraction: 0.1
+      path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
+      weight: 0.7
+    - eval_fraction: 0.1
+      path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
+      weight: 0.15
+    - eval_fraction: 0.1
+      path: /storage_nvme_2/llm-random/datasets/python-edu
+      weight: 0.08
+    - eval_fraction: 0.1
+      path: /storage_nvme_2/llm-random/datasets/open-web-math/train
+      weight: 0.07
+    num_workers: 2
+    seed: 1000
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: HuggingFaceTB/SmolLM-1.7B
+    total_batch_size: ${common.batch_size}
+    use_new_sampling_method: true
+    world_size_independent: false
+  weight_decay: 0.1
