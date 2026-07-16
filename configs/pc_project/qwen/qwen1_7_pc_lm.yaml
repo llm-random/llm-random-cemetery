@@ -88,6 +88,7 @@ infrastructure:
       - "${eval:'{2048:\"1B_train\",4096:\"2B_train\",8192:\"4B_train\",16384:\"8B_train\"}[${trainer.n_steps}]'}"
       - lm_retraining
       - "${eval:'{448:\"10p\",960:\"30p\",1344:\"50p\"}[${common.dmodel}]'}"
+      - pc_weights_lr_ratio
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
