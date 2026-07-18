@@ -1,9 +1,9 @@
 import os
 import time
-from attr import define
+from attr import define, field
 import torch
 import torch.nn.functional as F
-from typing import Optional
+from typing import List, Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -43,18 +43,69 @@ class Trainer:
     learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
+    per_dataset_dataloaders: Optional[List] = field(default=None, kw_only=True)  # list of (name, eval_dl)
+    # Grad-norm-spike guard: skip the optimizer update (but keep the gradients
+    # out of future accumulation) when a step's pre-clip grad_norm is
+    # anomalously high relative to a running EMA of recent grad norms. This
+    # protects Adam's optimizer state from being knocked into a bad basin by a
+    # directionally-bad update, which is a known cause of the multi-hundred-step
+    # "ringing" loss spikes seen after aggressive pruning/distillation.
+    # grad_norm (pre-clip) is a much better-separated spike signal than loss: a
+    # handful of outlier-token gradients can blow up the parameter L2 norm while
+    # barely moving the batch-averaged loss (loss is diluted over ~500K
+    # tokens/batch; gradients from a few bad tokens are not). kw_only so
+    # subclasses (e.g. TrainerDistillation) can keep adding required fields
+    # after it.
+    # Master on/off switch for the whole guard. Currently defaulted to False
+    # ("off for now"): the mechanism turned out to be masking a duration-
+    # dependent optimal-LR issue rather than fixing a real bug, and its
+    # forced-through pushes were themselves adding a slow upward drift to the
+    # loss. Kept in the code (rather than removed) since it's still a
+    # reasonable safety net for genuine one-off outlier batches - flip this
+    # back on per-experiment via config once that's wanted again.
+    grad_norm_spike_guard_enabled: bool = field(default=False, kw_only=True)
+    grad_norm_spike_ema_decay: float = field(default=0.99, kw_only=True)
+    grad_norm_spike_threshold_multiplier: float = field(default=10.0, kw_only=True)
+    # Safety valve: if the EMA baseline is stale (e.g. seeded during warmup when
+    # grad norms are naturally tiny) and the true grad_norm regime then shifts
+    # upward for good, every subsequent step would exceed the threshold forever
+    # and the EMA would never be allowed to update - permanently stalling
+    # training (100% of updates skipped). After this many *consecutive* skips,
+    # force the update through (and let the EMA jump to the new regime) instead
+    # of skipping again.
+    grad_norm_spike_max_consecutive_skips: int = field(default=20, kw_only=True)
+    # When the safety valve above fires, we're deliberately applying an update
+    # we've flagged as anomalous. Its magnitude is already bounded by
+    # gradient_clipping (clip_gradient() clips in-place before we ever look at
+    # the spike condition), but its *direction* is untrusted - it could still
+    # be dominated by a few outlier parameters and knock Adam's per-parameter
+    # state into a bad basin. So we clip forced-through updates to a much
+    # smaller fraction of the normal clip, trading a smaller step for safety;
+    # normal (non-flagged) updates are unaffected and use the full
+    # gradient_clipping norm as usual.
+    grad_norm_spike_escape_clip_fraction: float = field(default=0.1, kw_only=True)
 
     def __attrs_post_init__(self):
         self.processed_tokens = self.training_state["processed_tokens"]
         self.start_step = self.training_state["next_step"]
         self.device = next(self.model.parameters()).device
         self.loss_interval_100 = 0.0
+        self.grad_norm_ema = None
+        self.consecutive_grad_norm_skips = 0
 
         if self.eval_dataloader is not None and hasattr(
             self.eval_dataloader, "__iter__"
         ):
             self.eval_iterator = iter(self.eval_dataloader)
         self.step = self.start_step - 1
+
+        if self.per_dataset_dataloaders:
+            self.per_dataset_eval_iterators = [
+                (name, iter(dl))
+                for name, dl in self.per_dataset_dataloaders
+            ]
+        else:
+            self.per_dataset_eval_iterators = []
 
         if self.start_step > 0:
             n_skip_eval_batches = (
@@ -63,6 +114,9 @@ class Trainer:
             logger.debug(f"Skipping {n_skip_eval_batches} eval batches")
             for _ in range(n_skip_eval_batches):
                 next(self.eval_iterator)
+            for _, it in self.per_dataset_eval_iterators:
+                for _ in range(n_skip_eval_batches):
+                    next(it)
 
         self.loss_averaged_100 = AveMetric(100, "100/train/loss")
         self.time_diff_averaged_100 = AveDiffMetric(100, "100/time", time.time())
@@ -97,19 +151,96 @@ class Trainer:
         )
 
     def train(self):
-        for step, batch in zip(
-            range(self.start_step, self.n_steps), self.train_dataloader
-        ):
+        # step only advances on a real applied update (not a skipped one), so the
+        # LR schedule, checkpoint/eval cadence, and total training budget are all
+        # defined in terms of n_steps *real* updates - a skip doesn't shrink that
+        # count, it just costs an extra batch pulled from the dataloader.
+        train_iterator = iter(self.train_dataloader)
+        step = self.start_step
+
+        while step < self.n_steps:
             self.step = step
             self.metric_logger.set_step(step)
             self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
+
+            try:
+                batch = next(train_iterator)
+            except StopIteration:
+                logger.warning(
+                    f"train_dataloader exhausted at step {step} (target n_steps="
+                    f"{self.n_steps}); stopping early."
+                )
+                break
+
             loss = self.calculate_loss(batch)
 
             grad_norm = self.clip_gradient()
+            loss_value = loss.item()
+            grad_norm_value = grad_norm.item() if grad_norm is not None else None
 
+            # If we've already skipped too many steps in a row, force this one
+            # through no matter what - see grad_norm_spike_max_consecutive_skips
+            # field comment. This guarantees training can never fully stall.
+            if self.grad_norm_spike_guard_enabled:
+                forced_through = (
+                    self.consecutive_grad_norm_skips
+                    >= self.grad_norm_spike_max_consecutive_skips
+                )
+                raw_is_spike = (
+                    grad_norm_value is not None
+                    and self._is_grad_norm_spike(grad_norm_value)
+                )
+                # Force full cross-rank agreement on this boolean before using it
+                # to decide which (and how many) collectives get called below.
+                # grad_norm_value is *supposed* to already be identical on every
+                # rank (it comes out of an FSDP/NCCL all-reduce), but branching
+                # code paths - and in particular _apply_escape_clip()'s extra,
+                # conditional clip_grad_norm_() call - on a value we merely
+                # *assume* is synced is exactly the kind of thing that causes a
+                # permanent NCCL collective-count-mismatch hang if that assumption
+                # is ever wrong (even due to a one-bit float rounding difference
+                # right at the threshold boundary). This is cheap insurance
+                # against that entire class of bug: every rank ends up taking the
+                # identical branch, guaranteed, every single step.
+                raw_is_spike = self._sync_decision_across_ranks(raw_is_spike)
+                is_spike = raw_is_spike and not forced_through
+            else:
+                forced_through = False
+                raw_is_spike = False
+                is_spike = False
+
+            if is_spike:
+                self.consecutive_grad_norm_skips += 1
+                # Still update the EMA (with the value winsorized at the spike
+                # threshold) so a genuine, sustained shift in grad_norm is
+                # tracked instead of leaving the EMA frozen at a stale baseline
+                # forever - that frozen-EMA scenario is exactly what caused
+                # every step to be skipped for the rest of training.
+                self._update_grad_norm_ema(grad_norm_value, winsorize=True)
+                self.log_skipped_update(loss_value, grad_norm)
+                self.optimizer.zero_grad()
+                self.metric_logger.flush()
+                continue  # retry this step index with the next batch
+
+            if forced_through and raw_is_spike:
+                logger.warning(
+                    f"Forcing update through at step {step} after "
+                    f"{self.consecutive_grad_norm_skips} consecutive grad_norm-"
+                    f"spike skips (grad_norm={grad_norm_value}, "
+                    f"EMA={self.grad_norm_ema}) to avoid stalling training. "
+                    f"Applying an extra-tight escape clip "
+                    f"({self.grad_norm_spike_escape_clip_fraction}x normal) "
+                    f"since this update's direction is untrusted."
+                )
+                # raw_is_spike is now rank-synced above, so every rank takes
+                # this branch (and therefore calls this collective) together.
+                self._apply_escape_clip()
+
+            self.consecutive_grad_norm_skips = 0
             self.log_metrics(loss, grad_norm)
-
+            if grad_norm_value is not None:
+                self._update_grad_norm_ema(grad_norm_value)
             self.optimizer.step()
             self.optimizer.zero_grad()
             self.scheduler.step()
@@ -121,6 +252,8 @@ class Trainer:
                 self.eval()
 
             self.metric_logger.flush()
+
+            step += 1
 
         if self._should_save_final_checkpoint:
             if self.checkpoint.save.type == "nano":
@@ -190,6 +323,22 @@ class Trainer:
 
         return avg_loss / float(os.environ["WORLD_SIZE"])
 
+    def _log_per_dataset_losses(self, iterators: List, log_prefix: str):
+        """Compute and log per-dataset loss for the given iterators."""
+        with torch.no_grad():
+            for name, iterator in iterators:
+                losses = []
+                for _ in range(self.n_eval_steps):
+                    batch = next(iterator).to(self.device)
+                    loss = self.calculate_loss(batch)
+                    # Use CE loss when available (distillation trainer stores it as _last_ce_loss)
+                    losses.append(getattr(self, "_last_ce_loss", loss).item())
+                    self.metric_logger.flush_accumulated_metrics()
+                self.metric_logger.log(
+                    f"{log_prefix}/{name}/loss",
+                    torch.tensor(losses).mean().item(),
+                )
+
     def eval(self):
         self.model.eval()
         saved_step = self.step
@@ -208,6 +357,8 @@ class Trainer:
             avg_loss = torch.tensor(losses).mean()
             self.metric_logger.log("eval/loss", avg_loss.item())
 
+        self._log_per_dataset_losses(self.per_dataset_eval_iterators, "eval")
+
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
 
@@ -223,14 +374,112 @@ class Trainer:
                     self.model.parameters(), self.gradient_clipping
                 )
 
+    def _apply_escape_clip(self):
+        """Extra-tight clip applied only to forced-through grad_norm-spike
+        updates (see grad_norm_spike_max_consecutive_skips /
+        grad_norm_spike_escape_clip_fraction). Gradients have already been
+        clipped once to gradient_clipping by clip_gradient(); this clips them
+        again to a much smaller norm so a forced-through update - whose
+        direction we don't trust, only its magnitude is bounded - can only
+        nudge the model a little rather than take a full-strength step that
+        could knock Adam's per-parameter state into a bad basin."""
+        if self.gradient_clipping is None:
+            return
+        escape_norm = self.grad_norm_spike_escape_clip_fraction * self.gradient_clipping
+        if isinstance(self.model, FSDP):
+            self.model.clip_grad_norm_(escape_norm)
+        else:
+            torch.nn.utils.clip_grad_norm_(self.model.parameters(), escape_norm)
+
+    def _sync_decision_across_ranks(self, decision: bool) -> bool:
+        """Force a boolean control-flow decision to be identical on every
+        rank before branching on it. train() uses grad_norm-spike booleans to
+        decide whether to call an *additional* collective (_apply_escape_clip)
+        on top of the always-called clip_gradient(). If that decision were
+        ever to disagree across ranks - e.g. a one-ULP float difference right
+        at the threshold boundary, or a NaN/Inf appearing asymmetrically -
+        some ranks would call a different number of collectives than others,
+        which deadlocks FSDP's all-gather/all-reduce ops permanently (this is
+        the textbook cause of an NCCL watchdog collective-timeout hang, and
+        the way you find out is a training run silently wasting hours before
+        timing out). Uses MAX so any disagreement resolves to the safer,
+        more-conservative outcome (skip/clip) rather than silently letting a
+        subset of ranks proceed differently."""
+        if not dist.is_initialized():
+            return decision
+        flag = torch.tensor(1 if decision else 0, device=self.device)
+        dist.all_reduce(flag, op=dist.ReduceOp.MAX)
+        return bool(flag.item())
+
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
+
+    def _is_grad_norm_spike(self, grad_norm_value: float) -> bool:
+        """True if the pre-clip grad_norm is more than
+        grad_norm_spike_threshold_multiplier times the running EMA of past
+        (non-skipped) grad norms. Returns False until the EMA has been seeded
+        by at least one real step. grad_norm is a much better-separated spike
+        signal than loss (see field comment above), so it's the sole trigger
+        for skipping an update."""
+        return (
+            self.grad_norm_ema is not None
+            and grad_norm_value
+            > self.grad_norm_spike_threshold_multiplier * self.grad_norm_ema
+        )
+
+    def _update_grad_norm_ema(self, grad_norm_value: float, winsorize: bool = False):
+        """Update the running grad_norm EMA. When winsorize=True (used on the
+        skipped-update path), the value fed into the EMA is capped at
+        threshold_multiplier * current EMA. This lets the EMA keep drifting
+        upward when grad_norm undergoes a genuine, sustained regime shift
+        (instead of staying frozen and causing every future step to be
+        skipped, see grad_norm_spike_max_consecutive_skips), while still
+        preventing a single one-off outlier from blowing the EMA up in one
+        shot."""
+        if self.grad_norm_ema is None:
+            self.grad_norm_ema = grad_norm_value
+            return
+
+        effective_value = grad_norm_value
+        if winsorize:
+            cap = self.grad_norm_spike_threshold_multiplier * self.grad_norm_ema
+            effective_value = min(grad_norm_value, cap)
+
+        self.grad_norm_ema = (
+            self.grad_norm_spike_ema_decay * self.grad_norm_ema
+            + (1 - self.grad_norm_spike_ema_decay) * effective_value
+        )
+
+    def log_skipped_update(self, loss_value, grad_norm):
+        """Called instead of log_metrics when a step's update is skipped due to
+        an anomalous grad_norm. Deliberately does NOT log to train/loss (or
+        train/total_loss for distillation) or train/grad_norm so the spike
+        doesn't pollute the main curves; the raw values are recorded under
+        separate train/skipped_* metrics instead, alongside a stdout warning
+        for visibility."""
+        grad_norm_value = grad_norm.item() if grad_norm is not None else None
+        logger.warning(
+            f"Skipping optimizer update at step {self.step} (grad_norm spike): "
+            f"grad_norm={grad_norm_value} (EMA={self.grad_norm_ema}), "
+            f"loss={loss_value:.4f}. "
+            f"Gradients discarded; not logged to train/loss or train/grad_norm."
+        )
+        self.metric_logger.set_tokens(self.processed_tokens)
+        self.metric_logger.log("train/update_skipped", 1)
+        self.metric_logger.log("train/skipped_loss", loss_value)
+        if grad_norm_value is not None:
+            self.metric_logger.log("train/skipped_grad_norm", grad_norm_value)
+        if self.grad_norm_ema is not None:
+            self.metric_logger.log("train/grad_norm_ema", self.grad_norm_ema)
+
+        self.metric_logger.flush_accumulated_metrics()
 
     def log_metrics(self, loss, grad_norm):
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/loss", loss.item())
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         self.metric_logger.log("train/grad_norm", grad_norm.item())
+        self.metric_logger.log("train/update_skipped", 0)
 
         self.loss_averaged_100.log(self.metric_logger, loss.item())
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
