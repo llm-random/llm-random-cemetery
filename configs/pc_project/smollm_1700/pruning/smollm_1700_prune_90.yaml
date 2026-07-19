@@ -1,0 +1,69 @@
+defaults:
+  - ../../../_cluster@_here_: lem
+  - ../../../_model/smollm@_here_: def_1700
+  - ../../../_trainer@_here_: llama
+  - ../../../_dataset@_here_: smollm_corpus
+  - ../../../_checkpoints@_here_: none
+  - ../../../_misc@_here_: default
+  - _self_
+
+common:
+  sequence_length: 1024
+  batch_size: 512
+  target_dmodel: 448
+  target_dff: 1728
+
+trainer:
+  gradient_accumulation_steps: 8
+  ^n_steps:
+     # - 2048 # 1B tokens
+#    - 4096 # 2B tokens
+     - 8192 # 4B tokens
+     # - 12288 # 6B tokens
+
+  ^learning_rate:
+    # - 8
+    # - 9
+    - 10
+
+  scheduler:
+    warmup_steps: ${eval:'${trainer.n_steps} // 100'}
+
+  checkpoint:
+    load:
+      type: huggingface
+      path: "HuggingFaceTB/SmolLM-1.7B"
+    save:
+      type: nano
+      path: /lustre/pd03/plgrid/plgllmefficont3/md/checkpoints
+      interval: ${eval:'${trainer.n_steps} - 1'}
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+
+  eval_interval: 50
+  eval_dataloader:
+    seed: 42
+  train_dataloader:
+    seed: 1000
+
+infrastructure:
+  metric_logger:
+    name: SLLM_1700_prune_90_lr_grid
+    tags:
+      - nano
+      - pc
+      - smollm_1700
+      - hard_pruning
+      - no_distillation
+      - 90p
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:hopper:4
+    time: "0-24:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.pruning.prune
+    _partial_: true
+    dimensions_importances_path: /home/grid/users/plgm1kush/None/144636/0/minitron_dimensions_importances.pt # CHANGE
+    target_dmodel: ${common.target_dmodel}
+    target_dff: ${common.target_dff}
