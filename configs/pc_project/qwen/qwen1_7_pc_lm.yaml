@@ -65,7 +65,7 @@ projected_compression:
 
   separate_block_optimizers: true
 
-  ^pc_weights_lr_ratio: [1.0, 0.5, 0.25, 0.125] # lr multiplier for projection matrices (not aux weights)
+  ^pc_weights_lr_ratio: [0.0625, 0.03125] # lr multiplier for projection matrices (not aux weights)
 
   adjust_grad_norm: false
 
@@ -88,8 +88,9 @@ infrastructure:
       - "${eval:'{2048:\"1B_train\",4096:\"2B_train\",8192:\"4B_train\",16384:\"8B_train\"}[${trainer.n_steps}]'}"
       - lm_retraining
       - "${eval:'{448:\"10p\",960:\"30p\",1344:\"50p\"}[${common.dmodel}]'}"
+      - pc_weights_lr_ratio
 
   slurm: 
     job-name: ${infrastructure.metric_logger.name}
     gres: gpu:hopper:4
-    time: "2-00:00:00"
+    time: "1-00:00:00"
