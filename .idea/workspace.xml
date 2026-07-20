@@ -1,0 +1,403 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BackgroundAgentGlobalSettings">
+    <option name="selectedModelId" value="auto" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="6c16f3ba-0820-4d55-a533-6c94dadb3bdd" name="Changes" comment="update dataset references and checkpoint paths in configuration files">
+      <change beforePath="$PROJECT_DIR$/configs/_cluster/entropy.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_cluster/entropy.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_cluster/helios.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_cluster/helios.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_cluster/lem.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_cluster/lem.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_dataset/smollm_corpus.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_dataset/smollm_corpus.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_trainer/llama.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_trainer/llama.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/_trainer/llama_distillation.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/_trainer/llama_distillation.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_50_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_70_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_90_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_50_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_70_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_comp_distillation_90_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_50_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_70_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_90_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_50_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_70_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid/smollm_1700_prune_distillation_90_lr_grid.yaml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/configs/tiny_remote.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/configs/tiny_remote.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/run_exp.py" beforeDir="false" afterPath="$PROJECT_DIR$/run_exp.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/datasets.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/datasets.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/trainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/core/trainer_distillation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/core/trainer_distillation.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/projected_compression/trainer.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/projected_compression/trainer.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/projected_compression/trainer_distillation.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/projected_compression/trainer_distillation.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotChats">
+    <option name="panelChat">
+      <chat>
+        <option name="activeSessionId" value="e74a979b-e3be-4f9f-912d-b5bd387d2c58" />
+        <option name="sessions">
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="de69e55d-0a04-401b-a704-8573ff610d7b" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="6788793e-b255-4158-ad99-bc1311a1711a" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="85eca1e3-3e52-41a3-a040-8cbacb5d9c07" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="status" value="Completed" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="d25f7409-6134-4101-bb53-209b8528abd0" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="e74a979b-e3be-4f9f-912d-b5bd387d2c58" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="status" value="Completed" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="75fd71df-1ea7-42bb-8fa6-b4e40f6bdab6" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="cda870d3-18bc-45a6-81b0-fab332d84a36" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+          <session>
+            <option name="chatType" value="PANEL" />
+            <option name="id" value="8387590e-c7b1-45b6-8da2-890c76a2c965" />
+            <option name="modeId" value="Agent" />
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="gpt-5.2-codex" />
+            <option name="targetType" value="LOCAL" />
+          </session>
+        </option>
+        <option name="type" value="PANEL" />
+      </chat>
+    </option>
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_/home/m1kush/mimuw/research/nano" value="38pUy42gAC9ePAAtS97c6CLdjtk" />
+    </persistenceIdMap>
+  </component>
+  <component name="CopilotUserSelectedChatMode">
+    <option name="chatModeId" value="Ask" />
+  </component>
+  <component name="CopilotUserSelectedModel">
+    <selectedModels>
+      <entry key="agent-panel" value="GPT-5.2-Codex" />
+      <entry key="chat-panel" value="GPT-5.2-Codex" />
+    </selectedModels>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;m1kush&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:llm-random/nano.git&quot;,
+    &quot;accountId&quot;: &quot;ce93f2b5-7b86-43f8-b6d1-f68ae2c32cb4&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="38pUy42gAC9ePAAtS97c6CLdjtk" />
+  <component name="ProjectSessionTemplates">
+    <option name="panelTemplate">
+      <template>
+        <option name="modeId" value="Agent" />
+        <option name="model">
+          <model>
+            <option name="modelType" value="builtin_family" />
+            <option name="modelValue" value="auto" />
+          </model>
+        </option>
+        <option name="targetType" value="BACKGROUND" />
+      </template>
+    </option>
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
+    &quot;ai.playground.ignore.import.keys.banner.in.settings&quot;: &quot;true&quot;,
+    &quot;codeWithMe.voiceChat.enabledByDefault&quot;: &quot;false&quot;,
+    &quot;copilot.chat.legacySessionMetadata.migrated&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;#138 on mixture-of-datasets&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/m1kush/mimuw/research/nano/configs/pc_project/smollm_1700/compression&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.pluginManager&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/configs/pc_project/smollm_1700/compression" />
+      <recent name="$PROJECT_DIR$/configs/pc_project/smollm_1700/pruning" />
+      <recent name="$PROJECT_DIR$/configs/pc_project/smollm_1700_lr_grid" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/configs/pc_project/smollm_1700" />
+    </key>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-31caf2ab9e3c-JavaScript-PY-261.25134.203" />
+        <option value="bundled-python-sdk-245168a56dbd-c2ffad84badb-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-261.25134.203" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="6c16f3ba-0820-4d55-a533-6c94dadb3bdd" name="Changes" comment="" />
+      <created>1769496256747</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1769496256747</updated>
+      <workItem from="1769496258015" duration="133000" />
+      <workItem from="1769496555499" duration="1241000" />
+      <workItem from="1769502978800" duration="353000" />
+      <workItem from="1769503720828" duration="937000" />
+      <workItem from="1769548147918" duration="1647000" />
+      <workItem from="1772193985186" duration="736000" />
+      <workItem from="1772620851274" duration="611000" />
+      <workItem from="1772636924142" duration="937000" />
+      <workItem from="1772638218625" duration="603000" />
+      <workItem from="1772715537397" duration="455000" />
+      <workItem from="1772716004767" duration="761000" />
+      <workItem from="1772732081354" duration="100000" />
+      <workItem from="1773404796107" duration="10000" />
+      <workItem from="1773871156978" duration="2329000" />
+      <workItem from="1774457986933" duration="1286000" />
+      <workItem from="1774462017374" duration="4673000" />
+      <workItem from="1774561224206" duration="2004000" />
+      <workItem from="1774621867334" duration="10562000" />
+      <workItem from="1774778226417" duration="4616000" />
+      <workItem from="1774814901009" duration="281000" />
+      <workItem from="1774877365663" duration="147000" />
+      <workItem from="1774959941964" duration="537000" />
+      <workItem from="1774960679361" duration="502000" />
+      <workItem from="1774979617838" duration="243000" />
+      <workItem from="1775173238535" duration="191000" />
+      <workItem from="1775854753352" duration="360000" />
+      <workItem from="1775924964956" duration="43000" />
+      <workItem from="1778066947803" duration="971000" />
+      <workItem from="1779810279834" duration="308000" />
+      <workItem from="1779907356876" duration="633000" />
+      <workItem from="1779908115662" duration="2626000" />
+      <workItem from="1779967501654" duration="487000" />
+      <workItem from="1780057018118" duration="2146000" />
+      <workItem from="1780236829658" duration="34000" />
+      <workItem from="1780661062632" duration="1032000" />
+      <workItem from="1780671191982" duration="179000" />
+      <workItem from="1780759416329" duration="1474000" />
+      <workItem from="1780835656742" duration="2925000" />
+      <workItem from="1780916326369" duration="770000" />
+      <workItem from="1780918544605" duration="126000" />
+      <workItem from="1780950519240" duration="234000" />
+      <workItem from="1780996916726" duration="2961000" />
+      <workItem from="1781024203038" duration="1751000" />
+      <workItem from="1781027235936" duration="777000" />
+      <workItem from="1781090522182" duration="835000" />
+      <workItem from="1781096772228" duration="205000" />
+      <workItem from="1781102864962" duration="202000" />
+      <workItem from="1781173239699" duration="3067000" />
+      <workItem from="1781260485282" duration="157000" />
+      <workItem from="1781266320921" duration="32000" />
+      <workItem from="1781512313827" duration="1454000" />
+      <workItem from="1781531824056" duration="109000" />
+      <workItem from="1781551558802" duration="1247000" />
+      <workItem from="1781638855022" duration="1236000" />
+      <workItem from="1781698917059" duration="442000" />
+      <workItem from="1781956919434" duration="75000" />
+      <workItem from="1781962075094" duration="838000" />
+      <workItem from="1782478360340" duration="10000" />
+      <workItem from="1782572572818" duration="41000" />
+      <workItem from="1782733457296" duration="4333000" />
+      <workItem from="1782828146722" duration="125000" />
+      <workItem from="1782993567060" duration="1156000" />
+      <workItem from="1783685301960" duration="631000" />
+      <workItem from="1783877212895" duration="723000" />
+      <workItem from="1784034653089" duration="1831000" />
+      <workItem from="1784109789486" duration="937000" />
+      <workItem from="1784369775058" duration="760000" />
+      <workItem from="1784481497633" duration="2215000" />
+      <workItem from="1784485771854" duration="591000" />
+      <workItem from="1784540363503" duration="1641000" />
+    </task>
+    <task id="LOCAL-00001" summary="update c4.yaml to use dynamic paths for train and eval datasets">
+      <option name="closed" value="true" />
+      <created>1773871396373</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871396373</updated>
+    </task>
+    <task id="LOCAL-00002" summary="update c4.yaml to use dynamic paths for train and eval datasets">
+      <option name="closed" value="true" />
+      <created>1773871458541</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871458542</updated>
+    </task>
+    <task id="LOCAL-00003" summary="update default.yaml to change the train seed value from 1000 to 123 to match eval">
+      <option name="closed" value="true" />
+      <created>1773871528940</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871528940</updated>
+    </task>
+    <task id="LOCAL-00004" summary="fix indentation in datasets.py for better readability">
+      <option name="closed" value="true" />
+      <created>1773871696509</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1773871696509</updated>
+    </task>
+    <task id="LOCAL-00005" summary="refactor: improve code readability by adjusting indentation and formatting in datasets.py and test_tokenize_fn.py">
+      <option name="closed" value="true" />
+      <created>1773872343727</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872343727</updated>
+    </task>
+    <task id="LOCAL-00006" summary="refactor: remove commented-out print statement in datasets.py for cleaner code">
+      <option name="closed" value="true" />
+      <created>1773872466219</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872466219</updated>
+    </task>
+    <task id="LOCAL-00007" summary="refactor: update type hints for datasets parameter in get_mixture_of_datasets_dataloader for improved clarity">
+      <option name="closed" value="true" />
+      <created>1773872820658</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872820658</updated>
+    </task>
+    <task id="LOCAL-00008" summary="fix: add validation for paths and weights in datasets.py to ensure they are provided and not empty">
+      <option name="closed" value="true" />
+      <created>1773872992163</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1773872992163</updated>
+    </task>
+    <task id="LOCAL-00009" summary="update smollm config files">
+      <option name="closed" value="true" />
+      <created>1774467816325</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1774467816325</updated>
+    </task>
+    <task id="LOCAL-00010" summary="update dataset references and checkpoint paths in configuration files">
+      <option name="closed" value="true" />
+      <created>1775854826859</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1775854826859</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="update c4.yaml to use dynamic paths for train and eval datasets" />
+    <MESSAGE value="update default.yaml to change the train seed value from 1000 to 123 to match eval" />
+    <MESSAGE value="fix indentation in datasets.py for better readability" />
+    <MESSAGE value="refactor: improve code readability by adjusting indentation and formatting in datasets.py and test_tokenize_fn.py" />
+    <MESSAGE value="refactor: remove commented-out print statement in datasets.py for cleaner code" />
+    <MESSAGE value="refactor: update type hints for datasets parameter in get_mixture_of_datasets_dataloader for improved clarity" />
+    <MESSAGE value="fix: add validation for paths and weights in datasets.py to ensure they are provided and not empty" />
+    <MESSAGE value="update smollm config files" />
+    <MESSAGE value="update dataset references and checkpoint paths in configuration files" />
+    <option name="LAST_COMMIT_MESSAGE" value="update dataset references and checkpoint paths in configuration files" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>

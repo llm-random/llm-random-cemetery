@@ -1,0 +1,273 @@
+_run_: true
+
+apply_functions:
+- _partial_: true
+  _target_: src.projected_compression.compression.init_compression
+  dimensions_importances_path: /home/grid/users/plgm1kush/None/144636/0/minitron_dimensions_importances.pt
+  target_dff: ${common.dff}
+  target_dmodel: ${common.dmodel}
+
+cluster_switch:
+  eval_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation
+  eval_path_cosmopedia_v2: /lustre/pd03/plgrid/plgllmefficont3/md/cosmopedia-v2
+  eval_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  eval_path_fineweb_edu_dedup: /lustre/pd03/plgrid/plgllmefficont3/md/fineweb-edu-dedup
+  eval_path_open_web_math: /lustre/pd03/plgrid/plgllmefficont3/md/open-web-math/train
+  eval_path_python_edu: /lustre/pd03/plgrid/plgllmefficont3/md/python-edu
+  train_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/train
+  train_path_cosmopedia_v2: /lustre/pd03/plgrid/plgllmefficont3/md/cosmopedia-v2
+  train_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  train_path_fineweb_edu_dedup: /lustre/pd03/plgrid/plgllmefficont3/md/fineweb-edu-dedup
+  train_path_open_web_math: /lustre/pd03/plgrid/plgllmefficont3/md/open-web-math/train
+  train_path_python_edu: /lustre/pd03/plgrid/plgllmefficont3/md/python-edu
+
+common:
+  _target_: src.definitions.Common
+  base_dff: 8192
+  base_dmodel: 2048
+  batch_size: 512
+  dff: 3840
+  dhead: 64
+  dmodel: 960
+  kv_heads: 32
+  n_blocks: 24
+  q_heads: 32
+  sequence_length: 1024
+  vocab_size: 49152
+
+evaluator: null
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: SLLM_1700_comp_70
+    new_wandb_job: true
+    project_name: pc_smollm
+    tags:
+    - nano
+    - pc
+    - smollm_1700
+    - projected_compression
+    - no_distillation
+    - 70p
+    - 2B_tokens
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ${export_env_variables_placeholders:}
+  - export HF_HOME="/lustre/pd03/plgrid/plgllmefficont3/md/hf_cache"
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=/home/grid/users/plgm1kush/.pixi
+  - export PATH="$PIXI_HOME/bin:$PATH"
+  - export XDG_DATA_HOME="$PIXI_HOME/data"
+  - export XDG_CACHE_HOME="$PIXI_HOME/cache"
+  - export XDG_STATE_HOME="$PIXI_HOME/state"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: lem
+  slurm:
+    account: plgllmefficont3
+    cpus_per_task: 64
+    gres: gpu:hopper:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 220G
+    nodes: 1
+    partition: plgrid-lem-gpu-h100
+    time: 0-24:00:00
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.ProjectedEmbedding
+    embedding_dim: ${common.base_dmodel}
+    num_embeddings: ${common.vocab_size}
+    result_out_features: ${common.dmodel}
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.RoPEAttention
+        dmodel: ${common.base_dmodel}
+        factor: 32
+        high_freq_factor: 4
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.kv_heads}
+            * ${common.dhead}'}
+          result_in_features: ${common.dmodel}
+          result_out_features: null
+        kv_heads: ${common.kv_heads}
+        low_freq_factor: 1
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${eval:'${model.encoder.block_fn.attention_fn.q_heads}
+            * ${common.dhead}'}
+          base_out_features: ${common.base_dmodel}
+          result_in_features: null
+          result_out_features: ${common.dmodel}
+        original_max_position_embeddings: 8192
+        q_heads: ${common.q_heads}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${eval:'${model.encoder.block_fn.attention_fn.q_heads}
+            * ${common.dhead}'}
+          result_in_features: ${common.dmodel}
+          result_out_features: null
+        rope_base: 10000
+        rope_scale_freqs: true
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dff}
+          base_out_features: ${common.base_dmodel}
+          result_in_features: ${common.dff}
+          result_out_features: ${common.dmodel}
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLinear
+          base_in_features: ${common.base_dmodel}
+          base_out_features: ${common.base_dff}
+          result_in_features: ${common.dmodel}
+          result_out_features: ${common.dff}
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.base_dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.ProjectedLinear
+      base_in_features: ${common.base_dmodel}
+      base_out_features: ${common.vocab_size}
+      result_in_features: ${common.dmodel}
+      result_out_features: null
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.base_dmodel}
+
+overrides:
+- trainer.n_steps=4096
+- trainer.learning_rate=14
+
+trainer:
+  _partial_: true
+  _target_: src.projected_compression.trainer.PCTrainer
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: HuggingFaceTB/SmolLM-1.7B
+      training_state_filename: null
+      type: huggingface
+    save:
+      interval: ${eval:'${trainer.n_steps} - 1'}
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: /lustre/pd03/plgrid/plgllmefficont3/md/checkpoints
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_mixture_of_datasets_dataloader
+    dataset_split: validation
+    datasets:
+    - eval_fraction: 0.1
+      path: ${cluster_switch.eval_path_fineweb_edu_dedup}
+      weight: 0.7
+    - eval_fraction: 0.1
+      path: ${cluster_switch.eval_path_cosmopedia_v2}
+      weight: 0.15
+    - eval_fraction: 0.1
+      path: ${cluster_switch.eval_path_python_edu}
+      weight: 0.08
+    - eval_fraction: 0.1
+      path: ${cluster_switch.eval_path_open_web_math}
+      weight: 0.07
+    num_workers: 1
+    seed: 42
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: HuggingFaceTB/SmolLM-1.7B
+    total_batch_size: ${common.batch_size}
+    use_new_sampling_method: true
+    world_size_independent: false
+  eval_interval: 50
+  gradient_accumulation_steps: 8
+  gradient_clipping: 1.0
+  learning_rate: 14
+  n_eval_steps: 10
+  n_steps: 4096
+  only_compress_model_gradient_clipping: false
+  per_dataset_dataloaders:
+    _target_: src.core.datasets.get_per_dataset_dataloaders
+    datasets: ${trainer.eval_dataloader.datasets}
+    num_workers: ${trainer.eval_dataloader.num_workers}
+    seed: ${trainer.eval_dataloader.seed}
+    sequence_length: ${common.sequence_length}
+    shuffle: ${trainer.eval_dataloader.shuffle}
+    tokenize_fn: ${trainer.eval_dataloader.tokenize_fn}
+    total_batch_size: ${common.batch_size}
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: ${eval:'max(40, ${trainer.n_steps} // 100)'}
+  train_dataloader:
+    _target_: src.core.datasets.get_mixture_of_datasets_dataloader
+    dataset_split: train
+    datasets:
+    - eval_fraction: 0.1
+      path: ${cluster_switch.train_path_fineweb_edu_dedup}
+      weight: 0.7
+    - eval_fraction: 0.1
+      path: ${cluster_switch.train_path_cosmopedia_v2}
+      weight: 0.15
+    - eval_fraction: 0.1
+      path: ${cluster_switch.train_path_python_edu}
+      weight: 0.08
+    - eval_fraction: 0.1
+      path: ${cluster_switch.train_path_open_web_math}
+      weight: 0.07
+    num_workers: 2
+    seed: 1000
+    sequence_length: ${common.sequence_length}
+    shuffle: true
+    tokenize_fn:
+      _target_: src.core.datasets.get_tokenize_fn
+      model_name: HuggingFaceTB/SmolLM-1.7B
+    total_batch_size: ${common.batch_size}
+    use_new_sampling_method: true
+    world_size_independent: false
+  weight_decay: 0.1
