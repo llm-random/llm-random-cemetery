@@ -6,6 +6,8 @@ trainer:
   n_eval_steps: 10
   gradient_accumulation_steps: 1
   gradient_clipping: 1.0
+  only_compress_model_gradient_clipping: false
+  only_target_model_gradient_clipping: 1.0 #best
   n_steps: null
   learning_rate: null
   weight_decay: 0.1
