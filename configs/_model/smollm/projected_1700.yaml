@@ -1,5 +1,5 @@
 defaults:
-  - base_pc_model
+  - base_pc_mem_eff
   - _self_
 
 common:
