@@ -1,8 +1,8 @@
 defaults:
-  - ../../_cluster@_here_: lem
+  - ../../_cluster@_here_: entropy
   - ../../_model/smollm2@_here_: projected_mem_eff_1.7B
   - ../../_trainer@_here_: smollm2_1.7B_distillation
-  - ../../_dataset@_here_: fineweb
+  - ../../_dataset@_here_: c4
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
 
@@ -11,7 +11,7 @@ common:
   batch_size: 512
 
   # base: dmodel 2048, dff 8192
-  ^dmodel: [448, 960, 1344]
+  ^dmodel: [1344]
   dff: "${eval:'${common.dmodel} * 4'}"
 
 
@@ -19,7 +19,8 @@ trainer:
   _target_: src.projected_compression.trainer_distillation.PCDistillationTrainer
   gradient_accumulation_steps: 8
   ^n_steps:
-    - 2048 # 1B tokens  <5h
+    - 10 # 1M tokens  <1h
+    # - 2048 # 1B tokens  <5h
     # - 4096 # 2B tokens    <10h
     # - 8192 # 4B tokens    <20h
     # - 16384 # 8B tokens   <40h
@@ -45,7 +46,7 @@ trainer:
     save:
       interval: 0  # 0 = only save at the end of training
       model_checkpoint_filename: __model_checkpoint_filename.pt
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/checkpoints/pc_distil/smollm2/1_7B # CHANGE
+      path: /storage_nvme_4/nano/${oc.env:USER}/pc/checkpoints/pc_distil/smollm2/1_7B # CHANGE
       training_state_filename: __training_state_filename.pt
       type: hf_only
 
@@ -56,8 +57,8 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/smollm2_1_7b_in_nano.pt # CHANGE - from smollm2_conversion
-  path_to_importances: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/smollm2/1_7B/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
+  source_model_path: /storage_nvme_4/nano/${oc.env:USER}/pc/smollm2_1_7b_in_nano.pt # CHANGE - from smollm2_conversion
+  path_to_importances: /storage_nvme_4/nano/${oc.env:USER}/pc/importances/smollm2/1_7B/214/0/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
 
   init_norms_with_ones: false
 
@@ -88,11 +89,11 @@ infrastructure:
       - 1.7B
       - projected_compression
       - distillation
-      - "${eval:'{2048:\"1B_train\",4096:\"2B_train\",8192:\"4B_train\",16384:\"8B_train\"}[${trainer.n_steps}]'}"
-      - mem_eff
-      - "${eval:'{448:\"10p\",960:\"30p\",1344:\"50p\"}[${common.dmodel}]'}"
+      # - "${eval:'{2048:\"1B_train\",4096:\"2B_train\",8192:\"4B_train\",16384:\"8B_train\"}[${trainer.n_steps}]'}"
+      # - mem_eff
+      # - "${eval:'{448:\"10p\",960:\"30p\",1344:\"50p\"}[${common.dmodel}]'}"
 
   slurm:
     job-name: ${infrastructure.metric_logger.name}
-    gres: gpu:hopper:4
+    gres: gpu:4
     time: "2-12:00:00"
