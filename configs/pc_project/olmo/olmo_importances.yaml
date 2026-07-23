@@ -1,8 +1,8 @@
 defaults:
-  - ../../_cluster@_here_: lem
+  - ../../_cluster@_here_: entropy
   - ../../_model/olmo@_here_: 1B
   - ../../_trainer@_here_: olmo
-  - ../../_dataset@_here_: fineweb
+  - ../../_dataset@_here_: c4
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
 
@@ -24,7 +24,7 @@ trainer:
 
     save:
       type: nano
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/olmo2/1B # CHANGE
+      path: /storage_nvme_4/nano/${oc.env:USER}/pc/importances/olmo2/1B # CHANGE
 
 
 infrastructure:
@@ -36,11 +36,11 @@ infrastructure:
       - olmo2
       - 1B
       - IMPORTANCES
-      - fineweb
+      - c4
 
   slurm:
     job-name: importances_olmo2
-    gres: gpu:hopper:1
+    gres: gpu:1
     nodes: 1
     time: "0-2:00:00"
 
