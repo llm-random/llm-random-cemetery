@@ -1,5 +1,5 @@
 defaults:
-  - ../../_cluster@_here_: lem
+  - ../../_cluster@_here_: entropy
   - ../../_model/smollm2@_here_: 1.7B
   - ../../_trainer@_here_: smollm2_1.7B_distillation
   - ../../_dataset@_here_: fineweb
@@ -37,7 +37,7 @@ trainer:
       path: "HuggingFaceTB/SmolLM2-1.7B"
     save:
       type: hf_only
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/checkpoints/hp_distil/smollm2/1_7B # CHANGE
+      path: /storage_nvme_4/nano/${oc.env:USER}/pc/checkpoints/hp_distil/smollm2/1_7B # CHANGE
 
   eval_interval: 0
   eval_dataloader: None
@@ -61,13 +61,13 @@ infrastructure:
 
   slurm:
     job-name: ${infrastructure.metric_logger.name}
-    gres: gpu:hopper:4
+    gres: gpu:4
     time: "2-00:00:00"
 
 
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
     _partial_: true
-    dimensions_importances_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/smollm2/1_7B/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
+    dimensions_importances_path: /storage_nvme_4/nano/${oc.env:USER}/pc/importances/smollm2/1_7B/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
     target_dmodel: ${common.target_dmodel}
     target_dff: ${common.target_dff}
