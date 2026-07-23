@@ -1,8 +1,8 @@
 defaults:
-  - ../../_cluster@_here_: lem
+  - ../../_cluster@_here_: entropy
   - ../../_model/smollm2@_here_: projected_mem_eff_1.7B
   - ../../_trainer@_here_: smollm2
-  - ../../_dataset@_here_: fineweb
+  - ../../_dataset@_here_: c4
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
 
@@ -43,7 +43,7 @@ trainer:
   checkpoint:
     save: #switch
       interval: 0  # 0 = only save at the end of training
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/checkpoints/pc/smollm2/1_7B # CHANGE
+      path: /storage_nvme_4/nano/${oc.env:USER}/pc/checkpoints/pc/smollm2/1_7B # CHANGE
       training_state_filename: __training_state_filename.pt
       type: hf_only  # "nano" | "hf_only" | "nano_and_hf"
 
@@ -54,8 +54,8 @@ projected_compression:
     - ${model.source_model.encoder.block_fn._target_}
     - ${model.source_model.head._target_}
 
-  source_model_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/smollm2_1_7b_in_nano.pt # CHANGE - from smollm2_conversion
-  path_to_importances: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/smollm2/1_7B/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
+  source_model_path: /storage_nvme_4/nano/${oc.env:USER}/pc/smollm2_1_7b_in_nano.pt # CHANGE - from smollm2_conversion
+  path_to_importances: /storage_nvme_4/nano/${oc.env:USER}/pc/importances/smollm2/1_7B/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
 
   init_norms_with_ones: false
 
@@ -86,5 +86,5 @@ infrastructure:
 
   slurm:
     job-name: ${infrastructure.metric_logger.name}
-    gres: gpu:hopper:4
+    gres: gpu:4
     time: "1-00:00:00"
