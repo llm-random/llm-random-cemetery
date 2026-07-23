@@ -1,8 +1,8 @@
 defaults:
-  - ../../_cluster@_here_: lem
+  - ../../_cluster@_here_: entropy
   - ../../_model/smollm2@_here_: 1.7B
   - ../../_trainer@_here_: smollm2
-  - ../../_dataset@_here_: fineweb
+  - ../../_dataset@_here_: c4
   - ../../_checkpoints@_here_: none
   - ../../_misc@_here_: default
 
@@ -24,7 +24,7 @@ trainer:
 
     save:
       type: nano
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/smollm2/1_7B # CHANGE
+      path: /storage_nvme_4/nano/${oc.env:USER}/pc/importances/smollm2/1_7B # CHANGE
 
 
 infrastructure:
@@ -36,11 +36,11 @@ infrastructure:
       - smollm2
       - 1.7B
       - IMPORTANCES
-      - fineweb
+      - c4
 
   slurm:
     job-name: importances_smollm2
-    gres: gpu:hopper:1
+    gres: gpu:1
     nodes: 1
     time: "0-2:00:00"
 
