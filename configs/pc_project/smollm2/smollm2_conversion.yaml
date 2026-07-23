@@ -2,7 +2,7 @@
 
 defaults:
   - ../../_misc@_here_: default
-  - ../../_cluster@_here_: lem
+  - ../../_cluster@_here_: entropy
   - ../../_model/smollm2@_here_: 1.7B
   - _self_
 
@@ -14,7 +14,7 @@ trainer:
       path: "HuggingFaceTB/SmolLM2-1.7B"
 
     save:
-      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/smollm2_1_7b_in_nano.pt # CHANGE
+      path: /storage_nvme_4/nano/${oc.env:USER}/pc/smollm2_1_7b_in_nano.pt # CHANGE
 
 infrastructure:
   metric_logger:
@@ -27,7 +27,7 @@ infrastructure:
 
   slurm:
     job-name: ${infrastructure.metric_logger.name}
-    gres: gpu:hopper:1
+    gres: gpu:1
     time: "0-01:00:00"
 
 init_model_opt_sched_fn:
