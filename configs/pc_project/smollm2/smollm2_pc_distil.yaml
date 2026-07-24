@@ -57,7 +57,7 @@ projected_compression:
     - ${model.source_model.head._target_}
 
   source_model_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/smollm2_1_7b_in_nano.pt # CHANGE - from smollm2_conversion
-  path_to_importances: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/smollm2/1_7B/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
+  path_to_importances: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/smollm2/1_7B/5540583/0/minitron_dimensions_importances.pt # CHANGE - from smollm2_importances
 
   init_norms_with_ones: false
 

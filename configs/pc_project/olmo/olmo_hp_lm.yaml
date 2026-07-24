@@ -65,6 +65,6 @@ infrastructure:
 apply_functions:
   - _target_: src.projected_compression.pruning.prune
     _partial_: true
-    dimensions_importances_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/olmo2/1B/minitron_dimensions_importances.pt # CHANGE - from olmo_importances
+    dimensions_importances_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/olmo2/1B/5540590/0/minitron_dimensions_importances.pt # CHANGE - from olmo_importances
     target_dmodel: ${common.target_dmodel}
     target_dff: ${common.target_dff}
