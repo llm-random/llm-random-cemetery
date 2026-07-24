@@ -1,0 +1,368 @@
+_run_: true
+
+apply_functions:
+- _partial_: true
+  _target_: src.projected_compression.pruning.prune
+  dimensions_importances_path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/importances/olmo2/1B/5540590/0/minitron_dimensions_importances.pt
+  target_dff: ${common.target_dff}
+  target_dmodel: ${common.target_dmodel}
+
+cluster_switch:
+  eval_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation
+  eval_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  train_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/train
+  train_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+
+common:
+  _target_: src.definitions.Common
+  batch_size: 512
+  dff: 8192
+  dhead: 128
+  dmodel: 2048
+  kv_heads: 16
+  n_blocks: 16
+  q_heads: 16
+  sequence_length: 1024
+  target_dff: ${eval:'${common.target_dmodel} * 4'}
+  target_dmodel: 960
+
+common_distillation:
+  dff: 8192
+  dhead: 128
+  dmodel: 2048
+  kv_heads: 16
+  n_blocks: 16
+  q_heads: 16
+  vocab_size: 100352
+
+distillation:
+  load:
+    path: allenai/OLMo-2-0425-1B
+    type: huggingface_olmo
+  teacher_model:
+    _target_: src.projected_compression.model.LLM
+    embedding:
+      _target_: src.projected_compression.model.TransformerEmbedding
+      dmodel: ${common_distillation.dmodel}
+      init_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.trunc_normal_
+      vocab_size: ${common_distillation.vocab_size}
+    encoder:
+      _target_: src.projected_compression.model.TransformerEncoder
+      block_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.OlmoTransformerBlock
+        attention_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.OlmoAttention
+          dmodel: ${common_distillation.dmodel}
+          k_norm_fn:
+            _partial_: true
+            _target_: src.core.model.RMSNorm
+            eps: 1.0e-06
+            normalized_shape: ${eval:'${common_distillation.dhead} * ${common_distillation.kv_heads}'}
+          k_proj_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.Linear
+            in_features: ${common_distillation.dmodel}
+            out_features: ${eval:'${common_distillation.dhead} * ${distillation.teacher_model.encoder.block_fn.attention_fn.kv_heads}'}
+            partial_init_fn:
+              _partial_: true
+              _target_: src.projected_compression.model.llm_random_weight_init
+              scale: 1
+          kv_heads: ${common_distillation.kv_heads}
+          o_proj_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.Linear
+            in_features: ${eval:'${common_distillation.dhead} * ${distillation.teacher_model.encoder.block_fn.attention_fn.q_heads}'}
+            out_features: ${common_distillation.dmodel}
+            partial_init_fn:
+              _partial_: true
+              _target_: src.projected_compression.model.llm_random_weight_init
+              scale: 1
+          q_heads: ${common_distillation.q_heads}
+          q_norm_fn:
+            _partial_: true
+            _target_: src.core.model.RMSNorm
+            eps: 1.0e-06
+            normalized_shape: ${eval:'${common_distillation.dhead} * ${common_distillation.q_heads}'}
+          q_proj_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.Linear
+            in_features: ${common_distillation.dmodel}
+            out_features: ${eval:'${common_distillation.dhead} * ${distillation.teacher_model.encoder.block_fn.attention_fn.q_heads}'}
+            partial_init_fn:
+              _partial_: true
+              _target_: src.projected_compression.model.llm_random_weight_init
+              scale: 1
+          rope_base: 500000
+          rope_scale_freqs: false
+          seq_len: ${common.sequence_length}
+          v_proj_fn: ${distillation.teacher_model.encoder.block_fn.attention_fn.k_proj_fn}
+        ff_layer_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+          ff_post_act_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.Linear
+            in_features: ${common_distillation.dff}
+            out_features: ${common_distillation.dmodel}
+            partial_init_fn:
+              _partial_: true
+              _target_: src.projected_compression.model.llm_random_weight_init
+              scale: 1
+          ff_pre_act_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.Linear
+            in_features: ${common_distillation.dmodel}
+            out_features: ${common_distillation.dff}
+            partial_init_fn:
+              _partial_: true
+              _target_: src.projected_compression.model.llm_random_weight_init
+              scale: 1
+          gate_fn: ${distillation.teacher_model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+        norm_fn:
+          _partial_: true
+          _target_: src.core.model.RMSNorm
+          eps: 1.0e-06
+          normalized_shape: ${common_distillation.dmodel}
+      n_blocks: ${common_distillation.n_blocks}
+    head:
+      _target_: src.projected_compression.model.TransformerHead
+      linear_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.Linear
+        in_features: ${common_distillation.dmodel}
+        out_features: ${common_distillation.vocab_size}
+        partial_init_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.llm_random_weight_init
+          scale: 1
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-06
+        normalized_shape: ${common_distillation.dmodel}
+
+evaluator: null
+
+infrastructure:
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: OLMo2_HP
+    new_wandb_job: true
+    project_name: llm-random-test
+    tags:
+    - nano
+    - pc
+    - olmo2
+    - 1B
+    - hard_pruning
+    - distillation
+    - ${eval:'{2048:"1B_train",4096:"2B_train",8192:"4B_train",16384:"8B_train"}[${trainer.n_steps}]'}
+    - ${eval:'{448:"10p",960:"30p",1344:"50p"}[${common.target_dmodel}]'}
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ml CUDA/12.4.0
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano/$USER
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export HYDRA_FULL_ERROR=1
+  - export HF_DATASETS_CACHE="$PROJECT_HOME_PATH/hf_datasets"
+  - export HF_MODULES_CACHE="$PROJECT_HOME_PATH/hf_modules"
+  - export PIXI_HOME=$PROJECT_HOME_PATH/pixi
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export HF_DATASETS_TRUST_REMOTE_CODE=1
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: lem
+  slurm:
+    account: plgllmefficont3
+    cpus-per-task: ${eval:'16 * int("${infrastructure.slurm.gres}".split(":")[-1])'}
+    gres: gpu:hopper:4
+    job-name: ${infrastructure.metric_logger.name}
+    mem: ${eval:'str(220 * int("${infrastructure.slurm.gres}".split(":")[-1])) + "G"'}
+    nodes: 1
+    partition: plgrid-lem-gpu-h100
+    time: 0-12:00:00
+
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.trunc_normal_
+    vocab_size: 100352
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.OlmoTransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.OlmoAttention
+        dmodel: ${common.dmodel}
+        k_norm_fn:
+          _partial_: true
+          _target_: src.core.model.RMSNorm
+          eps: 1.0e-06
+          normalized_shape: ${eval:'${common.dhead} * ${common.kv_heads}'}
+        k_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        kv_heads: ${common.kv_heads}
+        o_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.q_heads}'}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        q_heads: ${common.q_heads}
+        q_norm_fn:
+          _partial_: true
+          _target_: src.core.model.RMSNorm
+          eps: 1.0e-06
+          normalized_shape: ${eval:'${common.dhead} * ${common.q_heads}'}
+        q_proj_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${eval:'${common.dhead} * ${model.encoder.block_fn.attention_fn.q_heads}'}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        rope_base: 500000
+        rope_scale_freqs: false
+        seq_len: ${common.sequence_length}
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.projected_compression.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.projected_compression.model.llm_random_weight_init
+            scale: 1
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-06
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.projected_compression.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${model.embedding.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.projected_compression.model.llm_random_weight_init
+        scale: 1
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-06
+      normalized_shape: ${common.dmodel}
+
+overrides:
+- common.target_dmodel=960
+- trainer.n_steps=2048
+- trainer.learning_rate=12
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer_distillation.TrainerDistillation
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: allenai/OLMo-2-0425-1B
+      training_state_filename: null
+      type: huggingface_olmo
+    save:
+      interval: -1
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: /lustre/pd03/plgrid/plgllmefficont3/plgj321m/pc/checkpoints/hp_distil/olmo2/1B
+      training_state_filename: __training_state_filename.pt
+      type: hf_only
+  distillation_alpha: 0.5
+  distillation_loss_num_chunks: 8
+  distillation_temperature: 1.0
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader: None
+  eval_interval: 0
+  gradient_accumulation_steps: 8
+  gradient_clipping: 1.0
+  learning_rate: 12
+  n_eval_steps: 10
+  n_steps: 2048
+  original_llama_path: allenai/OLMo-2-0425-1B
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: 40
+  teacher_distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${distillation.teacher_model.embedding._target_}
+      - ${distillation.teacher_model.encoder.block_fn._target_}
+      - ${distillation.teacher_model.head._target_}
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset:
+      _target_: src.core.datasets.FineWebEduDataset
+      path: ${cluster_switch.train_path_fineweb}
+      seed: 1000
+      sequence_length: ${common.sequence_length}
+      shuffle: true
+      split: train
+      tokenize_fn:
+        _target_: src.core.datasets.olmo_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 2
+    total_batch_size: ${common.batch_size}
+  weight_decay: 0.1
