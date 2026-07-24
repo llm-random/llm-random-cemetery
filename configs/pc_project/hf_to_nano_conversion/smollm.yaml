@@ -1,0 +1,31 @@
+defaults:
+  - ../../_misc@_here_: default
+  - ../../_cluster@_here_: helios
+  - ../../_model/smollm@_here_: def_1700
+  - _self_
+
+
+trainer:
+  checkpoint:
+    load:
+      type: huggingface
+      path: "HuggingFaceTB/SmolLM-1.7B"
+
+    save:
+      path: /net/storage/pr3/plgrid/plggllmeffi3/md/smollm_nano # CHANGE ME
+
+infrastructure:
+  metric_logger:
+    name: PC_save_pretrained_hf_to_nano
+    tags:
+      - nano
+      - pc
+      - save_pretrained
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    time: "0-24:00:00"
+
+init_model_opt_sched_fn: 
+  _target_: src.core.llama.save_pretrained_llama_as_nano
+  _partial_: true
