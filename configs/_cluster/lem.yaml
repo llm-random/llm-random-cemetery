@@ -2,24 +2,25 @@ infrastructure:
   server: lem
   max_concurrent_jobs: null
   slurm:
-    cpus_per_gpu: 16
+    # cpus_per_gpu: 16
+    cpus_per_task: 64
     gres: "gpu:hopper:4"
     job-name: test
     mem_per_gpu: 220G
     nodes: 1
     partition: plgrid-lem-gpu-h100
     time: "1-00:00:00"
-    account: "plgllmefficont2"
+    account: "plgllmefficont3"
 
   script:
     - '${export_env_variables_placeholders:}'
-    - 'export HF_HOME="/lustre/pd01/plgrid/plgllmefficont2/crewtool/hf"'
+    - 'export HF_HOME="/lustre/pd03/plgrid/plgllmefficont3/md/hf_cache"'
 
     # hydra errors
     - 'export HYDRA_FULL_ERROR=1'
 
     # export pixi variables
-    - 'export PIXI_HOME=/lustre/pd01/plgrid/plgllmefficont2/pixi'
+    - 'export PIXI_HOME=/home/grid/users/plgm1kush/.pixi'
     - 'export PATH="$PIXI_HOME/bin:$PATH"'
     - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
     - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
@@ -35,3 +36,11 @@ cluster_switch:
   eval_path_c4: "/lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation"
   train_path_fineweb: "/lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train"
   eval_path_fineweb: "/lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train"
+  train_path_fineweb_edu_dedup: "/lustre/pd03/plgrid/plgllmefficont3/md/fineweb-edu-dedup"
+  eval_path_fineweb_edu_dedup: "/lustre/pd03/plgrid/plgllmefficont3/md/fineweb-edu-dedup"
+  train_path_cosmopedia_v2: "/lustre/pd03/plgrid/plgllmefficont3/md/cosmopedia-v2"
+  eval_path_cosmopedia_v2: "/lustre/pd03/plgrid/plgllmefficont3/md/cosmopedia-v2"
+  train_path_python_edu: "/lustre/pd03/plgrid/plgllmefficont3/md/python-edu"
+  eval_path_python_edu: "/lustre/pd03/plgrid/plgllmefficont3/md/python-edu"
+  train_path_open_web_math: "/lustre/pd03/plgrid/plgllmefficont3/md/open-web-math/train"
+  eval_path_open_web_math: "/lustre/pd03/plgrid/plgllmefficont3/md/open-web-math/train"
