@@ -6,31 +6,49 @@ trainer:
   train_dataloader:
     _target_: src.core.datasets.get_mixture_of_datasets_dataloader
     datasets:
-      - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
+      - path: ${cluster_switch.train_path_fineweb_edu_dedup}
         weight: 0.7
-      - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
+        eval_fraction: 0.1
+      - path: ${cluster_switch.train_path_cosmopedia_v2}
         weight: 0.15
-      - path: /storage_nvme_2/llm-random/datasets/python-edu
+        eval_fraction: 0.1
+      - path: ${cluster_switch.train_path_python_edu}
         weight: 0.08
-      - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
+        eval_fraction: 0.1
+      - path: ${cluster_switch.train_path_open_web_math}
         weight: 0.07
+        eval_fraction: 0.1
     dataset_split: train
     num_workers: 2
     tokenize_fn:
       _target_: src.core.datasets.get_tokenize_fn
       model_name: HuggingFaceTB/SmolLM-1.7B
 
+  per_dataset_dataloaders:
+    _target_: src.core.datasets.get_per_dataset_dataloaders
+    datasets: ${trainer.eval_dataloader.datasets}
+    tokenize_fn: ${trainer.eval_dataloader.tokenize_fn}
+    total_batch_size: ${common.batch_size}
+    sequence_length: ${common.sequence_length}
+    num_workers: ${trainer.eval_dataloader.num_workers}
+    seed: ${trainer.eval_dataloader.seed}
+    shuffle: ${trainer.eval_dataloader.shuffle}
+
   eval_dataloader:
     _target_: src.core.datasets.get_mixture_of_datasets_dataloader
     datasets:
-      - path: /storage_nvme_1/llm-random/datasets/fineweb-edu-dedup/train
+      - path: ${cluster_switch.eval_path_fineweb_edu_dedup}
         weight: 0.7
-      - path: /storage_nvme_1/llm-random/datasets/cosmopedia-v2/train
+        eval_fraction: 0.1
+      - path: ${cluster_switch.eval_path_cosmopedia_v2}
         weight: 0.15
-      - path: /storage_nvme_2/llm-random/datasets/python-edu
+        eval_fraction: 0.1
+      - path: ${cluster_switch.eval_path_python_edu}
         weight: 0.08
-      - path: /storage_nvme_2/llm-random/datasets/open-web-math/train
+        eval_fraction: 0.1
+      - path: ${cluster_switch.eval_path_open_web_math}
         weight: 0.07
+        eval_fraction: 0.1
     dataset_split: validation
     num_workers: 1
     tokenize_fn:
