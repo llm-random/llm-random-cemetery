@@ -12,7 +12,7 @@ common:
   batch_size: 512
 
   # base: dmodel 2048, dff 8192
-  ^target_dmodel: [448, 960, 1344]
+  ^target_dmodel: [1344]
   target_dff: "${eval:'${common.target_dmodel} * 4'}"
 
 
@@ -24,7 +24,7 @@ trainer:
     # - 8192 # 4B tokens    <18h
     # - 16384 # 8B tokens   <36h
 
-  ^learning_rate: [8, 9]
+  ^learning_rate: [10]
 
   scheduler:
     warmup_steps: 40

@@ -11,7 +11,7 @@ common:
   batch_size: 512
 
   # base: dmodel 2048, dff 8192
-  ^dmodel: [448, 960, 1344]
+  ^dmodel: [448]
   dff: "${eval:'${common.dmodel} * 4'}"
 
 
@@ -28,7 +28,7 @@ trainer:
   only_compress_model_gradient_clipping: false
   only_target_model_gradient_clipping: 1.0 #best
 
-  ^learning_rate: [11, 12, 13]
+  ^learning_rate: [12]
 
   scheduler:
     warmup_steps: 40
