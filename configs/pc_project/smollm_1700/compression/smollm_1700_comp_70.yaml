@@ -1,0 +1,120 @@
+defaults:
+  - ../../../_cluster@_here_: helios
+  - ../../../_model/smollm@_here_: projected_1700
+  - ../../../_trainer@_here_: llama
+  - ../../../_dataset@_here_: smollm_corpus
+  - ../../../_checkpoints@_here_: none
+  - ../../../_misc@_here_: default
+  - _self_
+
+common:
+  sequence_length: 1024
+  batch_size: 512
+  dmodel: 960
+  dff: 3840
+
+trainer:
+  _target_: src.projected_compression.trainer.PCTrainer
+  gradient_accumulation_steps: 8
+  ^n_steps:
+    # - 2048 # 1B tokens
+#    - 4096 # 2B tokens
+     - 8192 # 4B tokens
+    # - 12288 # 6B tokens
+
+  gradient_clipping: 0.25
+  only_compress_model_gradient_clipping: false
+  only_target_model_gradient_clipping: 1.0
+
+  ^learning_rate:
+#    - 11
+#    - 12
+    - 13
+    - 14
+
+  scheduler:
+#    warmup_steps: 40
+    warmup_steps: ${eval:'max(40, ${trainer.n_steps} // 100)'}
+
+  distributed:
+    fsdp2: null
+
+  original_llama_path: HuggingFaceTB/SmolLM-1.7B
+  checkpoint:
+    save:
+      type: nano_and_hf
+      path: /net/storage/pr3/plgrid/plggllmeffi3/md/checkpoints
+      interval: ${eval:'${trainer.n_steps} - 1'}
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+
+  eval_interval: 1000000 # PC_memeff does not work in eval inference mode
+  eval_dataloader: None
+  # smollm_corpus defines these and interpolates them from trainer.eval_dataloader.*,
+  # which no longer resolves once eval_dataloader is disabled above.
+  per_dataset_dataloaders: null
+  train_dataloader:
+    seed: 1000
+
+projected_compression:
+  modules_to_shard:
+    - src.projected_compression.mem_eff.CompressibleBlock
+    - ${model.source_model.embedding._target_}
+    - ${model.source_model.encoder.block_fn._target_}
+    - ${model.source_model.head._target_}
+
+  # source_model_path: /storage_nvme_3/mstefaniak/pc/llama31b.pt # entropy
+  # path_to_importances: /storage_nvme_3/mstefaniak/pc/fw_importances_8m/minitron_dimensions_importances.pt
+
+  # source_model_path: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama31b.pt # helios
+  # path_to_importances: /net/storage/pr3/plgrid/plggllmeffi/projected_compression/llama_1_fw_importances/minitron_dimensions_importances.pt
+
+  source_model_path: /net/storage/pr3/plgrid/plggllmeffi3/md/smollm_nano.pt # helios
+  path_to_importances: /net/home/plgrid/plgm1kush/None/144636/0/minitron_dimensions_importances.pt
+
+  init_norms_with_ones: false
+
+  # --- Optimizer mode (pick one) ---
+  #
+  # Separate per-block optimizers: each CompressibleBlock has its own AdamW.
+  # Allows per-block gradient clipping and independent learning rate schedules.
+  separate_block_optimizers: true
+  #
+  # Single optimizer covering all parameters (original PC, simpler but shared grad norm).
+  # separate_block_optimizers: false
+
+  adjust_grad_norm: false
+
+  # cpu_offload_projections: false is the correct setting for 4× H100 80GB.
+  # All proj blocks + optimizer state stay on GPU (FSDP2-sharded via modules_to_shard).
+  # cpu_offload was ~10s/step due to PCIe bottleneck; full-GPU is ~1.5s/step.
+  cpu_offload_projections: false
+  # cpu_offload_projections: true  # only if running on fewer / smaller GPUs and VRAM is tight
+
+
+model:
+  cast_bfloat16: false
+  # cast_bfloat16: true
+
+infrastructure:
+  metric_logger:
+    name: SLLM_1700_comp_70
+    tags:
+      - nano
+      - pc
+      - smollm_1700
+      - projected_compression
+      - no_distillation
+      - 70p
+      - 2B_tokens
+  slurm:
+    job-name: ${infrastructure.metric_logger.name}
+    gres: gpu:4
+    time: "0-24:00:00"
+
+apply_functions:
+  - _target_: src.projected_compression.compression.init_compression
+    _partial_: true
+    dimensions_importances_path: /home/grid/users/plgm1kush/None/144636/0/minitron_dimensions_importances.pt
+    target_dmodel: ${common.dmodel}
+    target_dff: ${common.dff}
