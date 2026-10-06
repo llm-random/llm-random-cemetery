@@ -1,0 +1,224 @@
+infrastructure:
+  server: entropy_j
+  max_concurrent_jobs: null
+  slurm:
+    cpus_per_gpu: 14
+    gres: gpu:h100:2
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: h100
+    time: 0-12:00:00
+  script:
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/storage_nvme_4/nano
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=$PROJECT_HOME_PATH/$USER/pixi
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export XDG_DATA_HOME="$PIXI_HOME/data"
+  - export XDG_CACHE_HOME="$PIXI_HOME/cache"
+  - export XDG_STATE_HOME="$PIXI_HOME/state"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    new_wandb_job: true
+    name: llama1_slicegpt_hyb_${slicegpt_ratio}
+    type: stdout
+    wandb_entity: ideas_cv
+    project_name: pc_v2
+    tags:
+    - nano
+    - llama_1
+    - slicegpt
+    - hybrid
+    - rft
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  generated_configs_path: generated_configs
+  cemetery_experiments_dir: ~/llmrandom_cemetery
+cluster_switch:
+  train_path_c4: /storage_nvme_1/llm-random/datasets/c4/train
+  eval_path_c4: /storage_nvme_1/llm-random/datasets/c4/validation
+  train_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+  eval_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+common:
+  _target_: src.definitions.Common
+  dmodel: ${slicegpt_dims.${slicegpt_ratio}.d}
+  dff: ${slicegpt_dims.${slicegpt_ratio}.dff}
+  datt: 2048
+  n_blocks: 16
+  q_heads: 32
+  kv_heads: 8
+  vocab_size: 128256
+  sequence_length: 1024
+  head_norm: true
+  init_scale: 0.1
+  init_type: truncated_normal_fixed
+  model_type: gpt
+  batch_size: 512
+model:
+  _target_: src.projected_compression.model.LLM
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    vocab_size: ${common.vocab_size}
+    dmodel: ${common.dmodel}
+    init_fn:
+      _target_: src.projected_compression.model.trunc_normal_
+      _partial_: true
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    n_blocks: ${common.n_blocks}
+    block_fn:
+      _target_: src.projected_compression.model.TransformerBlock
+      _partial_: true
+      norm_fn:
+        _target_: src.core.model.RMSNorm
+        _partial_: true
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+      attention_fn:
+        _target_: src.projected_compression.model.RoPEAttention
+        _partial_: true
+        dmodel: ${common.dmodel}
+        q_heads: ${common.q_heads}
+        kv_heads: ${common.kv_heads}
+        seq_len: ${common.sequence_length}
+        q_proj_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.dmodel}
+          out_features: ${common.datt}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: 1
+        k_proj_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.dmodel}
+          out_features: ${eval:'(${common.datt} // ${model.encoder.block_fn.attention_fn.q_heads})
+            * ${model.encoder.block_fn.attention_fn.kv_heads}'}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: 1
+        v_proj_fn: ${model.encoder.block_fn.attention_fn.k_proj_fn}
+        o_proj_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.datt}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: 1
+        rope_base: 500000
+        rope_scale_freqs: true
+      ff_layer_fn:
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        _partial_: true
+        ff_pre_act_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: 1
+        ff_post_act_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: 1
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      shortcut_dim: ${common.dmodel}
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _target_: src.projected_compression.model.Linear
+      _partial_: true
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _target_: src.projected_compression.model.llm_random_weight_init
+        _partial_: true
+        scale: 1
+    norm_fn:
+      _target_: src.core.model.RMSNorm
+      _partial_: true
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  eval_interval: 0
+  n_eval_steps: 10
+  gradient_accumulation_steps: 16
+  gradient_clipping: 1.0
+  learning_rate: 13
+  weight_decay: 0.1
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: 40
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  train_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.core.datasets.llama_tokenize_fn
+      _target_: src.core.datasets.FineWebEduDataset
+      sequence_length: ${common.sequence_length}
+      path: ${cluster_switch.train_path_fineweb}
+      split: train
+      seed: 123
+      use_new_sampling_method: true
+      shuffle: true
+      world_size_independent: false
+    _target_: src.core.datasets.get_dataloader
+    total_batch_size: ${common.batch_size}
+    num_workers: 2
+  eval_dataloader: None
+  checkpoint:
+    save:
+      type: nano
+      interval: 0
+      path: /storage_nvme_4/nano/j321m/pc/slicegpt_smoke/lr_sweep_ckpt
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: __training_state_filename.pt
+    load:
+      type: sliced_nano
+      path: /storage_nvme_4/nano/j321m/pc/slicegpt_smoke/llama1b_slicegpt_hyb_r50_smoke.pt
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      training_state_filename: null
+      only_weights: true
+  n_steps: 100
+evaluator: null
+slicegpt_dims:
+  r50:
+    d: 1256
+    dff: 5376
+    lr: 12
+  r70:
+    d: 912
+    dff: 3840
+    lr: 12
+  r90:
+    d: 432
+    dff: 1728
+    lr: 11
+slicegpt_ratio: r50
