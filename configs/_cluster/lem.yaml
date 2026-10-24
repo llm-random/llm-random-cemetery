@@ -1,6 +1,13 @@
 infrastructure:
   server: lem
   max_concurrent_jobs: null
+
+  # $HOME on lem is a 20G-quota NFS export and is currently over it, so the
+  # _misc/default.yaml value of ~/llmrandom_cemetery makes every `git clone` fail with
+  # "Disk quota exceeded" (run_exp.py only surfaces it as UnexpectedExit, exit 128).
+  # Must stay a literal path: run_exp.py uses this on the LOGIN node, before exp.job runs,
+  # so none of the exports under `script:` below exist yet and $USER_HOME_PATH would be empty.
+  cluster_cemetery_dir: "/lustre/pd03/plgrid/plgllmefficont3/mstefaniak/llmrandom_cemetery"
   slurm:
     cpus_per_gpu: 16
     gres: "gpu:hopper:4"
@@ -24,9 +31,21 @@ infrastructure:
     # project dir, so HF_HOME keeps pointing at the shared model cache. These used to
     # be the same name, with the second export shadowing the first -- same resolved
     # values, but a line added in between silently got the other base.
-    - 'export USER_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/mstefaniak'
+    # Overridable so other group members can point this at their own directory:
+    # export USER_HOME_PATH=... in your lem ~/.bashrc and pixi, the HF caches and XDG_*
+    # all follow. $USER cannot be used -- the lem login is `plgmstefaniak` while the
+    # directory is `mstefaniak`, and the sibling dirs mix both conventions.
+    # NB: shell's ${VAR:-default} cannot be used here -- OmegaConf parses ${...} in these
+    # strings as an interpolation (see the export_env_variables_placeholders line above)
+    # and fails to compose. Use an explicit test instead.
+    - 'if [ -z "$USER_HOME_PATH" ]; then export USER_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/mstefaniak; fi'
     - 'export HF_DATASETS_CACHE="$USER_HOME_PATH/hf_datasets"'
     - 'export HF_MODULES_CACHE="$USER_HOME_PATH/hf_modules"'
+    # The shared $PROJECT_HOME_PATH/hf_cache is owned by another group member and is
+    # not group-writable, and its hub/ holds only gpt2. Without this the llama
+    # tokenizer load dies with "PermissionError ... Check cache directory
+    # permissions" before step 1. Keep the hub cache per-user and writable.
+    - 'export HF_HUB_CACHE="$USER_HOME_PATH/hf_cache"'
     - 'export HF_DATASETS_TRUST_REMOTE_CODE=1'
     - 'export PIXI_HOME=$USER_HOME_PATH/pixi'
     - 'export PATH="$HOME/.pixi/bin:$PATH"'
