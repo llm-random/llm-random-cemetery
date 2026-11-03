@@ -1,12 +1,12 @@
 defaults:
   - base_schema
-  - _cluster@_here_: entropy_a100
+  - _cluster@_here_: entropy
   - _model/h_balanced@_here_: h4
   - _trainer@_here_: llama
   - _dataset@_here_: c4
   - _checkpoints@_here_: none
   - _misc@_here_: default
-  - _eval@_here_: basic
+  # - _eval@_here_: basic
 
 common:
   sequence_length: 128
