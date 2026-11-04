@@ -19,6 +19,38 @@ CATS = [
     ("optimizer", re.compile(r"adam|multi_tensor|lerp|foreach", re.I)),
     ("gemm", re.compile(r"nvjet|cutlass|gemm|xmma|cublas", re.I)),
     ("compiled(triton)", re.compile(r"^triton_")),
+    # Two categories added 2026-11-04 for the AME optimization work (O31). Both
+    # are ADDITIVE: every kernel they claim previously fell through to "other",
+    # so no existing category's number moves and the tables already published in
+    # training_efficiency.md stay reproducible. tests/test_kprof_agg.py asserts
+    # that property rather than leaving it as a claim.
+    #
+    # POSITION MATTERS and is why these sit here rather than at the top. First
+    # match wins, and inductor names its fused kernels after the ops it fused --
+    # `triton_poi_fused_embedding_dense_backward_3` is real. Ahead of
+    # `compiled(triton)` the embedding pattern would steal those and silently
+    # move an existing category's number; behind it, eager ATen kernels still
+    # land here because they do not start with `triton_`.
+    #
+    # comm(nccl) is what makes gradient communication visible. Inductor fuses
+    # pointwise work into opaque triton_poi_fused_* kernels but never touches
+    # NCCL, so reduce-scatter and all-reduce stay legible under compile -- which
+    # is what lets O9 (reduce once per step, not once per micro-step) and Tier 3
+    # (shard the banks) be measured at all.
+    ("comm(nccl)", re.compile(r"nccl|reduce_?scatter|all_?gather|all_?reduce", re.I)),
+    # embedding/bank is AME's bank gradient path. The banks are nn.Embedding, so
+    # their backward is embedding_dense_backward -- which on CUDA decomposes into
+    # a segment-offset/partial-sum/scatter trio, none of which looks like
+    # "embedding" by name. Catch the whole family or undercount the thing Tier 2
+    # exists to remove.
+    (
+        "embedding/bank",
+        re.compile(
+            r"embedding|indexSelect|index_select|compute_grad_weight"
+            r"|sum_and_scatter|partial_segment|index_add|indexAdd",
+            re.I,
+        ),
+    ),
     ("softmax/CE", re.compile(r"SoftMax|cross_entropy|nll", re.I)),
     ("norm-ish eager (pow/reduce)", re.compile(r"pow_tensor|reduce_kernel|rsqrt|norm", re.I)),
     ("eager elementwise", re.compile(r"elementwise_kernel|CUDAFunctor|BinaryFunctor|Functor", re.I)),
