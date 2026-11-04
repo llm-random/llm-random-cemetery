@@ -10,6 +10,21 @@ from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+# FSDP2's module type, for O9's guard. Public under torch.distributed.fsdp from
+# 2.7 (entropy: 2.7.1+cu128); older builds expose FSDP2 only under the private
+# _composable path (helios ships 2.6.0 on aarch64). None means this build has no
+# FSDP2 at all, in which case O9 degrades to a no-op rather than crashing the
+# import for every run on that cluster.
+from torch.nn.parallel import DistributedDataParallel as _DDP
+
+try:
+    from torch.distributed.fsdp import FSDPModule as _FSDPModule
+except ImportError:  # pragma: no cover - depends on the cluster's torch
+    try:
+        from torch.distributed._composable.fsdp import FSDPModule as _FSDPModule
+    except ImportError:
+        _FSDPModule = None
+
 import torch.distributed.checkpoint as dcp
 import logging
 
@@ -19,6 +34,7 @@ from src.core.checkpointing import (
     step_checkpoint_path,
 )
 from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger
+from src.core.memory_parallel import get_controller
 from src.core.mfu import model_flops_per_token, peak_flops_bf16
 from src.core.utils import create_batch_fingerprint
 
@@ -158,6 +174,36 @@ class Trainer:
     # fp32 loss would settle it. Rejected regardless: the first is worse
     # training, the second is a metric that lies.
     compile_ce: bool = False
+    # O9: under FSDP2, reduce gradients ONCE per optimizer step instead of once
+    # per micro-step. Every `loss.backward()` in the accumulation loop otherwise
+    # triggers a full reduce-scatter of every gradient, and only the last one is
+    # needed -- at gradient_accumulation_steps=32 that is 32 reduce-scatters
+    # where 1 suffices. `set_requires_gradient_sync(False)` is FSDP2's
+    # equivalent of FSDP1's `no_sync`, and it is mathematically an identity:
+    # it changes WHEN gradients are reduced, never what they sum to.
+    #
+    # NOT free in memory, which is why it is opt-in. With sync suppressed,
+    # FSDP2 holds each parameter group's UNSHARDED gradient between micro-steps
+    # and, because `reduce_dtype=torch.float32`, upcasts it to fp32 to do so
+    # (torch/distributed/fsdp/_fully_shard/_fsdp_param.py,
+    # `to_accumulated_grad_if_needed` / `accumulate_unsharded_grad_if_needed`).
+    # The resident gradient therefore goes from `P/world_size * 4` bytes to
+    # `P * 4` bytes per rank -- at h20's 3.163B parameters on 4 GPUs, 3.16 GB
+    # becomes 12.65 GB, i.e. ~9.5 GB/GPU more. Parameters still reshard after
+    # backward; it is only the gradient that stays unsharded.
+    #
+    # So: a FLOP-free throughput win paid for in memory, which may cap the
+    # micro-batch. Enable it and measure both numbers, never just the first.
+    # Ignored without FSDP2 (plain module, FSDP1, CPU) and when
+    # gradient_accumulation_steps == 1, where it would be a no-op anyway.
+    skip_grad_sync_during_accumulation: bool = False
+    # Tiers 2+3: how many ranks share one copy of the Q/K banks. Declared here
+    # so `trainer.mem_parallel_size=N` type-checks at submit time, but the
+    # controller itself is built in main.py before fully_shard -- the trainer
+    # finds it on the model (`get_controller`) and only cross-checks it against
+    # this value, so a config that sets one and a model that was built without
+    # the other fails loudly instead of silently training the baseline.
+    mem_parallel_size: Optional[int] = None
 
     # Checkpoint save types this trainer can actually write. Subclasses widen this;
     # anything outside it is rejected before training starts.
@@ -217,6 +263,26 @@ class Trainer:
         self._seq_len_for_flops = None
         # The last micro-batch's ids, for per-layer attention diagnostics.
         self._last_input_ids = None
+        # Modules whose instrumentation raised; warned about once, then skipped
+        # (see _log_layer_instrumentation).
+        self._instrumentation_failures = set()
+
+        # Tiers 2+3. None unless main.py built a MemoryParallelController, in
+        # which case the Q/K banks are outside FSDP2 and outside self.optimizer
+        # and this object is the only thing that steps them.
+        self._banks = get_controller(self.model)
+        requested = self.mem_parallel_size
+        if requested is not None and requested > 0 and self._banks is None:
+            raise ValueError(
+                f"trainer.mem_parallel_size={requested} but the model carries no "
+                "memory-parallel controller -- the banks would be trained by the "
+                "ordinary FSDP2 path and the run would silently be a baseline"
+            )
+        if self._banks is not None and requested not in (None, self._banks.mp_size):
+            raise ValueError(
+                f"trainer.mem_parallel_size={requested} disagrees with the "
+                f"controller's {self._banks.mp_size}"
+            )
 
     @property
     def _should_evaluate(self) -> bool:
@@ -289,6 +355,23 @@ class Trainer:
             self._kprof.__enter__()
         elif step == 14 and getattr(self, "_kprof", None) is not None:
             self._kprof.__exit__(None, None, None)
+            # The chrome trace, which is the only form that keeps PARENTAGE.
+            # key_averages() below aggregates by kernel name, and a GEMM or an
+            # elementwise kernel serves forward and backward under one name --
+            # so the aggregate cannot be split by pass, however much the
+            # `section:` ranges above suggest it could. The trace keeps every
+            # kernel's External id, so scripts/kprof_phase.py can walk each one
+            # back to the `section:` range that was open when it was launched
+            # and give a real forward/backward split per category.
+            if int(os.environ.get("RANK", 0)) == 0:
+                trace_path = os.path.abspath("kprof_trace_rank0.json")
+                try:
+                    self._kprof.export_chrome_trace(trace_path)
+                    size_mb = os.path.getsize(trace_path) / 2**20
+                    logger.info(f"kprof_trace: {trace_path} ({size_mb:.1f} MiB)")
+                except Exception as exc:  # noqa: BLE001
+                    # Never lose a run over a profiling artefact.
+                    logger.warning(f"kprof_trace export failed: {exc}")
             # Every rank profiles (the context manager is cheap and symmetric),
             # but only rank 0 prints. The lines carry no rank of their own and
             # all ranks share one job log, so N ranks printing would interleave
@@ -344,10 +427,22 @@ class Trainer:
             self.metric_logger.set_step(step)
             self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
+            if self._banks is not None:
+                # O5 hook 1, step begin: the fp32 master and the gradient
+                # accumulator are plain tensors nothing else moves, so this is
+                # where they are allocated (first step) and re-homed.
+                self._banks.materialize()
             # The model sees batch width - 1 tokens (the shift for next-token
             # targets); that is the sequence length the FLOPs count must use.
             self._seq_len_for_flops = batch.shape[-1] - 1
             loss_metrics = self.calculate_loss(batch)
+
+            if self._banks is not None:
+                # O5 hook 2 / O2 / O8: one all-reduce for the whole optimizer
+                # step. BEFORE the clip, because the clip's norm has to see the
+                # final gradient, not this rank's partial sum.
+                with self._timers.gpu("bank_reduce"):
+                    self._banks.reduce()
 
             with self._timers.gpu("clip"):
                 grad_norm = self.clip_gradient()
@@ -358,6 +453,18 @@ class Trainer:
             with self._timers.gpu("optim"):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
+            if self._banks is not None:
+                # Read the LR off the backbone optimizer, not off the
+                # scheduler's state: scheduler.step() has not run yet, so this
+                # is the LR this step was taken at, and copying it keeps the
+                # banks on exactly the backbone's schedule.
+                #
+                # Timed BESIDE `optim`, not inside it: the printed sections are
+                # read as a partition of the step, and a nested pair would have
+                # the bank step counted twice.
+                with self._timers.gpu("bank_step"):
+                    self._banks.step(lr=self.optimizer.param_groups[0]["lr"])
+                    self._banks.zero_grad()
             self.scheduler.step()
 
             if self.profile_timers:
@@ -372,6 +479,8 @@ class Trainer:
                         "backward",
                         "clip",
                         "optim",
+                        "bank_reduce",
+                        "bank_step",
                         "log",
                     )
                 )
@@ -546,6 +655,80 @@ class Trainer:
         )
         return mask_loss.mean()
 
+    @contextmanager
+    def _accumulation_grad_sync(self):
+        """Yields `mark(is_last)`, which says whether this micro-step may reduce.
+
+        O9. Under FSDP2 every `loss.backward()` ends in a reduce-scatter of every
+        gradient. Across an accumulation loop only the last one is needed -- the
+        others reduce a partial sum that the next micro-step immediately adds to.
+        `set_requires_gradient_sync(False)` suppresses them; the gradients
+        accumulate locally instead and one reduce at the end produces the same
+        sum. FSDP1 spelled this `no_sync()`.
+
+        Identity, not approximation: addition is associative, and the reduce is
+        a sum over ranks. What changes is the schedule, not the result -- which
+        is why the gate for this change is a *bit-identical* loss trajectory.
+
+        The restore in the `finally` is the part worth not getting wrong. If the
+        loop raises part-way through, or if eval runs next, a model left with
+        sync off would keep training without ever reducing gradients -- each
+        rank silently diverging onto its own model while the loss curve looks
+        entirely normal. Always hand it back synchronised.
+
+        Inert, with no behaviour change at all, unless the model is an FSDP2
+        module, the opt-in flag is set, there is more than one micro-step, and
+        the model is in training mode.
+        """
+        if self.skip_grad_sync_during_accumulation and _FSDPModule is None:
+            logger.warning(
+                "skip_grad_sync_during_accumulation is set, but this torch build "
+                "(%s) exposes no FSDP2 module type; gradients will be reduced on "
+                "every micro-step as before.",
+                torch.__version__,
+            )
+        accumulating = self.gradient_accumulation_steps > 1 and self.model.training
+
+        if accumulating and isinstance(self.model, _DDP):
+            # Unconditional for DDP, unlike the FSDP2 branch below, because here
+            # it is free. FSDP2 pays for suppressed sync by holding each
+            # gradient UNSHARDED between micro-steps (+9.5 GB/GPU at h20), which
+            # is why that path is opt-in. DDP's gradient buffers are full-size
+            # either way, so `no_sync` skips the all-reduce and costs nothing --
+            # and reducing once per optimizer step instead of once per
+            # micro-step is never the wrong choice when it is free.
+            entered = []
+
+            def mark_ddp(is_last):
+                if is_last:
+                    while entered:
+                        entered.pop().__exit__(None, None, None)
+                elif not entered:
+                    context = self.model.no_sync()
+                    context.__enter__()
+                    entered.append(context)
+
+            try:
+                yield mark_ddp
+            finally:
+                while entered:
+                    entered.pop().__exit__(None, None, None)
+            return
+
+        active = (
+            self.skip_grad_sync_during_accumulation
+            and accumulating
+            and _FSDPModule is not None
+            and isinstance(self.model, _FSDPModule)
+        )
+        if not active:
+            yield lambda _is_last: None
+            return
+        try:
+            yield self.model.set_requires_gradient_sync
+        finally:
+            self.model.set_requires_gradient_sync(True)
+
     def calculate_loss(self, batch) -> LossMetrics:
         if self._forward_loss_fn is None:
             self._forward_loss_fn = (
@@ -578,29 +761,34 @@ class Trainer:
         total_losses = []
         reported_losses = []
         in_flight = _to_device(chunks[0])
-        for i in range(len(chunks)):
-            input_ids, target_ids = self._preprocess_input(in_flight)
-            # Kept for the per-layer diagnostics: an id-indexed layer's
-            # attention entropy is a function of the ids, and this is the only
-            # place that has them. One micro-batch of int64, and it is eager
-            # code outside whatever compile scope the model was given.
-            self._last_input_ids = input_ids
-            if self.model.training:
-                self._update_processed_tokens(input_ids)
+        with self._accumulation_grad_sync() as mark_micro_step:
+            for i in range(len(chunks)):
+                input_ids, target_ids = self._preprocess_input(in_flight)
+                # Kept for the per-layer diagnostics: an id-indexed layer's
+                # attention entropy is a function of the ids, and this is the only
+                # place that has them. One micro-batch of int64, and it is eager
+                # code outside whatever compile scope the model was given.
+                self._last_input_ids = input_ids
+                if self.model.training:
+                    self._update_processed_tokens(input_ids)
+                    # O9. Only the final micro-step's backward may reduce: the
+                    # earlier ones accumulate locally. A no-op unless FSDP2 and
+                    # the opt-in flag are both in play.
+                    mark_micro_step(i + 1 == len(chunks))
 
-            with self._timers.gpu("forward"):
-                loss, reported_loss = _hack_for_python_garbage_collection(
-                    input_ids, target_ids
-                )
-            if self.model.training:
-                with self._timers.gpu("backward"):
-                    loss.backward()
-            # The next chunk's H2D copy goes out while this chunk's kernels
-            # are still executing, not at the top of the next iteration.
-            if i + 1 < len(chunks):
-                in_flight = _to_device(chunks[i + 1])
-            total_losses.append(loss.detach())
-            reported_losses.append(reported_loss.detach())
+                with self._timers.gpu("forward"):
+                    loss, reported_loss = _hack_for_python_garbage_collection(
+                        input_ids, target_ids
+                    )
+                if self.model.training:
+                    with self._timers.gpu("backward"):
+                        loss.backward()
+                # The next chunk's H2D copy goes out while this chunk's kernels
+                # are still executing, not at the top of the next iteration.
+                if i + 1 < len(chunks):
+                    in_flight = _to_device(chunks[i + 1])
+                total_losses.append(loss.detach())
+                reported_losses.append(reported_loss.detach())
 
         # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
         avg_total_loss = torch.stack(total_losses).sum()
@@ -664,12 +852,36 @@ class Trainer:
                 local_norm_sq = (
                     torch.nn.utils.get_total_norm(local_grads, 2.0).float() ** 2
                 )
-                if dist.is_initialized():
+                # Under DDP the backbone gradients are ALREADY all-reduced and
+                # identical on every rank, so their norm is the global norm
+                # before any reduction here. Summing it across ranks again would
+                # inflate the total by sqrt(world_size) -- a factor of 2 at four
+                # GPUs -- and clip twice as hard as asked, silently. Only the
+                # bank slices, which differ per rank, need summing.
+                replicated = isinstance(self.model, _DDP)
+                if self._banks is not None:
+                    # O4, and deliberately a JOINT clip rather than the separate
+                    # one the plan's table lists. The baseline computes one
+                    # global norm over every parameter and scales all of them by
+                    # one coefficient; clipping the banks on their own is a
+                    # different function of the same gradients, and the section
+                    # 1.4 gate compares parameter-for-parameter against that
+                    # baseline. The banks' own gradients never reach `params`
+                    # here -- `_BankGather.backward` returns None, so
+                    # `weight.grad` stays None and the filter above drops them --
+                    # so their norm has to be added explicitly.
+                    bank_norm_sq = self._banks.local_grad_norm_sq(local_norm_sq.device)
+                    if replicated and dist.is_initialized():
+                        dist.all_reduce(bank_norm_sq, op=dist.ReduceOp.SUM)
+                    local_norm_sq = local_norm_sq + bank_norm_sq
+                if dist.is_initialized() and not replicated:
                     dist.all_reduce(local_norm_sq, op=dist.ReduceOp.SUM)
                 total_norm = local_norm_sq.sqrt()
                 torch.nn.utils.clip_grads_with_norm_(
                     params, self.gradient_clipping, total_norm
                 )
+                if self._banks is not None:
+                    self._banks.clip_(self.gradient_clipping, total_norm)
                 return total_norm
 
     def _update_processed_tokens(self, batch):
@@ -681,6 +893,14 @@ class Trainer:
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         if grad_norm is not None:
             self.metric_logger.log("train/grad_norm", grad_norm.item())
+
+        if self._banks is not None:
+            # O5 hook 3. The banks are stepped by their own optimizer, so "the
+            # LR" is no longer one number by construction -- log the one they
+            # were actually stepped at.
+            self._banks.log_metrics(
+                self.metric_logger, self.optimizer.param_groups[0]["lr"]
+            )
 
         self.loss_averaged_100.log(
             self.metric_logger, loss_metrics.reported_loss.item()
@@ -710,7 +930,34 @@ class Trainer:
             readout = getattr(module, "instrumentation", None)
             if readout is None:
                 continue
-            for key, value in readout(token_ids=self._last_input_ids).items():
+            if module_name in self._instrumentation_failures:
+                # Already failed once. Do not re-pay the cost every heavy step,
+                # and do not re-raise what was already reported.
+                continue
+            # A diagnostic must never kill a training run. This is observation:
+            # if it cannot be taken, the run should lose the observation, not
+            # the run.
+            #
+            # Learned the expensive way on lem, 2026-11-04, jobs 6236888/6236892.
+            # An instrumentation readout re-runs part of the model's forward
+            # OUTSIDE FSDP2's forward hooks, where the parameters are still
+            # sharded DTensors, and `aten.embedding` on a DTensor weight with
+            # plain int64 ids raises "got mixed torch.Tensor and DTensor". Both
+            # 4-GPU runs died at the first heavy-metric step, after training
+            # perfectly well up to it. The readout is a handful of scalars; the
+            # run was hours of GPU time.
+            try:
+                items = readout(token_ids=self._last_input_ids).items()
+            except Exception as exc:  # noqa: BLE001 - see above
+                if module_name not in self._instrumentation_failures:
+                    self._instrumentation_failures.add(module_name)
+                    logger.warning(
+                        f"instrumentation for {module_name} failed and is "
+                        f"disabled for the rest of this run: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+                continue
+            for key, value in items:
                 self.metric_logger.log(f"{module_name}/{key}", value)
 
     def _log_throughput(self):
@@ -819,6 +1066,13 @@ class Trainer:
                     logger.info(
                         f"Saved non-sharded model checkpoint in '{checkpoint_path}'"
                     )
+
+        if self._banks is not None:
+            # Every rank, not just rank 0: the banks are sharded by column and
+            # each rank's quarter exists nowhere else. Written after the model
+            # so a crash leaves no sidecar claiming to match a checkpoint that
+            # was never finished.
+            self._banks.save(checkpoint_folder)
 
         if os.environ["RANK"] == "0":
             save_training_state(
