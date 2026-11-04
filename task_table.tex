@@ -1,0 +1,74 @@
+\begin{table*}[t!]
+\centering
+\small
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lccc|ccc}
+\toprule
+& \multicolumn{6}{c}{\textbf{Model}} \\
+\cmidrule(lr){2-7}
+& \multicolumn{3}{c|}{\textbf{OLMo-2 1B}} & \multicolumn{3}{c}{\textbf{SmolLM2 1.7B}} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+\textbf{Method} & 50\% & 70\% & 90\% & 50\% & 70\% & 90\% \\
+\midrule
+\multicolumn{7}{l}{\textit{ARC-e}} \\
+\textbf{PC} & 0.569 & 0.513 & 0.444 & 0.612 & 0.556 & 0.438 \\
+\textbf{PCD} & \textbf{0.616} & \textbf{0.561} & 0.455 & 0.631 & 0.582 & 0.452 \\
+\textbf{HP} & 0.552 & 0.538 & 0.452 & 0.626 & \textbf{0.585} & \textbf{0.454} \\
+\textbf{HPD} & 0.596 & 0.558 & \textbf{0.477} & \textbf{0.633} & 0.579 & 0.446 \\
+\midrule
+\multicolumn{7}{l}{\textit{ARC-c}} \\
+\textbf{PC} & 0.308 & 0.285 & 0.236 & 0.335 & 0.298 & 0.244 \\
+\textbf{PCD} & \textbf{0.334} & \textbf{0.292} & 0.236 & 0.344 & \textbf{0.308} & \textbf{0.251} \\
+\textbf{HP} & 0.306 & 0.289 & \textbf{0.249} & 0.334 & 0.300 & 0.244 \\
+\textbf{HPD} & 0.317 & 0.288 & 0.247 & \textbf{0.345} & 0.298 & 0.247 \\
+\midrule
+\multicolumn{7}{l}{\textit{HellaSwag}} \\
+\textbf{PC} & 0.473 & 0.399 & 0.304 & 0.509 & 0.429 & 0.297 \\
+\textbf{PCD} & 0.506 & \textbf{0.426} & 0.310 & 0.537 & \textbf{0.454} & \textbf{0.313} \\
+\textbf{HP} & 0.483 & 0.405 & 0.305 & 0.512 & 0.430 & 0.298 \\
+\textbf{HPD} & \textbf{0.514} & 0.422 & \textbf{0.313} & \textbf{0.538} & 0.448 & 0.299 \\
+\midrule
+\multicolumn{7}{l}{\textit{PIQA}} \\
+\textbf{PC} & 0.680 & 0.651 & 0.598 & 0.704 & 0.668 & 0.600 \\
+\textbf{PCD} & 0.689 & \textbf{0.667} & 0.610 & 0.711 & \textbf{0.677} & \textbf{0.625} \\
+\textbf{HP} & 0.686 & 0.653 & \textbf{0.612} & 0.701 & 0.669 & 0.613 \\
+\textbf{HPD} & \textbf{0.695} & 0.663 & 0.605 & \textbf{0.712} & 0.677 & 0.600 \\
+\midrule
+\multicolumn{7}{l}{\textit{OpenBookQA}} \\
+\textbf{PC} & 0.344 & 0.328 & 0.278 & 0.370 & 0.340 & \textbf{0.312} \\
+\textbf{PCD} & 0.348 & \textbf{0.336} & 0.294 & 0.370 & \textbf{0.352} & 0.310 \\
+\textbf{HP} & 0.346 & 0.316 & 0.296 & \textbf{0.380} & 0.330 & 0.286 \\
+\textbf{HPD} & \textbf{0.358} & 0.334 & \textbf{0.298} & 0.374 & 0.332 & 0.276 \\
+\midrule
+\multicolumn{7}{l}{\textit{WinoGrande}} \\
+\textbf{PC} & 0.545 & 0.525 & 0.504 & 0.567 & 0.519 & 0.494 \\
+\textbf{PCD} & \textbf{0.555} & \textbf{0.544} & 0.522 & \textbf{0.578} & \textbf{0.538} & \textbf{0.530} \\
+\textbf{HP} & 0.552 & 0.535 & \textbf{0.522} & 0.556 & 0.531 & 0.526 \\
+\textbf{HPD} & 0.546 & 0.528 & 0.509 & 0.567 & 0.530 & 0.517 \\
+\midrule
+\multicolumn{7}{l}{\textit{SciQ}} \\
+\textbf{PC} & 0.869 & 0.809 & 0.761 & 0.896 & 0.849 & 0.744 \\
+\textbf{PCD} & \textbf{0.904} & \textbf{0.849} & \textbf{0.765} & \textbf{0.899} & 0.869 & \textbf{0.751} \\
+\textbf{HP} & 0.866 & 0.817 & 0.748 & 0.892 & 0.861 & 0.750 \\
+\textbf{HPD} & 0.879 & 0.839 & 0.758 & 0.893 & \textbf{0.878} & 0.731 \\
+\midrule
+\multicolumn{7}{l}{\textit{SocialIQA}} \\
+\textbf{PC} & 0.401 & 0.387 & 0.369 & 0.409 & 0.388 & 0.356 \\
+\textbf{PCD} & 0.394 & 0.390 & 0.364 & \textbf{0.409} & 0.391 & \textbf{0.371} \\
+\textbf{HP} & 0.394 & \textbf{0.396} & \textbf{0.381} & 0.405 & \textbf{0.395} & 0.356 \\
+\textbf{HPD} & \textbf{0.404} & 0.391 & 0.381 & 0.405 & 0.389 & 0.365 \\
+\midrule
+\multicolumn{7}{l}{\textit{LAMBADA}} \\
+\textbf{PC} & 0.435 & 0.347 & 0.213 & 0.464 & 0.373 & 0.214 \\
+\textbf{PCD} & \textbf{0.457} & \textbf{0.367} & 0.238 & \textbf{0.488} & 0.387 & \textbf{0.241} \\
+\textbf{HP} & 0.424 & 0.345 & 0.223 & 0.454 & 0.366 & 0.204 \\
+\textbf{HPD} & 0.456 & 0.366 & \textbf{0.251} & 0.483 & \textbf{0.393} & 0.211 \\
+\midrule
+\multicolumn{7}{l}{\textit{Average}} \\
+\textbf{PC} & 0.514 & 0.472 & 0.412 & 0.541 & 0.491 & 0.411 \\
+\textbf{PCD} & \textbf{0.534} & \textbf{0.492} & 0.421 & \textbf{0.552} & \textbf{0.507} & \textbf{0.427} \\
+\textbf{HP} & 0.512 & 0.477 & 0.421 & 0.540 & 0.496 & 0.414 \\
+\textbf{HPD} & 0.530 & 0.488 & \textbf{0.427} & 0.550 & 0.503 & 0.410 \\
+\bottomrule
+\end{tabular}
+\end{table*}
