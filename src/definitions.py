@@ -136,6 +136,10 @@ class TrainerSchema:
     kernel_profile: bool = False
     compile_loss: bool = False
     compile_ce: bool = False
+    # O9: reduce gradients once per optimizer step instead of once per
+    # micro-step. FSDP2 only, and it costs memory -- see the long note on
+    # Trainer.skip_grad_sync_during_accumulation before enabling it.
+    skip_grad_sync_during_accumulation: bool = False
 
 
 @dataclass
