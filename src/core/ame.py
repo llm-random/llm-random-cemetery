@@ -268,6 +268,11 @@ class AMEAttention(nn.Module):
         # as the vocab-sized lookups they are rather than as matmul weights.
         self.q_bank = nn.Embedding(vocab_size, datt)
         self.k_bank = nn.Embedding(vocab_size, datt)
+        # Set by src.core.memory_parallel to a module returning BOTH banks'
+        # rows from one gather. None in every ordinary run, including every
+        # measurement in ame_implementation.md, so the default path is the one
+        # those numbers were taken on.
+        self.qk_bank = None
         with torch.no_grad():
             for bank in (self.q_bank, self.k_bank):
                 if not bank.weight.is_meta:
@@ -419,8 +424,21 @@ class AMEAttention(nn.Module):
         batch, seq_len = token_ids.shape
         heads, dhead = self.q_heads, self.dhead
 
-        q = self.q_bank(token_ids).view(batch, seq_len, heads, dhead)
-        k = self.k_bank(token_ids).view(batch, seq_len, heads, dhead)
+        # One call when a memory-parallel controller has fused the pair. The two
+        # banks are gathered on the SAME ids and their results are used
+        # identically, so under column sharding they are one gather, one
+        # all-to-all and one permute instead of two of each -- and those kernels
+        # are launch-bound, not bandwidth-bound, so halving the count is most of
+        # the cost (documents/notes/ame_optimization_plan.md, D1/D2). Absent the
+        # controller `qk_bank` is None and this is the original two-lookup path,
+        # unchanged.
+        if self.qk_bank is not None:
+            q, k = self.qk_bank(token_ids)
+            q = q.view(batch, seq_len, heads, dhead)
+            k = k.view(batch, seq_len, heads, dhead)
+        else:
+            q = self.q_bank(token_ids).view(batch, seq_len, heads, dhead)
+            k = self.k_bank(token_ids).view(batch, seq_len, heads, dhead)
         v = self.v_proj(x).view(batch, seq_len, heads, dhead)
 
         if self.qk_norm:
