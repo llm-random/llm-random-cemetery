@@ -55,7 +55,7 @@ def setup_fsdp1_model(model, fsdp_config):
     return wrapped_model
 
 
-def setup_fsdp2_model(model, fsdp_config):
+def setup_fsdp2_model(model, fsdp_config, ignored_params=None):
     modules_to_shard = get_classes_from_dotted_path(fsdp_config.modules_to_shard)
     logger.debug(f"[FSDP2] Sharding model with classes: {modules_to_shard}")
     device_mesh = init_device_mesh("cuda", (torch.distributed.get_world_size(),))
@@ -66,6 +66,17 @@ def setup_fsdp2_model(model, fsdp_config):
             reduce_dtype=torch.float32,
         )
     }
+    if ignored_params:
+        # O1. Parameters another sharding scheme already owns. It has to be
+        # passed to EVERY fully_shard call that could reach them -- the
+        # per-block ones as well as the root -- or the inner call claims them
+        # and the root never sees them to ignore. Two schemes claiming the same
+        # parameter is not an error FSDP2 reports; it is a wrong gradient.
+        fsdp2_kwargs["ignored_params"] = set(ignored_params)
+        logger.info(
+            f"[FSDP2] ignoring {len(fsdp2_kwargs['ignored_params'])} parameters "
+            "owned by another sharding scheme"
+        )
 
     for module in model.modules():
         if isinstance(module, tuple(modules_to_shard)):
@@ -76,12 +87,19 @@ def setup_fsdp2_model(model, fsdp_config):
     return model
 
 
-def setup_distributed_training(model, distributed_config):
+def setup_distributed_training(model, distributed_config, ignored_params=None):
     if distributed_config is not None:
         if torch.cuda.is_available():
             if distributed_config.get("fsdp2"):
-                model = setup_fsdp2_model(model, distributed_config.fsdp2)
+                model = setup_fsdp2_model(
+                    model, distributed_config.fsdp2, ignored_params=ignored_params
+                )
             elif distributed_config.get("fsdp"):
+                if ignored_params:
+                    raise ValueError(
+                        "memory-parallel banks are only implemented against "
+                        "FSDP2; FSDP1 has no ignored_params equivalent here"
+                    )
                 model = setup_fsdp1_model(model, distributed_config.fsdp)
             else:
                 raise ValueError(f"Unknown distributed config.")
