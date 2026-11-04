@@ -74,6 +74,50 @@ def check_env_vars():
     assert int(os.environ["RANK"]) < int(os.environ["WORLD_SIZE"])
 
 
+def isolate_triton_cache():
+    """Give every rank its own Triton compile cache, on node-local storage.
+
+    torch.compile hands each rank's generated kernels to Triton, which caches
+    them under TRITON_CACHE_DIR -- defaulting to `$HOME/.triton/cache`. On a
+    cluster that default is wrong twice over, and it fails *during compilation*,
+    before step 1, so a job burns its allocation and produces nothing.
+
+    Every rank writes the same cache keys at the same moment, and Triton
+    publishes each entry with `os.replace(temp, final)`. That is atomic on a
+    local filesystem and is not on NFS, so ranks tear each other's entries
+    apart. Observed on lem, 2026-11-04, jobs 6236712 and 6236713 -- three
+    different symptoms of the one race, none of which names its cause:
+
+        FileNotFoundError [Errno 2]   another rank's rename removed the temp dir
+        OSError [Errno 26]            "Text file busy" -- replacing a .so that a
+                                      rank already has mapped
+        ImportError ... Permission denied
+                                      opening a half-written .so
+
+    Worse, `$HOME` is shared across *jobs*, so two concurrent runs race as well,
+    which is exactly how those two jobs died on separate nodes.
+
+    So: node-local (TMPDIR, which Slurm points at per-job local disk; /tmp
+    otherwise) and per-rank. Set before anything imports or invokes the
+    compiler. Honours an explicit TRITON_CACHE_DIR if the operator set one.
+    """
+    if os.environ.get("TRITON_CACHE_DIR"):
+        return
+    base = os.environ.get("TMPDIR") or "/tmp"
+    job = os.environ.get("SLURM_JOB_ID", "local")
+    rank = os.environ.get("RANK", "0")
+    cache_dir = os.path.join(base, f"triton-cache-{job}-rank{rank}")
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+    except OSError as exc:
+        # Never fail a run over a cache directory; the default path may still
+        # work on a single-rank job, which is the only case it is safe in.
+        logger.warning(f"Could not create {cache_dir} ({exc}); leaving TRITON_CACHE_DIR unset.")
+        return
+    os.environ["TRITON_CACHE_DIR"] = cache_dir
+    logger.info(f"TRITON_CACHE_DIR={cache_dir}")
+
+
 def setup_enviroment():
     if "WORLD_SIZE" not in os.environ:
         logger.warning("WORLD_SIZE is not set, setting it to 1")
@@ -108,6 +152,8 @@ def setup_enviroment():
         os.environ["MASTER_PORT"] = default_master_port
 
     check_env_vars()
+    # After RANK is known and before any compilation happens.
+    isolate_triton_cache()
 
 
 def distributed_setup():
