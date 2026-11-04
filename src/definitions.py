@@ -136,6 +136,15 @@ class TrainerSchema:
     kernel_profile: bool = False
     compile_loss: bool = False
     compile_ce: bool = False
+    # O9: reduce gradients once per optimizer step instead of once per
+    # micro-step. FSDP2 only, and it costs memory -- see the long note on
+    # Trainer.skip_grad_sync_during_accumulation before enabling it.
+    skip_grad_sync_during_accumulation: bool = False
+    # Tiers 2+3: ranks per copy of the AME Q/K banks. null/1 keeps the whole
+    # bank on every rank (Tier 2 alone, which does not fit at h20); N > 1
+    # column-shards every bank across contiguous blocks of N ranks. Must divide
+    # world_size, and the model must have q_bank/k_bank embeddings.
+    mem_parallel_size: Optional[int] = None
 
 
 @dataclass
@@ -241,6 +250,10 @@ def validate(cfg) -> None:
     check(
         t.gradient_clipping is None or t.gradient_clipping > 0,
         f"trainer.gradient_clipping must be null or > 0, got {t.gradient_clipping!r}",
+    )
+    check(
+        t.mem_parallel_size is None or t.mem_parallel_size >= 1,
+        f"trainer.mem_parallel_size must be null or >= 1, got {t.mem_parallel_size!r}",
     )
     check(t.eval_interval >= 0, f"trainer.eval_interval must be >= 0, got {t.eval_interval!r}")
     check(t.n_eval_steps >= 0, f"trainer.n_eval_steps must be >= 0, got {t.n_eval_steps!r}")
