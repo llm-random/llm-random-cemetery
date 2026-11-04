@@ -10,6 +10,19 @@ from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
 
+# FSDP2's module type, for O9's guard. Public under torch.distributed.fsdp from
+# 2.7 (entropy: 2.7.1+cu128); older builds expose FSDP2 only under the private
+# _composable path (helios ships 2.6.0 on aarch64). None means this build has no
+# FSDP2 at all, in which case O9 degrades to a no-op rather than crashing the
+# import for every run on that cluster.
+try:
+    from torch.distributed.fsdp import FSDPModule as _FSDPModule
+except ImportError:  # pragma: no cover - depends on the cluster's torch
+    try:
+        from torch.distributed._composable.fsdp import FSDPModule as _FSDPModule
+    except ImportError:
+        _FSDPModule = None
+
 import torch.distributed.checkpoint as dcp
 import logging
 
@@ -158,6 +171,29 @@ class Trainer:
     # fp32 loss would settle it. Rejected regardless: the first is worse
     # training, the second is a metric that lies.
     compile_ce: bool = False
+    # O9: under FSDP2, reduce gradients ONCE per optimizer step instead of once
+    # per micro-step. Every `loss.backward()` in the accumulation loop otherwise
+    # triggers a full reduce-scatter of every gradient, and only the last one is
+    # needed -- at gradient_accumulation_steps=32 that is 32 reduce-scatters
+    # where 1 suffices. `set_requires_gradient_sync(False)` is FSDP2's
+    # equivalent of FSDP1's `no_sync`, and it is mathematically an identity:
+    # it changes WHEN gradients are reduced, never what they sum to.
+    #
+    # NOT free in memory, which is why it is opt-in. With sync suppressed,
+    # FSDP2 holds each parameter group's UNSHARDED gradient between micro-steps
+    # and, because `reduce_dtype=torch.float32`, upcasts it to fp32 to do so
+    # (torch/distributed/fsdp/_fully_shard/_fsdp_param.py,
+    # `to_accumulated_grad_if_needed` / `accumulate_unsharded_grad_if_needed`).
+    # The resident gradient therefore goes from `P/world_size * 4` bytes to
+    # `P * 4` bytes per rank -- at h20's 3.163B parameters on 4 GPUs, 3.16 GB
+    # becomes 12.65 GB, i.e. ~9.5 GB/GPU more. Parameters still reshard after
+    # backward; it is only the gradient that stays unsharded.
+    #
+    # So: a FLOP-free throughput win paid for in memory, which may cap the
+    # micro-batch. Enable it and measure both numbers, never just the first.
+    # Ignored without FSDP2 (plain module, FSDP1, CPU) and when
+    # gradient_accumulation_steps == 1, where it would be a no-op anyway.
+    skip_grad_sync_during_accumulation: bool = False
 
     # Checkpoint save types this trainer can actually write. Subclasses widen this;
     # anything outside it is rejected before training starts.
@@ -217,6 +253,9 @@ class Trainer:
         self._seq_len_for_flops = None
         # The last micro-batch's ids, for per-layer attention diagnostics.
         self._last_input_ids = None
+        # Modules whose instrumentation raised; warned about once, then skipped
+        # (see _log_layer_instrumentation).
+        self._instrumentation_failures = set()
 
     @property
     def _should_evaluate(self) -> bool:
@@ -289,6 +328,23 @@ class Trainer:
             self._kprof.__enter__()
         elif step == 14 and getattr(self, "_kprof", None) is not None:
             self._kprof.__exit__(None, None, None)
+            # The chrome trace, which is the only form that keeps PARENTAGE.
+            # key_averages() below aggregates by kernel name, and a GEMM or an
+            # elementwise kernel serves forward and backward under one name --
+            # so the aggregate cannot be split by pass, however much the
+            # `section:` ranges above suggest it could. The trace keeps every
+            # kernel's External id, so scripts/kprof_phase.py can walk each one
+            # back to the `section:` range that was open when it was launched
+            # and give a real forward/backward split per category.
+            if int(os.environ.get("RANK", 0)) == 0:
+                trace_path = os.path.abspath("kprof_trace_rank0.json")
+                try:
+                    self._kprof.export_chrome_trace(trace_path)
+                    size_mb = os.path.getsize(trace_path) / 2**20
+                    logger.info(f"kprof_trace: {trace_path} ({size_mb:.1f} MiB)")
+                except Exception as exc:  # noqa: BLE001
+                    # Never lose a run over a profiling artefact.
+                    logger.warning(f"kprof_trace export failed: {exc}")
             # Every rank profiles (the context manager is cheap and symmetric),
             # but only rank 0 prints. The lines carry no rank of their own and
             # all ranks share one job log, so N ranks printing would interleave
@@ -546,6 +602,53 @@ class Trainer:
         )
         return mask_loss.mean()
 
+    @contextmanager
+    def _accumulation_grad_sync(self):
+        """Yields `mark(is_last)`, which says whether this micro-step may reduce.
+
+        O9. Under FSDP2 every `loss.backward()` ends in a reduce-scatter of every
+        gradient. Across an accumulation loop only the last one is needed -- the
+        others reduce a partial sum that the next micro-step immediately adds to.
+        `set_requires_gradient_sync(False)` suppresses them; the gradients
+        accumulate locally instead and one reduce at the end produces the same
+        sum. FSDP1 spelled this `no_sync()`.
+
+        Identity, not approximation: addition is associative, and the reduce is
+        a sum over ranks. What changes is the schedule, not the result -- which
+        is why the gate for this change is a *bit-identical* loss trajectory.
+
+        The restore in the `finally` is the part worth not getting wrong. If the
+        loop raises part-way through, or if eval runs next, a model left with
+        sync off would keep training without ever reducing gradients -- each
+        rank silently diverging onto its own model while the loss curve looks
+        entirely normal. Always hand it back synchronised.
+
+        Inert, with no behaviour change at all, unless the model is an FSDP2
+        module, the opt-in flag is set, there is more than one micro-step, and
+        the model is in training mode.
+        """
+        if self.skip_grad_sync_during_accumulation and _FSDPModule is None:
+            logger.warning(
+                "skip_grad_sync_during_accumulation is set, but this torch build "
+                "(%s) exposes no FSDP2 module type; gradients will be reduced on "
+                "every micro-step as before.",
+                torch.__version__,
+            )
+        active = (
+            self.skip_grad_sync_during_accumulation
+            and self.gradient_accumulation_steps > 1
+            and self.model.training
+            and _FSDPModule is not None
+            and isinstance(self.model, _FSDPModule)
+        )
+        if not active:
+            yield lambda _is_last: None
+            return
+        try:
+            yield self.model.set_requires_gradient_sync
+        finally:
+            self.model.set_requires_gradient_sync(True)
+
     def calculate_loss(self, batch) -> LossMetrics:
         if self._forward_loss_fn is None:
             self._forward_loss_fn = (
@@ -578,29 +681,34 @@ class Trainer:
         total_losses = []
         reported_losses = []
         in_flight = _to_device(chunks[0])
-        for i in range(len(chunks)):
-            input_ids, target_ids = self._preprocess_input(in_flight)
-            # Kept for the per-layer diagnostics: an id-indexed layer's
-            # attention entropy is a function of the ids, and this is the only
-            # place that has them. One micro-batch of int64, and it is eager
-            # code outside whatever compile scope the model was given.
-            self._last_input_ids = input_ids
-            if self.model.training:
-                self._update_processed_tokens(input_ids)
+        with self._accumulation_grad_sync() as mark_micro_step:
+            for i in range(len(chunks)):
+                input_ids, target_ids = self._preprocess_input(in_flight)
+                # Kept for the per-layer diagnostics: an id-indexed layer's
+                # attention entropy is a function of the ids, and this is the only
+                # place that has them. One micro-batch of int64, and it is eager
+                # code outside whatever compile scope the model was given.
+                self._last_input_ids = input_ids
+                if self.model.training:
+                    self._update_processed_tokens(input_ids)
+                    # O9. Only the final micro-step's backward may reduce: the
+                    # earlier ones accumulate locally. A no-op unless FSDP2 and
+                    # the opt-in flag are both in play.
+                    mark_micro_step(i + 1 == len(chunks))
 
-            with self._timers.gpu("forward"):
-                loss, reported_loss = _hack_for_python_garbage_collection(
-                    input_ids, target_ids
-                )
-            if self.model.training:
-                with self._timers.gpu("backward"):
-                    loss.backward()
-            # The next chunk's H2D copy goes out while this chunk's kernels
-            # are still executing, not at the top of the next iteration.
-            if i + 1 < len(chunks):
-                in_flight = _to_device(chunks[i + 1])
-            total_losses.append(loss.detach())
-            reported_losses.append(reported_loss.detach())
+                with self._timers.gpu("forward"):
+                    loss, reported_loss = _hack_for_python_garbage_collection(
+                        input_ids, target_ids
+                    )
+                if self.model.training:
+                    with self._timers.gpu("backward"):
+                        loss.backward()
+                # The next chunk's H2D copy goes out while this chunk's kernels
+                # are still executing, not at the top of the next iteration.
+                if i + 1 < len(chunks):
+                    in_flight = _to_device(chunks[i + 1])
+                total_losses.append(loss.detach())
+                reported_losses.append(reported_loss.detach())
 
         # gloo backend supports only sum reduce operation, therfore we first divide by world size and then sum
         avg_total_loss = torch.stack(total_losses).sum()
@@ -710,7 +818,34 @@ class Trainer:
             readout = getattr(module, "instrumentation", None)
             if readout is None:
                 continue
-            for key, value in readout(token_ids=self._last_input_ids).items():
+            if module_name in self._instrumentation_failures:
+                # Already failed once. Do not re-pay the cost every heavy step,
+                # and do not re-raise what was already reported.
+                continue
+            # A diagnostic must never kill a training run. This is observation:
+            # if it cannot be taken, the run should lose the observation, not
+            # the run.
+            #
+            # Learned the expensive way on lem, 2026-11-04, jobs 6236888/6236892.
+            # An instrumentation readout re-runs part of the model's forward
+            # OUTSIDE FSDP2's forward hooks, where the parameters are still
+            # sharded DTensors, and `aten.embedding` on a DTensor weight with
+            # plain int64 ids raises "got mixed torch.Tensor and DTensor". Both
+            # 4-GPU runs died at the first heavy-metric step, after training
+            # perfectly well up to it. The readout is a handful of scalars; the
+            # run was hours of GPU time.
+            try:
+                items = readout(token_ids=self._last_input_ids).items()
+            except Exception as exc:  # noqa: BLE001 - see above
+                if module_name not in self._instrumentation_failures:
+                    self._instrumentation_failures.add(module_name)
+                    logger.warning(
+                        f"instrumentation for {module_name} failed and is "
+                        f"disabled for the rest of this run: "
+                        f"{type(exc).__name__}: {exc}"
+                    )
+                continue
+            for key, value in items:
                 self.metric_logger.log(f"{module_name}/{key}", value)
 
     def _log_throughput(self):
