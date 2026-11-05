@@ -55,6 +55,7 @@ costs 46.4 GB/rank of state against 11.6 GB sharded -- so on real hardware the
 useful settings are `mp == world_size`.
 """
 
+import contextlib
 import logging
 import os
 
@@ -368,6 +369,190 @@ class _FusedBankGather(torch.autograd.Function):
         return None, None, None, None
 
 
+class _ExchangedRows(torch.autograd.Function):
+    """O39: one bank's rows for this rank's tokens, exchanged ahead of the layer.
+
+    The forward is `_BankGather`'s without the reassembly: gather every rank's
+    tokens from the locally owned columns, all-to-all, and return the receive
+    buffer as it lands -- rank-major, `[mp * n, width / mp]`, rows
+    `[j*n, (j+1)*n)` holding this rank's n tokens on rank j's columns. The
+    consumer reassembles it through a view inside its compiled region
+    (`AMEAttention`, `_rank_major_to_heads`), where the transpose fuses into
+    the normalize that reads it instead of being a copy of its own; in the
+    backward the compiled region hands the gradient back in the same layout,
+    ready to send. Measured before O39 (job 33502), that copy was
+    `triton_poi_fused_stack_10`, 135.6 ms per step at h20 on 4 GPUs.
+
+    It is called on the bank stream (`BankPrefetcher`), and autograd runs a
+    Function's backward on the stream its forward ran on, so the gradient
+    exchange and the scatter into `main_grad` run there too: off the stream the
+    rest of the backward is computing on.
+    """
+
+    @staticmethod
+    def forward(ctx, weight, gathered_ids, bank):
+        local = F.embedding(gathered_ids, weight)  # [mp*n, w]: all tokens, my columns
+        out = torch.empty_like(local)
+        dist.all_to_all_single(out, local, group=bank.mp_group)
+        ctx.bank = bank
+        ctx.save_for_backward(gathered_ids)
+        return out
+
+    @staticmethod
+    @torch.autograd.function.once_differentiable
+    def backward(ctx, grad):
+        (gathered_ids,) = ctx.saved_tensors
+        if grad.is_cuda:
+            # Produced on the compute stream, read here on the bank stream.
+            # Without this the compute stream may reuse the block as soon as
+            # autograd drops its reference, while the all-to-all below is still
+            # reading it.
+            grad.record_stream(torch.cuda.current_stream(grad.device))
+        send = grad.contiguous()
+        local = torch.empty_like(send)
+        # Mirror of the forward: chunk j (my tokens, rank j's columns) goes back
+        # to rank j; chunk i received is rank i's tokens on MY columns, which is
+        # row-aligned with `gathered_ids`.
+        dist.all_to_all_single(local, send, group=ctx.bank.mp_group)
+        ctx.bank.accumulate(gathered_ids, local)
+        return None, None, None
+
+
+@contextlib.contextmanager
+def _on_stream(stream, wait=False):
+    """Run the body on `stream` (None: the current stream, CPU or no CUDA).
+    `wait` first makes it wait for everything already queued on the current
+    stream."""
+    if stream is None:
+        yield
+        return
+    if wait:
+        stream.wait_stream(torch.cuda.current_stream(stream.device))
+    with torch.cuda.stream(stream):
+        yield
+
+
+class BankPrefetcher:
+    """O39: the bank exchange, taken off the critical path.
+
+    AME's queries and keys are gathers by token id, so a layer's q and k rows
+    depend on nothing the layers below it compute -- only on the ids, which are
+    known before the first layer runs. Inside each compiled block the exchange
+    sat on the critical path all the same: the block waited for its own
+    all-to-all, and the profile of the h20/4-GPU best (job 33502) shows that
+    all-to-all 196.6 ms per step and exposed for all of it, no compute kernel
+    running beside it.
+
+    This issues each layer's gather and all-to-all on a separate CUDA stream,
+    `depth` layers ahead of the layer that consumes them; the encoder takes a
+    layer's rows just before calling the block and the compute stream waits
+    only on that layer's event. The backward exchange and scatter run on the
+    same stream (see `_ExchangedRows`), so the compute stream never waits for
+    them; `finish()` joins the two before `main_grad` is read.
+
+    One stream, deliberately: the forward exchanges and the backward ones go to
+    one process group, and NCCL needs every rank to issue a group's
+    collectives in the same order. A single stream keeps that order the CPU's,
+    which is the same on every rank.
+    """
+
+    def __init__(self, controller, encoder, depth):
+        if depth < 1:
+            raise ValueError(f"bank prefetch depth must be >= 1, got {depth}")
+        self.controller = controller
+        self.depth = int(depth)
+        # One slot per block, in the order the encoder calls them: the block's
+        # fused q/k pair, or None for a block whose attention has no banks.
+        self.slots = []
+        for block in encoder.blocks:
+            layer = getattr(getattr(block, "attention_layer", None), "layer", None)
+            pair = getattr(layer, "qk_bank", None)
+            self.slots.append(pair if isinstance(pair, FusedBankPair) else None)
+        if not any(self.slots):
+            raise ValueError("bank prefetch found no fused q/k pair in any block")
+        self.stream = None
+        self._pending = {}
+        self._gathered = None
+
+    def _stream_for(self, device):
+        if device.type != "cuda":
+            return None
+        if self.stream is None:
+            self.stream = torch.cuda.Stream(device=device)
+        return self.stream
+
+    def begin(self, token_ids):
+        """Start one forward: all-gather this micro-batch's ids over the
+        mp-group once (not once per layer, S6) and queue the first `depth`
+        layers' exchanges."""
+        stream = self._stream_for(token_ids.device)
+        self._pending.clear()
+        group = self.controller.mp_group
+        mp_size = self.controller.mp_size
+        # wait=True: the ids, and the compute weights the last optimizer step
+        # wrote, were produced on the compute stream. Later layers' exchanges
+        # do NOT wait on it again -- that would queue them behind the compute
+        # they are meant to overlap.
+        with _on_stream(stream, wait=True):
+            ids_flat = token_ids.reshape(-1).contiguous()
+            gathered = torch.empty(
+                mp_size * ids_flat.numel(), dtype=ids_flat.dtype, device=ids_flat.device
+            )
+            dist.all_gather_into_tensor(gathered, ids_flat, group=group)
+        if stream is not None:
+            ids_flat.record_stream(stream)
+        self._gathered = gathered
+        for index in range(len(self.slots)):
+            if len(self._pending) >= self.depth:
+                break
+            self._issue(index)
+
+    def _issue(self, index):
+        pair = self.slots[index]
+        if pair is None or index in self._pending:
+            return
+        stream = self.stream if self._gathered.is_cuda else None
+        with _on_stream(stream):
+            q = _ExchangedRows.apply(pair.q.weight, self._gathered, pair.q)
+            k = _ExchangedRows.apply(pair.k.weight, self._gathered, pair.k)
+            event = None
+            if stream is not None:
+                event = torch.cuda.Event()
+                event.record(stream)
+        self._pending[index] = (q, k, event)
+
+    def take(self, index):
+        """Block `index`'s rows, `(q_rows, k_rows)`, or None if the block has
+        no banks. Queues the exchange `depth` blocks ahead first, so the bank
+        stream always has the next layers in flight."""
+        ahead = 0
+        for later in range(index + 1, len(self.slots)):
+            if self.slots[later] is not None:
+                ahead += 1
+                if ahead > self.depth:
+                    break
+                self._issue(later)
+        if self.slots[index] is None:
+            return None
+        if index not in self._pending:
+            self._issue(index)
+        q, k, event = self._pending.pop(index)
+        if event is not None:
+            current = torch.cuda.current_stream(q.device)
+            current.wait_event(event)
+            # Allocated on the bank stream, consumed (and saved for backward)
+            # on the compute stream.
+            q.record_stream(current)
+            k.record_stream(current)
+        return q, k
+
+    def finish(self):
+        """Make the compute stream wait for every bank-stream backward still
+        in flight. Called before anything reads `main_grad`."""
+        if self.stream is not None:
+            torch.cuda.current_stream(self.stream.device).wait_stream(self.stream)
+
+
 def _find_banks(model):
     """Every (module, attribute) pair holding an id-indexed bank.
 
@@ -393,7 +578,12 @@ class MemoryParallelController:
     """
 
     def __init__(
-        self, model, mem_parallel_size, compute_dtype=torch.bfloat16, fuse_qk=True
+        self,
+        model,
+        mem_parallel_size,
+        compute_dtype=torch.bfloat16,
+        fuse_qk=True,
+        prefetch_depth=None,
     ):
         self.world_size = dist.get_world_size() if dist.is_initialized() else 1
         self.rank = dist.get_rank() if dist.is_initialized() else 0
@@ -443,6 +633,32 @@ class MemoryParallelController:
                     module.qk_bank = pair
                     self.fused_pairs.append(pair)
 
+        # O39: the exchange issued ahead of each layer on its own stream. Only
+        # where there is an exchange to move -- at mem_parallel_size 1 the
+        # gather is local, already fused into the compiled block, and taking it
+        # out would only add a materialised copy.
+        self.prefetcher = None
+        if prefetch_depth and mp_size > 1:
+            if not self.fused_pairs:
+                raise ValueError("bank prefetch needs fuse_qk=True")
+            encoders = [
+                m
+                for m in model.modules()
+                if hasattr(m, "bank_prefetcher") and hasattr(m, "blocks")
+            ]
+            if len(encoders) != 1:
+                raise ValueError(
+                    f"bank prefetch needs exactly one encoder exposing "
+                    f"`bank_prefetcher`, found {len(encoders)}"
+                )
+            self.prefetcher = BankPrefetcher(self, encoders[0], prefetch_depth)
+            encoders[0].bank_prefetcher = self.prefetcher
+        elif prefetch_depth:
+            logger.info(
+                "[memory-parallel] bank prefetch requested at mem_parallel_size 1; "
+                "there is no exchange to move, so it stays off"
+            )
+
         self.optimizer = None
         total = sum(b.weight.numel() for b in self.banks)
         logger.info(
@@ -450,7 +666,8 @@ class MemoryParallelController:
             f"({len(self.fused_pairs)} fused q/k pairs), "
             f"mem_parallel_size={mp_size}, "
             f"mp_rank={self.mp_rank}, dp_size={self.dp_size}, "
-            f"{total / 1e9:.3f}B bank parameters per rank"
+            f"{total / 1e9:.3f}B bank parameters per rank, "
+            f"prefetch depth {self.prefetcher.depth if self.prefetcher else 0}"
         )
         model._memory_parallel = self
 
@@ -512,6 +729,10 @@ class MemoryParallelController:
     @torch.no_grad()
     def reduce(self):
         """O2 + O8: one all-reduce per optimizer step, divided by WORLD size."""
+        if self.prefetcher is not None:
+            # O39: the last micro-step's bank backward may still be running on
+            # the bank stream.
+            self.prefetcher.finish()
         if self.dp_size > 1:
             grads = [bank.main_grad for bank in self.banks]
             for grad in grads:

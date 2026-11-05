@@ -221,7 +221,10 @@ def build_memory_parallel_controller(cfg, model):
     reference = next(model.parameters())
     compute_dtype = torch.bfloat16 if bf16_stack else reference.dtype
     controller = MemoryParallelController(
-        model, mem_parallel_size=size, compute_dtype=compute_dtype
+        model,
+        mem_parallel_size=size,
+        compute_dtype=compute_dtype,
+        prefetch_depth=cfg.trainer.get("bank_prefetch_depth", None),
     )
     logger.info(
         f"Memory-parallel banks enabled: mem_parallel_size={size}, "
