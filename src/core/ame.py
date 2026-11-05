@@ -147,6 +147,25 @@ def _flex_attention(q, k, v, **kwargs):
     return _COMPILED_FLEX(q, k, v, **kwargs)
 
 
+def _rank_major_to_heads(rows, batch, seq_len, heads, dhead):
+    """O39: an exchanged bank's rows as `[B, n, H, D]`.
+
+    `rows` is the all-to-all's receive buffer, `[mp * B * n, H * D / mp]`: rows
+    `[j*B*n, (j+1)*B*n)` are this rank's tokens on rank j's columns, i.e. on
+    heads `[j*H/mp, (j+1)*H/mp)` (a column slice is a head subset). This is the
+    reassembly `_FusedBankGather` did as a copy; here it is a view plus the
+    reshape, and inside a compiled block inductor folds that reshape into the
+    kernel that reads it (the normalize) instead of materialising it.
+    """
+    n = batch * seq_len
+    mp = rows.shape[0] // n
+    return (
+        rows.view(mp, batch, seq_len, heads // mp, dhead)
+        .permute(1, 2, 0, 3, 4)
+        .reshape(batch, seq_len, heads, dhead)
+    )
+
+
 def horizon_ladder(n_heads, tau, seq_len, min_horizon, horizon_factor):
     """Per-head ALiBi slopes as a geometric ladder, steepest head first.
 
@@ -416,14 +435,24 @@ class AMEAttention(nn.Module):
             readout.update(self.attention_diagnostics(token_ids))
         return readout
 
-    def _mixed_qkv(self, x, token_ids):
+    def _mixed_qkv(self, x, token_ids, bank_rows=None):
         """Everything up to the kernel: gather, normalize, mix, scale.
 
         Returns q, k, v as `[B, H, n, D]`, with the score scale already folded
         into q so the kernel runs at scale 1.
+
+        `bank_rows`, when given, are this layer's q and k rows already exchanged
+        (O39, `src.core.memory_parallel.BankPrefetcher`), in the all-to-all's
+        rank-major layout; they replace the gather.
         """
         batch, seq_len = token_ids.shape
         heads, dhead = self.q_heads, self.dhead
+
+        if bank_rows is not None:
+            q_rows, k_rows = bank_rows
+            q = _rank_major_to_heads(q_rows, batch, seq_len, heads, dhead)
+            k = _rank_major_to_heads(k_rows, batch, seq_len, heads, dhead)
+            return self._finish_qkv(x, q, k)
 
         # One call when a memory-parallel controller has fused the pair. The two
         # banks are gathered on the SAME ids and their results are used
@@ -440,6 +469,11 @@ class AMEAttention(nn.Module):
         else:
             q = self.q_bank(token_ids).view(batch, seq_len, heads, dhead)
             k = self.k_bank(token_ids).view(batch, seq_len, heads, dhead)
+        return self._finish_qkv(x, q, k)
+
+    def _finish_qkv(self, x, q, k):
+        """Normalize, mix and scale q and k (each `[B, n, H, D]`), project v."""
+        batch, seq_len, heads, dhead = q.shape
         v = self.v_proj(x).view(batch, seq_len, heads, dhead)
 
         if self.qk_norm:
@@ -469,7 +503,7 @@ class AMEAttention(nn.Module):
 
         return (z.transpose(1, 2) for z in (q, k, v))
 
-    def forward(self, x, token_ids):
+    def forward(self, x, token_ids, bank_rows=None):
         if token_ids is None:
             # Reachable by calling the encoder or a block directly: token_ids
             # defaults to None the whole way down so that layers which do not
@@ -481,7 +515,7 @@ class AMEAttention(nn.Module):
                 "input_ids through (see LLM.forward -> TransformerEncoder)."
             )
         batch, seq_len = token_ids.shape
-        q, k, v = self._mixed_qkv(x, token_ids)
+        q, k, v = self._mixed_qkv(x, token_ids, bank_rows)
         # "auto" = flex on CUDA, reference on CPU. Not a preference: in torch
         # 2.9 a compiled flex_attention whose inputs require grad fails to lower
         # on CPU (it fails for a bare flex_attention call with no score_mod and
