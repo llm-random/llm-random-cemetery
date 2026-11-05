@@ -1,0 +1,206 @@
+_run_: true
+
+cluster_switch:
+  eval_path_c4: /storage_nvme_1/llm-random/datasets/c4/validation
+  eval_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+  train_path_c4: /storage_nvme_1/llm-random/datasets/c4/train
+  train_path_fineweb: /storage_nvme_4/llm-random/datasets/fineweb/train
+
+common:
+  attention:
+    ame: null
+    mix: null
+    type: gqa
+  batch_size: 512
+  dff: ${eval:'256 * ${common.h}'}
+  dhead: 64
+  dmodel: ${eval:'64 * ${common.h}'}
+  h: 12
+  kv_heads: ${eval:'${common.h} // 2'}
+  n_blocks: ${common.h}
+  q_heads: ${common.h}
+  sequence_length: 2049
+  vocab_size: 50304
+
+compile_blocks_full: true
+
+infrastructure:
+  cemetery_experiments_dir: ${oc.select:infrastructure.cluster_cemetery_dir,'~/llmrandom_cemetery'}
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: dense_h12_1g_mb16_entr
+    new_wandb_job: true
+    project_name: nano-ame
+    tags:
+    - ame
+    - h12
+    - single_gpu
+    - hsweep
+    - align
+    type: wandb
+    wandb_entity: ideas_cv
+  script:
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/storage_nvme_4/nano
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export HYDRA_FULL_ERROR=1
+  - export PIXI_HOME=$PROJECT_HOME_PATH/$USER/pixi
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export XDG_DATA_HOME="$PIXI_HOME/data"
+  - export XDG_CACHE_HOME="$PIXI_HOME/cache"
+  - export XDG_STATE_HOME="$PIXI_HOME/state"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: entropy
+  slurm:
+    cpus_per_gpu: 14
+    gres: gpu:h100:1
+    job-name: d_h12_1g_mb16
+    mem_per_gpu: 90G
+    nodes: 1
+    partition: h100
+    time: 0-01:00:00
+
+model:
+  _target_: src.core.model.LLM
+  embedding:
+    _target_: src.core.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.core.model.trunc_normal_
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.core.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.core.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.core.attention.build_attention
+        attention: ${common.attention}
+        dmodel: ${common.dmodel}
+        init_scale: 1
+        kv_heads: ${common.kv_heads}
+        n_blocks: ${common.n_blocks}
+        q_heads: ${common.q_heads}
+        rope_base: 10000
+        rope_scale_freqs: false
+        seq_len: ${common.sequence_length}
+        vocab_size: ${common.vocab_size}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.core.model.GatedFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.llm_random_weight_init
+            scale: 1
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.llm_random_weight_init
+            scale: 1
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.core.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.core.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.core.model.llm_random_weight_init
+        scale: 1
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+overrides: []
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  autocast_bf16: false
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: null
+      training_state_filename: null
+      type: nano
+    save:
+      interval: -1
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: null
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  compile_ce: false
+  compile_loss: false
+  distributed:
+    ddp: null
+    fsdp: null
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader: null
+  eval_interval: 0
+  fused_ce_chunk_size: null
+  fused_linear_ce: false
+  gradient_accumulation_steps: 32
+  gradient_clipping: 1.0
+  kernel_profile: false
+  learning_rate: 0.000244140625
+  mem_parallel_size: null
+  n_eval_steps: 10
+  n_steps: 30
+  profile_timers: true
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: 10
+  skip_grad_sync_during_accumulation: false
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset:
+      _target_: src.core.datasets.FineWebEduDataset
+      holdout: train
+      holdout_rows: 262144
+      path: ${cluster_switch.train_path_fineweb}
+      seed: 123
+      sequence_length: ${common.sequence_length}
+      shuffle: true
+      split: train
+      tokenize_fn:
+        _target_: src.core.datasets.gpt_neox_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 2
+    total_batch_size: ${common.batch_size}
+  weight_decay: 0.1
