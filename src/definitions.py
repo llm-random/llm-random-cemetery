@@ -153,6 +153,10 @@ class TrainerSchema:
     # micro-step. FSDP2 only, and it costs memory -- see the long note on
     # Trainer.skip_grad_sync_during_accumulation before enabling it.
     skip_grad_sync_during_accumulation: bool = False
+    # O40: under FSDP2, keep parameters unsharded between micro-steps
+    # (`set_reshard_after_backward(False)` until the last one), so only the
+    # first micro-step's forward all-gathers them. See Trainer.
+    keep_params_unsharded_during_accumulation: bool = False
     # Tiers 2+3: ranks per copy of the AME Q/K banks. null/1 keeps the whole
     # bank on every rank (Tier 2 alone, which does not fit at h20); N > 1
     # column-shards every bank across contiguous blocks of N ranks. Must divide

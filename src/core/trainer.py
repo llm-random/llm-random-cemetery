@@ -216,6 +216,19 @@ class Trainer:
     # Ignored without FSDP2 (plain module, FSDP1, CPU) and when
     # gradient_accumulation_steps == 1, where it would be a no-op anyway.
     skip_grad_sync_during_accumulation: bool = False
+    # O40: under FSDP2, keep every parameter group UNSHARDED from the first
+    # micro-step's forward to the last micro-step's backward, by calling
+    # `set_reshard_after_backward(False)` on all but the last micro-step.
+    # With `reshard_after_forward=False` (O33) the parameters are already
+    # unsharded from each forward through its backward, so the only thing
+    # this changes is the reshard at the end of each backward and the
+    # all-gather at the start of the next forward: 1 per optimizer step
+    # instead of 1 per micro-step. Gradients are still reduce-scattered on
+    # every micro-step (that is O9's switch, not this one), so nothing
+    # changes numerically. Memory: the unsharded bf16 parameters stay
+    # resident between micro-steps, which they already were through each
+    # forward and backward, so the peak should not move.
+    keep_params_unsharded_during_accumulation: bool = False
     # Tiers 2+3: how many ranks share one copy of the Q/K banks. Declared here
     # so `trainer.mem_parallel_size=N` type-checks at submit time, but the
     # controller itself is built in main.py before fully_shard -- the trainer
@@ -778,19 +791,37 @@ class Trainer:
                     entered.pop().__exit__(None, None, None)
             return
 
-        active = (
-            self.skip_grad_sync_during_accumulation
-            and accumulating
+        fsdp2 = (
+            accumulating
             and _FSDPModule is not None
             and isinstance(self.model, _FSDPModule)
         )
-        if not active:
+        skip_sync = fsdp2 and self.skip_grad_sync_during_accumulation
+        # getattr: callers that drive this method through a stub (the O9 tests)
+        # predate the flag.
+        keep_unsharded = fsdp2 and getattr(
+            self, "keep_params_unsharded_during_accumulation", False
+        )
+        if not (skip_sync or keep_unsharded):
             yield lambda _is_last: None
             return
+
+        def mark_fsdp2(is_last):
+            if skip_sync:
+                self.model.set_requires_gradient_sync(is_last)
+            if keep_unsharded:
+                # O40. False until the last micro-step: the parameters stay
+                # gathered for the next forward instead of being resharded and
+                # all-gathered again.
+                self.model.set_reshard_after_backward(is_last)
+
         try:
-            yield self.model.set_requires_gradient_sync
+            yield mark_fsdp2
         finally:
-            self.model.set_requires_gradient_sync(True)
+            if skip_sync:
+                self.model.set_requires_gradient_sync(True)
+            if keep_unsharded:
+                self.model.set_reshard_after_backward(True)
 
     def calculate_loss(self, batch) -> LossMetrics:
         if self._forward_loss_fn is None:
