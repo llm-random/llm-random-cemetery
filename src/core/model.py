@@ -8,6 +8,7 @@ import torch.nn.functional as F
 import torch.distributed as dist
 from torch.nn.attention import SDPBackend
 from torch.nn.init import trunc_normal_ as trunc_normal_
+from torch.utils.checkpoint import checkpoint
 from torch.nn import (
     LayerNorm as LayerNorm,
 )  # used by FSDP, but it keeps getting removed during file formatting
@@ -408,10 +409,66 @@ class TransformerHead(nn.Module):
         self.norm = norm_fn()
         self.linear = linear_fn()
 
-    def forward(self, x):
+    def forward(self, x, targets=None, chunk_size=None, ignore_index=-100):
+        """Logits, or -- given `targets` -- the loss, without ever building the
+        logits (O11, fused-linear-CE).
+
+        `targets=None` is the original path and is bit-for-bit what it was.
+
+        With `targets`, the projection and the cross-entropy are computed in
+        chunks of rows and each chunk's logits are dropped as soon as its loss
+        is accumulated. The full `[micro_batch, seq, vocab]` tensor is the
+        largest activation in the step -- 6.14 GiB at h16/micro-batch 32, which
+        is the allocation job 32853 died on -- and it never exists here.
+
+        **Why `targets` is an argument rather than a separate method.** Under
+        FSDP2 this module's parameters are sharded, and `fully_shard` installs
+        a pre-forward hook that all-gathers them. The hook fires on `__call__`.
+        A `head.compute_loss(...)` method would bypass it and read a sharded
+        DTensor as if it were the whole weight -- not an error FSDP2 reports,
+        just a wrong result.
+
+        The chunking uses `torch.utils.checkpoint` per chunk rather than a
+        hand-written `autograd.Function`. The gradient is then correct by
+        construction instead of by my arithmetic, which matters for a path
+        whose failure mode is a silently wrong loss. The cost is that each
+        chunk's projection runs twice, once in forward and once in backward --
+        the head matmul only, not the model. That is O11's actual price and it
+        is why O11 is expected to pay in *memory*, not in step time.
+
+        Returns the mean over non-ignored targets, matching
+        `F.cross_entropy(..., reduction="mean")`.
+        """
         x = self.norm(x)
-        x = self.linear(x)
-        return x
+        if targets is None:
+            return self.linear(x)
+
+        flat = x.reshape(-1, x.shape[-1])
+        flat_targets = targets.reshape(-1)
+        rows = flat.shape[0]
+        if chunk_size is None or chunk_size <= 0:
+            chunk_size = rows
+        linear = self.linear
+
+        def chunk_loss(hidden, target):
+            # reduction="sum": the chunks carry different numbers of valid
+            # targets, so a mean per chunk could not be averaged back.
+            return F.cross_entropy(
+                linear(hidden), target, reduction="sum", ignore_index=ignore_index
+            )
+
+        total = None
+        for start in range(0, rows, chunk_size):
+            hidden = flat[start : start + chunk_size]
+            target = flat_targets[start : start + chunk_size]
+            if torch.is_grad_enabled() and hidden.requires_grad:
+                piece = checkpoint(chunk_loss, hidden, target, use_reentrant=False)
+            else:
+                piece = chunk_loss(hidden, target)
+            total = piece if total is None else total + piece
+
+        valid = (flat_targets != ignore_index).sum()
+        return total / valid.clamp(min=1).to(total.dtype)
 
 
 class LLM(nn.Module):
@@ -426,14 +483,20 @@ class LLM(nn.Module):
         self.encoder = encoder
         self.head = head
 
-    def forward(self, input_ids):
+    def forward(self, input_ids, targets=None, ce_chunk_size=None):
         x = self.embedding(input_ids)
         x = self.encoder(x, input_ids)
-        x = self.head(x)
-        return x
+        # `targets` threaded through to the head rather than handled here: the
+        # head owns the projection whose output we are refusing to materialise,
+        # and going through `self.head(...)` keeps FSDP2's all-gather hook in
+        # the path (see TransformerHead.forward). `targets=None` is the
+        # original call and returns logits.
+        if targets is None:
+            return self.head(x)
+        return self.head(x, targets=targets, chunk_size=ce_chunk_size)
 
 
-def parameter_groups(model, weight_decay):
+def parameter_groups(model, weight_decay, exclude=None):
     """AdamW param groups: declared scales at wd=0, everything else at `weight_decay`.
 
     AdamW's decay is *decoupled* -- `p <- p*(1 - lr*wd)` runs whether or not the
@@ -447,7 +510,15 @@ def parameter_groups(model, weight_decay):
     `no_weight_decay_parameters` attribute. **A model where nothing declares any
     returns a single group holding exactly `model.parameters()`**, so every
     existing config keeps the optimizer it had and no committed number moves.
+
+    `exclude` drops parameters from the optimizer entirely -- not from decay,
+    from the optimizer. The memory-parallel bank controller
+    (src.core.memory_parallel) steps its own fp32 masters with its own AdamW, so
+    the compute parameters it owns must not also be stepped here; they would be
+    stepped on a gradient that is permanently None, which AdamW silently skips
+    while still counting them in the state it allocates.
     """
+    excluded_ids = {id(parameter) for parameter in (exclude or ())}
 
     def resolve(module, name):
         """`"tau"` or a dotted path like `"q_bank.weight"`."""
@@ -466,11 +537,13 @@ def parameter_groups(model, weight_decay):
             if isinstance(parameter, nn.Parameter):
                 undecayed.add(id(parameter))
 
+    trainable = [p for p in model.parameters() if id(p) not in excluded_ids]
+
     if not undecayed:
-        return [{"params": list(model.parameters()), "weight_decay": weight_decay}]
+        return [{"params": trainable, "weight_decay": weight_decay}]
 
     groups = {True: [], False: []}
-    for parameter in model.parameters():
+    for parameter in trainable:
         groups[id(parameter) in undecayed].append(parameter)
     return [
         {"params": groups[False], "weight_decay": weight_decay},
