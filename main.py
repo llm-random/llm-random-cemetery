@@ -221,7 +221,12 @@ def build_memory_parallel_controller(cfg, model):
     reference = next(model.parameters())
     compute_dtype = torch.bfloat16 if bf16_stack else reference.dtype
     controller = MemoryParallelController(
-        model, mem_parallel_size=size, compute_dtype=compute_dtype
+        model,
+        mem_parallel_size=size,
+        compute_dtype=compute_dtype,
+        prefetch_depth=cfg.trainer.get("bank_prefetch_depth", None),
+        compute_copy=cfg.trainer.get("bank_compute_copy", True),
+        nccl_max_ctas=cfg.trainer.get("bank_nccl_max_ctas", None),
     )
     logger.info(
         f"Memory-parallel banks enabled: mem_parallel_size={size}, "
@@ -285,10 +290,18 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
         # The compiled unit is also exactly the module FSDP2 shards, which is
         # the pairing FSDP2 documents. Watch for recompile warnings anyway --
         # this failure mode is silent (documents/notes/multigpu_compile_scope_plan.md).
+        # Optional `compile_mode` (top-level, `+compile_mode=...` on the CLI):
+        # torch.compile's `mode`. None is the default mode, which is what every
+        # recorded run used. "max-autotune-no-cudagraphs" benchmarks GEMM and
+        # flex_attention tile configurations at compile time instead of taking
+        # the heuristic pick (AME report section 7, lead A7); the cudagraph
+        # variants are not used because FSDP2's hooks run between blocks.
+        compile_mode = cfg.get("compile_mode", None)
         for block in model.encoder.blocks:
-            block.compile()
+            block.compile(mode=compile_mode)
         logger.info(
             f"torch.compile applied to {len(model.encoder.blocks)} whole blocks"
+            + (f", mode={compile_mode}" if compile_mode else "")
         )
     if cfg.get("compile_model", False):
         # Whole-model compile, nanoGPT-style: one inductor graph containing the
