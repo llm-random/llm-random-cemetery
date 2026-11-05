@@ -433,7 +433,7 @@ class LLM(nn.Module):
         return x
 
 
-def parameter_groups(model, weight_decay):
+def parameter_groups(model, weight_decay, exclude=None):
     """AdamW param groups: declared scales at wd=0, everything else at `weight_decay`.
 
     AdamW's decay is *decoupled* -- `p <- p*(1 - lr*wd)` runs whether or not the
@@ -447,7 +447,15 @@ def parameter_groups(model, weight_decay):
     `no_weight_decay_parameters` attribute. **A model where nothing declares any
     returns a single group holding exactly `model.parameters()`**, so every
     existing config keeps the optimizer it had and no committed number moves.
+
+    `exclude` drops parameters from the optimizer entirely -- not from decay,
+    from the optimizer. The memory-parallel bank controller
+    (src.core.memory_parallel) steps its own fp32 masters with its own AdamW, so
+    the compute parameters it owns must not also be stepped here; they would be
+    stepped on a gradient that is permanently None, which AdamW silently skips
+    while still counting them in the state it allocates.
     """
+    excluded_ids = {id(parameter) for parameter in (exclude or ())}
 
     def resolve(module, name):
         """`"tau"` or a dotted path like `"q_bank.weight"`."""
@@ -466,11 +474,13 @@ def parameter_groups(model, weight_decay):
             if isinstance(parameter, nn.Parameter):
                 undecayed.add(id(parameter))
 
+    trainable = [p for p in model.parameters() if id(p) not in excluded_ids]
+
     if not undecayed:
-        return [{"params": list(model.parameters()), "weight_decay": weight_decay}]
+        return [{"params": trainable, "weight_decay": weight_decay}]
 
     groups = {True: [], False: []}
-    for parameter in model.parameters():
+    for parameter in trainable:
         groups[id(parameter) in undecayed].append(parameter)
     return [
         {"params": groups[False], "weight_decay": weight_decay},
