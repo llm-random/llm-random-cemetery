@@ -200,6 +200,8 @@ class AMEAttention(nn.Module):
     """
 
     wants_token_ids = True
+    # O46 switch (main.py `o46`); see `_finish_qkv`.
+    normalize_shifted_raw = True
 
     # 2-D by shape, but not matmul weights: src.core.mfu would otherwise charge
     # 6*P of matmul FLOPs for per-head scalars and one key vector.
@@ -476,16 +478,26 @@ class AMEAttention(nn.Module):
         batch, seq_len, heads, dhead = q.shape
         v = self.v_proj(x).view(batch, seq_len, heads, dhead)
 
+        # O46: the shifted key is normalized from the shifted RAW row rather
+        # than shifted after normalizing. Per row it is the same arithmetic --
+        # and position 0 is a zero row either way, which normalizes to zero --
+        # but the shift now acts on the block's input instead of on an
+        # intermediate, so the compiler can read row n-1 inside the mix kernel
+        # instead of materialising a padded copy of the normalized keys.
+        # `normalize_shifted_raw = False` restores the original order.
+        k_prev = _shift1(k) if self.normalize_shifted_raw else None
         if self.qk_norm:
             # On the bank ROWS, before the mix. Not on the mixed key.
             q = F.normalize(q, dim=-1)
             k = F.normalize(k, dim=-1)
+            if k_prev is not None:
+                k_prev = F.normalize(k_prev, dim=-1)
+        if k_prev is None:
+            k_prev = _shift1(k)
 
         alpha = self.alpha.to(k.dtype)
         beta = self.beta.to(v.dtype)
-        k = alpha[:, 0].view(1, 1, -1, 1) * k + alpha[:, 1].view(1, 1, -1, 1) * _shift1(
-            k
-        )
+        k = alpha[:, 0].view(1, 1, -1, 1) * k + alpha[:, 1].view(1, 1, -1, 1) * k_prev
         v = beta[:, 0].view(1, 1, -1, 1) * v + beta[:, 1].view(1, 1, -1, 1) * _shift1(v)
 
         # tau folded into q: scaling one side is identical to scaling the score,
