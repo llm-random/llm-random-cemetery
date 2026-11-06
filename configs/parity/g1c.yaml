@@ -1,0 +1,11 @@
+# G1c (Phase 3, finer bisect of A2): Tier 2 as run, bf16 compute copy, but the
+# prep (normalize, KV-shift mix, tau) in fp32 on the gathered bf16 rows
+# (parity_prep_fp32, an opt-in top-level key that exists only on parity_audit).
+# Separates bf16 STORAGE of the bank rows from bf16 ARITHMETIC in the prep.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+parity_prep_fp32: true
+infrastructure:
+  metric_logger:
+    name: parity_g1c_s2ps_fp32prep

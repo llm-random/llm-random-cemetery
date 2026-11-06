@@ -236,6 +236,12 @@ def build_memory_parallel_controller(cfg, model):
     if cfg.get("parity_bank_eager", False):
         for pair in controller.fused_pairs:
             pair.forward = torch.compiler.disable(pair.forward)
+    #   parity_prep_fp32: true -- Tier 2's bf16 compute copy is gathered, then
+    #     the prep (normalize, mix, tau) runs in fp32: bf16 storage, fp32 math.
+    if cfg.get("parity_prep_fp32", False):
+        for module in model.modules():
+            if hasattr(module, "parity_prep_fp32"):
+                module.parity_prep_fp32 = True
     logger.info(
         f"Memory-parallel banks enabled: mem_parallel_size={size}, "
         f"compute dtype {compute_dtype}"

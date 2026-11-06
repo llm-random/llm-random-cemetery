@@ -64,3 +64,26 @@ def test_the_eager_switch_wraps_every_fused_pair_and_computes_the_same():
         assert torch.equal(grads[name], eager_grads[name]), name
     for a, b in zip(main, eager_main):
         assert torch.equal(a, b)
+
+
+def test_the_fp32_prep_switch_is_off_by_default_and_reaches_every_layer():
+    from src.core.ame import AMEAttention
+
+    assert AMEAttention.parity_prep_fp32 is False
+    model = build_model(dtype=torch.float32)
+    build_memory_parallel_controller(_cfg(), model)
+    layers = [m for m in model.modules() if isinstance(m, AMEAttention)]
+    assert layers and not any(m.parity_prep_fp32 for m in layers)
+    model = build_model(dtype=torch.float32)
+    build_memory_parallel_controller(_cfg(parity_prep_fp32=True), model)
+    assert all(m.parity_prep_fp32 for m in model.modules() if isinstance(m, AMEAttention))
+
+
+def test_the_fp32_prep_switch_is_a_no_op_on_fp32_banks():
+    # On CPU the compute copy is fp32 already, so the cast changes nothing.
+    _, grads, main = _step(_cfg())
+    _, prep_grads, prep_main = _step(_cfg(parity_prep_fp32=True))
+    for name in grads:
+        assert torch.equal(grads[name], prep_grads[name]), name
+    for a, b in zip(main, prep_main):
+        assert torch.equal(a, b)

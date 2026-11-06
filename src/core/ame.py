@@ -182,6 +182,11 @@ class AMEAttention(nn.Module):
 
     wants_token_ids = True
 
+    # Parity audit, Phase 3 (documents/notes/ame_efficiency_parity_plan.md):
+    # opt-in, set per instance by main.py from the top-level key
+    # `parity_prep_fp32`. False here, so every shipped path is unchanged.
+    parity_prep_fp32 = False
+
     # 2-D by shape, but not matmul weights: src.core.mfu would otherwise charge
     # 6*P of matmul FLOPs for per-head scalars and one key vector.
     non_matmul_parameters = ("alpha", "beta", "k_sink", "v_sink")
@@ -437,6 +442,10 @@ class AMEAttention(nn.Module):
             q, k = self.qk_bank(token_ids)
             q = q.view(batch, seq_len, heads, dhead)
             k = k.view(batch, seq_len, heads, dhead)
+            if self.parity_prep_fp32:
+                # Parity audit, Phase 3, opt-in (False everywhere but there):
+                # keep Tier 2's bf16 rows but run the prep in fp32.
+                q, k = q.float(), k.float()
         else:
             q = self.q_bank(token_ids).view(batch, seq_len, heads, dhead)
             k = self.k_bank(token_ids).view(batch, seq_len, heads, dhead)
