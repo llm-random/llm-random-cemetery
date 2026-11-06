@@ -48,6 +48,10 @@ class Linear(nn.Linear):
 
 
 class Residual(nn.Module):
+    # O41 switch (main.py `whole_block_graphs`): False restores calling the
+    # metrics hook on every forward, as every run before O41 did.
+    metrics_only_when_heavy = True
+
     def __init__(self, norm, layer, log_name):
         super(Residual, self).__init__()
         self.norm = norm
@@ -82,8 +86,9 @@ class Residual(nn.Module):
         # in `heavy_metrics_calculation_interval` (AME report section 7). The
         # bool is refreshed by the logger once per step; a logger without it
         # keeps the old behaviour.
-        if self.metric_logger is not None and getattr(
-            self.metric_logger, "heavy_active", True
+        if self.metric_logger is not None and (
+            not self.metrics_only_when_heavy
+            or getattr(self.metric_logger, "heavy_active", True)
         ):
             self._accumulate_intermediate_metrics(x, out)
         return out + x
@@ -390,6 +395,9 @@ class TransformerEncoder(nn.Module):
     # O39: set by src.core.memory_parallel.MemoryParallelController when the
     # bank exchange runs ahead of the layers; None in every other run.
     bank_prefetcher = None
+    # O42 switch (main.py `whole_block_graphs`): False leaves per-shape layer
+    # state to be built inside the compiled block, as before O42.
+    prepare_layer_state = True
 
     def get_model_dimensions(self):
         # Works only for llama3 transforermer architecture
@@ -422,7 +430,7 @@ class TransformerEncoder(nn.Module):
         # through dynamo -- graph breaks -- and that compiled code, breaks and
         # an eager `create_block_mask` per call included, is what every later
         # call reuses: 9 graphs per AME block where dense has 1.
-        if token_ids is not None:
+        if token_ids is not None and self.prepare_layer_state:
             for block in self.blocks:
                 prepare = getattr(
                     getattr(getattr(block, "attention_layer", None), "layer", None),
@@ -443,6 +451,81 @@ class TransformerEncoder(nn.Module):
             rows = prefetcher.take(index)
             x = block(x, token_ids) if rows is None else block(x, token_ids, rows)
         return x
+
+
+try:  # Triton ships with the CUDA build of torch; CPU-only installs may lack it.
+    import triton
+    import triton.language as tl
+except ImportError:  # pragma: no cover
+    triton = None
+
+if triton is not None:
+
+    @triton.jit
+    def _xent_grad_inplace_kernel(
+        logits_ptr,
+        logits_row_stride,
+        targets_ptr,
+        loss_ptr,
+        scale_ptr,
+        n_cols,
+        ignore_index,
+        BLOCK: tl.constexpr,
+    ):
+        """One row: loss = lse - logit[target], then the row is overwritten
+        with d(loss * scale)/d(logits) = (softmax - onehot) * scale.
+
+        Two passes over the row in fp32 (online max/sum, then the gradient),
+        one store, in the logits' own dtype. Ignored rows get loss 0 and a zero
+        gradient."""
+        row = tl.program_id(0).to(tl.int64)
+        base = logits_ptr + row * logits_row_stride
+        target = tl.load(targets_ptr + row)
+        keep = target != ignore_index
+        safe = tl.where(keep, target, 0)
+
+        m = float("-inf")
+        d = 0.0
+        for start in range(0, n_cols, BLOCK):
+            offs = start + tl.arange(0, BLOCK)
+            x = tl.load(base + offs, mask=offs < n_cols, other=float("-inf")).to(
+                tl.float32
+            )
+            m_new = tl.maximum(m, tl.max(x, axis=0))
+            d = d * tl.exp(m - m_new) + tl.sum(tl.exp(x - m_new), axis=0)
+            m = m_new
+        lse = m + tl.log(d)
+        picked = tl.load(base + safe).to(tl.float32)
+        tl.store(loss_ptr + row, tl.where(keep, lse - picked, 0.0))
+
+        scale = tl.load(scale_ptr)
+        for start in range(0, n_cols, BLOCK):
+            offs = start + tl.arange(0, BLOCK)
+            mask = offs < n_cols
+            x = tl.load(base + offs, mask=mask, other=0.0).to(tl.float32)
+            p = tl.exp(x - lse)
+            p = tl.where(offs == safe, p - 1.0, p)
+            g = tl.where(keep, p * scale, 0.0)
+            tl.store(base + offs, g.to(logits_ptr.dtype.element_ty), mask=mask)
+
+
+def _xent_grad_inplace(logits, targets, scale, ignore_index):
+    """Per-row losses (fp32); `logits` becomes the scaled gradient in place."""
+    rows, n_cols = logits.shape
+    assert logits.stride(1) == 1, "rows must be contiguous"
+    loss = torch.empty(rows, device=logits.device, dtype=torch.float32)
+    _xent_grad_inplace_kernel[(rows,)](
+        logits,
+        logits.stride(0),
+        targets,
+        loss,
+        scale,
+        n_cols,
+        ignore_index,
+        BLOCK=4096,
+        num_warps=8,
+    )
+    return loss
 
 
 class _ChunkedLinearCE(torch.autograd.Function):
@@ -482,6 +565,36 @@ class _ChunkedLinearCE(torch.autograd.Function):
         grad_x = torch.zeros_like(x, dtype=acc)
         grad_w = torch.zeros_like(weight, dtype=acc)
         grad_b = None if bias is None else torch.zeros_like(bias, dtype=acc)
+
+        # O45: the Triton softmax (v4). The PyTorch softmax below was v3's only
+        # problem (job 32876: slower than v1's recompute); this replaces it with
+        # one kernel that reads each logits row twice and writes its gradient
+        # once, in place, in the logits' own dtype. CUDA and 16-bit only; the
+        # float64 gate keeps the PyTorch path, which is the reference.
+        use_kernel = (
+            triton is not None
+            and x.is_cuda
+            and x.dtype in (torch.bfloat16, torch.float16)
+        )
+        if use_kernel:
+            grad_x = torch.empty_like(x)
+            scale = (1.0 / valid.to(torch.float32)).reshape(1)
+            for start in range(0, rows, chunk_size):
+                stop = min(start + chunk_size, rows)
+                hidden = x[start:stop]
+                logits = F.linear(hidden, weight, bias)
+                row_loss = _xent_grad_inplace(
+                    logits, targets[start:stop].contiguous(), scale, ignore_index
+                )
+                loss = loss + row_loss.sum().to(acc)
+                gradient = logits  # now (softmax - onehot) / valid, in place
+                torch.mm(gradient, weight, out=grad_x[start:stop])
+                grad_w += (gradient.t() @ hidden).to(acc)
+                if grad_b is not None:
+                    grad_b += gradient.sum(0).to(acc)
+            ctx.save_for_backward(grad_x, grad_w.to(weight.dtype), grad_b)
+            ctx.has_bias = bias is not None
+            return loss / valid.to(loss.dtype)
 
         for start in range(0, rows, chunk_size):
             stop = min(start + chunk_size, rows)
@@ -549,6 +662,11 @@ class _ChunkedLinearCE(torch.autograd.Function):
 
 
 class TransformerHead(nn.Module):
+    # O11 implementation (main.py `fused_ce_impl`): "checkpoint" (v1, every
+    # recorded O11 run) or "triton" (v4: `_ChunkedLinearCE` with the Triton
+    # softmax, gradients computed in the forward, no recompute).
+    fused_ce_impl = "checkpoint"
+
     def __init__(self, linear_fn: Callable, norm_fn: Callable):
         super().__init__()
         self.norm = norm_fn()
@@ -622,6 +740,16 @@ class TransformerHead(nn.Module):
         # who writes a Triton kernel for that softmax -- at which point the
         # ordering should flip. Until then it is not the default.
         # See documents/notes/ame_optimization_report.md §1.13.
+        if self.fused_ce_impl == "triton" and torch.is_grad_enabled():
+            return _ChunkedLinearCE.apply(
+                flat,
+                linear.weight,
+                linear.bias,
+                flat_targets,
+                chunk_size,
+                ignore_index,
+            )
+
         total = None
         for start in range(0, rows, chunk_size):
             hidden = flat[start : start + chunk_size]

@@ -243,6 +243,7 @@ class Trainer:
     bank_compute_copy: bool = True
     bank_nccl_max_ctas: Optional[int] = None
     bank_default_group: bool = False
+    bank_prefetch_cpu_lead: Optional[int] = None
 
     # Checkpoint save types this trainer can actually write. Subclasses widen this;
     # anything outside it is rejected before training starts.
@@ -543,6 +544,19 @@ class Trainer:
             peak_gib = torch.cuda.max_memory_allocated(self.device) / 2**30
             self.metric_logger.log("train/max_memory_gib", peak_gib)
             logger.info(f"Peak CUDA memory: {peak_gib:.2f} GiB")
+            # How often the caching allocator ran out of cached blocks and had to
+            # free and retry -- each retry synchronises the device. Logged
+            # because AME's 4-GPU forward collapsed near the memory limit
+            # (AME report section 1.21) with nothing else in the log naming it.
+            stats = torch.cuda.memory_stats()
+            logger.info(
+                "CUDA allocator: num_alloc_retries=%d num_ooms=%d reserved_peak=%.2f GiB"
+                % (
+                    stats.get("num_alloc_retries", 0),
+                    stats.get("num_ooms", 0),
+                    stats.get("reserved_bytes.all.peak", 0) / 2**30,
+                )
+            )
 
         self.final_eval()
 
