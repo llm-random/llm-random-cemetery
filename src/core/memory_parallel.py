@@ -55,6 +55,7 @@ costs 46.4 GB/rank of state against 11.6 GB sharded -- so on real hardware the
 useful settings are `mp == world_size`.
 """
 
+import collections
 import contextlib
 import logging
 import os
@@ -535,11 +536,19 @@ class BankPrefetcher:
     which is the same on every rank.
     """
 
-    def __init__(self, controller, encoder, depth):
+    def __init__(self, controller, encoder, depth, cpu_lead=None):
         if depth < 1:
             raise ValueError(f"bank prefetch depth must be >= 1, got {depth}")
         self.controller = controller
         self.depth = int(depth)
+        # O44: at most this many blocks between the CPU and the compute stream
+        # (None: unbounded). Each `take` records an event on the compute stream
+        # and the CPU waits for the one `cpu_lead` blocks back. Without a bound,
+        # once the blocks compiled whole (O41, O42) the CPU ran arbitrarily far
+        # ahead, and the cross-stream buffers this class hands over cannot be
+        # recycled until the GPU catches up.
+        self.cpu_lead = int(cpu_lead) if cpu_lead else None
+        self._lead_events = collections.deque()
         # One slot per block, in the order the encoder calls them: the block's
         # fused q/k pair, or None for a block whose attention has no banks.
         self.slots = []
@@ -566,6 +575,7 @@ class BankPrefetcher:
         layers' exchanges."""
         stream = self._stream_for(token_ids.device)
         self._pending.clear()
+        self._lead_events.clear()
         group = self.controller.mp_group
         mp_size = self.controller.mp_size
         # wait=True: the ids, and the compute weights the last optimizer step
@@ -612,6 +622,12 @@ class BankPrefetcher:
                 if ahead > self.depth:
                     break
                 self._issue(later)
+        if self.cpu_lead and self.stream is not None:
+            mark = torch.cuda.Event()
+            mark.record(torch.cuda.current_stream(self.stream.device))
+            self._lead_events.append(mark)
+            if len(self._lead_events) > self.cpu_lead:
+                self._lead_events.popleft().synchronize()
         if self.slots[index] is None:
             return None
         if index not in self._pending:
@@ -667,6 +683,7 @@ class MemoryParallelController:
         compute_copy=True,
         nccl_max_ctas=None,
         default_group=False,
+        prefetch_cpu_lead=None,
     ):
         self.world_size = dist.get_world_size() if dist.is_initialized() else 1
         self.rank = dist.get_rank() if dist.is_initialized() else 0
@@ -752,7 +769,9 @@ class MemoryParallelController:
                     f"bank prefetch needs exactly one encoder exposing "
                     f"`bank_prefetcher`, found {len(encoders)}"
                 )
-            self.prefetcher = BankPrefetcher(self, encoders[0], prefetch_depth)
+            self.prefetcher = BankPrefetcher(
+                self, encoders[0], prefetch_depth, cpu_lead=prefetch_cpu_lead
+            )
             encoders[0].bank_prefetcher = self.prefetcher
         elif prefetch_depth:
             logger.info(
