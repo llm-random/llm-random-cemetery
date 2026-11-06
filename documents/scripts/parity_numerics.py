@@ -526,7 +526,10 @@ def run_budget(args, device):
     for state in args.states.split(","):
         for arm in args.arms.split(","):
             names = [v for v in VARIANTS if VARIANTS[v][0] == arm and (which is None or v in which)]
-            ref_name, prod_name = f"{arm}_ref32", f"{arm}_prod"
+            ref_name = f"{arm}_ref32"
+            # The second comparator ("vs_prod" in the JSON): production unless
+            # --base names another variant (e.g. ame_std, the ordinary path).
+            prod_name = args.base if args.base else f"{arm}_prod"
             order = [n for n in (ref_name, prod_name) if n in names] + [
                 n for n in names if n not in (ref_name, prod_name)
             ]
@@ -543,7 +546,7 @@ def run_budget(args, device):
                     with sdpa_math(variant == "dense_ref32"):
                         loss, g = gradients(built, seqs)
                     section["loss"][variant] = loss
-                    if variant == prod_name and built.banks is not None:
+                    if variant == f"{arm}_prod" and built.banks is not None:
                         slot = {id(getattr(m, a)): n for m, a, n in bank_slots(built.model)}
                         section["bank_structure"] = bank_structure(
                             [b.main_grad.detach().float().cpu() for b in built.banks.banks],
@@ -1207,6 +1210,7 @@ def main():
     parser.add_argument("--train-batches", type=int, default=2)
     parser.add_argument("--variants", default=None, help="budget: comma-separated subset")
     parser.add_argument("--arms", default="dense,ame", help="budget: dense, ame or both")
+    parser.add_argument("--base", default=None, help="budget: the second comparator (default <arm>_prod)")
     parser.add_argument("--states", default="init,final", help="budget: init, final or both")
     parser.add_argument("--layers", default=None, help="layers: comma-separated subset")
     parser.add_argument("--smoke", action="store_true")
