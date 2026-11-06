@@ -1,0 +1,9 @@
+# P0r (proposed, not run): a second identical S2-PS copy. With doi36p8k and P0 it gives
+# three production samples at 4B tokens: the 300-step gates showed a run-to-run sd of
+# ~0.12 nats, so one copy cannot set the floor a full-length A/B is judged against.
+defaults:
+  - full_s2_ps_base
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_p0r_s2ps
