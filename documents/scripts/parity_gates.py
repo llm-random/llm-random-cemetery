@@ -156,16 +156,21 @@ def grad_norm_view(df):
 
 
 GROUPS_300 = {
-    "production (Tier 2, as run)": [
+    # Grouped by what the gradient computation is, as measured by the harness:
+    # at init, Tier 2 with an fp32 compute copy computes the ordinary path's
+    # gradients to fp32 summation order (2e-6, banks only), and the eager gather
+    # reproduces production's bit for bit (job 36345). So within a group the runs
+    # are the same computation, and their spread is the gate's own noise.
+    "A2 on: bf16 compute copy (production)": [
         "parity_g0a_s2ps", "parity_g0b_s2ps", "parity_g0d_s2ps", "parity_g0e_s2ps",
+        "parity_g0f_s2ps", "parity_g0g_s2ps", "parity_g1b_s2ps_eagergather",
     ],
-    "production, micro-batch 16": ["parity_g0c_s2ps_mb16"],
-    "ordinary path (mp null: A1-A3 off)": [
+    "A2 on, micro-batch 16": ["parity_g0c_s2ps_mb16"],
+    "A2 off: fp32 banks (ordinary path, Tier 2 fp32 copy)": [
         "parity_g1_s2ps_mpnull", "parity_g1r_s2ps_mpnull", "parity_g1r2_s2ps_mpnull",
+        "parity_g1r3_s2ps_mpnull", "parity_g1r4_s2ps_mpnull", "parity_g1a_s2ps_fp32copy",
     ],
-    "Tier 2, fp32 compute copy (A2 off)": ["parity_g1a_s2ps_fp32copy"],
-    "Tier 2, eager gather (A3 off)": ["parity_g1b_s2ps_eagergather"],
-    "Tier 2, fp32 prep on bf16 rows": ["parity_g1c_s2ps_fp32prep"],
+    "A2 on, fp32 prep on bf16 rows": ["parity_g1c_s2ps_fp32prep"],
     "dense": ["parity_gd0a_s1d", "parity_gd0b_s1d"],
 }
 
@@ -198,13 +203,13 @@ def distribution(refresh=False):
         c = np.array([v[1] for v in vals])
         sd = f"{t.std(ddof=1):.4f}" if len(t) > 1 else "-"
         print(f"{group:<36} n={len(t)}  last-50 mean {t.mean():.4f} (sd {sd})  final_ce mean {c.mean():.5f}")
-    a = [v[0] for v in by.get("production (Tier 2, as run)", [])]
-    b = [v[0] for v in by.get("ordinary path (mp null: A1-A3 off)", [])]
+    a = [v[0] for v in by.get("A2 on: bf16 compute copy (production)", [])]
+    b = [v[0] for v in by.get("A2 off: fp32 banks (ordinary path, Tier 2 fp32 copy)", [])]
     if len(a) > 1 and len(b) > 1:
         from scipy.stats import mannwhitneyu, ttest_ind
 
         print(
-            f"ordinary - production: {np.mean(b) - np.mean(a):+.4f}; Mann-Whitney p "
+            f"A2 off - A2 on: {np.mean(b) - np.mean(a):+.4f}; Mann-Whitney p "
             f"{mannwhitneyu(b, a, alternative='two-sided').pvalue:.4f}; Welch t p "
             f"{ttest_ind(b, a, equal_var=False).pvalue:.4f}"
         )
