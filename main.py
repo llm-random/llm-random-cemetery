@@ -258,7 +258,10 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
     # `o41` / `o42` (default true) switch the two halves separately.
     from src.core.model import Residual, TransformerEncoder
 
+    from src.core.ame import AMEAttention
     from src.core.model import TransformerHead
+
+    AMEAttention.normalize_shifted_raw = bool(cfg.get("o46", False))
 
     TransformerHead.fused_ce_impl = cfg.get("fused_ce_impl", "checkpoint")
 
