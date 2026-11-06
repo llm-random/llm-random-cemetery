@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from functools import partial
 import math
 import os
@@ -741,14 +742,19 @@ class TransformerHead(nn.Module):
         # ordering should flip. Until then it is not the default.
         # See documents/notes/ame_optimization_report.md §1.13.
         if self.fused_ce_impl == "triton" and torch.is_grad_enabled():
-            return _ChunkedLinearCE.apply(
-                flat,
-                linear.weight,
-                linear.bias,
-                flat_targets,
-                chunk_size,
-                ignore_index,
-            )
+            weight, bias = linear.weight, linear.bias
+            if flat.is_cuda and torch.is_autocast_enabled("cuda"):
+                # What autocast would do for this linear (bf16 operands), done
+                # explicitly so the Function sees one dtype and the Triton path
+                # applies; the casts are differentiable, so fp32 parameters get
+                # fp32 gradients as they would under autocast.
+                dtype = torch.get_autocast_dtype("cuda")
+                flat, weight = flat.to(dtype), weight.to(dtype)
+                bias = None if bias is None else bias.to(dtype)
+            with torch.autocast("cuda", enabled=False) if flat.is_cuda else nullcontext():
+                return _ChunkedLinearCE.apply(
+                    flat, weight, bias, flat_targets, chunk_size, ignore_index
+                )
 
         total = None
         for start in range(0, rows, chunk_size):
