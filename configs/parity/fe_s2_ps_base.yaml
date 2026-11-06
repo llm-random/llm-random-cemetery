@@ -17,6 +17,9 @@ trainer:
 infrastructure:
   slurm:
     job-name: parity_full
+    # Below the analysis and scoring jobs, which submit at nice 0 and so start
+    # first whenever one of the 8 GPUs frees up.
+    nice: 100
     time: "0-06:00:00"
   metric_logger:
     name: ???
