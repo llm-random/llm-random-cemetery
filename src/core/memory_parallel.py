@@ -395,6 +395,28 @@ class _FusedBankGather(torch.autograd.Function):
         return None, None, None, None
 
 
+def _expand_rows(rows, inverse, mp):
+    """O47 v2: `[mp * distinct, 2w]` -> `[mp * n, 2w]`, row `inverse[i]` of each
+    rank's chunk for token i."""
+    distinct = rows.shape[0] // mp
+    return rows.view(mp, distinct, -1)[:, inverse].reshape(mp * inverse.numel(), -1)
+
+
+def _reduce_rows(grads, inverse, mp, distinct):
+    """O47 v2, backward of `_expand_rows`: token gradients summed per distinct
+    id in fp32 (or better), returned in that dtype."""
+    n = inverse.numel()
+    width = grads.shape[1]
+    # fp32 or better: `.float()` would silently downcast a float64 gate.
+    acc = torch.promote_types(grads.dtype, torch.float32)
+    out = torch.zeros(mp, distinct, width, dtype=acc, device=grads.device)
+    out.index_add_(1, inverse, grads.view(mp, n, width).to(acc))
+    # Sent in the accumulation dtype, not cast back: the old path also summed
+    # bf16 token gradients in fp32 (into main_grad), so this is the same sum in
+    # a different order -- and at cap 0.3 still 0.6x the bf16 token volume.
+    return out.view(mp * distinct, width)
+
+
 def _gather_pair(ids, q_weight, k_weight, dtype):
     """Every rank's tokens on my columns, q then k: `[mp*n, 2*w]`."""
     return torch.cat(
@@ -454,7 +476,7 @@ class _ExchangedPair(torch.autograd.Function):
     """
 
     @staticmethod
-    def forward(ctx, q_weight, k_weight, gathered_ids, pair):
+    def forward(ctx, q_weight, k_weight, gathered_ids, pair, inverse=None):
         bank = pair.q
         gather = _bank_kernel(_gather_pair, gathered_ids.device)
         # Cast for O38(b), a no-op otherwise.
@@ -464,13 +486,23 @@ class _ExchangedPair(torch.autograd.Function):
         width = q_weight.shape[1]
         ctx.pair = pair
         ctx.width = width
-        ctx.save_for_backward(gathered_ids)
+        ctx.has_inverse = inverse is not None
+        if inverse is not None:
+            # O47 v2: `out` holds one row per DISTINCT id per rank; expand to
+            # tokens here, on the bank stream, so the compiled block sees the
+            # token-level layout it always had.
+            mp = pair.q.mp_size
+            out = _bank_kernel(_expand_rows, out.device)(out, inverse, mp)
+            ctx.save_for_backward(gathered_ids, inverse)
+        else:
+            ctx.save_for_backward(gathered_ids)
         return out[:, :width], out[:, width:]
 
     @staticmethod
     @torch.autograd.function.once_differentiable
     def backward(ctx, grad_q, grad_k):
-        (gathered_ids,) = ctx.saved_tensors
+        gathered_ids, *rest = ctx.saved_tensors
+        inverse = rest[0] if ctx.has_inverse else None
         pair, width = ctx.pair, ctx.width
         grads = []
         for grad in (grad_q, grad_k):
@@ -489,6 +521,13 @@ class _ExchangedPair(torch.autograd.Function):
                 grad.record_stream(torch.cuda.current_stream(grad.device))
             grads.append(grad)
         send = torch.cat(grads, dim=1)
+        if inverse is not None:
+            # O47 v2: sum each distinct id's token gradients, in fp32, before
+            # the exchange -- not inside the compiled block, where the same
+            # reduction became bf16 atomics (job 34394, 34.55%).
+            send = _bank_kernel(_reduce_rows, send.device)(
+                send, inverse, pair.q.mp_size, gathered_ids.numel() // pair.q.mp_size
+            )
         local = torch.empty_like(send)
         # Mirror of the forward: chunk j (my tokens, rank j's columns) goes back
         # to rank j; chunk i received is rank i's tokens on MY columns, which is
@@ -496,7 +535,7 @@ class _ExchangedPair(torch.autograd.Function):
         dist.all_to_all_single(local, send, group=pair.q.mp_group)
         scatter = _bank_kernel(_scatter_pair, gathered_ids.device)
         scatter(pair.q.main_grad, pair.k.main_grad, gathered_ids, local, width)
-        return None, None, None, None
+        return None, None, None, None, None
 
 
 def _distinct(ids, cap_fraction):
@@ -635,7 +674,7 @@ class BankPrefetcher:
         if stream is not None:
             ids_flat.record_stream(stream)
         self._gathered = gathered
-        self._inverse = inverse
+        self._inverse = inverse  # used on the bank stream only (O47 v2)
         for index in range(len(self.slots)):
             if len(self._pending) >= self.depth:
                 break
@@ -648,7 +687,7 @@ class BankPrefetcher:
         stream = self.stream if self._gathered.is_cuda else None
         with _on_stream(stream):
             q, k = _ExchangedPair.apply(
-                pair.q.weight, pair.k.weight, self._gathered, pair
+                pair.q.weight, pair.k.weight, self._gathered, pair, self._inverse
             )
             event = None
             if stream is not None:
@@ -685,10 +724,6 @@ class BankPrefetcher:
             # on the compute stream.
             q.record_stream(current)
             k.record_stream(current)
-            if self._inverse is not None:
-                self._inverse.record_stream(current)
-        if self._inverse is not None:
-            return q, k, self._inverse
         return q, k
 
     def finish(self):
