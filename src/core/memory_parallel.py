@@ -58,6 +58,7 @@ useful settings are `mp == world_size`.
 import collections
 import contextlib
 import logging
+import math
 import os
 
 import torch
@@ -498,6 +499,35 @@ class _ExchangedPair(torch.autograd.Function):
         return None, None, None, None
 
 
+def _distinct(ids, cap_fraction):
+    """`(unique, inverse)` for a 1-D id tensor, with `unique` padded to a fixed
+    `ceil(cap_fraction * n)` slots and no host synchronisation.
+
+    Sort, mark first occurrences, cumulative-sum them into slots, then scatter:
+    every position writes its id into its slot, and all writers of a slot write
+    the same id. Unused slots hold 0, a real row that no token's inverse points
+    at, so it is gathered and exchanged but never read, and its gradient is
+    zero. `inverse[i]` is position i's slot: `unique[inverse] == ids`.
+    """
+    n = ids.numel()
+    cap = max(1, math.ceil(cap_fraction * n))
+    sorted_ids, order = torch.sort(ids)
+    first = torch.ones_like(sorted_ids, dtype=torch.bool)
+    first[1:] = sorted_ids[1:] != sorted_ids[:-1]
+    slot = torch.cumsum(first, 0) - 1
+    torch._assert_async(
+        slot[-1] < cap,
+        "bank dedup: more distinct ids in the micro-batch than "
+        "trainer.bank_dedup_cap reserves; raise the cap",
+    )
+    slot = slot.clamp(max=cap - 1)
+    unique = torch.zeros(cap, dtype=ids.dtype, device=ids.device)
+    unique.scatter_(0, slot, sorted_ids)
+    inverse = torch.empty_like(ids)
+    inverse.scatter_(0, order, slot)
+    return unique, inverse
+
+
 @contextlib.contextmanager
 def _on_stream(stream, wait=False):
     """Run the body on `stream` (None: the current stream, CPU or no CUDA).
@@ -536,7 +566,7 @@ class BankPrefetcher:
     which is the same on every rank.
     """
 
-    def __init__(self, controller, encoder, depth, cpu_lead=None):
+    def __init__(self, controller, encoder, depth, cpu_lead=None, dedup_cap=None):
         if depth < 1:
             raise ValueError(f"bank prefetch depth must be >= 1, got {depth}")
         self.controller = controller
@@ -549,6 +579,17 @@ class BankPrefetcher:
         # recycled until the GPU catches up.
         self.cpu_lead = int(cpu_lead) if cpu_lead else None
         self._lead_events = collections.deque()
+        # O47: exchange each micro-batch's DISTINCT ids only. A micro-batch of
+        # 16 x 2048 FineWeb tokens holds ~22% distinct ids (job 34335), so the
+        # all-to-all, the owner-side gathers and the scatters shrink ~4.5x.
+        # `dedup_cap` is the fraction of tokens reserved for distinct ids --
+        # fixed so that no size ever has to come back to the host; more
+        # distinct ids than that fails a device-side assert instead of
+        # corrupting rows. None: off.
+        if dedup_cap is not None and not 0 < dedup_cap <= 1:
+            raise ValueError(f"bank dedup cap must be in (0, 1], got {dedup_cap}")
+        self.dedup_cap = dedup_cap
+        self._inverse = None
         # One slot per block, in the order the encoder calls them: the block's
         # fused q/k pair, or None for a block whose attention has no banks.
         self.slots = []
@@ -584,13 +625,17 @@ class BankPrefetcher:
         # they are meant to overlap.
         with _on_stream(stream, wait=True):
             ids_flat = token_ids.reshape(-1).contiguous()
+            send, inverse = ids_flat, None
+            if self.dedup_cap:
+                send, inverse = _distinct(ids_flat, self.dedup_cap)
             gathered = torch.empty(
-                mp_size * ids_flat.numel(), dtype=ids_flat.dtype, device=ids_flat.device
+                mp_size * send.numel(), dtype=send.dtype, device=send.device
             )
-            dist.all_gather_into_tensor(gathered, ids_flat, group=group)
+            dist.all_gather_into_tensor(gathered, send, group=group)
         if stream is not None:
             ids_flat.record_stream(stream)
         self._gathered = gathered
+        self._inverse = inverse
         for index in range(len(self.slots)):
             if len(self._pending) >= self.depth:
                 break
@@ -640,6 +685,10 @@ class BankPrefetcher:
             # on the compute stream.
             q.record_stream(current)
             k.record_stream(current)
+            if self._inverse is not None:
+                self._inverse.record_stream(current)
+        if self._inverse is not None:
+            return q, k, self._inverse
         return q, k
 
     def finish(self):
@@ -684,6 +733,7 @@ class MemoryParallelController:
         nccl_max_ctas=None,
         default_group=False,
         prefetch_cpu_lead=None,
+        dedup_cap=None,
     ):
         self.world_size = dist.get_world_size() if dist.is_initialized() else 1
         self.rank = dist.get_rank() if dist.is_initialized() else 0
@@ -770,7 +820,11 @@ class MemoryParallelController:
                     f"`bank_prefetcher`, found {len(encoders)}"
                 )
             self.prefetcher = BankPrefetcher(
-                self, encoders[0], prefetch_depth, cpu_lead=prefetch_cpu_lead
+                self,
+                encoders[0],
+                prefetch_depth,
+                cpu_lead=prefetch_cpu_lead,
+                dedup_cap=dedup_cap,
             )
             encoders[0].bank_prefetcher = self.prefetcher
         elif prefetch_depth:

@@ -147,7 +147,7 @@ def _flex_attention(q, k, v, **kwargs):
     return _COMPILED_FLEX(q, k, v, **kwargs)
 
 
-def _rank_major_to_heads(rows, batch, seq_len, heads, dhead):
+def _rank_major_to_heads(rows, batch, seq_len, heads, dhead, inverse=None):
     """O39: an exchanged bank's rows as `[B, n, H, D]`.
 
     `rows` is the all-to-all's receive buffer, `[mp * B * n, H * D / mp]`: rows
@@ -158,6 +158,17 @@ def _rank_major_to_heads(rows, batch, seq_len, heads, dhead):
     kernel that reads it (the normalize) instead of materialising it.
     """
     n = batch * seq_len
+    if inverse is not None:
+        # O47: one row per distinct id per rank; `inverse` expands them back to
+        # tokens, a gather the compiler folds into the normalize that reads it.
+        mp = heads * dhead // rows.shape[1]
+        distinct = rows.shape[0] // mp
+        rows = rows.view(mp, distinct, heads // mp, dhead)[:, inverse]
+        return (
+            rows.view(mp, batch, seq_len, heads // mp, dhead)
+            .permute(1, 2, 0, 3, 4)
+            .reshape(batch, seq_len, heads, dhead)
+        )
     mp = rows.shape[0] // n
     return (
         rows.view(mp, batch, seq_len, heads // mp, dhead)
@@ -453,9 +464,10 @@ class AMEAttention(nn.Module):
         heads, dhead = self.q_heads, self.dhead
 
         if bank_rows is not None:
-            q_rows, k_rows = bank_rows
-            q = _rank_major_to_heads(q_rows, batch, seq_len, heads, dhead)
-            k = _rank_major_to_heads(k_rows, batch, seq_len, heads, dhead)
+            q_rows, k_rows, *rest = bank_rows
+            inverse = rest[0] if rest else None  # O47: rows per distinct id
+            q = _rank_major_to_heads(q_rows, batch, seq_len, heads, dhead, inverse)
+            k = _rank_major_to_heads(k_rows, batch, seq_len, heads, dhead, inverse)
             return self._finish_qkv(x, q, k)
 
         # One call when a memory-parallel controller has fused the pair. The two

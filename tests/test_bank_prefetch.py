@@ -223,7 +223,7 @@ def test_prefetch_stays_off_at_mem_parallel_size_one():
 RTOL = 1e-4
 
 
-def _cuda_worker(rank, world_size, port, out_path):
+def _cuda_worker(rank, world_size, port, out_path, dedup_cap=None):
     """One forward/backward per path, gradients compared before any optimizer
     step. After AdamW steps the comparison would measure Adam's sign
     sensitivity (a near-zero gradient's rounding decides a full +-lr step for
@@ -255,7 +255,11 @@ def _cuda_worker(rank, world_size, port, out_path):
             torch.manual_seed(0)
             model = _h4_ame(seq, device="cuda").to(device)
             banks = MemoryParallelController(
-                model, world_size, compute_dtype=torch.float32, prefetch_depth=depth
+                model,
+                world_size,
+                compute_dtype=torch.float32,
+                prefetch_depth=depth,
+                dedup_cap=dedup_cap if depth else None,
             )
             assert (banks.prefetcher is not None) == bool(depth)
             if compiled:
@@ -319,12 +323,15 @@ def _cuda_worker(rank, world_size, port, out_path):
     not torch.cuda.is_available() or torch.cuda.device_count() < 2,
     reason="needs at least 2 CUDA devices",
 )
-def test_compiled_prefetch_matches_the_eager_fused_path_over_nccl(tmp_path):
+@pytest.mark.parametrize("dedup_cap", [None, 0.5])
+def test_compiled_prefetch_matches_the_eager_fused_path_over_nccl(dedup_cap, tmp_path):
     from conftest import spawn_on_free_port
 
     world_size = min(4, torch.cuda.device_count())
     out = str(tmp_path / "prefetch_cuda.pt")
-    spawn_on_free_port(_cuda_worker, lambda port: (world_size, port, out), world_size)
+    spawn_on_free_port(
+        _cuda_worker, lambda port: (world_size, port, out, dedup_cap), world_size
+    )
     payload = torch.load(out, weights_only=False)
     if payload["status"] == "error":
         pytest.fail(payload["message"])
@@ -406,3 +413,107 @@ def test_o38b_with_prefetch_is_bit_identical_over_gloo(tmp_path):
     if payload["status"] == "error":
         pytest.fail(payload["message"])
     assert payload["same"], "O38(b) changed the trajectory"
+
+
+# ---- O47: exchange distinct ids only ----------------------------------------
+
+
+def test_distinct_round_trips_and_pads():
+    from src.core.memory_parallel import _distinct
+
+    ids = torch.tensor([5, 3, 5, 9, 3, 3, 0, 9, 5, 1])
+    unique, inverse = _distinct(ids, 0.8)
+    assert unique.numel() == 8  # ceil(0.8 * 10)
+    assert torch.equal(unique[inverse], ids)
+    assert sorted(set(unique[: 5].tolist())) == [0, 1, 3, 5, 9]
+    assert torch.equal(unique[5:], torch.zeros(3, dtype=ids.dtype))
+
+
+def test_distinct_refuses_more_ids_than_the_cap():
+    from src.core.memory_parallel import _distinct
+
+    with pytest.raises(RuntimeError, match="bank dedup"):
+        _distinct(torch.arange(10), 0.5)
+
+
+def _dedup_worker(rank, world_size, port, out_path):
+    try:
+        os.environ.update(
+            MASTER_ADDR="127.0.0.1",
+            MASTER_PORT=str(port),
+            RANK=str(rank),
+            WORLD_SIZE=str(world_size),
+            LOCAL_RANK=str(rank),
+        )
+        dist.init_process_group("gloo", rank=rank, world_size=world_size)
+        batches = _batches(rank, 16, "cpu")
+        results = {}
+        for tag, depth, cap in (("fused", None, None), ("dedup", 2, 1.0)):
+            torch.manual_seed(0)
+            model = _h4_ame(16).double()
+            banks = MemoryParallelController(
+                model,
+                world_size,
+                compute_dtype=torch.float64,
+                prefetch_depth=depth,
+                dedup_cap=cap,
+            )
+            initial = [_full_width(banks, b.master) for b in banks.banks]
+            losses = _train(model, banks, batches)
+            results[tag] = {
+                "losses": losses,
+                "initial": initial,
+                "masters": [_full_width(banks, b.master) for b in banks.banks],
+                "params": {n: p.detach().clone() for n, p in model.named_parameters()},
+            }
+        a, b = results["fused"], results["dedup"]
+        if rank == 0:
+            torch.save(
+                {
+                    "status": "ok",
+                    "first_loss_equal": a["losses"][0] == b["losses"][0],
+                    "loss_diff": max(abs(x - y) for x, y in zip(a["losses"], b["losses"])),
+                    "master_rel": max(
+                        ((x - y).abs().max() / x.abs().max()).item()
+                        for x, y in zip(a["masters"], b["masters"])
+                    ),
+                    "param_rel": max(
+                        ((a["params"][n] - b["params"][n]).abs().max()
+                         / a["params"][n].abs().max().clamp_min(1e-30)).item()
+                        for n in a["params"]
+                    ),
+                    "bank_moved": max(
+                        (x - y).abs().max().item() for x, y in zip(b["masters"], b["initial"])
+                    ),
+                },
+                out_path,
+            )
+    except Exception as exc:  # noqa: BLE001
+        if rank == 0:
+            torch.save(
+                {"status": "error", "message": f"{type(exc).__name__}: {exc}"},
+                out_path,
+            )
+        raise
+    finally:
+        if dist.is_initialized():
+            dist.destroy_process_group()
+
+
+@pytest.mark.parametrize("mp_size", [2, 4])
+def test_dedup_matches_the_fused_path(mp_size, tmp_path):
+    """Forward rows are the same numbers, so step 0's loss is bit-identical;
+    the bank gradient is summed per distinct id before the exchange instead of
+    per token after it, so later steps agree to float64 reassociation."""
+    from conftest import spawn_on_free_port
+
+    out = str(tmp_path / f"dedup_mp{mp_size}.pt")
+    spawn_on_free_port(_dedup_worker, lambda port: (mp_size, port, out), mp_size)
+    payload = torch.load(out, weights_only=False)
+    if payload["status"] == "error":
+        pytest.fail(payload["message"])
+    assert payload["bank_moved"] > 0
+    assert payload["first_loss_equal"], payload
+    assert payload["loss_diff"] < 1e-10, payload
+    assert payload["master_rel"] < 1e-10, payload
+    assert payload["param_rel"] < 1e-10, payload

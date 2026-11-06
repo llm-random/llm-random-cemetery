@@ -229,6 +229,7 @@ def build_memory_parallel_controller(cfg, model):
         nccl_max_ctas=cfg.trainer.get("bank_nccl_max_ctas", None),
         default_group=cfg.trainer.get("bank_default_group", False),
         prefetch_cpu_lead=cfg.trainer.get("bank_prefetch_cpu_lead", None),
+        dedup_cap=cfg.trainer.get("bank_dedup_cap", None),
     )
     logger.info(
         f"Memory-parallel banks enabled: mem_parallel_size={size}, "
