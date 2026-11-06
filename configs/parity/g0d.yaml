@@ -1,0 +1,10 @@
+# G0d: S2-PS production, another copy. The 300-step outcome is dominated by
+# chaotic early instabilities (loss bumps at steps 20-45, as LR reaches its peak),
+# so the production distribution needs more than two or three samples before a
+# single gate can be judged against it.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_g0d_s2ps

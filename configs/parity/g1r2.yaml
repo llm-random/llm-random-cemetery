@@ -1,0 +1,9 @@
+# G1r2: a third copy of G1 (mem_parallel_size null), for the same reason as g0d/g0e.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  metric_logger:
+    name: parity_g1r2_s2ps_mpnull
