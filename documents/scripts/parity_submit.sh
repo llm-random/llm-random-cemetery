@@ -2,8 +2,9 @@
 # Parity audit: run one parity_numerics.py check on entropy, from a committed
 # state of parity_audit (git archive of COMMIT, unpacked under ~/parity/code).
 #
-#   documents/scripts/parity_submit.sh COMMIT NAME GPUS TIME -- CHECK [ARGS...]
+#   documents/scripts/parity_submit.sh COMMIT NAME GPUS TIME -- CHECK [ARGS...] [:: CHECK [ARGS...]]
 #
+# Several checks separated by `::` run one after the other in the same job.
 # GPUS 0 runs CPU-only on the h100 node (the only one with /storage_nvme_4).
 # Prints the job id. Logs: entropy:~/parity/logs/NAME_<job>.out, results in
 # entropy:~/parity/out/NAME_<job>/.
@@ -40,5 +41,5 @@ cd "\$PIXI_HOME" && eval "\$(pixi shell-hook)" && cd - > /dev/null
 cd ~/parity/code/$SHORT
 echo "parity_audit commit \$(cat PARITY_COMMIT), job \$SLURM_JOB_ID on \$(hostname)"
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
-python documents/scripts/parity_numerics.py $* --out ~/parity/out/${NAME}_\$SLURM_JOB_ID
+$(printf '%s\n' "$*" | sed 's/ :: /\n/g' | while read -r cmd; do echo "python documents/scripts/parity_numerics.py $cmd --out ~/parity/out/${NAME}_\$SLURM_JOB_ID || echo \"CHECK FAILED: $cmd\""; done)
 SBATCH
