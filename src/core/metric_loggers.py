@@ -17,6 +17,7 @@ class MetricLogger(ABC):
         self.accumulators = {}
         self.step = 0
         self.tokens = 0
+        self.heavy_active = self._should_log_heavy_metrics
 
     @property
     def _should_log_heavy_metrics(self) -> bool:
@@ -52,6 +53,11 @@ class MetricLogger(ABC):
 
     def set_step(self, step):
         self.step = step
+        # O41: a plain bool, refreshed once per step, for compiled code to
+        # branch on. Reading `_should_log_heavy_metrics` from inside a compiled
+        # region would guard on `step` itself and recompile every step; this
+        # flips twice per heavy-metric interval at most.
+        self.heavy_active = self._should_log_heavy_metrics
 
     def set_tokens(self, tokens):
         self.tokens = tokens
