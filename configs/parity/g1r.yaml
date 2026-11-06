@@ -1,0 +1,11 @@
+# G1r: a second copy of G1 (mem_parallel_size null). G1 (36315) trained 0.21 nats
+# worse than production over the last 50 steps, 3.5x the production floor; a
+# replicate separates a systematic effect from one chaotic draw.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  metric_logger:
+    name: parity_g1r_s2ps_mpnull

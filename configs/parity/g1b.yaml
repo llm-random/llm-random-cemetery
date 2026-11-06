@@ -1,0 +1,11 @@
+# G1b (Phase 3 bisect of G1): Tier 2 as run (bf16 compute copy), but the fused
+# q/k gather and its main_grad scatter run eagerly, outside the compiled block
+# (A3 off). parity_bank_eager is an opt-in top-level key that exists only on
+# parity_audit (main.py).
+defaults:
+  - s2_ps_gate_base
+  - _self_
+parity_bank_eager: true
+infrastructure:
+  metric_logger:
+    name: parity_g1b_s2ps_eagergather

@@ -1,0 +1,11 @@
+# G1a (Phase 3 bisect of G1): Tier 2 kept (its optimizer, joint clip, traced
+# scatter: A1 and A3 on) but with an fp32 compute copy, so the gathered rows and
+# the whole prep stay fp32 (A2 off). parity_bank_compute_dtype is an opt-in
+# top-level key that exists only on parity_audit (main.py).
+defaults:
+  - s2_ps_gate_base
+  - _self_
+parity_bank_compute_dtype: float32
+infrastructure:
+  metric_logger:
+    name: parity_g1a_s2ps_fp32copy

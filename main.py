@@ -220,12 +220,26 @@ def build_memory_parallel_controller(cfg, model):
     )
     reference = next(model.parameters())
     compute_dtype = torch.bfloat16 if bf16_stack else reference.dtype
+    # Parity audit, Phase 3 (documents/notes/ame_efficiency_parity_plan.md):
+    # opt-in, top-level, absent from every shipped config. Unset, nothing below
+    # changes.
+    #   parity_bank_compute_dtype: float32 -- Tier 2 with an fp32 compute copy,
+    #     so the gathered rows and the whole prep stay fp32 (A2 off, A1 on).
+    #   parity_bank_eager: true -- the fused q/k gather and its main_grad
+    #     scatter run outside the compiled block (A3 off).
+    override = cfg.get("parity_bank_compute_dtype", None)
+    if override is not None:
+        compute_dtype = getattr(torch, str(override))
     controller = MemoryParallelController(
         model, mem_parallel_size=size, compute_dtype=compute_dtype
     )
+    if cfg.get("parity_bank_eager", False):
+        for pair in controller.fused_pairs:
+            pair.forward = torch.compiler.disable(pair.forward)
     logger.info(
         f"Memory-parallel banks enabled: mem_parallel_size={size}, "
         f"compute dtype {compute_dtype}"
+        + (", fused gather eager" if cfg.get("parity_bank_eager", False) else "")
     )
     return controller
 
