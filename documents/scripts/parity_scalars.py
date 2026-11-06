@@ -122,7 +122,7 @@ def main():
     parser.add_argument("--json", default=None)
     args = parser.parse_args()
     data = load(args.paths)
-    report = {"groups": data["groups"], "lr": data["lr"]}
+    report = {"groups": data["groups"], "lr": data.get("lr")}
     for variant in [v for v in data["grads"] if v != "ame_ref32"]:
         report[variant] = {
             "stage_a": stage_a(data, variant),
