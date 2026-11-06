@@ -155,12 +155,87 @@ def grad_norm_view(df):
     }
 
 
+GROUPS_300 = {
+    "production (Tier 2, as run)": [
+        "parity_g0a_s2ps", "parity_g0b_s2ps", "parity_g0d_s2ps", "parity_g0e_s2ps",
+    ],
+    "production, micro-batch 16": ["parity_g0c_s2ps_mb16"],
+    "ordinary path (mp null: A1-A3 off)": [
+        "parity_g1_s2ps_mpnull", "parity_g1r_s2ps_mpnull", "parity_g1r2_s2ps_mpnull",
+    ],
+    "Tier 2, fp32 compute copy (A2 off)": ["parity_g1a_s2ps_fp32copy"],
+    "Tier 2, eager gather (A3 off)": ["parity_g1b_s2ps_eagergather"],
+    "Tier 2, fp32 prep on bf16 rows": ["parity_g1c_s2ps_fp32prep"],
+    "dense": ["parity_gd0a_s1d", "parity_gd0b_s1d"],
+}
+
+
+def distribution(refresh=False):
+    """Every 300-step gate as one sample: the last-50-step mean train loss and
+    final_ce, grouped by configuration, with the spread inside each group and a
+    rank test between the two groups with more than one sample each."""
+    rows = {}
+    for group, names in GROUPS_300.items():
+        for name in names:
+            try:
+                df, meta = load(name, refresh)
+            except RuntimeError as exc:
+                print(f"skip {exc}")
+                continue
+            loss = series(df, "train/loss")
+            tail = [loss[s] for s in sorted(loss)[-50:]]
+            bumps = early_bumps(loss)
+            rows[name] = (group, float(np.mean(tail)), meta["final_ce"], bumps)
+    print(f"{'gate':<30} {'group':<36} {'last-50':>8} {'final_ce':>9}  early bumps (step: rise)")
+    for name, (group, tail, ce, bumps) in rows.items():
+        print(f"{name:<30} {group:<36} {tail:8.4f} {ce:9.5f}  {bumps}")
+    by = {}
+    for name, (group, tail, ce, _) in rows.items():
+        by.setdefault(group, []).append((tail, ce))
+    print()
+    for group, vals in by.items():
+        t = np.array([v[0] for v in vals])
+        c = np.array([v[1] for v in vals])
+        sd = f"{t.std(ddof=1):.4f}" if len(t) > 1 else "-"
+        print(f"{group:<36} n={len(t)}  last-50 mean {t.mean():.4f} (sd {sd})  final_ce mean {c.mean():.5f}")
+    a = [v[0] for v in by.get("production (Tier 2, as run)", [])]
+    b = [v[0] for v in by.get("ordinary path (mp null: A1-A3 off)", [])]
+    if len(a) > 1 and len(b) > 1:
+        from scipy.stats import mannwhitneyu, ttest_ind
+
+        print(
+            f"ordinary - production: {np.mean(b) - np.mean(a):+.4f}; Mann-Whitney p "
+            f"{mannwhitneyu(b, a, alternative='two-sided').pvalue:.4f}; Welch t p "
+            f"{ttest_ind(b, a, equal_var=False).pvalue:.4f}"
+        )
+    return rows
+
+
+def early_bumps(loss, start=15, end=60, rise=0.15):
+    """Steps in [start, end) where the loss rises by more than `rise` above the
+    best loss of the previous 5 steps: the early instabilities that decide a
+    300-step gate."""
+    out = []
+    steps = sorted(s for s in loss if start <= s < end)
+    for s in steps:
+        prev = [loss[p] for p in range(s - 5, s) if p in loss]
+        if prev and loss[s] - min(prev) > rise:
+            out.append(f"{s}: +{loss[s] - min(prev):.2f}")
+    return out
+
+
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--set", default="300", choices=SETS)
+    parser.add_argument("--set", default="300", choices=list(SETS) + ["dist"])
     parser.add_argument("--json", default=None)
     parser.add_argument("--refresh", action="store_true")
     args = parser.parse_args()
+    if args.set == "dist":
+        rows = distribution(args.refresh)
+        if args.json:
+            with open(args.json, "w") as f:
+                json.dump(rows, f, indent=1, default=float)
+        return
     spec = SETS[args.set]
     names = [spec["base"], *spec["floor"], *spec["gates"]]
     if spec["dense_base"]:
