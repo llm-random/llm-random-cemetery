@@ -825,7 +825,7 @@ def run_scalars(args, device):
         log(f"{variant}: {len(groups)} groups ({time.time() - t0:.0f} s)")
         built = None
         free()
-    tag = args.groups.replace(",", "_")
+    tag = (args.tag + "_" if args.tag != "run" else "") + args.groups.replace(",", "_")
     torch.save(result, os.path.join(args.out, f"scalars_{tag}.pt"))
     log(f"wrote scalars_{tag}.pt")
 
