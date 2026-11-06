@@ -1162,7 +1162,9 @@ def run_machinery(args, device):
     loss = forward_loss(built, data["heldout"][:2])
     loss.backward()
     layer = built.model.encoder.blocks[0].attention_layer.layer
-    cached = layer._block_mask_cache.get((seq_len, 0, str(device)))
+    # The layer keys its cache by str(q.device), "cuda:0", not str(device).
+    matches = [m for (n, off, _), m in layer._block_mask_cache.items() if n == seq_len and off == 0]
+    cached = matches[0] if matches else None
     if device.type == "cuda":
         def mask_mod(b, h, q_idx, kv_idx):
             return kv_idx <= q_idx
@@ -1174,6 +1176,15 @@ def run_machinery(args, device):
         )
         dense = fresh.to_dense()
         report["block_mask_cached_equals_fresh"] = bool(same)
+        # And both are the causal pattern at block granularity: block (i, j)
+        # present iff j <= i.
+        blocks = dense.shape[-1]
+        causal = torch.ones(blocks, blocks, dtype=torch.bool, device=dense.device).tril()
+        report["block_mask_is_causal"] = bool(
+            torch.equal(dense[0, 0].bool(), causal)
+            and cached is not None
+            and torch.equal(cached.to_dense()[0, 0].bool(), causal)
+        )
         report["block_mask_cache_keys"] = [str(k) for k in layer._block_mask_cache]
         report["block_mask_dense_shape"] = list(dense.shape)
     # The instrumentation: no RNG, no parameter, buffer or cache change.
