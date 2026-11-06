@@ -1,0 +1,11 @@
+# G0c-220: S2-PS production at micro-batch 16 x 32 and the 220-step schedule:
+# the reassociation floor for G-REF (g_ref.yaml).
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  gradient_accumulation_steps: 32 # micro-batch 16
+  n_steps: 220
+infrastructure:
+  metric_logger:
+    name: parity_g0c_s2ps_mb16_220

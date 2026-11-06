@@ -1,0 +1,24 @@
+# G-REF: S2-PS with every AME-only efficiency change off (A1-A7): the banks as
+# ordinary fp32 nn.Embedding parameters in the fused backbone AdamW
+# (mem_parallel_size null) and the materialized reference attention, fp32
+# softmax, sink as kv column 0 (backend reference).
+#
+# Micro-batch 8: the probes put micro-batch 16 out of memory (job 36310) and 8
+# at 50.7 GiB and 9.43 s/step (job 36311). 300 steps would not finish inside
+# the audit's 45-minute job limit, so by the plan's rule G-REF and every gate it
+# is compared with run 220 steps (warmup 38, cosine to 10% at step 220):
+# g0a_220, g0b_220, g0c_220.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+common:
+  attention:
+    ame:
+      backend: reference
+trainer:
+  mem_parallel_size: null
+  gradient_accumulation_steps: 64 # micro-batch 8
+  n_steps: 220
+infrastructure:
+  metric_logger:
+    name: parity_gref_s2ps_220

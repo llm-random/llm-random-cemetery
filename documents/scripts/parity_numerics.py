@@ -564,8 +564,9 @@ def run_final_ce(args, device):
 
     data = load_data(args, device)
     held = data["heldout"]
+    path = os.path.join(args.out, "final_ce.json")
     report = {}
-    for arm in ("dense", "ame"):
+    for arm in args.arms.split(","):
         # (a) The Trainer's own final_eval on the checkpoint, loaded the way a
         # resume loads it (load_checkpoint_from_file: model, optimizer,
         # scheduler and, for AME, the bank sidecar).
@@ -614,13 +615,14 @@ def run_final_ce(args, device):
         log(f"{arm}: fp32 reference: {entry['ce_ref32']:.6f}")
         free(ref)
         report[arm] = entry
-        save_json(os.path.join(args.out, "final_ce.json"), report)
-    report["gap"] = {
-        k: report["ame"][k] - report["dense"][k]
-        for k in ("final_ce_trainer", "ce_prod_fp32_loss", "ce_ref32")
-    }
-    log(f"gap AME - dense: {report['gap']}")
-    save_json(os.path.join(args.out, "final_ce.json"), report)
+        save_json(path, report)
+    if "ame" in report and "dense" in report:
+        report["gap"] = {
+            k: report["ame"][k] - report["dense"][k]
+            for k in ("final_ce_trainer", "ce_prod_fp32_loss", "ce_ref32")
+        }
+        log(f"gap AME - dense: {report['gap']}")
+    save_json(path, report)
 
 
 @torch.no_grad()
@@ -980,7 +982,7 @@ def run_optim(args, device):
     data = load_data(args, device)
     seqs = data["train"][: (64 if not args.smoke else 8)]
     report = {}
-    for state in ("init", "final"):
+    for state in args.states.split(","):
         if args.smoke and state == "final":
             break
         log(f"=== optim {state}")
@@ -1086,9 +1088,10 @@ def run_machinery(args, device):
 
     data = load_data(args, device)
     built = build("ame_prod", device, args.smoke)
-    if not args.smoke:
+    report = {"state": "init"}
+    if not args.smoke and "final" in args.states.split(","):
         load_checkpoint(built, args.ckpt_root)
-    report = {}
+        report["state"] = "final"
     seq_len = data["heldout"].shape[1] - 1
     # Warm the cache the way the compiled run did: a training micro-step.
     loss = forward_loss(built, data["heldout"][:2])

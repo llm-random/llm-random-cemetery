@@ -1,0 +1,10 @@
+# G0b-220: S2-PS production at the 220-step schedule G-REF needs (g_ref.yaml).
+# With the other copy, the run-to-run floor at 220 steps.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  n_steps: 220
+infrastructure:
+  metric_logger:
+    name: parity_g0b_s2ps_220
