@@ -177,6 +177,9 @@ class TrainerSchema:
     # O44: bound on how many blocks the CPU may run ahead of the compute
     # stream when the bank exchange is prefetched (null: unbounded).
     bank_prefetch_cpu_lead: Optional[int] = None
+    # O47: exchange distinct ids only; the fraction of tokens reserved for
+    # them (null: off). Needs bank_prefetch_depth.
+    bank_dedup_cap: Optional[float] = None
 
 
 @dataclass
