@@ -244,6 +244,7 @@ class Trainer:
     bank_nccl_max_ctas: Optional[int] = None
     bank_default_group: bool = False
     bank_prefetch_cpu_lead: Optional[int] = None
+    bank_dedup_cap: Optional[float] = None
 
     # Checkpoint save types this trainer can actually write. Subclasses widen this;
     # anything outside it is rejected before training starts.
