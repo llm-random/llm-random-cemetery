@@ -85,6 +85,11 @@ VARIANTS = {
     "dense_prod_ce32": ("dense", [], True, 16),
 }
 CE32 = {"ame_prod_ce32", "dense_prod_ce32"}
+# The Phase 3 gate configurations (G1a, G1b), for gradient-level comparison
+# with the ordinary path (ame_std): Tier 2 with an fp32 compute copy, and Tier 2
+# with the fused gather outside the compiled block.
+VARIANTS["ame_t2fp32"] = ("ame", ["++parity_bank_compute_dtype=float32"], True, 32)
+VARIANTS["ame_t2eager"] = ("ame", ["++parity_bank_eager=true"], True, 32)
 
 
 def log(msg):
