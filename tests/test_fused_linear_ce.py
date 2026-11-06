@@ -275,3 +275,59 @@ def test_the_schema_rejects_fused_ce_together_with_compile_ce():
 
     with pytest.raises(ValueError, match="fused_ce_chunk_size"):
         validate(config(fused_linear_ce=True, fused_ce_chunk_size=0))
+
+
+# ---- O45: the Triton softmax inside _ChunkedLinearCE (CUDA only) -------------
+
+
+@pytest.mark.gpu
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs CUDA")
+@pytest.mark.parametrize("chunk", [512, 1024, 3000])
+def test_triton_xent_matches_cross_entropy_in_bf16(chunk):
+    """v4 against F.cross_entropy on the same bf16 inputs, computed in fp32.
+
+    bf16 logits and a bf16 gradient: agreement is to bf16 resolution, not
+    bit-identity. A misplaced onehot, a wrong scale or an unmasked ignored row
+    is O(1) on the rows it touches."""
+    import src.core.model as model_module
+    from src.core.model import _ChunkedLinearCE
+
+    assert model_module.triton is not None, "no Triton: the v4 path cannot run"
+    torch.manual_seed(0)
+    rows, dim, vocab = 2048, 256, 50304
+    x = (torch.randn(rows, dim, device="cuda") * 0.5).to(torch.bfloat16)
+    w = (torch.randn(vocab, dim, device="cuda") * 0.05).to(torch.bfloat16)
+    targets = torch.randint(0, vocab, (rows,), device="cuda")
+    targets[::7] = -100  # ignored rows
+
+    xr = x.float().requires_grad_(True)
+    wr = w.float().requires_grad_(True)
+    ref = F.cross_entropy(xr @ wr.t(), targets, ignore_index=-100)
+    ref.backward()
+
+    xb = x.clone().requires_grad_(True)
+    wb = w.clone().requires_grad_(True)
+    called = {"n": 0}
+    original = model_module._xent_grad_inplace
+
+    def counting(*args, **kwargs):
+        called["n"] += 1
+        return original(*args, **kwargs)
+
+    model_module._xent_grad_inplace = counting
+    try:
+        out = _ChunkedLinearCE.apply(xb, wb, None, targets, chunk, -100)
+        out.backward()
+    finally:
+        model_module._xent_grad_inplace = original
+
+    assert called["n"] == -(-rows // chunk), "the Triton kernel did not run per chunk"
+    assert abs(out.item() - ref.item()) < 2e-3 * abs(ref.item())
+
+    def rel(a, b):
+        return ((a.float() - b.float()).abs().max() / b.float().abs().max()).item()
+
+    assert rel(xb.grad, xr.grad) < 2e-2, rel(xb.grad, xr.grad)
+    assert rel(wb.grad, wr.grad) < 2e-2, rel(wb.grad, wr.grad)
+    # Ignored rows contribute exactly nothing to grad_x.
+    assert xb.grad[::7].abs().max().item() == 0.0
