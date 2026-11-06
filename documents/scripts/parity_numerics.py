@@ -78,10 +78,11 @@ VARIANTS = {
     "dense_prod_eager": ("dense", [NO_COMPILE], True, 32),
     # The oracle: fp32, SDPA math, eager.
     "dense_ref32": ("dense", [NO_COMPILE, FP32], False, 8),
-    # Production with the cross-entropy taken on fp32 logits: X3 (CE on bf16
+    # Production with the cross-entropy taken on fp32 logits (micro-batch 16,
+    # room for the fp32 copy of the logits): X3 (CE on bf16
     # logits, shared by both arms) isolated from everything AME-specific.
-    "ame_prod_ce32": ("ame", [], True, 32),
-    "dense_prod_ce32": ("dense", [], True, 32),
+    "ame_prod_ce32": ("ame", [], True, 16),
+    "dense_prod_ce32": ("dense", [], True, 16),
 }
 CE32 = {"ame_prod_ce32", "dense_prod_ce32"}
 
