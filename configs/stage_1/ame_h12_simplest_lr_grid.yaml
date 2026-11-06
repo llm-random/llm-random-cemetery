@@ -58,7 +58,7 @@ trainer:
   #   - eval every 100 steps on 10 batches;
   #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
   n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
-  ^learning_rate: [10, 11, 12, 13] # n, LR = 2^-n; one run per value
+  ^learning_rate: [9] # n, LR = 2^-n; one run per value
   checkpoint:
     save:
       # Only the final checkpoint is written (interval -1). It lands in the
