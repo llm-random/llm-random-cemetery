@@ -78,7 +78,12 @@ VARIANTS = {
     "dense_prod_eager": ("dense", [NO_COMPILE], True, 32),
     # The oracle: fp32, SDPA math, eager.
     "dense_ref32": ("dense", [NO_COMPILE, FP32], False, 8),
+    # Production with the cross-entropy taken on fp32 logits: X3 (CE on bf16
+    # logits, shared by both arms) isolated from everything AME-specific.
+    "ame_prod_ce32": ("ame", [], True, 32),
+    "dense_prod_ce32": ("dense", [], True, 32),
 }
+CE32 = {"ame_prod_ce32", "dense_prod_ce32"}
 
 
 def log(msg):
@@ -305,6 +310,8 @@ def forward_loss(built, chunk, precise=None):
     with autocast_ctx(built.autocast):
         logits = built.model(inp)
         with loss_ctx(built.autocast):
+            if built.variant in CE32:
+                logits = logits.float()
             per_token = F.cross_entropy(
                 logits.flatten(0, -2), tgt.reshape(-1).long(), reduction="none"
             )
