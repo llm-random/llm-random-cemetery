@@ -482,6 +482,22 @@ def bank_structure(main_grads, bank_names, vocab, sequences, ref_grads):
             entry["corr_err_with_prev_row_ref"] = float(
                 (e * p).sum() / (e.norm() * p.norm() + 1e-30)
             )
+            # Controls: the next row (the bug cannot put row id + 1's gradient
+            # into row id) and the row's own gradient (a systematic scale error).
+            nxt_ref = torch.zeros_like(ref)
+            nxt_ref[:-1] = ref[1:]
+            q = nxt_ref[present]
+            entry["corr_err_with_next_row_ref"] = float(
+                (e * q).sum() / (e.norm() * q.norm() + 1e-30)
+            )
+            entry["corr_err_with_own_row_ref"] = float(
+                (e * r).sum() / (e.norm() * r.norm() + 1e-30)
+            )
+            # And the reference gradients' own neighbour similarity, which any
+            # proportional error inherits.
+            entry["corr_ref_with_prev_row_ref"] = float(
+                (r * p).sum() / (r.norm() * p.norm() + 1e-30)
+            )
             entry["ref_nonzero_rows"] = int((ref.abs().amax(dim=1) > 0).sum())
         results.append(entry)
     return results
