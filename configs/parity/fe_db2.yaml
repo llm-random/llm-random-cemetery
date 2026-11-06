@@ -1,0 +1,8 @@
+# D-B2 (bf16 scalars plan): S1-D production, full length, entropy.
+defaults:
+  - fe_s1_d_base
+  - _self_
+
+infrastructure:
+  metric_logger:
+    name: parity_full_db2

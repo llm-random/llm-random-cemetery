@@ -1,0 +1,13 @@
+# AME-F1 (bf16 scalars plan): P1 + parity_attention_fp32 (v upcast after v_proj, flex and the sink merge in fp32). Checkpoints every 500 steps.
+defaults:
+  - fe_s2_ps_base
+  - _self_
+parity_attention_fp32: true
+trainer:
+  mem_parallel_size: null
+  checkpoint:
+    save:
+      interval: 500
+infrastructure:
+  metric_logger:
+    name: parity_full_ame_f1

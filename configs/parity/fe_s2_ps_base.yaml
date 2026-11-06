@@ -1,0 +1,27 @@
+# ame_bf16_scalars_plan.md Step 3: S2-PS at n = 8 for the full 4B tokens, ON ENTROPY
+# (3,815 steps x 1,048,576 tokens, warmup 38, cosine to 10%, seed 123, autocast bf16,
+# compile_blocks_full, micro-batch 32 x 16), with the gate base's entropy setup (NVMe
+# caches, W&B nano-ame-parity). Final checkpoint only; the run files that the plan
+# wants on a 500-step grid set the interval.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  n_steps: 3815
+  scheduler:
+    warmup_steps: 38
+  checkpoint:
+    save:
+      path: checkpoint
+      interval: -1
+infrastructure:
+  slurm:
+    job-name: parity_full
+    time: "0-06:00:00"
+  metric_logger:
+    name: ???
+    tags:
+      - parity
+      - parity_full
+      - ame
+      - h12

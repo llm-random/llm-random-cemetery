@@ -1,0 +1,11 @@
+# AME-B1 (bf16 scalars plan): S2-PS production, full length, entropy. Checkpoints every 500 steps.
+defaults:
+  - fe_s2_ps_base
+  - _self_
+trainer:
+  checkpoint:
+    save:
+      interval: 500
+infrastructure:
+  metric_logger:
+    name: parity_full_ame_b1

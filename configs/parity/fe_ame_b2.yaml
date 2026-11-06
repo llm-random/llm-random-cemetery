@@ -1,0 +1,8 @@
+# AME-B2 (bf16 scalars plan): S2-PS production, full length, entropy.
+defaults:
+  - fe_s2_ps_base
+  - _self_
+
+infrastructure:
+  metric_logger:
+    name: parity_full_ame_b2

@@ -1,0 +1,10 @@
+# AME-F3 (bf16 scalars plan): P1 + parity_attention_fp32 (v upcast after v_proj, flex and the sink merge in fp32).
+defaults:
+  - fe_s2_ps_base
+  - _self_
+parity_attention_fp32: true
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  metric_logger:
+    name: parity_full_ame_f3

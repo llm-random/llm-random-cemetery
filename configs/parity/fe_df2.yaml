@@ -1,0 +1,8 @@
+# D-F2 (bf16 scalars plan): S1-D + parity_dense_attention_fp32 (q, k, v upcast after RoPE; SDPA in fp32).
+defaults:
+  - fe_s1_d_base
+  - _self_
+parity_dense_attention_fp32: true
+infrastructure:
+  metric_logger:
+    name: parity_full_df2

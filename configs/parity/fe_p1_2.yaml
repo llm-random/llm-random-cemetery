@@ -1,0 +1,9 @@
+# P1-2 (bf16 scalars plan): S2-PS with mem_parallel_size null -- A2 off (A1, A3 are exact).
+defaults:
+  - fe_s2_ps_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  metric_logger:
+    name: parity_full_p1_2

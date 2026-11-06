@@ -1,0 +1,24 @@
+# ame_bf16_scalars_plan.md Step 3: S1-D at n = 8 for the full 4B tokens, ON ENTROPY,
+# the same recipe as fe_s2_ps_base.yaml. Final checkpoint only.
+defaults:
+  - s1_d_gate_base
+  - _self_
+trainer:
+  n_steps: 3815
+  scheduler:
+    warmup_steps: 38
+  checkpoint:
+    save:
+      path: checkpoint
+      interval: -1
+infrastructure:
+  slurm:
+    job-name: parity_full
+    time: "0-05:00:00"
+  metric_logger:
+    name: ???
+    tags:
+      - parity
+      - parity_full
+      - dense
+      - h12

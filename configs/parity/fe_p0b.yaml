@@ -1,0 +1,9 @@
+# P0b (bf16 scalars plan): AME-B at micro-batch 16 x 32 -- the reassociation floor at 4B.
+defaults:
+  - fe_s2_ps_base
+  - _self_
+trainer:
+  gradient_accumulation_steps: 32
+infrastructure:
+  metric_logger:
+    name: parity_full_p0b

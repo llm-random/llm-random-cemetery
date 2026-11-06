@@ -1,0 +1,16 @@
+# P-REF (bf16 scalars plan): every AME-only efficiency item off (A1-A7): mem_parallel_size null, backend reference, micro-batch 8 x 64 (16 does not fit, job 36310). About 10 h.
+defaults:
+  - fe_s2_ps_base
+  - _self_
+common:
+  attention:
+    ame:
+      backend: reference
+trainer:
+  mem_parallel_size: null
+  gradient_accumulation_steps: 64
+infrastructure:
+  slurm:
+    time: "0-13:00:00"
+  metric_logger:
+    name: parity_full_pref
