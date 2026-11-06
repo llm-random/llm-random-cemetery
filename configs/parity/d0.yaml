@@ -1,0 +1,7 @@
+# D0 (proposed, not run): S1-D identical to x0xlqroj. Dense's floor at 4B tokens.
+defaults:
+  - full_s1_d_base
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_d0_s1d

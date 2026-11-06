@@ -1,0 +1,50 @@
+# Parity audit, PROPOSED full-length run base (plan "Proposed full-length runs"):
+# S2-PS exactly as doi36p8k ran on LEM -- n = 8, 3,815 steps x 1,048,576 tokens,
+# warmup 38, cosine to 10%, micro-batch 32 x 16, Tier 2, autocast bf16,
+# compile_blocks_full -- with its final checkpoint kept, so the common evaluator
+# can score it. NOT TO BE SUBMITTED without Maciej's answer (plan section 8).
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - _self_
+
+common:
+  sequence_length: 2049
+  batch_size: 512
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16
+  mem_parallel_size: 1
+  distributed: null
+  autocast_bf16: true
+  n_steps: 3815
+  learning_rate: 8
+  checkpoint:
+    save:
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: parity_full
+    time: "0-06:00:00" # doi36p8k: 3,815 x 3.746 s = 4.0 h on LEM
+  metric_logger:
+    project_name: nano-ame-parity
+    name: ???
+    tags:
+      - parity
+      - parity_full
+      - ame
+      - h12
+      - s2_ps

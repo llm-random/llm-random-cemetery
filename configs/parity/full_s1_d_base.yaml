@@ -1,0 +1,47 @@
+# Parity audit, PROPOSED full-length run base: S1-D exactly as x0xlqroj ran on
+# LEM (n = 8, 3,815 steps, micro-batch 32 x 16, autocast bf16,
+# compile_blocks_full), final checkpoint kept. NOT TO BE SUBMITTED without
+# Maciej's answer (plan section 8).
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - _self_
+
+common:
+  sequence_length: 2049
+  batch_size: 512
+  attention:
+    type: gqa
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16
+  mem_parallel_size: null
+  distributed: null
+  autocast_bf16: true
+  n_steps: 3815
+  learning_rate: 8
+  checkpoint:
+    save:
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: parity_full
+    time: "0-05:00:00" # x0xlqroj: 3,815 x 3.272 s = 3.5 h on LEM
+  metric_logger:
+    project_name: nano-ame-parity
+    name: ???
+    tags:
+      - parity
+      - parity_full
+      - dense
+      - h12
+      - s1_d

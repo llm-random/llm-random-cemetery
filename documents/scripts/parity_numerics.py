@@ -65,7 +65,8 @@ VARIANTS = {
     # S2-PS as run: Tier 2 banks (bf16 compute copy), compiled blocks, flex.
     "ame_prod": ("ame", [], True, 32),
     # The same without compile_blocks_full: A8 isolated (flex is still compiled).
-    "ame_prod_eager": ("ame", [NO_COMPILE], True, 32),
+    # Micro-batch 16: eager blocks at 32 need more than an 80 GB H100 (job 36320).
+    "ame_prod_eager": ("ame", [NO_COMPILE], True, 16),
     # Standard mixed-precision AME: banks as fp32 nn.Embedding, compiled, flex.
     "ame_std": ("ame", [MP_NULL], True, 32),
     # A plain bf16 AME: reference attention under autocast, eager.
@@ -692,12 +693,28 @@ def capture_layers(built, chunk):
             out.register_hook(lambda g, index=index: store[index].__setitem__("dy", g.detach().cpu()))
 
         handles.append(layer.register_forward_hook(hook))
-    zero_all(built)
-    loss = forward_loss(built, chunk)
-    loss.backward()
+    # In halves: the eager model does not fit a micro-batch of 32 (job 36320).
+    # Each sequence's activations and upstream gradient are independent of the
+    # others in its micro-batch; only the mean's 1/N differs, and halving N
+    # doubles every gradient exactly (a power of two), so dy * 0.5 is what the
+    # micro-batch of 32 produces, bit for bit.
+    parts = {}
+    for half in chunk.split(chunk.shape[0] // 2):
+        store.clear()
+        zero_all(built)
+        loss = forward_loss(built, half)
+        loss.backward()
+        for index, item in store.items():
+            parts.setdefault(index, []).append(item)
     for h in handles:
         h.remove()
-    return store
+    return {
+        index: {
+            "x": torch.cat([p["x"] for p in items]),
+            "dy": torch.cat([p["dy"] for p in items]) * 0.5,
+        }
+        for index, items in parts.items()
+    }
 
 
 def layer_params(layer):

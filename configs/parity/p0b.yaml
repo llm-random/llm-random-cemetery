@@ -1,0 +1,11 @@
+# P0b (proposed, not run): S2-PS at micro-batch 16 x 32. The reassociation floor at 4B tokens.
+defaults:
+  - full_s2_ps_base
+  - _self_
+trainer:
+  gradient_accumulation_steps: 32
+infrastructure:
+  slurm:
+    time: "0-07:00:00"
+  metric_logger:
+    name: parity_p0b_s2ps_mb16

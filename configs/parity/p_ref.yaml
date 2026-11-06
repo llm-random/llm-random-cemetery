@@ -1,0 +1,19 @@
+# P-REF (proposed, not run): S2-PS with every AME-only efficiency change off (A1-A7):
+# mem_parallel_size null and backend reference, at micro-batch 8 x 64 (16 does not
+# fit on 80 GB, job 36310; LEM's 94 GB is untested). About 9.4 s/step on an
+# entropy H100, so about 10 h on one GPU.
+defaults:
+  - full_s2_ps_base
+  - _self_
+common:
+  attention:
+    ame:
+      backend: reference
+trainer:
+  mem_parallel_size: null
+  gradient_accumulation_steps: 64
+infrastructure:
+  slurm:
+    time: "0-14:00:00"
+  metric_logger:
+    name: parity_pref_s2ps

@@ -1,0 +1,11 @@
+# P1 (proposed, not run): S2-PS with mem_parallel_size null: A1, A2, A3 off.
+defaults:
+  - full_s2_ps_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  slurm:
+    time: "0-07:00:00"
+  metric_logger:
+    name: parity_p1_s2ps_mpnull

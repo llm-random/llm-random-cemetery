@@ -1,0 +1,7 @@
+# P0 (proposed, not run): S2-PS identical to doi36p8k. The run-to-run floor at 4B tokens.
+defaults:
+  - full_s2_ps_base
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_p0_s2ps
