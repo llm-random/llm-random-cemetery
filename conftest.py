@@ -42,6 +42,26 @@ def free_port():
         return s.getsockname()[1]
 
 
+def isolate_compile_caches(rank):
+    """Per-rank Triton and inductor caches for a spawned test worker.
+
+    `main.isolate_triton_cache()` does this for training ranks; spawned test
+    ranks need it too. Two ranks compiling the same kernels into one cache race
+    on it (see that function's docstring), and inside an NCCL test the losing
+    rank stalls while the other spins in a collective: the gate job 33533 sat
+    with one GPU at 100% and the other idle until cancelled, and 33515 most
+    likely died the same way, through NCCL's watchdog. Call it first in the
+    worker, before anything compiles.
+    """
+    import tempfile
+
+    for var, prefix in (
+        ("TRITON_CACHE_DIR", "triton"),
+        ("TORCHINDUCTOR_CACHE_DIR", "inductor"),
+    ):
+        os.environ[var] = tempfile.mkdtemp(prefix=f"{prefix}-rank{rank}-")
+
+
 def spawn_on_free_port(fn, make_args, nprocs, attempts=4):
     """`mp.spawn` on a free port, retrying when the port is taken anyway.
 
