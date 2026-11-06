@@ -4,5 +4,7 @@ defaults:
   - _self_
 parity_dense_attention_fp32: true
 infrastructure:
+  slurm:
+    time: "0-10:00:00" # 6.65 s/step (probe 36397): ~7.3 h
   metric_logger:
     name: parity_full_df2

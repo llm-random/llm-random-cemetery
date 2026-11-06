@@ -1,0 +1,13 @@
+# P1-16-1 (bf16 scalars plan): P1 at micro-batch 16 x 32 -- AME-F's control, since AME-F
+# needs micro-batch 16 (probe 36396) and runs that are compared must share a micro-batch.
+defaults:
+  - fe_s2_ps_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+  gradient_accumulation_steps: 32
+infrastructure:
+  slurm:
+    time: "0-07:00:00"
+  metric_logger:
+    name: parity_full_p1_16_1

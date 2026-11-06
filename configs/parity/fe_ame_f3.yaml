@@ -5,6 +5,9 @@ defaults:
 parity_attention_fp32: true
 trainer:
   mem_parallel_size: null
+  gradient_accumulation_steps: 32 # micro-batch 16: 32 does not fit (probe 36396, OOM)
 infrastructure:
+  slurm:
+    time: "0-12:00:00"
   metric_logger:
     name: parity_full_ame_f3
