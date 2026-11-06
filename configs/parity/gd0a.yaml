@@ -1,0 +1,8 @@
+# GD0a: S1-D production, first copy. With GD0b, dense's run-to-run floor.
+defaults:
+  - s1_d_gate_base
+  - _self_
+
+infrastructure:
+  metric_logger:
+    name: parity_gd0a_s1d

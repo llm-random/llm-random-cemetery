@@ -1,0 +1,9 @@
+# G0c: S2-PS production at micro-batch 16 x 32: the same function, reassociated.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  gradient_accumulation_steps: 32 # micro-batch 16
+infrastructure:
+  metric_logger:
+    name: parity_g0c_s2ps_mb16

@@ -1,0 +1,8 @@
+# G0a: S2-PS production, first copy. With G0b, the run-to-run floor.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+
+infrastructure:
+  metric_logger:
+    name: parity_g0a_s2ps

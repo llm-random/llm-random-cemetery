@@ -1,0 +1,24 @@
+# G-REF probe (plan Phase 2): does G-REF fit at micro-batch 8, and how fast is it?
+# G-REF = S2-PS with every AME-only efficiency change off: the banks as ordinary
+# fp32 nn.Embedding parameters (mem_parallel_size null: A1-A3 off) and the
+# materialized fp32-softmax reference attention with the sink as kv column 0
+# (backend reference: A4-A6 off). 20 steps, timers on; not a gate.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+common:
+  attention:
+    ame:
+      backend: reference
+trainer:
+  mem_parallel_size: null
+  gradient_accumulation_steps: 64 # micro-batch 8
+  n_steps: 20
+  scheduler:
+    warmup_steps: 3
+  profile_timers: true
+infrastructure:
+  slurm:
+    time: "0-00:40:00"
+  metric_logger:
+    name: parity_gref_probe_mb8

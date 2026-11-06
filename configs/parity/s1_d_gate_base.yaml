@@ -1,0 +1,47 @@
+# Parity audit (documents/notes/ame_efficiency_parity_plan.md), the dense gate base:
+# S1-D exactly as configs/stage_1/dense_h12_lr_grid.yaml ran it as W&B x0xlqroj
+# (n = 8, GQA with RoPE, micro-batch 32 x 16, autocast bf16, compile_blocks_full),
+# with the same two changes as s2_ps_gate_base.yaml: the 300-step gate schedule,
+# and entropy without a checkpoint. A plain config, not a grid, so it carries
+# /base_schema; the schema defaults it adds are the Trainer's own defaults.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - _self_
+
+common:
+  sequence_length: 2049
+  batch_size: 512
+  attention:
+    type: gqa
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32, as in x0xlqroj
+  mem_parallel_size: null
+  distributed: null
+  autocast_bf16: true
+  n_steps: 300
+  learning_rate: 8 # n = 8, LR = 2^-8, as in x0xlqroj
+  scheduler:
+    warmup_steps: 38
+
+infrastructure:
+  slurm:
+    gres: gpu:h100:1
+    job-name: parity
+    time: "0-01:00:00"
+  metric_logger:
+    project_name: nano-ame-parity
+    name: ???
+    tags:
+      - parity
+      - dense
+      - h12
+      - s1_d

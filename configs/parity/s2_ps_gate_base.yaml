@@ -1,0 +1,52 @@
+# Parity audit (documents/notes/ame_efficiency_parity_plan.md), the AME gate base:
+# S2-PS exactly as configs/stage_2/ame_h12_pe_shift.yaml ran it as W&B doi36p8k
+# (n = 8, micro-batch 32 x 16, Tier 2 banks, autocast bf16, compile_blocks_full),
+# with two changes only:
+#   - the gate schedule: 300 steps, the run's 38-step warmup, then a cosine down
+#     to 10% at step 300 (warmup is written out: the llama default is 1% of
+#     n_steps, which would be 3 here);
+#   - entropy instead of LEM, no checkpoint, W&B project nano-ame-parity.
+# Every gate file in this directory takes this base and changes one thing.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - _self_
+
+common:
+  sequence_length: 2049
+  batch_size: 512
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32, as in doi36p8k
+  mem_parallel_size: 1 # Tier 2, as run
+  distributed: null
+  autocast_bf16: true
+  n_steps: 300
+  learning_rate: 8 # n = 8, LR = 2^-8, as in doi36p8k
+  scheduler:
+    warmup_steps: 38
+
+infrastructure:
+  slurm:
+    gres: gpu:h100:1
+    job-name: parity
+    time: "0-01:00:00"
+  metric_logger:
+    project_name: nano-ame-parity
+    name: ???
+    tags:
+      - parity
+      - ame
+      - h12
+      - s2_ps

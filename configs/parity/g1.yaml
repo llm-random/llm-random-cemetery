@@ -1,0 +1,9 @@
+# G1: S2-PS with the banks as ordinary fp32 nn.Embedding parameters in the fused backbone AdamW (A1, A2, A3 off).
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  metric_logger:
+    name: parity_g1_s2ps_mpnull
