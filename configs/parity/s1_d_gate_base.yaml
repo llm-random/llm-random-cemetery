@@ -33,6 +33,24 @@ trainer:
     warmup_steps: 38
 
 infrastructure:
+  # entropy.yaml's script, plus every compile cache on the node's NVMe: h100a's
+  # /tmp filled up on 2026-11-06 ~22:40 and killed five gates (Errno 28).
+  script:
+    - '${export_env_variables_placeholders:}'
+    - 'export PROJECT_HOME_PATH=/storage_nvme_4/nano'
+    - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
+    - 'export HYDRA_FULL_ERROR=1'
+    - 'export PIXI_HOME=$PROJECT_HOME_PATH/$USER/pixi'
+    - 'export PATH="$HOME/.pixi/bin:$PATH"'
+    - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
+    - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
+    - 'export XDG_STATE_HOME="$PIXI_HOME/state"'
+    - 'export TMPDIR=$PROJECT_HOME_PATH/$USER/parity_tmp/$SLURM_JOB_ID'
+    - 'mkdir -p $TMPDIR'
+    - 'export TORCHINDUCTOR_CACHE_DIR=$TMPDIR/inductor'
+    - 'cd "$PIXI_HOME"'
+    - 'eval "$(pixi shell-hook)"'
+    - 'cd -'
   slurm:
     gres: gpu:h100:1
     job-name: parity

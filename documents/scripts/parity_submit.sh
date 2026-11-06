@@ -37,6 +37,12 @@ export PATH="\$HOME/.pixi/bin:\$PATH"
 export XDG_DATA_HOME="\$PIXI_HOME/data"
 export XDG_CACHE_HOME="\$PIXI_HOME/cache"
 export XDG_STATE_HOME="\$PIXI_HOME/state"
+# h100a's /tmp (100 GB) filled up on 2026-11-06 ~22:40 and killed five gates
+# (Errno 28 in the Triton cache); every cache goes to the node's NVMe instead.
+export TMPDIR=\$PROJECT_HOME_PATH/\$USER/parity_tmp/\$SLURM_JOB_ID
+mkdir -p \$TMPDIR
+export TRITON_CACHE_DIR=\$TMPDIR/triton
+export TORCHINDUCTOR_CACHE_DIR=\$TMPDIR/inductor
 cd "\$PIXI_HOME" && eval "\$(pixi shell-hook)" && cd - > /dev/null
 cd ~/parity/code/$SHORT
 echo "parity_audit commit \$(cat PARITY_COMMIT), job \$SLURM_JOB_ID on \$(hostname)"
