@@ -1,0 +1,9 @@
+# G-REF3: another copy of G-REF (g_ref.yaml). The 220-step production spread is
+# sd ~0.13 (G0a/b/d-220: 5.66, 5.60, 5.37), so the all-off comparison needs more
+# than two G-REF samples to bound anything useful.
+defaults:
+  - g_ref
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_gref3_s2ps_220
