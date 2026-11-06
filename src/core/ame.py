@@ -186,6 +186,12 @@ class AMEAttention(nn.Module):
     # opt-in, set per instance by main.py from the top-level key
     # `parity_prep_fp32`. False here, so every shipped path is unchanged.
     parity_prep_fp32 = False
+    # documents/notes/ame_bf16_scalars_plan.md, Step 1: opt-in, set per instance
+    # by main.py from the top-level key `parity_attention_fp32`. v is upcast right
+    # after v_proj (so the beta mix runs in fp32), q and k keep their dtype (fp32
+    # on the ordinary bank path), and the kernel and the sink merge run with
+    # autocast off, in fp32. False here: every shipped path is unchanged.
+    parity_attention_fp32 = False
 
     # 2-D by shape, but not matmul weights: src.core.mfu would otherwise charge
     # 6*P of matmul FLOPs for per-head scalars and one key vector.
@@ -450,6 +456,8 @@ class AMEAttention(nn.Module):
             q = self.q_bank(token_ids).view(batch, seq_len, heads, dhead)
             k = self.k_bank(token_ids).view(batch, seq_len, heads, dhead)
         v = self.v_proj(x).view(batch, seq_len, heads, dhead)
+        if self.parity_attention_fp32:
+            v = v.float()
 
         if self.qk_norm:
             # On the bank ROWS, before the mix. Not on the mixed key.
@@ -500,7 +508,12 @@ class AMEAttention(nn.Module):
         # affordable at a real context length.
         use_flex = q.is_cuda if self.backend == "auto" else self.backend == "flex"
         attend = self._attend_flex if use_flex else self._attend_reference
-        out = attend(q, k, v)
+        if self.parity_attention_fp32:
+            # autocast must not hand the kernel bf16 copies of fp32 inputs.
+            with torch.autocast(device_type=q.device.type, enabled=False):
+                out = attend(q, k, v)
+        else:
+            out = attend(q, k, v)
         out = out.transpose(1, 2).reshape(batch, seq_len, self.q_heads * self.dhead)
         return self.o_proj(out)
 

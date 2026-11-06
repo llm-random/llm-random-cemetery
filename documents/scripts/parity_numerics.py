@@ -90,6 +90,12 @@ CE32 = {"ame_prod_ce32", "dense_prod_ce32"}
 # with the fused gather outside the compiled block.
 VARIANTS["ame_t2fp32"] = ("ame", ["++parity_bank_compute_dtype=float32"], True, 32)
 VARIANTS["ame_t2eager"] = ("ame", ["++parity_bank_eager=true"], True, 32)
+# ame_bf16_scalars_plan.md: AME-F (ordinary bank path + fp32 attention), D-F
+# (dense with fp32 SDPA), and P-REF's own path (ordinary banks, reference
+# attention, autocast, compiled).
+VARIANTS["ame_f"] = ("ame", [MP_NULL, "++parity_attention_fp32=true"], True, 32)
+VARIANTS["dense_f"] = ("dense", ["++parity_dense_attention_fp32=true"], True, 32)
+VARIANTS["ame_pref"] = ("ame", [MP_NULL, REFERENCE], True, 8)
 
 
 def log(msg):
@@ -203,6 +209,13 @@ def _read(path):
     return _CKPT_CACHE[path]
 
 
+CKPT_OVERRIDE = {}  # arm -> folder, from --ckpt-ame / --ckpt-dense
+
+
+def ckpt_folder(arm, ckpt_root):
+    return CKPT_OVERRIDE.get(arm) or os.path.join(ckpt_root, CKPT_DIRS[arm])
+
+
 def load_checkpoint(built, ckpt_root, with_optimizer=False):
     """The run's final checkpoint into any variant.
 
@@ -212,14 +225,32 @@ def load_checkpoint(built, ckpt_root, with_optimizer=False):
     the sidecar's fp32 masters, in the controller's bank order.
     """
     arm = built.arm
-    folder = os.path.join(ckpt_root, CKPT_DIRS[arm])
+    folder = ckpt_folder(arm, ckpt_root)
     state = _read(os.path.join(folder, "__model_checkpoint_filename.pt"))
     model = built.model
+    sidecar_path = os.path.join(folder, "memory_parallel_rank0.pt")
     if arm == "dense":
         model.load_state_dict(state["model"])
+    elif not os.path.exists(sidecar_path):
+        # A checkpoint of an ordinary-path run (mem_parallel_size null): the
+        # banks are nn.Embedding weights inside the model state dict.
+        bank_keys = {k for k in state["model"] if k.endswith(("q_bank.weight", "k_bank.weight"))}
+        assert bank_keys, f"{folder}: no sidecar and no bank weights in the state dict"
+        if built.banks is None:
+            model.load_state_dict(state["model"])
+        else:
+            rest = {k: v for k, v in state["model"].items() if k not in bank_keys}
+            missing, unexpected = model.load_state_dict(rest, strict=False)
+            assert not missing and not unexpected, (missing[:4], unexpected[:4])
+            slot = {id(getattr(m, a)): n for m, a, n in bank_slots(model)}
+            with torch.no_grad():
+                for bank in built.banks.banks:
+                    bank.master.copy_(state["model"][slot[id(bank)]].to(bank.master.device))
+                    bank.weight.copy_(bank.master.to(bank.weight.dtype))
+        assert not with_optimizer, "optimizer moments: only from a Tier 2 checkpoint"
     elif built.banks is not None:
         model.load_state_dict(state["model"])
-        side = _read(os.path.join(folder, "memory_parallel_rank0.pt"))
+        side = _read(sidecar_path)
         # The bank AdamW's moments are 7.4 GB on the GPU and only the optimizer
         # check (1.5) reads them; everything else gets the masters alone.
         built.banks.load_state_dict(side if with_optimizer else {**side, "optimizer": None})
@@ -230,7 +261,7 @@ def load_checkpoint(built, ckpt_root, with_optimizer=False):
         expected = {name for _, _, name in slots}
         assert not unexpected, unexpected
         assert set(missing) == expected, (sorted(set(missing) ^ expected))[:6]
-        side = _read(os.path.join(folder, "memory_parallel_rank0.pt"))
+        side = _read(sidecar_path)
         assert len(side["masters"]) == len(slots)
         with torch.no_grad():
             for (module, attr, _), master in zip(slots, side["masters"]):
@@ -618,7 +649,7 @@ def run_final_ce(args, device):
         # scheduler and, for AME, the bank sidecar).
         cfg = compose(
             arm,
-            [f"trainer.checkpoint.load.path={os.path.join(args.ckpt_root, CKPT_DIRS[arm])}"],
+            [f"trainer.checkpoint.load.path={ckpt_folder(arm, args.ckpt_root)}"],
         )
         torch._dynamo.reset()
         logger = quiet_logger()
@@ -711,6 +742,33 @@ def sdpa_math(on):
         yield
     finally:
         model_module.attention_mechanism = original
+
+
+# ---- scoring a checkpoint (ame_bf16_scalars_plan.md, Step 4) ------------------------
+
+
+def run_score(args, device):
+    """Precise CE (fp32 loss on each evaluator's logits, fp64 sum) of one
+    checkpoint on the full held-out set, under each evaluator variant: the
+    common evaluator (<arm>_ref32) and the run's own production path."""
+    data = load_data(args, device)
+    held = data["heldout"]
+    arm = args.arms.split(",")[0]
+    report = {"arm": arm, "ckpt": ckpt_folder(arm, args.ckpt_root), "tag": args.tag}
+    for variant in args.evaluators.split(","):
+        assert VARIANTS[variant][0] == arm, (variant, arm)
+        t0 = time.time()
+        built = build(variant, device, args.smoke)
+        if not args.smoke:
+            load_checkpoint(built, args.ckpt_root)
+        built.model.eval()
+        micro = 32 if built.autocast else 8
+        with sdpa_math(variant == "dense_ref32"):
+            report[variant] = precise_ce(built.model, held, autocast=built.autocast, micro=micro)
+        log(f"{args.tag} {variant}: {report[variant]:.6f} ({time.time() - t0:.0f} s)")
+        built = None
+        free()
+    save_json(os.path.join(args.out, f"score_{args.tag}.json"), report)
 
 
 # ---- 1.2 + 1.4: one AME layer at a time ---------------------------------------------
@@ -1226,7 +1284,7 @@ def run_machinery(args, device):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("check", choices=["dump_data", "final_ce", "budget", "layers", "optim", "machinery"])
+    parser.add_argument("check", choices=["dump_data", "final_ce", "budget", "layers", "optim", "machinery", "score"])
     parser.add_argument("--out", required=True)
     parser.add_argument("--data", default=os.path.expanduser("~/parity/data/parity_batches.pt"))
     parser.add_argument("--ckpt-root", default=os.path.expanduser("~/parity_ckpt"))
@@ -1234,11 +1292,18 @@ def main():
     parser.add_argument("--variants", default=None, help="budget: comma-separated subset")
     parser.add_argument("--arms", default="dense,ame", help="budget: dense, ame or both")
     parser.add_argument("--base", default=None, help="budget: the second comparator (default <arm>_prod)")
+    parser.add_argument("--ckpt-ame", default=None, help="AME checkpoint folder (default: --ckpt-root's)")
+    parser.add_argument("--ckpt-dense", default=None, help="dense checkpoint folder")
+    parser.add_argument("--evaluators", default=None, help="score: comma-separated variants")
+    parser.add_argument("--tag", default="run", help="score: a name for the output file")
     parser.add_argument("--states", default="init,final", help="budget: init, final or both")
     parser.add_argument("--layers", default=None, help="layers: comma-separated subset")
     parser.add_argument("--smoke", action="store_true")
     args = parser.parse_args()
     os.makedirs(args.out, exist_ok=True)
+    for arm, path in (("ame", args.ckpt_ame), ("dense", args.ckpt_dense)):
+        if path:
+            CKPT_OVERRIDE[arm] = os.path.expanduser(path)
 
     import main as main_module
 
@@ -1273,6 +1338,7 @@ def main():
         "layers": run_layers,
         "optim": run_optim,
         "machinery": run_machinery,
+        "score": run_score,
     }[args.check](*( (args,) if args.check == "dump_data" else (args, device)))
     log("done")
 

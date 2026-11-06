@@ -1,0 +1,20 @@
+# ame_bf16_scalars_plan.md Step 1: periodic checkpoints on a 20-step run (mpnull), saved at
+# step 10 (interval 10) and at the end, bank state included; their loading is then
+# checked with parity_numerics.py score.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+  n_steps: 20
+  scheduler:
+    warmup_steps: 3
+  checkpoint:
+    save:
+      path: checkpoint
+      interval: 10
+infrastructure:
+  slurm:
+    time: "0-00:40:00"
+  metric_logger:
+    name: parity_ckpt_test_mpnull

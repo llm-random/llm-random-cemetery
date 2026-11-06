@@ -230,6 +230,12 @@ class RoPE(nn.Module):
 
 
 class RoPEAttention(nn.Module):
+    # documents/notes/ame_bf16_scalars_plan.md, Step 1: opt-in, set per instance
+    # by main.py from the top-level key `parity_dense_attention_fp32`. q, k and v
+    # are upcast to fp32 after RoPE and SDPA runs with autocast off (SDPA is on
+    # autocast's bf16 list). False here: every shipped path is unchanged.
+    parity_attention_fp32 = False
+
     def __init__(
         self,
         q_proj_fn,
@@ -289,9 +295,16 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
-        attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, causal=True
-        )
+        if self.parity_attention_fp32:
+            q, k, v = q.float(), k.float(), v.float()
+            with torch.autocast(device_type=q.device.type, enabled=False):
+                attention_output = self.attention_mechanism(
+                    query=q, key=k, value=v, causal=True
+                )
+        else:
+            attention_output = self.attention_mechanism(
+                query=q, key=k, value=v, causal=True
+            )
 
         output = self.o_proj(attention_output.transpose(1, 2).contiguous().flatten(-2))
 

@@ -250,7 +250,31 @@ def build_memory_parallel_controller(cfg, model):
     return controller
 
 
+def apply_parity_attention_flags(cfg, model):
+    """documents/notes/ame_bf16_scalars_plan.md, Step 1: opt-in, top-level keys
+    absent from every shipped config. Unset, nothing changes.
+
+        parity_attention_fp32: true        -- AME: attention core in fp32
+        parity_dense_attention_fp32: true  -- dense: SDPA in fp32
+    """
+    from src.core.ame import AMEAttention
+    from src.core.model import RoPEAttention
+
+    for key, cls in (
+        ("parity_attention_fp32", AMEAttention),
+        ("parity_dense_attention_fp32", RoPEAttention),
+    ):
+        if cfg.get(key, False):
+            layers = [m for m in model.modules() if isinstance(m, cls)]
+            if not layers:
+                raise ValueError(f"{key} is set but the model has no {cls.__name__}")
+            for module in layers:
+                module.parity_attention_fp32 = True
+            logger.info(f"{key}: {len(layers)} {cls.__name__} layers in fp32")
+
+
 def get_model_optimizer_scheduler(cfg, model, learning_rate):
+    apply_parity_attention_flags(cfg, model)
     if cfg.get("apply_functions", None):
         for fn in instantiate(cfg.apply_functions):
             res = fn(model)
