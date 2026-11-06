@@ -239,9 +239,11 @@ def load_checkpoint(built, ckpt_root, with_optimizer=False):
     return state
 
 
-def free(*objs):
-    for obj in objs:
-        del obj
+def free(*_objs):
+    """Release GPU memory. Callers must drop their own references first
+    (`x = None`): deleting a parameter here would not. Compiled graphs can hold
+    a model's tensors, so dynamo's caches go too."""
+    torch._dynamo.reset()
     gc.collect()
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -570,7 +572,8 @@ def run_budget(args, device):
                     else:
                         del g
                 log(f"{variant} at {state}: {time.time() - t0:.0f} s")
-                free(built)
+                built = g = None
+                free()
                 save_json(path, report)
             del keep
             free()
@@ -646,7 +649,8 @@ def run_final_ce(args, device):
         model.eval()
         entry["ce_prod_fp32_loss"] = precise_ce(model, held, autocast=True, micro=32)
         log(f"{arm}: production forward, fp32 CE, fp64 sum: {entry['ce_prod_fp32_loss']:.6f}")
-        free(trainer, model, optimizer, scheduler)
+        trainer = model = optimizer = scheduler = None
+        free()
         # (c) The fp32 reference path on the same checkpoint: the common evaluator.
         ref = build(f"{arm}_ref32", device)
         load_checkpoint(ref, args.ckpt_root)
@@ -654,7 +658,8 @@ def run_final_ce(args, device):
         with sdpa_math(arm == "dense"):
             entry["ce_ref32"] = precise_ce(ref.model, held, autocast=False, micro=8)
         log(f"{arm}: fp32 reference: {entry['ce_ref32']:.6f}")
-        free(ref)
+        ref = None
+        free()
         report[arm] = entry
         save_json(path, report)
     if "ame" in report and "dense" in report:
@@ -1104,7 +1109,8 @@ def run_optim(args, device):
         entry["lr"] = lr
         log(json.dumps(entry))
         report[state] = entry
-        free(t2, ordn, grads)
+        t2 = ordn = grads = None
+        free()
         save_json(os.path.join(args.out, "optim.json"), report)
 
 
