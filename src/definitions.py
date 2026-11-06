@@ -153,11 +153,27 @@ class TrainerSchema:
     # micro-step. FSDP2 only, and it costs memory -- see the long note on
     # Trainer.skip_grad_sync_during_accumulation before enabling it.
     skip_grad_sync_during_accumulation: bool = False
+    # O40: under FSDP2, keep parameters unsharded between micro-steps
+    # (`set_reshard_after_backward(False)` until the last one), so only the
+    # first micro-step's forward all-gathers them. See Trainer.
+    keep_params_unsharded_during_accumulation: bool = False
     # Tiers 2+3: ranks per copy of the AME Q/K banks. null/1 keeps the whole
     # bank on every rank (Tier 2 alone, which does not fit at h20); N > 1
     # column-shards every bank across contiguous blocks of N ranks. Must divide
     # world_size, and the model must have q_bank/k_bank embeddings.
     mem_parallel_size: Optional[int] = None
+    # O39: issue each layer's bank exchange this many layers ahead, on a
+    # separate CUDA stream. null/0 = off. Needs mem_parallel_size > 1.
+    bank_prefetch_depth: Optional[int] = None
+    # O38(b): false = the banks' gathered weight is their fp32 master, with no
+    # bf16 compute copy (-2 bytes per bank parameter, bit-identical rows).
+    bank_compute_copy: bool = True
+    # O39: cap on the CTAs NCCL may use for the bank exchange's process
+    # group (it runs beside compute). null = NCCL's default.
+    bank_nccl_max_ctas: Optional[int] = None
+    # O43: at mem_parallel_size == world_size run the bank exchange on the
+    # default process group (FSDP2's), not a group of its own.
+    bank_default_group: bool = False
 
 
 @dataclass
