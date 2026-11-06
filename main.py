@@ -493,6 +493,14 @@ def run(cfg: RootSchema, metric_logger=None):
     # returns reserved-but-unallocated memory to fragmentation-bound
     # allocations (AME report section 7, lead B1). An operator's own setting
     # wins.
+    # Optional top-level `env` mapping (`+env.NAME=value`): exported before
+    # distributed init, so NCCL and CUDA read them when their state is created.
+    # Empty in every recorded run; an operator's own setting wins.
+    for name, value in (cfg.get("env", None) or {}).items():
+        if os.environ.get(str(name)) is None:
+            os.environ[str(name)] = str(value)
+            logger.info(f"env: {name}={value}")
+
     alloc_conf = cfg.get("cuda_alloc_conf", None)
     if alloc_conf and not os.environ.get("PYTORCH_CUDA_ALLOC_CONF"):
         os.environ["PYTORCH_CUDA_ALLOC_CONF"] = str(alloc_conf)
