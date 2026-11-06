@@ -64,13 +64,27 @@ class Residual(nn.Module):
     def set_metric_logger(self, metric_logger):
         self.metric_logger = metric_logger
 
-    def forward(self, x, token_ids=None):
+    def forward(self, x, token_ids=None, bank_rows=None):
         normalized = self.norm(x)
         if self.wants_token_ids:
-            out = self.layer(normalized, token_ids)
+            # bank_rows: an id-indexed layer's q/k rows, exchanged ahead of time
+            # (src.core.memory_parallel.BankPrefetcher, O39). None everywhere
+            # else, and then the call is exactly the original one.
+            if bank_rows is None:
+                out = self.layer(normalized, token_ids)
+            else:
+                out = self.layer(normalized, token_ids, bank_rows)
         else:
             out = self.layer(normalized)
-        if self.metric_logger is not None:
+        # O41: only on heavy-metric steps. `_accumulate_intermediate_metrics` is
+        # compiler-disabled, so calling it at all is a graph break -- two per
+        # block, on every micro-step, while it does nothing on all but one step
+        # in `heavy_metrics_calculation_interval` (AME report section 7). The
+        # bool is refreshed by the logger once per step; a logger without it
+        # keeps the old behaviour.
+        if self.metric_logger is not None and getattr(
+            self.metric_logger, "heavy_active", True
+        ):
             self._accumulate_intermediate_metrics(x, out)
         return out + x
 
@@ -366,13 +380,17 @@ class TransformerBlock(nn.Module):
             log_name=f"{self.log_name}/residual_feedforward",
         )
 
-    def forward(self, x, token_ids=None):
-        x = self.attention_layer(x, token_ids)
+    def forward(self, x, token_ids=None, bank_rows=None):
+        x = self.attention_layer(x, token_ids, bank_rows)
         x = self.ff_layer(x)
         return x
 
 
 class TransformerEncoder(nn.Module):
+    # O39: set by src.core.memory_parallel.MemoryParallelController when the
+    # bank exchange runs ahead of the layers; None in every other run.
+    bank_prefetcher = None
+
     def get_model_dimensions(self):
         # Works only for llama3 transforermer architecture
         dmodel = self.blocks[0].ff_layer.layer.ff_pre_act.weight.shape[1]
@@ -398,8 +416,32 @@ class TransformerEncoder(nn.Module):
         # token_ids travels beside the activations because an id-indexed
         # attention layer needs them at every depth, not only at the embedding.
         # Layers that do not want them never see them (see Residual).
-        for block in self.blocks:
-            x = block(x, token_ids)
+        # O42: a layer that builds per-shape state lazily (AME's flex block
+        # mask) builds it here, eagerly, before its compiled block runs. Built
+        # inside the block instead, the first trace runs `create_block_mask`
+        # through dynamo -- graph breaks -- and that compiled code, breaks and
+        # an eager `create_block_mask` per call included, is what every later
+        # call reuses: 9 graphs per AME block where dense has 1.
+        if token_ids is not None:
+            for block in self.blocks:
+                prepare = getattr(
+                    getattr(getattr(block, "attention_layer", None), "layer", None),
+                    "prepare_for_shape",
+                    None,
+                )
+                if prepare is not None:
+                    prepare(token_ids.shape[-1], x.device)
+        prefetcher = self.bank_prefetcher
+        if prefetcher is None or token_ids is None:
+            for block in self.blocks:
+                x = block(x, token_ids)
+            return x
+        # O39: every layer's q/k rows depend only on the ids, so their exchange
+        # is queued ahead on the bank stream; each block waits for its own.
+        prefetcher.begin(token_ids)
+        for index, block in enumerate(self.blocks):
+            rows = prefetcher.take(index)
+            x = block(x, token_ids) if rows is None else block(x, token_ids, rows)
         return x
 
 
