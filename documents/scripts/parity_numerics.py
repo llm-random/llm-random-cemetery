@@ -220,7 +220,9 @@ def load_checkpoint(built, ckpt_root, with_optimizer=False):
     elif built.banks is not None:
         model.load_state_dict(state["model"])
         side = _read(os.path.join(folder, "memory_parallel_rank0.pt"))
-        built.banks.load_state_dict(side)
+        # The bank AdamW's moments are 7.4 GB on the GPU and only the optimizer
+        # check (1.5) reads them; everything else gets the masters alone.
+        built.banks.load_state_dict(side if with_optimizer else {**side, "optimizer": None})
         built.sidecar = side
     else:
         missing, unexpected = model.load_state_dict(state["model"], strict=False)
