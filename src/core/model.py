@@ -48,6 +48,10 @@ class Linear(nn.Linear):
 
 
 class Residual(nn.Module):
+    # O41 switch (main.py `whole_block_graphs`): False restores calling the
+    # metrics hook on every forward, as every run before O41 did.
+    metrics_only_when_heavy = True
+
     def __init__(self, norm, layer, log_name):
         super(Residual, self).__init__()
         self.norm = norm
@@ -82,8 +86,9 @@ class Residual(nn.Module):
         # in `heavy_metrics_calculation_interval` (AME report section 7). The
         # bool is refreshed by the logger once per step; a logger without it
         # keeps the old behaviour.
-        if self.metric_logger is not None and getattr(
-            self.metric_logger, "heavy_active", True
+        if self.metric_logger is not None and (
+            not self.metrics_only_when_heavy
+            or getattr(self.metric_logger, "heavy_active", True)
         ):
             self._accumulate_intermediate_metrics(x, out)
         return out + x
@@ -390,6 +395,9 @@ class TransformerEncoder(nn.Module):
     # O39: set by src.core.memory_parallel.MemoryParallelController when the
     # bank exchange runs ahead of the layers; None in every other run.
     bank_prefetcher = None
+    # O42 switch (main.py `whole_block_graphs`): False leaves per-shape layer
+    # state to be built inside the compiled block, as before O42.
+    prepare_layer_state = True
 
     def get_model_dimensions(self):
         # Works only for llama3 transforermer architecture
@@ -422,7 +430,7 @@ class TransformerEncoder(nn.Module):
         # through dynamo -- graph breaks -- and that compiled code, breaks and
         # an eager `create_block_mask` per call included, is what every later
         # call reuses: 9 graphs per AME block where dense has 1.
-        if token_ids is not None:
+        if token_ids is not None and self.prepare_layer_state:
             for block in self.blocks:
                 prepare = getattr(
                     getattr(getattr(block, "attention_layer", None), "layer", None),

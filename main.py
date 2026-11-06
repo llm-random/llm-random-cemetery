@@ -228,6 +228,7 @@ def build_memory_parallel_controller(cfg, model):
         compute_copy=cfg.trainer.get("bank_compute_copy", True),
         nccl_max_ctas=cfg.trainer.get("bank_nccl_max_ctas", None),
         default_group=cfg.trainer.get("bank_default_group", False),
+        prefetch_cpu_lead=cfg.trainer.get("bank_prefetch_cpu_lead", None),
     )
     logger.info(
         f"Memory-parallel banks enabled: mem_parallel_size={size}, "
@@ -249,6 +250,17 @@ def get_model_optimizer_scheduler(cfg, model, learning_rate):
     # ordering that is actually load-bearing is against fully_shard, which must
     # see the parameters it is being told to ignore.
     banks = build_memory_parallel_controller(cfg, model)
+
+    # O41 + O42 together (AME report section 1.21): blocks compile to one graph
+    # each. Top-level `whole_block_graphs` (default true); false restores the
+    # graph breaks every run before 2026-11-06 01:00 had, which reproduces the
+    # configurations measured then.
+    if not cfg.get("whole_block_graphs", True):
+        from src.core.model import Residual, TransformerEncoder
+
+        Residual.metrics_only_when_heavy = False
+        TransformerEncoder.prepare_layer_state = False
+        logger.info("whole_block_graphs=false: O41/O42 off (pre-2026-11-06 graphs)")
 
     # Optional `inductor_config` (top-level mapping, `+inductor_config.KEY=VALUE`
     # on the CLI): torch._inductor.config overrides, applied before anything
