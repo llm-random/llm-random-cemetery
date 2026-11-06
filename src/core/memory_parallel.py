@@ -402,6 +402,20 @@ def _expand_rows(rows, inverse, mp):
     return rows.view(mp, distinct, -1)[:, inverse].reshape(mp * inverse.numel(), -1)
 
 
+def _reduce_pair(grad_q, grad_k, inverse, mp, distinct):
+    """O47 v4: `_reduce_rows` for q and k straight from the two gradients --
+    each summed into its half of one buffer, so the `torch.cat` that fed
+    `_reduce_rows` (an eager copy on the bank stream, 101.4 ms per step at h20
+    on 4 GPUs, job 34580) disappears into the compiled reduction."""
+    n = inverse.numel()
+    width = grad_q.shape[1]
+    acc = torch.promote_types(grad_q.dtype, torch.float32)
+    out = torch.zeros(mp, distinct, 2 * width, dtype=acc, device=grad_q.device)
+    out[:, :, :width].index_add_(1, inverse, grad_q.reshape(mp, n, width).to(acc))
+    out[:, :, width:].index_add_(1, inverse, grad_k.reshape(mp, n, width).to(acc))
+    return out.view(mp * distinct, 2 * width)
+
+
 def _reduce_rows(grads, inverse, mp, distinct):
     """O47 v2, backward of `_expand_rows`: token gradients summed per distinct
     id in fp32 (or better), returned in that dtype."""
@@ -520,14 +534,20 @@ class _ExchangedPair(torch.autograd.Function):
                 # still reading it.
                 grad.record_stream(torch.cuda.current_stream(grad.device))
             grads.append(grad)
-        send = torch.cat(grads, dim=1)
         if inverse is not None:
-            # O47 v2: sum each distinct id's token gradients, in fp32, before
-            # the exchange -- not inside the compiled block, where the same
-            # reduction became bf16 atomics (job 34394, 34.55%).
-            send = _bank_kernel(_reduce_rows, send.device)(
-                send, inverse, pair.q.mp_size, gathered_ids.numel() // pair.q.mp_size
+            # O47: sum each distinct id's token gradients, in fp32, before the
+            # exchange -- not inside the compiled block, where the same
+            # reduction became bf16 atomics (job 34394, 34.55%). Straight from
+            # the two gradients, without a cat (v4).
+            send = _bank_kernel(_reduce_pair, grads[0].device)(
+                grads[0],
+                grads[1],
+                inverse,
+                pair.q.mp_size,
+                gathered_ids.numel() // pair.q.mp_size,
             )
+        else:
+            send = torch.cat(grads, dim=1)
         local = torch.empty_like(send)
         # Mirror of the forward: chunk j (my tokens, rank j's columns) goes back
         # to rank j; chunk i received is rank i's tokens on MY columns, which is
