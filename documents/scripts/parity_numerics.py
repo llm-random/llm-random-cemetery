@@ -957,9 +957,11 @@ def run_layers(args, device):
     chunk = data["heldout"][:micro]
     prod = build("ame_prod_eager", device, args.smoke)
     std = build("ame_std", device, args.smoke)  # flex on CUDA; reference set per path
-    if not args.smoke:
+    state = "final" if "final" in args.states.split(",") else "init"
+    if not args.smoke and state == "final":
         load_checkpoint(prod, args.ckpt_root)
         load_checkpoint(std, args.ckpt_root)
+    log(f"layers at {state}")
     store = capture_layers(prod, chunk)
     ids = chunk[:, :-1]
     layers = range(len(prod.model.encoder.blocks)) if args.layers is None else [int(i) for i in args.layers.split(",")]
@@ -1012,7 +1014,7 @@ def run_layers(args, device):
             pc = entry["prep"]
             log(f"  prep: {json.dumps({k: (round(v, 6) if isinstance(v, float) else v) for k, v in pc.items() if not isinstance(v, (list, dict))})}")
             log(f"  prep grads prod: {json.dumps({k: round(v, 6) for k, v in pc['grad_prod_vs_fp32'].items()})}; std: {json.dumps({k: round(v, 6) for k, v in pc['grad_std_vs_fp32'].items()})}")
-        save_json(os.path.join(args.out, "layers.json"), report)
+        save_json(os.path.join(args.out, f"layers_{state}.json"), report)
         del paths
         free()
 
