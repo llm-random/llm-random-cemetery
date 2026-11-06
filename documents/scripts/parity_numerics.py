@@ -771,6 +771,161 @@ def run_score(args, device):
     save_json(os.path.join(args.out, f"score_{args.tag}.json"), report)
 
 
+# ---- ame_bf16_scalars_plan.md Step 2: the per-head scalars ---------------------------
+
+SCALARS = ("tau", "alpha", "beta")
+
+
+def scalar_grads(built):
+    """tau/alpha/beta gradients of every AME layer, [layers, heads(, 2)], fp64 CPU."""
+    out = {k: [] for k in SCALARS}
+    for block in built.model.encoder.blocks:
+        layer = block.attention_layer.layer
+        for k in SCALARS:
+            out[k].append(getattr(layer, k).grad.detach().double().cpu().clone())
+    return {k: torch.stack(v) for k, v in out.items()}
+
+
+def run_scalars(args, device):
+    """Stage A: the scalars' gradients on each requested held-out group (512
+    sequences = one eval batch = one optimizer step's worth), from production,
+    the fp32 oracle and AME-F. Also the checkpoint's Adam state for those
+    parameters (Stage B replays AdamW offline from it)."""
+    data = load_data(args, device)
+    held = data["heldout"]
+    groups = [int(g) for g in args.groups.split(",")]
+    result = {"groups": groups, "grads": {}, "params": {}, "adam": {}}
+    for variant in args.evaluators.split(","):
+        t0 = time.time()
+        built = build(variant, device, args.smoke)
+        if not args.smoke:
+            load_checkpoint(built, args.ckpt_root, with_optimizer=(variant == "ame_prod"))
+        if variant == "ame_prod" and not args.smoke:
+            built.optimizer.load_state_dict(built.checkpoint_state["optim"])
+            for i, block in enumerate(built.model.encoder.blocks):
+                layer = block.attention_layer.layer
+                for k in SCALARS:
+                    p = getattr(layer, k)
+                    st = built.optimizer.state[p]
+                    result["adam"].setdefault(k, []).append(
+                        {"exp_avg": st["exp_avg"].double().cpu(), "exp_avg_sq": st["exp_avg_sq"].double().cpu(), "step": float(st["step"])}
+                    )
+                    result["params"].setdefault(k, []).append(p.detach().double().cpu().clone())
+            result["lr"] = built.optimizer.param_groups[0]["lr"]
+            result["betas"] = built.optimizer.param_groups[0]["betas"]
+            result["eps"] = built.optimizer.param_groups[0]["eps"]
+        per = []
+        n = 512 if not args.smoke else 8
+        for g in groups:
+            seqs = held[g * n : (g + 1) * n]
+            with sdpa_math(False):
+                loss, _ = gradients(built, seqs)
+            per.append(scalar_grads(built))
+        result["grads"][variant] = {k: torch.stack([d[k] for d in per]) for k in SCALARS}
+        log(f"{variant}: {len(groups)} groups ({time.time() - t0:.0f} s)")
+        built = None
+        free()
+    tag = args.groups.replace(",", "_")
+    torch.save(result, os.path.join(args.out, f"scalars_{tag}.pt"))
+    log(f"wrote scalars_{tag}.pt")
+
+
+def _shift1(z):
+    """z[:, j] <- z[:, j-1] along dim 1 of [B, n, ...], position 0 zeroed (as AME's)."""
+    pad = [0, 0] * (z.dim() - 2) + [1, 0]
+    return F.pad(z, pad)[:, :-1]
+
+
+def run_mechanism(args, device):
+    """The scalars' gradients recomputed in fp64 from three kernel-input
+    gradients -- the bf16 flex kernel's, the fp32 reference kernel's, and an
+    fp64 oracle's -- all with the same fp64 q-hat, k-hat and raw v, at the
+    final checkpoint, layer by layer. If the bf16 kernel's dq/dk/dv alone
+    reproduce production's scalar error, the kernel's backward rounding is the
+    source and the per-head sums amplify it."""
+    import copy
+
+    data = load_data(args, device)
+    n_seq = 8 if not args.smoke else 2
+    chunk = data["heldout"][:n_seq]
+    prod = build("ame_prod_eager", device, args.smoke)
+    std = build("ame_std", device, args.smoke)
+    if not args.smoke:
+        load_checkpoint(prod, args.ckpt_root)
+        load_checkpoint(std, args.ckpt_root)
+    store = capture_layers(prod, chunk)
+    ids = chunk[:, :-1]
+    report = {}
+    for index in range(len(prod.model.encoder.blocks)):
+        x = store[index]["x"].to(device)
+        dy = store[index]["dy"].to(device)
+        pl = prod.model.encoder.blocks[index].attention_layer.layer
+        sl = std.model.encoder.blocks[index].attention_layer.layer
+        L = copy.deepcopy(sl).double()
+        L.backend = "reference"
+        B, n = ids.shape
+        H, D = L.q_heads, L.dhead
+        with torch.no_grad():
+            q_hat = F.normalize(L.q_bank(ids).view(B, n, H, D), dim=-1)
+            k_hat = F.normalize(L.k_bank(ids).view(B, n, H, D), dim=-1)
+            v_raw = L.v_proj(x.double()).view(B, n, H, D)
+            a, b, t = L.alpha.view(1, 1, H, 2), L.beta.view(1, 1, H, 2), L.tau.view(1, 1, H, 1)
+            q_in = (q_hat * t).transpose(1, 2).contiguous()
+            k_in = (a[..., 0:1] * k_hat + a[..., 1:2] * _shift1(k_hat)).transpose(1, 2).contiguous()
+            v_in = (b[..., 0:1] * v_raw + b[..., 1:2] * _shift1(v_raw)).transpose(1, 2).contiguous()
+            d_attn = (dy.double() @ L.o_proj.weight.double()).view(B, n, H, D).transpose(1, 2).contiguous()
+
+        def kernel_grads(fn, dtype, up):
+            leaves = [z.to(dtype).clone().requires_grad_(True) for z in (q_in, k_in, v_in)]
+            out = fn(*leaves)
+            out.backward(up.to(out.dtype))
+            return [z.grad.double() for z in leaves]
+
+        g64 = kernel_grads(L._attend_reference, torch.float64, d_attn)
+        g32 = kernel_grads(sl._attend_reference, torch.float32, d_attn.float())
+        # The production kernel: compiled flex + the LSE merge (CUDA). Compiled
+        # flex cannot run backward on CPU, so the CPU smoke run uses the plain
+        # bf16 reference instead.
+        bf16_fn = torch.compile(pl._attend_flex) if device.type == "cuda" else sl._attend_reference
+        g16 = kernel_grads(bf16_fn, torch.bfloat16, d_attn.to(torch.bfloat16))
+
+        qh, kh, vr = (z.transpose(1, 2) for z in (q_hat, k_hat, v_raw))  # [B, H, n, D]
+        ksh = _shift1(k_hat).transpose(1, 2)
+        vsh = _shift1(v_raw).transpose(1, 2)
+
+        def scalars(dq, dk, dv):
+            dims = (0, 2, 3)
+            return {
+                "tau": (dq * qh).sum(dims),
+                "alpha": torch.stack([(dk * kh).sum(dims), (dk * ksh).sum(dims)], -1),
+                "beta": torch.stack([(dv * vr).sum(dims), (dv * vsh).sum(dims)], -1),
+            }
+
+        s64, s32, s16 = scalars(*g64), scalars(*g32), scalars(*g16)
+        # The formulas against full fp64 autograd through the whole layer.
+        for p in L.parameters():
+            p.grad = None
+        x64 = x.double().requires_grad_(True)
+        out = L(x64, ids)
+        out.backward(dy.double())
+        auto = {"tau": L.tau.grad, "alpha": L.alpha.grad, "beta": L.beta.grad}
+        entry = {}
+        for k in SCALARS:
+            ref = s64[k]
+            entry[f"{k}_formula_vs_autograd"] = rel(ref, auto[k].double())
+            entry[f"{k}_bf16_kernel"] = rel(s16[k], ref)
+            entry[f"{k}_fp32_kernel"] = rel(s32[k], ref)
+            entry[f"{k}_bf16_kernel_proj"] = proj(s16[k], ref)
+        for name, gl in (("bf16", g16), ("fp32", g32)):
+            for z, zr, lab in zip(gl, g64, ("dq", "dk", "dv")):
+                entry[f"{lab}_{name}_kernel"] = rel(z, zr)
+        report[index] = entry
+        log(f"layer {index}: " + json.dumps({k: round(v, 5) for k, v in entry.items()}))
+        del L, out, x64, g64, g32, g16
+        free()
+    save_json(os.path.join(args.out, "mechanism.json"), report)
+
+
 # ---- 1.2 + 1.4: one AME layer at a time ---------------------------------------------
 
 
@@ -1284,7 +1439,7 @@ def run_machinery(args, device):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("check", choices=["dump_data", "final_ce", "budget", "layers", "optim", "machinery", "score"])
+    parser.add_argument("check", choices=["dump_data", "final_ce", "budget", "layers", "optim", "machinery", "score", "scalars", "mechanism"])
     parser.add_argument("--out", required=True)
     parser.add_argument("--data", default=os.path.expanduser("~/parity/data/parity_batches.pt"))
     parser.add_argument("--ckpt-root", default=os.path.expanduser("~/parity_ckpt"))
@@ -1296,6 +1451,7 @@ def main():
     parser.add_argument("--ckpt-dense", default=None, help="dense checkpoint folder")
     parser.add_argument("--evaluators", default=None, help="score: comma-separated variants")
     parser.add_argument("--tag", default="run", help="score: a name for the output file")
+    parser.add_argument("--groups", default="0", help="scalars: held-out groups of 512 (0-15)")
     parser.add_argument("--states", default="init,final", help="budget: init, final or both")
     parser.add_argument("--layers", default=None, help="layers: comma-separated subset")
     parser.add_argument("--smoke", action="store_true")
@@ -1339,6 +1495,8 @@ def main():
         "optim": run_optim,
         "machinery": run_machinery,
         "score": run_score,
+        "scalars": run_scalars,
+        "mechanism": run_mechanism,
     }[args.check](*( (args,) if args.check == "dump_data" else (args, device)))
     log("done")
 
