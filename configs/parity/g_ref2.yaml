@@ -1,0 +1,8 @@
+# G-REF2: a second copy of G-REF (g_ref.yaml), for the same reason as the 300-step
+# replicates: one sample against a 220-step production spread of 0.17.
+defaults:
+  - g_ref
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_gref2_s2ps_220

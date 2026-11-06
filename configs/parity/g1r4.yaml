@@ -1,0 +1,9 @@
+# G1r4: another copy of G1 (mem_parallel_size null); see g1r2.yaml.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  mem_parallel_size: null
+infrastructure:
+  metric_logger:
+    name: parity_g1r4_s2ps_mpnull

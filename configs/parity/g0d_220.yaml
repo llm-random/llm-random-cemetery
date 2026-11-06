@@ -1,0 +1,9 @@
+# G0d-220: a fourth production copy at the 220-step schedule (see g0a_220.yaml).
+defaults:
+  - s2_ps_gate_base
+  - _self_
+trainer:
+  n_steps: 220
+infrastructure:
+  metric_logger:
+    name: parity_g0d_s2ps_220

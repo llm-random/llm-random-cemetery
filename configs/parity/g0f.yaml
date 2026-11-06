@@ -1,0 +1,8 @@
+# G0f: S2-PS production, another copy (see g0d.yaml): G0e (identical config) landed
+# 0.2 above G0a-G0d, so the production distribution at 300 steps is wide (sd ~0.1).
+defaults:
+  - s2_ps_gate_base
+  - _self_
+infrastructure:
+  metric_logger:
+    name: parity_g0f_s2ps
