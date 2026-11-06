@@ -33,6 +33,7 @@ import torch.nn as nn
 from torch.distributed.fsdp import MixedPrecisionPolicy, fully_shard
 from torch.distributed.device_mesh import init_device_mesh
 
+
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 GA = 4  # micro-steps per optimizer step
@@ -58,13 +59,15 @@ class ToyModel(nn.Module):
         return self.head(x)
 
 
-def _build(rank, mp_policy):
+def _build(rank, mp_policy, reshard_after_forward=None):
     torch.manual_seed(0)  # same init on every rank
     model = ToyModel()
     mesh = init_device_mesh("cpu", (dist.get_world_size(),))
     kwargs = {"mesh": mesh}
     if mp_policy is not None:
         kwargs["mp_policy"] = mp_policy
+    if reshard_after_forward is not None:
+        kwargs["reshard_after_forward"] = reshard_after_forward
     for block in model.blocks:
         fully_shard(block, **kwargs)
     fully_shard(model.embedding, **kwargs)
@@ -79,7 +82,7 @@ def _micro_batches(rank):
     return [torch.randint(0, VOCAB, (2, 8), generator=generator) for _ in range(GA)]
 
 
-def _run_accumulation(model, batches, skip_sync):
+def _run_accumulation(model, batches, skip_sync, keep_unsharded=False):
     """One optimizer step's worth of backward, through the real Trainer method."""
     from types import SimpleNamespace
 
@@ -89,6 +92,7 @@ def _run_accumulation(model, batches, skip_sync):
         model=model,
         gradient_accumulation_steps=GA,
         skip_grad_sync_during_accumulation=skip_sync,
+        keep_params_unsharded_during_accumulation=keep_unsharded,
     )
     model.train()
     with Trainer._accumulation_grad_sync(stub) as mark_micro_step:
@@ -267,3 +271,120 @@ def test_inactive_without_fsdp2_or_with_one_micro_step():
     assert touched == [], (
         "a plain (non-FSDP2) module had its gradient sync toggled: " f"{touched}"
     )
+
+
+# ---- O40: parameters stay unsharded between micro-steps ---------------------
+
+
+def _o40_worker(rank, world_size, port, use_mixed_precision, result_queue):
+    """Same gradients, fewer all-gathers.
+
+    O40 changes when FSDP2 reshards and re-gathers parameters, never what a
+    gradient sums to: every micro-step still reduce-scatters. So the gate is
+    bit-identity, plus a count of FSDP2's parameter all-gathers -- without the
+    count a flag that never engaged would pass the identity check trivially.
+    """
+    try:
+        os.environ["MASTER_ADDR"] = "127.0.0.1"
+        os.environ["MASTER_PORT"] = str(port)
+        os.environ["RANK"] = str(rank)
+        os.environ["WORLD_SIZE"] = str(world_size)
+        os.environ["LOCAL_RANK"] = str(rank)
+        dist.init_process_group("gloo", rank=rank, world_size=world_size)
+        policy = (
+            MixedPrecisionPolicy(param_dtype=torch.bfloat16, reduce_dtype=torch.float32)
+            if use_mixed_precision
+            else None
+        )
+        batches = _micro_batches(rank)
+
+        counts = {}
+        original = dist.all_gather_into_tensor
+
+        def run(tag, keep):
+            calls = [0]
+
+            def counting(*args, **kwargs):
+                calls[0] += 1
+                return original(*args, **kwargs)
+
+            dist.all_gather_into_tensor = counting
+            try:
+                # reshard_after_forward=False, as the AME configs run (O33). With
+                # the default the parameters are freed after every forward and
+                # gathered again for backward, which O40 does not touch.
+                model = _build(rank, policy, reshard_after_forward=False)
+                grads = _run_accumulation(model, batches, skip_sync=False, keep_unsharded=keep)
+            finally:
+                dist.all_gather_into_tensor = original
+            counts[tag] = calls[0]
+            return grads
+
+        base = run("base", False)
+        kept = run("kept", True)
+        identical = all(torch.equal(base[n], kept[n]) for n in base)
+        if rank == 0:
+            result_queue.put(("ok", {"identical": identical, "counts": counts,
+                                     "names": sorted(base) == sorted(kept)}))
+    except Exception as exc:  # noqa: BLE001
+        if rank == 0:
+            result_queue.put(("error", f"{type(exc).__name__}: {exc}"))
+        raise
+    finally:
+        if dist.is_initialized():
+            dist.destroy_process_group()
+
+
+@pytest.mark.parametrize("use_mixed_precision", [False, True])
+def test_o40_keeps_gradients_identical_and_gathers_once(use_mixed_precision):
+    from conftest import free_port
+
+    ctx = mp.get_context("spawn")
+    queue = ctx.Queue()
+    mp.spawn(
+        _o40_worker,
+        args=(2, free_port(), use_mixed_precision, queue),
+        nprocs=2,
+        join=True,
+    )
+    status, payload = queue.get(timeout=30)
+    if status == "error":
+        pytest.fail(payload)
+    assert payload["names"], "parameter sets diverged"
+    assert payload["identical"], "O40 changed the gradients"
+    base, kept = payload["counts"]["base"], payload["counts"]["kept"]
+    assert base > 0, "no FSDP2 all-gather was seen; the count is vacuous"
+    # One gather per FSDP group per micro-step without O40, once per group per
+    # step with it.
+    assert kept * GA == base, f"all-gathers: {base} without O40, {kept} with it"
+
+
+def test_o40_is_restored_when_the_loop_raises(monkeypatch):
+    """A model left with reshard_after_backward=False would hold every
+    parameter unsharded for the rest of the run: not wrong, but a silent
+    memory leak into the next step's peak."""
+    from types import SimpleNamespace
+
+    import src.core.trainer as trainer_module
+    from src.core.trainer import Trainer
+
+    flipped = []
+
+    class FakeFSDP:
+        training = True
+
+        def set_reshard_after_backward(self, value, **kwargs):
+            flipped.append(value)
+
+    monkeypatch.setattr(trainer_module, "_FSDPModule", FakeFSDP)
+    stub = SimpleNamespace(
+        model=FakeFSDP(),
+        gradient_accumulation_steps=4,
+        skip_grad_sync_during_accumulation=False,
+        keep_params_unsharded_during_accumulation=True,
+    )
+    with pytest.raises(RuntimeError):
+        with Trainer._accumulation_grad_sync(stub) as mark:
+            mark(False)
+            raise RuntimeError("boom")
+    assert flipped == [False, True], flipped
