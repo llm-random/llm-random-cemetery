@@ -1,0 +1,16 @@
+# ame_bf16_scalars_plan.md Step 2: D-F probe -- dense with fp32 SDPA (q, k, v upcast
+# after RoPE): memory and s/step at micro-batch 32.
+defaults:
+  - s1_d_gate_base
+  - _self_
+parity_dense_attention_fp32: true
+trainer:
+  n_steps: 50
+  scheduler:
+    warmup_steps: 3
+  profile_timers: true
+infrastructure:
+  slurm:
+    time: "0-00:40:00"
+  metric_logger:
+    name: parity_probe_d_f

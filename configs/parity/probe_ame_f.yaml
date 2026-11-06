@@ -1,0 +1,17 @@
+# ame_bf16_scalars_plan.md Step 2: AME-F probe -- does it fit at micro-batch 32, how fast?
+# AME-F = ordinary bank path (fp32 banks and prep) + parity_attention_fp32.
+defaults:
+  - s2_ps_gate_base
+  - _self_
+parity_attention_fp32: true
+trainer:
+  mem_parallel_size: null
+  n_steps: 50
+  scheduler:
+    warmup_steps: 3
+  profile_timers: true
+infrastructure:
+  slurm:
+    time: "0-00:40:00"
+  metric_logger:
+    name: parity_probe_ame_f
