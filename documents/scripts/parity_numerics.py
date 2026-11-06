@@ -294,15 +294,23 @@ def loss_ctx(on):
     return torch.autocast("cuda", enabled=False) if on else contextlib.nullcontext()
 
 
-def forward_loss(built, chunk):
-    """Trainer._forward_loss + _cross_entropy for one micro-batch: mean CE."""
+def forward_loss(built, chunk, precise=None):
+    """Trainer._forward_loss + _cross_entropy for one micro-batch: mean CE.
+
+    The returned mean is the Trainer's (a bf16 scalar on the production paths)
+    and is what gets backpropagated. `precise`, if a list, receives the fp64
+    sum of the per-token losses and their count: the Trainer's bf16 mean is
+    quantized (ulp 2^-6 near 3, 2^-4 near 11), too coarse for comparing paths."""
     inp, tgt = chunk[:, :-1], chunk[:, 1:]
     with autocast_ctx(built.autocast):
         logits = built.model(inp)
         with loss_ctx(built.autocast):
-            loss = F.cross_entropy(
+            per_token = F.cross_entropy(
                 logits.flatten(0, -2), tgt.reshape(-1).long(), reduction="none"
-            ).mean()
+            )
+            loss = per_token.mean()
+    if precise is not None:
+        precise.append((per_token.detach().double().sum().item(), per_token.numel()))
     return loss
 
 
@@ -319,12 +327,12 @@ def gradients(built, sequences):
     scaled by its share). Bank gradients come from `main_grad` on Tier 2."""
     zero_all(built)
     n = sequences.shape[0]
-    total = 0.0
+    precise = []
     for start in range(0, n, built.micro):
         chunk = sequences[start : start + built.micro]
-        loss = forward_loss(built, chunk)
+        loss = forward_loss(built, chunk, precise)
         (loss * (chunk.shape[0] / n)).backward()
-        total += loss.item() * (chunk.shape[0] / n)
+    total = sum(s for s, _ in precise) / sum(c for _, c in precise)
     return total, collect_grads(built)
 
 
