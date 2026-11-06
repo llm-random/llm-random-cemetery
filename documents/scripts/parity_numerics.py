@@ -1053,18 +1053,22 @@ def run_optim(args, device):
             break
         log(f"=== optim {state}")
         t2 = build("ame_prod", device, args.smoke)
-        ordn = build("ame_std", device, args.smoke)
+        # Any gradient will do -- the check is "the same gradient in, the same
+        # parameters out" -- so it is computed at micro-batch 8, before the
+        # ordinary model and its moments occupy the GPU (OOM in job 36361).
+        t2.micro = min(t2.micro, 8)
         if state == "final":
             load_checkpoint(t2, args.ckpt_root, with_optimizer=True)
+        loss, grads = gradients(t2, seqs)
+        log(f"loss {loss:.5f}")
+        ordn = build("ame_std", device, args.smoke)
+        if state == "final":
             load_checkpoint(ordn, args.ckpt_root)
             copy_optimizer_state(t2, ordn)
         else:
             with torch.no_grad():
                 for (m, a, _), bank in zip(bank_slots(ordn.model), t2.banks.banks):
                     assert torch.equal(getattr(m, a).weight, bank.master)
-        # One set of gradients, from the production path.
-        loss, grads = gradients(t2, seqs)
-        log(f"loss {loss:.5f}")
         ordinary_slots = {name: getattr(m, a).weight for m, a, name in bank_slots(ordn.model)}
         with torch.no_grad():
             for name, p in ordn.model.named_parameters():
