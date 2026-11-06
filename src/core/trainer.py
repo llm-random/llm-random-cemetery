@@ -711,7 +711,18 @@ class Trainer:
             # autocast around the loss keeps every chunk in the model's dtype,
             # exactly as it does on the unfused path.
             target_ids = target_ids.to(next(self.model.parameters()).device)
-            with self._loss_ctx():
+            # O45's Triton path never calls `F.cross_entropy`, so it needs no
+            # autocast-off region -- and putting the whole model in one ran the
+            # 1-GPU (autocast) model in fp32 and OOMed (jobs 34554, 34559). The
+            # head casts its own inputs to the autocast dtype instead.
+            from src.core.model import TransformerHead
+
+            ctx = (
+                nullcontext()
+                if TransformerHead.fused_ce_impl == "triton"
+                else self._loss_ctx()
+            )
+            with ctx:
                 return self.model(
                     input_ids,
                     targets=target_ids,
