@@ -174,6 +174,9 @@ class TrainerSchema:
     # O43: at mem_parallel_size == world_size run the bank exchange on the
     # default process group (FSDP2's), not a group of its own.
     bank_default_group: bool = False
+    # O44: bound on how many blocks the CPU may run ahead of the compute
+    # stream when the bank exchange is prefetched (null: unbounded).
+    bank_prefetch_cpu_lead: Optional[int] = None
 
 
 @dataclass
