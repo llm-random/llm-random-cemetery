@@ -175,12 +175,30 @@ GROUPS_300 = {
 }
 
 
-def distribution(refresh=False):
+GROUPS_220 = {
+    "production (Tier 2, as run)": [
+        "parity_g0a_s2ps_220", "parity_g0b_s2ps_220", "parity_g0d_s2ps_220",
+        "parity_g0e_s2ps_220", "parity_g0f_s2ps_220",
+    ],
+    "production, micro-batch 16": ["parity_g0c_s2ps_mb16_220"],
+    "G-REF: A1-A7 off": [
+        "parity_gref_s2ps_220", "parity_gref2_s2ps_220", "parity_gref3_s2ps_220",
+        "parity_gref4_s2ps_220",
+    ],
+}
+CONTRASTS = {
+    "300": ("A2 on: bf16 compute copy (production)", "A2 off: fp32 banks (ordinary path, Tier 2 fp32 copy)"),
+    "220": ("production (Tier 2, as run)", "G-REF: A1-A7 off"),
+}
+
+
+def distribution(refresh=False, which="300"):
     """Every 300-step gate as one sample: the last-50-step mean train loss and
     final_ce, grouped by configuration, with the spread inside each group and a
     rank test between the two groups with more than one sample each."""
     rows = {}
-    for group, names in GROUPS_300.items():
+    groups = GROUPS_300 if which == "300" else GROUPS_220
+    for group, names in groups.items():
         for name in names:
             try:
                 df, meta = load(name, refresh)
@@ -203,15 +221,22 @@ def distribution(refresh=False):
         c = np.array([v[1] for v in vals])
         sd = f"{t.std(ddof=1):.4f}" if len(t) > 1 else "-"
         print(f"{group:<36} n={len(t)}  last-50 mean {t.mean():.4f} (sd {sd})  final_ce mean {c.mean():.5f}")
-    a = [v[0] for v in by.get("A2 on: bf16 compute copy (production)", [])]
-    b = [v[0] for v in by.get("A2 off: fp32 banks (ordinary path, Tier 2 fp32 copy)", [])]
+    on, off = CONTRASTS[which]
+    a = [v[0] for v in by.get(on, [])]
+    b = [v[0] for v in by.get(off, [])]
     if len(a) > 1 and len(b) > 1:
-        from scipy.stats import mannwhitneyu, ttest_ind
+        from scipy.stats import mannwhitneyu, t, ttest_ind
 
+        va, vb = np.var(a, ddof=1) / len(a), np.var(b, ddof=1) / len(b)
+        se = np.sqrt(va + vb)
+        dof = (va + vb) ** 2 / (va**2 / (len(a) - 1) + vb**2 / (len(b) - 1))
+        diff = np.mean(a) - np.mean(b)
+        half = t.ppf(0.975, dof) * se
         print(
-            f"A2 off - A2 on: {np.mean(b) - np.mean(a):+.4f}; Mann-Whitney p "
-            f"{mannwhitneyu(b, a, alternative='two-sided').pvalue:.4f}; Welch t p "
-            f"{ttest_ind(b, a, equal_var=False).pvalue:.4f}"
+            f"[{on}] - [{off}] = {diff:+.4f} (95% Welch interval [{diff - half:+.4f}, "
+            f"{diff + half:+.4f}], dof {dof:.1f}); Mann-Whitney p "
+            f"{mannwhitneyu(a, b, alternative='two-sided').pvalue:.4f}; Welch t p "
+            f"{ttest_ind(a, b, equal_var=False).pvalue:.4f}"
         )
     return rows
 
@@ -231,12 +256,12 @@ def early_bumps(loss, start=15, end=60, rise=0.15):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--set", default="300", choices=list(SETS) + ["dist"])
+    parser.add_argument("--set", default="300", choices=list(SETS) + ["dist", "dist220"])
     parser.add_argument("--json", default=None)
     parser.add_argument("--refresh", action="store_true")
     args = parser.parse_args()
-    if args.set == "dist":
-        rows = distribution(args.refresh)
+    if args.set in ("dist", "dist220"):
+        rows = distribution(args.refresh, "300" if args.set == "dist" else "220")
         if args.json:
             with open(args.json, "w") as f:
                 json.dump(rows, f, indent=1, default=float)
