@@ -458,13 +458,22 @@ class AMEAttention(nn.Module):
         # and it leaves the kernel's own scale at 1 for both backends.
         q = q * self.tau.to(q.dtype).view(1, 1, -1, 1)
 
-        # One compute dtype for the kernel. Autocast casts nn.Linear but NOT an
-        # nn.Embedding gather, so under bf16 `v` arrives bf16 while the banks
-        # hand back fp32 -- flex rejects the mismatch outright and the reference
-        # path would silently run the score half in fp32. `v` is the honest
-        # signal for what the surrounding autocast context wants, and the
-        # gather, the norm and the mix all stay in the banks' own precision
-        # until this point, which is where that precision was worth having.
+        # One compute dtype for the kernel: q and k take `v`'s, and `v` (an
+        # nn.Linear output) is the honest signal for what the surrounding
+        # autocast context computes in. What q and k carry before this cast
+        # depends on where the banks live:
+        # - Without the memory-parallel controller the banks are fp32
+        #   nn.Embedding parameters, and autocast casts nn.Linear but not an
+        #   embedding gather, so the gather, the norm and the mix run in fp32 up
+        #   to here while `v` is bf16. Flex rejects that mismatch outright and
+        #   the reference path would silently run the score half in fp32.
+        # - With the controller (`trainer.mem_parallel_size` set, even to 1 on a
+        #   single GPU) the forward reads a copy of the banks held in the
+        #   controller's compute dtype -- bf16 under autocast_bf16 or FSDP2
+        #   (main.py, build_memory_parallel_controller) -- refreshed from an
+        #   fp32 master after every optimizer step. The gathered rows are then
+        #   already bf16; only the master, its gradient and the optimizer state
+        #   are fp32.
         q, k = q.to(v.dtype), k.to(v.dtype)
 
         return (z.transpose(1, 2) for z in (q, k, v))
