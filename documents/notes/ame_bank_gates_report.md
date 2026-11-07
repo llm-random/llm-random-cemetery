@@ -237,6 +237,27 @@ are at the same steps. s/step is the median, excluding the eval steps.
   trust mutes that, trails production slightly (5.16). The plan does not read a
   step-300 loss as quality: production's 220-step losses spread with an sd of 0.13.
 
+**Step 500, 22:55.** Every check passes again.
+
+| Arm | Loss, steps 400-499 | `grad_norm`, 400-499 | `grad_norm/banks` | Clip factor | s/step |
+|---|---|---:|---:|---|---:|
+| B1 | 4.31/4.47/4.62 | 0.155 | 0.0027 | 1.000 | 3.880 |
+| B2 | 3.86/3.95/4.06 | 0.124 | 0.030 | 1.000 | 3.833 |
+| B3 | 3.78/3.88/3.98 | 0.131 | 0.025 | 1.000 | 3.773 |
+| ST | 3.91/4.01/4.12 | 0.130 | 0.039 | 1.000 | 3.880 |
+| `doi36p8k` | 4.19/4.33/4.50 | 0.145 | not logged | — | 3.746 |
+
+- **No NaN.** s/step and `grad_norm` are steady. The clip has stayed inactive since the
+  warmup.
+- **Readouts at step 500:**
+  - B1's trust: mean 0.0516 (q) and 0.0514 (k), q p90 0.0564. The first two
+    (token, head) entries of one layer crossed 0.5.
+  - B2's bias: mean 3.00, minimum 2.36; weight RMS 0.047.
+  - B3's base norms: 0.30 (q) and 0.29 (k).
+  - ST's gate RMS: 0.065; τ 7.65.
+- **The early lead over production is shrinking:** 0.32-0.45 over steps 400-499,
+  against 0.45-0.68 over steps 200-299.
+
 ## The h16 wave
 
 Four runs, one per gate, at h16 on 8B tokens (decision 7; the plan's
@@ -317,3 +338,17 @@ Each final checkpoint lands under `checkpoint/<job>/0/step_7629/` in its clone, 
 `token_counts.pt` beside it.
 
 ### Checks
+
+**Start, 22:39-22:46.** All four were running within about two minutes of submission,
+logged the plan's parameter counts, and trained from 22:44. FineWeb opened in about 3
+minutes.
+
+| Arm | Step | loss | grad_norm | grad_norm/banks | clip factor | s/step | vs `hjw7znbz`'s 6.810 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| B1 | 34 | 7.06 | 0.75 | 0.00014 | 1.00 | 7.03 | +3.2% |
+| B2 | 30 | 6.91 | 0.96 | 0.060 | 1.00 | 6.86 | +0.7% |
+| B3 | 26 | 7.09 | 1.07 | 0.099 | 0.94 | 6.81 | 0.0% |
+| ST | 4 | 8.75 | 2.12 | 0.018 | 0.47 | 7.01 | +3.0% |
+
+As at h12, the banks are a small share of the norm, and any clipping in the warmup is the
+backbone's.
