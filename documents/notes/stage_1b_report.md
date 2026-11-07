@@ -90,13 +90,13 @@ The plan's "Before the grid": `trainer.n_steps=60 trainer.eval_interval=20`, wit
 for the AME pair. All five smoke runs were submitted at 08:53 from `~/code/nano-stage1b2b`
 at `31cbc268`, and all finished by 09:07. Every check passed.
 
-| Job | Config | n | W&B run | Node | Result |
-|---|---|---:|---|---|---|
-| 6253231_0 | stage_1b/dense_h16_lr_grid | 9 | `x8fdvgvx` | r12-4 | completed |
-| 6253231_1 | stage_1b/dense_h16_lr_grid | 10 | `hv43mznh` | r12-8 | completed |
-| 6253231_2 | stage_1b/dense_h16_lr_grid | 11 | `fq0rxyo3` | r12-8 | completed |
-| 6253235 | stage_2b/ame_h16_simplest_seed2 (the S1b-A0 code path, seed 124) | 10 | `p572pg6e` | r12-9 | completed |
-| 6253237 | stage_2b/ame_h16_pe_shift (ALiBi and the shift) | 10 | `82b324oh` | — | completed |
+| Job | Config | n | W&B run | Node | Result | `final_ce` after 60 steps |
+|---|---|---:|---|---|---|---:|
+| 6253231_0 | stage_1b/dense_h16_lr_grid | 9 | `x8fdvgvx` | r12-4 | completed | 7.0605 |
+| 6253231_1 | stage_1b/dense_h16_lr_grid | 10 | `hv43mznh` | r12-8 | completed | 6.9102 |
+| 6253231_2 | stage_1b/dense_h16_lr_grid | 11 | `fq0rxyo3` | r12-8 | completed | 6.8066 |
+| 6253235 | stage_2b/ame_h16_simplest_seed2 (the S1b-A0 code path, seed 124) | 10 | `p572pg6e` | r12-9 | completed | 6.9414 |
+| 6253237 | stage_2b/ame_h16_pe_shift (ALiBi and the shift) | 10 | `82b324oh` | r12-9 | completed | 6.9980 |
 
 | Check | Dense h16 | AME h16, S1b-A0 path | AME h16, S2b-PS |
 |---|---|---|---|
@@ -109,8 +109,9 @@ at `31cbc268`, and all finished by 09:07. Every check passed.
 | Checkpoint written | yes | yes, bank state included | yes, bank state included |
 
 The checkpoint lines come from the job logs that W&B captured (`output.log`), because
-LEM's login node stopped answering SSH at 08:56 (decision 2). The smoke checkpoints are
-deleted once it answers again.
+LEM's login node stopped answering SSH at 08:56 (decision 2). The smoke checkpoints were
+deleted at 09:12, once it answered again, as the plan asks. As in Stage 1, a 60-step
+`final_ce` only shows that the end-of-run path works.
 
 **Whole-run estimate on LEM:** 7,630 steps at the smoke s/step, plus about 76 evals and
 startup:
@@ -161,6 +162,16 @@ Points specific to Stage 1b:
 
    n = 9 led dense; AME led at n = 10 and 11. Stage 2b runs at n = 9
    ([stage_2b_report.md](stage_2b_report.md)).
+4. **Slurm was unreachable from LEM's login node on 2026-11-06, from about 21:07 until 22:11
+   at the latest.**
+   - **What failed.** `squeue` failed with `Unable to contact slurm controller (connect
+     failure)`, and `sacct` timed out on the accounting database (`slurm-db:6819`).
+   - **What it did to the jobs: nothing.** All 13 runs then training kept logging, with
+     W&B heartbeats under a minute old: the six Stage 1b grid runs, four Stage 2 runs and
+     three Stage 2b runs.
+   - **What changed.** Monitoring moved to W&B: a watcher that wakes when a run leaves the
+     running state, or when its heartbeat is more than 20 minutes old. Slurm was
+     answering again by 22:11.
 
 ## The learning-rate grid
 
@@ -190,7 +201,7 @@ with no error in any log.
 ### S1b-D results (22:27): n = 9 is best, at the grid's edge
 
 All three dense runs finished their 7,630 steps in 13 h 10–15 m. Each logged `final_ce` and
-wrote its 4.0 GB final checkpoint. Every row has seed 123, 8.00B tokens, 354.71M parameters
+wrote its 4.26 GB final checkpoint. Every row has seed 123, 8.00B tokens, 354.71M parameters
 (251.7M backbone, no banks), 2.222 GFLOP/token, and commit `31cbc268` (cemetery
 `8a6f9f5d`), from [dense_h16_lr_grid.yaml](../../configs/stage_1b/dense_h16_lr_grid.yaml).
 
@@ -210,7 +221,7 @@ wrote its 4.0 GB final checkpoint. Every row has seed 123, 8.00B tokens, 354.71M
 ### S1b-A0 results (23:46): n = 9 is best, at the grid's edge
 
 All three AME runs finished their 7,630 steps in 14 h 20–30 m. Each logged `final_ce` and
-wrote its 23 GB final checkpoint, bank state included. Every row has seed 123, 8.00B tokens,
+wrote its 23.84 GB final checkpoint, bank state included. Every row has seed 123, 8.00B tokens,
 1,986.33M parameters (234.9M backbone, 1,648.36M banks), 2.121 GFLOP/token, and commit
 `31cbc268` (cemetery `843af3b8`), from
 [ame_h16_simplest_lr_grid.yaml](../../configs/stage_1b/ame_h16_simplest_lr_grid.yaml).
@@ -241,3 +252,13 @@ wrote its 23 GB final checkpoint, bank state included. Every row has seed 123, 8
 | S1b-D | **2.7441** | 2.8438 | 2.9600 |
 | S1b-A0 | **3.9746** | 4.0664 | 4.2227 |
 
+## Checkpoints on LEM
+
+Verified on 2026-11-08: each of the six grid runs has its final checkpoint, and only that,
+under `<cemetery clone>/checkpoint/<task's own job id>/<array task id>/`, 84.3 GB in all:
+- S1b-D: 4.26 GB each, 12.8 GB;
+- S1b-A0: 23.84 GB each with the bank state, 71.5 GB.
+
+Sizes are decimal GB (10⁹ bytes), measured with `du --apparent-size`.
+
+The smoke checkpoints were deleted ("Smoke runs").

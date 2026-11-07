@@ -22,6 +22,7 @@ at h12, is [stage_2_report.md](stage_2_report.md).
 | Code and configs | Commit **`89975bbf`** on `ame_main`, for every Stage 2b run, submitted from its own clean worktree, `~/code/nano-stage2b` (branch `stage2b_lem`). Since Stage 1b's `31cbc268`, the only code change is the gqa NoPE option (`c4cb1ef6`, [stage_2_report.md](stage_2_report.md) decision 3). It does not touch AME: `src/core/ame.py`, `src/core/memory_parallel.py` and `_build_ame` are unchanged. So Stage 2b stays comparable with S1b-A0 without a re-run |
 | Configs | [ame_h16_pe.yaml](../../configs/stage_2b/ame_h16_pe.yaml) (S2b-P), [ame_h16_shift.yaml](../../configs/stage_2b/ame_h16_shift.yaml) (S2b-S), [ame_h16_pe_shift.yaml](../../configs/stage_2b/ame_h16_pe_shift.yaml) (S2b-PS), [ame_h16_simplest_seed2.yaml](../../configs/stage_2b/ame_h16_simplest_seed2.yaml) (S2b-N) |
 | Cluster, recipe | As in Stage 1b: LEM, 1 H100 SXM5 94 GB per run, no FSDP2, autocast bf16, micro-batch 16 × 32, 7,630 steps = 8.00B tokens, seed 123 (S2b-N: 124), 24 h limit, r16-11 excluded |
+| Smoke runs | S2b-N's and S2b-PS's code paths ran as 60-step smoke runs at n = 10 on 2026-11-06 at 08:54: jobs 6253235 (`p572pg6e`) and 6253237 (`82b324oh`), recorded with LEM's h16 baseline in [stage_1b_report.md](stage_1b_report.md), "Smoke runs". S2b-P and S2b-S had none of their own: they are S2b-PS's code path with the shift off or the slopes at zero |
 
 ## Decisions
 
@@ -59,7 +60,7 @@ at h12, is [stage_2_report.md](stage_2_report.md).
      crossover came earlier, but the lead grows more slowly so far: 0.006 against h12's
      0.011 at 26–29% of the run.
    - **Starting now saves about 10.5 h**: wave 3 finishes around 23:45 instead of about
-     10:00 on 2026-11-08.
+     10:00 on 2026-11-08. It finished at 23:15.
    - **Cost if n = 9 wins after all:** about 30 GPU-h, and the two runs still show how
      S2b-P and S2b-S respond to the learning rate. The LEM grant had 72,150 of its
      100,000 GPU-h left (`service-balance`, 08:15).
@@ -86,12 +87,17 @@ was kept for submission; the runs do not depend on each other.
 | S2b-S | 9 | 6255246_0 | `c2tjvh5w` | r16-12 |
 | S2b-PS | 9 | 6255247_0 | `rv4xqzap` | r16-12 |
 
+**Slurm was unreachable from LEM's login node on 2026-11-06, from about 21:07 until 22:11
+at the latest.** The controller and the accounting database were both down. These three
+runs kept training, and monitoring moved to W&B. Details in
+[stage_1b_report.md](stage_1b_report.md), decision 4.
+
 ### Results — wave 1 finished 2026-11-07 02:59–03:34
 
 Every row has n = 9 and 7,630 steps × 1,048,576 tokens = 8.00B tokens. The AME arms have
 1,986.33M parameters (234.9M backbone, 1,648.36M banks; the shift arms add 1,024) and
 2.121 GFLOP/token. Dense has 354.71M parameters (251.7M backbone, no banks) and 2.222
-GFLOP/token. Each run wrote its final checkpoint, 23 GB for AME.
+GFLOP/token. Each run wrote its final checkpoint, 23.84 GB for AME.
 
 | Cell | Positional encoding | Shift | `final_ce` | Loss spikes (train) | s/step | MFU | W&B run | Commit | Config |
 |---|---|---|---:|---|---:|---:|---|---|---|
@@ -195,7 +201,7 @@ was run by hand (decision 2).
 | S2b-PS | 10 | 6260571 | `c1df24a4` | `s2b_ps_h16_lr10.0_2026-11-07_03-36-23` | `kxt7oe48` | r12-4 |
 
 Both started at about 03:38 and passed the startup check: 1,986,332,928 parameters and no
-error. They finish around 18:45.
+error. They finished at 18:37 (n = 10) and 18:43 (n = 8); results below.
 
 **At 30% (08:14, step ~2,300 of 7,630)**, train loss averaged over 200-step windows, with
 wave 1's S2b-PS at n = 9 at the same steps. The runs share seed and data order, so each
@@ -258,7 +264,7 @@ Readouts at the end of training, averaged over the 16 layers:
 **The best arm's best n moved to 8**, 0.037 below n = 9; n = 10 is 0.072 above. h12 did
 the same: its check moved S2-PS to n = 8, by 0.062 ([stage_2_report.md](stage_2_report.md)).
 - **What the plan's rule now asks.** S2b-P and S2b-S at n = 8 before a winner is named.
-  That is wave 3, already running (decision 4).
+  That is wave 3, started early (decision 4) and finished at 23:15 (below).
 - **No n = 7 run.** n = 8 is the edge of the check, but the plan's check is n\* ± 1 and
   has no edge rule; the edge rule belongs to the Stage 1 and 1b grids. At h12, Maciej's
   extra S2-PS runs at n = 7 and 6 did not beat n = 8. "For Maciej" 3 has the option.
@@ -344,8 +350,10 @@ FLOPs per token and code as their wave 1 runs: S2b-P 1,986,331,904 and S2b-S 1,9
 parameters, 2.121 GFLOP/token, `89975bbf` with `trainer.learning_rate=8` on the command
 line. At 23:20 no Stage 1–2b job was queued or running. The ten jobs then running under
 `plgmstefaniak` (`bank_gates_*`, `ai_h12_ps_bank4`, `ai_h16_ps_bank4`) were submitted
-22:16–23:11 by another session, from `.../plgllmefficont3/mstefaniak/llmrandom_cemetery/`,
-and are not part of these stages.
+22:16–23:11 by another session, and are not part of these stages: no Stage 1–2b job was
+submitted after 08:16. They share the account and the cemetery directory, because the
+configs' `.../plgllmefficont3/nano/plgmstefaniak` is a link to
+`.../plgllmefficont3/mstefaniak`.
 
 | Cell | n | `final_ce` | Loss spikes (train) | s/step | MFU | W&B run | Commit | Config |
 |---|---:|---:|---|---:|---:|---|---|---|
@@ -470,6 +478,14 @@ the best arm to n = 8, so the other two arms re-ran there first (wave 3). Done:
 
 The plan estimated 93 GPU-h for waves 1 and 2 with S2b-N; wave 3 is the plan's
 conditional re-run.
+
+## Checkpoints on LEM
+
+Verified on 2026-11-08: each of the seven Stage 2b runs has its final checkpoint, and only
+that, under `<cemetery clone>/checkpoint/<job id>/0/`: 23.84 GB each with the bank state,
+166.9 GB in all. S2b-N never ran, so its clone has none.
+
+Sizes are decimal GB (10⁹ bytes), measured with `du --apparent-size`.
 
 ## For Maciej
 

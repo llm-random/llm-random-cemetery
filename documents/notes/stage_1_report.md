@@ -66,16 +66,19 @@ The plan's step 1 "Before the grid": `trainer.n_steps=60 trainer.eval_interval=2
 learning rate n = 12 for the AME pair. All six smoke runs finished on 2026-11-06 by 00:40,
 and every check passed. Their checkpoints were then deleted, as the plan asks.
 
-| Job | Config | n | W&B run | Node | Result |
-|---|---|---:|---|---|---|
-| 6251533_0 | stage_1/dense_h12_lr_grid | 10 | `auyt41sd` — **ignore** | r16-11 | FAILED at 20 s: `CUDA-capable device(s) is/are busy or unavailable` at model creation, a bad GPU on r16-11 |
-| 6251533_1 | stage_1/dense_h12_lr_grid | 11 | `1peeepdd` — **ignore** | r16-11 | FAILED at 13 s, the same error on the same node |
-| 6251543_0 | the same clone, resubmitted with `--exclude=r16-11` | 10 | `bm41vdbc` | r16-14 | completed |
-| 6251543_1 | the same | 11 | `ymolkx78` | r16-14 | completed |
-| 6251533_2 | stage_1/dense_h12_lr_grid | 12 | `rzjcmjgx` | r12-15 | completed |
-| 6251533_3 | stage_1/dense_h12_lr_grid | 13 | `b1vhd7hb` | r18-1 | completed |
-| 6251535 | stage_2/ame_h12_simplest_seed2 (the S1-A0 code path, seed 124) | 12 | `ns484ak5` | r16-2 | completed |
-| 6251536 | stage_2/ame_h12_pe_shift (ALiBi and the shift) | 12 | `k3ydhc0h` | r16-14 | completed |
+| Job | Config | n | W&B run | Node | Result | `final_ce` after 60 steps |
+|---|---|---:|---|---|---|---:|
+| 6251533_0 | stage_1/dense_h12_lr_grid | 10 | `auyt41sd` — **ignore** | r16-11 | FAILED at 20 s: `CUDA-capable device(s) is/are busy or unavailable` at model creation, a bad GPU on r16-11 | — |
+| 6251533_1 | stage_1/dense_h12_lr_grid | 11 | `1peeepdd` — **ignore** | r16-11 | FAILED at 13 s, the same error on the same node | — |
+| 6251543_0 | the same clone, resubmitted with `--exclude=r16-11` | 10 | `bm41vdbc` | r16-14 | completed | 6.7773 |
+| 6251543_1 | the same | 11 | `ymolkx78` | r16-14 | completed | 6.6270 |
+| 6251533_2 | stage_1/dense_h12_lr_grid | 12 | `rzjcmjgx` | r12-15 | completed | 6.7344 |
+| 6251533_3 | stage_1/dense_h12_lr_grid | 13 | `b1vhd7hb` | r18-1 | completed | 7.1328 |
+| 6251535 | stage_2/ame_h12_simplest_seed2 (the S1-A0 code path, seed 124) | 12 | `ns484ak5` | r16-2 | completed | 6.7129 |
+| 6251536 | stage_2/ame_h12_pe_shift (ALiBi and the shift) | 12 | `k3ydhc0h` | r16-14 | completed | 6.7285 |
+
+*A 60-step `final_ce` only shows that the end-of-run path works. It says nothing about
+the learning rate.*
 
 **The checks:**
 
@@ -474,6 +477,19 @@ normalized by the log of the number of keys in view.
   at intermediate sharpness.
 - **τ dips below 8 at intermediate learning rates** (about 6.7–6.9 at n = 7–10) and
   stays near 7.5–7.7 at both ends.
+
+## Checkpoints on LEM
+
+Verified on 2026-11-08: each of the 17 grid runs has its final checkpoint, and only that,
+under `<cemetery clone>/checkpoint/<task's own job id>/<array task id>/`. The cemetery is
+`/lustre/pd03/plgrid/plgllmefficont3/mstefaniak/llmrandom_cemetery/`, which the configs
+reach through the link `.../plgllmefficont3/nano/plgmstefaniak`. 147.8 GB in all:
+- S1-D, 7 runs: 2.20 GB each, 15.4 GB;
+- S1-A0, 10 runs: 13.24 GB each with the bank state, 132.4 GB.
+
+Sizes are decimal GB (10⁹ bytes), measured with `du --apparent-size`.
+
+The smoke checkpoints were deleted after the checks ("Smoke runs").
 
 ## W&B runs to ignore
 

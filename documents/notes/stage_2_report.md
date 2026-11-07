@@ -20,6 +20,7 @@ S1-D, is [stage_1_report.md](stage_1_report.md).
 | Code and configs | Commit **`f9680709`** on `ame_main`, for every Stage 2 run. Its code is identical to Stage 1's `8a240816`: between them, only docs, the Stage 1b–2b configs and the four `learning_rate: 9` lines changed. Jobs are submitted from a clean worktree of their own, `~/code/nano-stage2` (branch `stage2_lem`). Stage 1's worktree stays at `8a240816` |
 | Configs | [ame_h12_pe.yaml](../../configs/stage_2/ame_h12_pe.yaml) (S2-P), [ame_h12_shift.yaml](../../configs/stage_2/ame_h12_shift.yaml) (S2-S), [ame_h12_pe_shift.yaml](../../configs/stage_2/ame_h12_pe_shift.yaml) (S2-PS), [ame_h12_simplest_seed2.yaml](../../configs/stage_2/ame_h12_simplest_seed2.yaml) (S2-N) |
 | Cluster, recipe | As in Stage 1: LEM, 1 H100 SXM5 94 GB per run, no FSDP2, autocast bf16, micro-batch 32 × 16, 3,815 steps = 4.00B tokens, seed 123 (S2-N: 124), r16-11 excluded, 7 h limit passed at submit ([stage_1_report.md](stage_1_report.md), decisions 3–4) |
+| Smoke runs | S2-N's and S2-PS's code paths ran as 60-step smoke runs at n = 12 before Stage 1's grid: jobs 6251535 (`ns484ak5`) and 6251536 (`k3ydhc0h`), recorded with LEM's baseline in [stage_1_report.md](stage_1_report.md), "Smoke runs". S2-P and S2-S had none of their own: they are S2-PS's code path with the shift off or the slopes at zero. For S2-D0, see decision 3 |
 
 ## Decisions
 
@@ -285,6 +286,11 @@ lowest AME result so far, 0.10 behind S1-D at n = 8 (2.9824).
 All four passed the startup check: the expected parameter count (1,103,598,480 without the
 shift, 1,103,599,056 with it), and no error.
 
+**Slurm was unreachable from LEM's login node from about 21:07 until 22:11 at the latest.**
+The controller and the accounting database were both down. These four runs kept training,
+and monitoring moved to W&B. Details in [stage_1b_report.md](stage_1b_report.md),
+decision 4.
+
 5. **S2-PS at n = 7 as well (submitted 20:16).**
    - **Why.** Maciej asked whether h12 AME with ALiBi and the shift was training at
      n = 7. Its best n, 8, sits at the edge of the plan's ±1 check. And S1-A0's own
@@ -385,6 +391,15 @@ are within one spike of each other, and n = 9 costs 0.06.
 
 Across n, the readouts move together: the higher the learning rate, the sharper the
 attention (normalized entropy 0.58 at n = 9 down to 0.49 at n = 6–7) and the larger α₂.
+
+## Checkpoints on LEM
+
+Verified on 2026-11-08: each of the 11 Stage 2 runs has its final checkpoint, and only
+that, under `<cemetery clone>/checkpoint/<job id>/0/`. 134.6 GB in all:
+- each of the 10 AME runs: 13.24 GB, with the bank state;
+- S2-D0: 2.20 GB.
+
+Sizes are decimal GB (10⁹ bytes), measured with `du --apparent-size`.
 
 ## For Maciej
 
