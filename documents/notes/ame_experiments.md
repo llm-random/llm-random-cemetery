@@ -14,9 +14,10 @@ Stages 1c and 2c on 2026-11-07.**
   2026-11-05, before the first submit, so that every run shares one hardware. The s/step
   figures in this plan are entropy's; the LEM smoke runs set LEM's baseline, which
   [stage_1_report.md](stage_1_report.md) records.
-- **Stages 1c and 2c go one size up again: h20, 16B tokens, 4 GPUs per run**, also on
-  LEM. Stage 1c tunes the learning rate for dense only. Stage 2c trains only the best AME
-  variant. Their configs are not written yet, and nothing is submitted.
+- **Stages 1c and 2c go one size up again: h20, 16B tokens, 4 GPUs per run**, on Helios
+  instead of LEM (Maciej, 2026-11-08). Stage 1c tunes the learning rate for dense only.
+  Stage 2c trains only the best AME variant. Their configs are not written yet, and
+  nothing is submitted.
 - Stage 3 is not written yet.
 
 This plan was rewritten from the ground up on 2026-11-05. The program it replaces is kept
@@ -43,7 +44,7 @@ It is there for reference only; nothing in it is scheduled.
 | **2** | AME with positional encoding, with the shift, and with both; which is best | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2_report.md` |
 | **1b** | Stage 1 at h16 and 8B tokens: a dense h16 baseline and the simplest AME h16, with a learning-rate grid for both | Done, 2026-11-06 | `ame_main` · `~/code/nano` | `stage_1b_report.md` |
 | **2b** | Stage 2 at h16 and 8B tokens | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2b_report.md` |
-| **1c** | Dense h20 at 16B tokens on 4 GPUs, with a learning-rate grid. No AME arm | **Next** | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
+| **1c** | Dense h20 at 16B tokens on 4 Helios GPUs, with a learning-rate grid. No AME arm | **Next** | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
 | **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run can start alongside it | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
 | **3** | Not written yet. It is decided from the results of Stages 1 and 2 | — | — | — |
 
@@ -485,8 +486,9 @@ one run, submitted with
 loss does it reach? It is Stage 2c's reference, and the third point of the dense series
 after Stages 1 and 1b.
 
-**Scope, as set by Maciej on 2026-11-07:**
+**Scope, as set by Maciej on 2026-11-07 and 2026-11-08:**
 - one size up from Stage 1b and twice the tokens, on 4 GPUs per run;
+- on Helios, not LEM (2026-11-08);
 - only dense's learning rate is tuned. AME takes its grid from dense's best n (Stage 2c).
 
 Stage 1c needs nothing from the other stages, so it can start at once. Section numbers (§)
@@ -497,7 +499,7 @@ in Stages 1c and 2c refer to [ame_optimization_report.md](ame_optimization_repor
 
 ### What changes from Stage 1b
 
-Everything not in this table is Stage 1b's recipe: LEM, FineWeb-Edu with seed 123,
+Everything not in this table is Stage 1b's recipe: FineWeb-Edu with seed 123,
 512 × 2,048 tokens per step, the `llama` trainer, the same eval and held-out set, and the
 final checkpoint only.
 
@@ -506,7 +508,8 @@ final checkpoint only.
 | Model | h_balanced h16 | **h_balanced h20**: 20 blocks, 20 heads (10 KV in dense), d_model 1,280, d_head 64, SwiGLU d_ff 5,120 |
 | Tokens | 8B = 7,630 steps | **16B = 15,259 steps**: 16·10⁹ / 1,048,576, rounded up |
 | Warmup, 1% | 76 steps | 152 steps |
-| GPUs per run | 1 | **4, one whole LEM node** (`gres: gpu:hopper:4`) |
+| Cluster | LEM: H100, x86 | **Helios**: 4 GH200 per node, aarch64. Partition `plgrid-gpu-gh200`, account `plgllmefficont3-gpu-gh200`. No cluster file sets the account, so the config must. See "Helios" below |
+| GPUs per run | 1 | **4, one whole Helios node** (`gres: gpu:4`) |
 | Sharding, precision | none (`distributed: null`); bf16 from autocast | **FSDP2**, with `reshard_after_forward: false` (O33, §1.10); bf16 from FSDP2's mixed precision |
 | Micro-batch × accumulation | 16 × 32 | **16 × 8 per GPU**: 4 GPUs × 16 × 8 = 512 |
 | Arms | dense and the simplest AME | **dense only** |
@@ -523,8 +526,8 @@ final checkpoint only.
   - A DDP backbone ran out of memory at micro-batch 16 on entropy's 80 GB cards, and was
     slower where it fit (§1.5).
 - **Micro-batch 16:** AME peaks at 64.63 GiB with it (§1.15). Micro-batch 32 ran out of
-  memory on entropy. It would double the ~50 GiB of activations, which would not fit LEM's
-  93.6 GiB either.
+  memory on entropy. It would double the ~50 GiB of activations, which would not fit a
+  GH200's 96 GB either.
 - **Dense uses the same settings**, so the two h20 stages share one precision path.
   Micro-batch 16 is also dense's best on 4 GPUs (44.47% MFU, §1.16).
 - **What FSDP2 costs:**
@@ -552,6 +555,19 @@ final checkpoint only.
 - AME has 5.1× the dense parameter count (5.6× at h16). It does 0.95× the dense FLOPs per
   token.
 
+### Helios — what Stages 1c and 2c need first
+
+No AME config has run on Helios yet. What was known on 2026-11-07:
+
+| | |
+|---|---|
+| **`torch.compile` does not work there** | Helios's aarch64 torch 2.6.0+cu126 wheel declares no Triton. So every config with `compile_blocks_full`, dense or AME, dies at its first forward (job 25828493). Running without compile is no way around it, because AME's flex attention needs Triton too |
+| The planned fix, not yet applied | aarch64 torch → 2.7.1 from the cu128 index, which declares `triton==3.3.1` and hosts the aarch64 wheel. It also brings Helios to LEM's and entropy's 2.7.1. Keep `pixi.lock` at v6, because Helios's pixi 0.67.1 cannot read v7, so never use `pixi run`. Then rebuild the Helios env with `update_pixi.py` |
+| If compile still fails | Run both stages on LEM, as this plan was first written: `gres: gpu:hopper:4`, with node r16-11 excluded ([stage_1_report.md](stage_1_report.md), decision 3). Record why. Both stages stay on one cluster |
+| Queue | Helios is full. `--qos=now` starts within minutes, but only for 1-GPU jobs of up to 12 h, one at a time. 4-GPU jobs queue under normal QoS by age; one grant job waited 25 h on 2026-11-07. So prove the fix with a 1-GPU `--qos=now` smoke run, for example Stage 2b's h16 PS file moved to Helios with 60 steps. Then submit the 4-GPU jobs without delay |
+| Data | Jobs read FineWeb from a `$SCRATCH` copy while it is fresh, about 1.5 min to open instead of 32 ([configs/_cluster/helios.yaml](../../configs/_cluster/helios.yaml)). Each job log prints `FineWeb: <dir>` |
+| Budget | Helios has its own grant: 100k GH200 GPU-h, 11,260 of them used on 2026-11-07 (`ssh helios hpc-grants`) |
+
 ### S1c.1 — the learning-rate grid
 
 | | |
@@ -572,33 +588,33 @@ final checkpoint only.
    - **AME:** the S2c-PS file with `trainer.learning_rate=9`.
 
    Check that:
-   - micro-batch 16 fits under FSDP2 on LEM;
+   - micro-batch 16 fits under FSDP2 on Helios;
    - the s/step is close to the table below;
    - `final_ce` is logged and the checkpoint is written;
    - AME's readouts fail with one warning, and the run goes on.
 
    Then delete the smoke checkpoints.
 
-**Cost — estimated; h20 has not trained on LEM.**
+**Cost — estimated; nothing has trained on Helios's GH200s yet.**
 - The figures start from entropy's 4-GPU benchmarks at micro-batch 16:
   - for dense, §1.16;
   - for AME, `configs/ame/h20_4gpu.yaml` as it stands on `ame_main` (35.02% MFU, the
     report's headline).
-- They are scaled by ×1.10–1.14, which is how much slower LEM ran:
+- They are scaled by ×1.10–1.14, which is how much slower LEM ran than entropy:
   - the same 4-GPU AME h20 config: 4.09 against 3.72 s/step
     ([archive/ame_optimization_plan.md:680](archive/ame_optimization_plan.md#L680), B1-lem);
   - Stage 1b's runs.
+- For Helios that is a cautious guess. A GH200 has the same Hopper GPU with faster memory,
+  so it may run nearer entropy's speed.
 - The smoke runs replace these figures.
 
-| Arm | Entropy s/step | LEM s/step, estimated | 15,259 steps | Whole run, with evals and startup | GPU-h per run |
+| Arm | Entropy s/step | s/step, estimated | 15,259 steps | Whole run, with evals and startup | GPU-h per run |
 |---|---:|---:|---:|---:|---:|
 | S1c-D | 2.364 | 2.60–2.70 | 11.0–11.4 h | about 12 h | about 48 |
 | S2c-PS, for Stage 2c | 2.852 | 3.14–3.25 | 13.3–13.8 h | about 14.5 h | about 58 |
 
 - The grid is about 145 GPU-h: one wave of about 12 h on 3 nodes.
-- Stages 1c and 2c together cost about 320 GPU-h. The LEM grant had 72,150 GPU-h left on
-  2026-11-07 ([stage_2b_report.md](stage_2b_report.md), decision 4).
-- 4-GPU jobs may wait longer in LEM's queue than 1-GPU ones (Maciej, 2026-11-06).
+- Stages 1c and 2c together cost about 320 GPU-h, a small share of Helios's grant (above).
 - **There are no mid-run checkpoints**, as in Stages 1 and 1b. A run that dies starts
   again from step 0, and loses up to about 58 GPU-h.
 
@@ -609,9 +625,8 @@ final checkpoint only.
 | S1c-D | `configs/stage_1c/dense_h20_lr_grid.yaml`: the S1b-D file with the changes above | 3 runs, one per n ∈ {8, 9, 10}, as one sbatch array |
 
 - Submit with
-  `run_exp.py --config-path configs/stage_1c --config-name dense_h20_lr_grid`.
-  - Submit from a clean worktree of its own.
-  - Exclude node r16-11 ([stage_1_report.md](stage_1_report.md), decision 3).
+  `run_exp.py --config-path configs/stage_1c --config-name dense_h20_lr_grid`, from a
+  clean worktree of its own.
 - The runs go to W&B `nano-ame`, named `s1c_d_h20_lr<n>` and tagged `stage_1c`.
 
 **Stage 1c is done when** dense's best n lies inside the grid, and `stage_1c_report.md`
