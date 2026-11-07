@@ -1,0 +1,64 @@
+# ame_improve, h16: Stage 2b's winning arm S2b-PS (AME + ALiBi + KV shift) with
+# the Q/K memory banks training at 4x the learning rate. One submit = 1 run.
+#
+# A copy of configs/stage_2b/ame_h16_pe_shift.yaml. Only these differ:
+#   - trainer.learning_rate: 8, S2b-PS's best n (stage_2b_report.md);
+#   - the length is trainer.n_tokens_b: 8 with n_steps: null. At 512 x 2049
+#     tokens per step it resolves to 7,625 steps; the baseline ran 7,630;
+#   - trainer.bank_lr_ratio: 4.0, written out although it is the default;
+#   - a run name without a dot, so run_exp.py's tmux step works
+#     (stage_2_report.md, decision 2).
+# Baseline: the same recipe at bank_lr_ratio 1, W&B hjw7znbz (job 6260570),
+# final_ce 2.8594. Record: documents/notes/ame_improve_runs_report.md.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h16
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step
+  # shift: true learns (alpha_1, alpha_2) and (beta_1, beta_2) per head and
+  # layer. slopes is unset, so AME uses its ALiBi ladder (horizons 16 to 8192).
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 32 # micro-batch 16; AME h16 runs out of memory at 32
+  mem_parallel_size: 1 # hand-managed bank path (Tier 2), banks unsharded
+  distributed: null # no FSDP2, so AME's readouts (tau, alpha/beta, entropy) are logged
+  autocast_bf16: true
+
+  # Everything not set here is a llama-trainer default: AdamW, weight decay
+  # 0.1 (banks exempt), cosine schedule with 1% warmup to 10% of peak, eval
+  # every 100 steps, final_ce on the fixed 8192 x 2048 held-out set.
+  n_steps: null
+  n_tokens_b: 8 # -> 7,625 steps
+  learning_rate: 8 # LR = 2^-8
+  bank_lr_ratio: 4.0 # banks at 4 x 2^-8 for the whole schedule
+  checkpoint:
+    save:
+      path: checkpoint # final checkpoint only
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: ai_h16_bank4
+    time: "1-00:00:00" # the run takes about 15 h; no mid-run checkpoints
+  metric_logger:
+    project_name: nano-ame
+    name: ai_h16_ps_bank4_lr8
+    tags:
+      - ame
+      - h16
+      - ame_improve
+      - bank_lr4
