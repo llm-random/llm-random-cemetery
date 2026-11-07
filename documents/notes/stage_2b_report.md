@@ -332,7 +332,12 @@ windows):
 
 - **S2b-P at n = 8** keeps widening its lead, on S2b-PS's path.
 - **S2b-S at n = 8** has not spiked since step 2,924, and leads n = 9 by about 0.05.
-  n = 9 spiked again at steps 4,050–4,066. If wave 2 still ends with n = 9 best,
+  n = 9 spiked again at steps 4,050–4,066.
+
+**At 90% (21:36):** S2b-P at n = 8 leads its n = 9 run by 0.041 (steps 6,800–6,999:
+3.0263 against 3.0673). S2b-S at n = 8 leads by 0.082 (steps 6,400–6,599: 3.5155 against
+3.5970), after a fifth, smaller spike at steps 4,478–4,526, to 5.72. S2b-P has not spiked.
+They finish about 22:50 (S2b-P) and 23:20 (S2b-S). If wave 2 still ends with n = 9 best,
 wave 1 names the winner, and these two runs are reported as a learning-rate check of
 S2b-P and S2b-S.
 
