@@ -1,6 +1,7 @@
 # AME with the banks at 4× the learning rate — report
 
-**Status (2026-11-07 23:15): h12 submitted; h16 next. Nothing scored yet.**
+**Status (2026-11-07 23:20): both runs train and passed the start check (`train/bank_lr`
+= 4 × `train/lr` exactly). h12 ends about 03:15, h16 about 13:45 on 11-08. Checks every 2 h.**
 
 Two runs test the `ame_improve` features on Stage 2's winning AME recipe (S2-PS: ALiBi and
 the KV shift). The point of the test is `trainer.bank_lr_ratio: 4.0`, which trains AME's Q/K
@@ -12,7 +13,7 @@ recipe at ratio 1. Maciej set the task by `/goal` on 2026-11-07. Times are CET.
 | | |
 |---|---|
 | Question | Does training the banks at 4× the learning rate lower `final_ce` at h12 (4B tokens) and h16 (8B tokens)? |
-| Runs | h12: [ame_h12_ps_bank4.yaml](../../configs/ame_improve/ame_h12_ps_bank4.yaml). h16: [ame_h16_ps_bank4.yaml](../../configs/ame_improve/ame_h16_ps_bank4.yaml) |
+| Runs | h12: [ame_h12_ps_bank4.yaml](../../configs/ame_improve/ame_h12_ps_bank4.yaml). h16: [ame_h16_ps_bank4.yaml](../../configs/ame_improve/ame_h16_ps_bank4.yaml). Both are on branch `ame_improve_runs`, not on `ame_main` |
 | Baselines (ratio 1) | h12: S2-PS n = 8, W&B `doi36p8k`, job 6256577, `final_ce` 3.1250. h16: S2b-PS n = 8, W&B `hjw7znbz`, job 6260570, `final_ce` 2.8594 |
 | What differs from the baselines | `bank_lr_ratio` 4.0 (the baselines predate the key, so 1), and the length: `n_tokens_b` 4 and 8 resolve to 3,812 and 7,625 steps at 512 × 2049 tokens per step, against 3,815 and 7,630. Warmup is 38 and 76 steps in both. Everything else equals the baselines' logged W&B configs |
 | Recipe | LEM, 1 H100 per run, r16-11 excluded. n = 8 (LR 2⁻⁸; banks at 2⁻⁶), seed 123, batch 512 × 2049, micro-batch 32 (h12) and 16 (h16), no FSDP2, Tier 2 banks (`mem_parallel_size: 1`), autocast bf16, `compile_blocks_full`, final checkpoint only |
@@ -36,10 +37,25 @@ recipe at ratio 1. Maciej set the task by `/goal` on 2026-11-07. Times are CET.
 
 | Run | Job | Cemetery clone (under `.../nano/plgmstefaniak/llmrandom_cemetery/`) | W&B run | Node | Submitted |
 |---|---|---|---|---|---|
-| h12 | 6264870 | `ai_h12_ps_bank4_lr8_2026-11-07_23-10-29` | | | 23:10 |
-| h16 | | | | | |
+| h12 | 6264870 | `ai_h12_ps_bank4_lr8_2026-11-07_23-10-29` | [`y5ogvt3k`](https://wandb.ai/ideas_cv/nano-ame/runs/y5ogvt3k) | r12-11 | 23:10 |
+| h16 | 6264872 | `ai_h16_ps_bank4_lr8_2026-11-07_23-11-17` | [`hn1qal9z`](https://wandb.ai/ideas_cv/nano-ame/runs/hn1qal9z) | r16-3 | 23:11 |
+
+Both jobs started within a minute of submission. Training began at 23:13 (h12) and 23:14
+(h16); FineWeb opened in under 2 min.
 
 ## Checks
+
+Each check reads W&B. s/step is the median of `train/step_time`, the stage reports'
+convention. The loss gap is new − baseline at the same step: both runs see the same batches
+at the same step, so batch difficulty cancels. A spike is a train loss more than 0.5 above
+the median of the previous 50 steps. Train loss and `final_ce` are bf16 values: they move
+in steps of 1/64 = 0.0156 between 2 and 4, so a single step's gap means little, and window
+means are used instead.
+
+| Time | Run | Step | s/step (baseline) | Loss gap, mean over window | NaN / spikes | Notes |
+|---|---|---:|---|---|---|---|
+| 23:15 | h12 | 27 | 3.755 (3.746) | −0.002 (steps 0–27) | none | **Start check passed.** The log resolves `n_tokens_b` 4 to 3,812 steps; 1.053 GFLOP/token as the baseline; `bank_lr`/`lr` = 4.000000 at every step; alpha/beta/tau/entropy readouts logged |
+| 23:15 | h16 | 7 | 6.777 (6.810) | 0.000 (steps 0–7) | none | **Start check passed.** 7,625 steps; 2.121 GFLOP/token as the baseline; `bank_lr`/`lr` = 4.000000; readouts logged |
 
 ## Results
 
