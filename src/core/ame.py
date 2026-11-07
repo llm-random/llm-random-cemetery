@@ -40,8 +40,28 @@ Five things here are load-bearing and easy to get subtly wrong:
 KV shifting (`alpha`, `beta`) is prior art -- Xu, Cheng, Wang & Chen, arXiv
 2411.19574 -- not this project's contribution. Any dense baseline AME is compared
 against must have it too, or AME collects someone else's gain.
+
+**Bank gates** (`bank_gate`, documents/notes/ame_bank_gates_plan.md). A bank row
+is updated only in steps where its token occurs, yet under the hard QK-norm a
+rarely updated row acts at full strength. Each gate changes how much a row's
+identity reaches the scores; "none" is the model above, bit for bit:
+
+    confidence  (B1)  q = sigmoid(c_Q[t]) * norm(E_Q[t]), the same for k; c is
+                      one trust logit per token and head, stored as H extra
+                      bank columns and started at logit(0.05)
+    context     (B2)  q = sigmoid(W_g x_i + b) * norm(E_Q[t]), one scalar per
+                      query position and head; W_g = 0, b = 3 at init
+    backoff     (B3)  q = norm((base_Q + E_Q[t]) / sqrt 2), the same for k; one
+                      shared vector per head, started at zero
+    stem        (ST)  q = silu(W_g x_i) * norm(E_Q[t]), per channel, as STEM's
+                      SwiGLU gate scales its table row
+
+`context` and `stem` read the hidden state, so their scores are no longer a
+function of ids and distance alone; the instrumentation that assumes they are
+(`score_matrix`, `attention_diagnostics`) refuses them rather than feed x = 0.
 """
 
+import hashlib
 import math
 from functools import partial
 
@@ -50,6 +70,19 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from src.core.model import Linear, llm_random_weight_init
+
+# The values `bank_gate` takes. One enum rather than a boolean per mechanism, so
+# that "one mechanism per run" is structural.
+BANK_GATES = ("none", "confidence", "context", "backoff", "stem")
+# B1: every trust scalar starts at sigmoid(logit(0.05)) = 0.05, so every score
+# starts at 0.05 * 0.05 = 0.0025 of its ungated size: attention begins as the
+# ALiBi prior plus the sink, until a token's own updates earn it trust.
+CONFIDENCE_INIT = 0.05
+CONFIDENCE_INIT_LOGIT = math.log(CONFIDENCE_INIT / (1.0 - CONFIDENCE_INIT))
+# B2: W_g = 0 and b = 3 open every gate to sigmoid(3) = 0.953, the strongest of
+# Highway networks' carry settings (a transform-gate bias of -1 to -3,
+# Srivastava, Greff & Schmidhuber 2015). Not tuned.
+CONTEXT_GATE_INIT_BIAS = 3.0
 
 # Horizon of the steepest head, in tokens: a token at distance d competes only
 # while m*d <~ tau, so the ladder is specified in horizons (tau/m) and converted
@@ -77,6 +110,48 @@ def _shift1(z):
     """
     pad = [0, 0] * (z.dim() - 2) + [1, 0]
     return F.pad(z, pad)[:, :-1]
+
+
+def _with_trust_columns(bank, heads):
+    """B1: `bank`, `heads` columns wider, the new columns at logit(0.05).
+
+    Built from the bank as already drawn, so the first `H*d` columns are exactly
+    the ungated model's draw and the global RNG is not touched: every arm then
+    starts every shared weight from the same numbers, and differs from "none"
+    only in its mechanism. `_weight=` keeps nn.Embedding from re-drawing.
+    """
+    vocab, width = bank.weight.shape
+    wide = bank.weight.new_empty(vocab, width + heads)
+    if not wide.is_meta:
+        with torch.no_grad():
+            wide[:, :width] = bank.weight
+            wide[:, width:] = CONFIDENCE_INIT_LOGIT
+    return nn.Embedding(vocab, width + heads, _weight=wide)
+
+
+def _rng_neutral_linear(in_features, out_features, bias, device):
+    """An nn.Linear whose construction draws nothing from the global RNG.
+
+    nn.Linear's own reset_parameters draws a Kaiming init; on the meta device it
+    draws nothing, and `to_empty` then allocates on the real device. The caller
+    fills the weights. Keeping the global stream untouched is what keeps every
+    later parameter (this layer's v_proj, the next blocks) identical across the
+    gate arms.
+    """
+    layer = nn.Linear(in_features, out_features, bias=bias, device="meta")
+    return layer.to_empty(device=device)
+
+
+def _private_generator():
+    """A CPU generator seeded from the global RNG's state, without advancing it.
+
+    For a gate whose init is random (ST) but must not shift the global stream.
+    The state differs at every point of model construction, so each layer gets
+    its own seed, and the same seed and build order give the same draw.
+    """
+    state = torch.random.get_rng_state().numpy().tobytes()
+    seed = int.from_bytes(hashlib.blake2b(state, digest_size=8).digest(), "little")
+    return torch.Generator().manual_seed(seed & ((1 << 63) - 1))
 
 
 def _full(tensor):
@@ -183,8 +258,10 @@ class AMEAttention(nn.Module):
     wants_token_ids = True
 
     # 2-D by shape, but not matmul weights: src.core.mfu would otherwise charge
-    # 6*P of matmul FLOPs for per-head scalars and one key vector.
-    non_matmul_parameters = ("alpha", "beta", "k_sink", "v_sink")
+    # 6*P of matmul FLOPs for per-head scalars and one key vector. The B3 base
+    # vectors are added to the bank rows, not multiplied into anything. Names a
+    # layer does not have (no sink, no backoff gate) are skipped.
+    non_matmul_parameters = ("alpha", "beta", "k_sink", "v_sink", "q_base", "k_base")
 
     # Scales and per-head scalars, which decoupled weight decay must not touch.
     # AdamW's decay moves a parameter whose gradient is zero, so at wd=0.1 it
@@ -210,6 +287,14 @@ class AMEAttention(nn.Module):
     # decays toward zero while keeping its random direction. The cost is that
     # AME's banks are then regularized differently from the dense baseline's
     # W_Q/W_K, which baselines.md asks to be matched -- say so when reporting.
+    #
+    # The bank gates (ame_bank_gates_plan.md): B1's trust logits are bank
+    # columns, so the bank entry already covers them. B2's gate bias is here
+    # because decay would pull every gate toward sigmoid(0) = 0.5; its weight
+    # decays like any Linear weight, and so does ST's gate (no bias). B3's base
+    # vectors are scales of the same kind as the sink. Names a layer does not
+    # have -- or, for ST's bias-free gate, `gate.bias` resolving to None -- are
+    # skipped by parameter_groups.
     no_weight_decay_parameters = (
         "tau",
         "alpha",
@@ -219,6 +304,9 @@ class AMEAttention(nn.Module):
         "v_sink",
         "q_bank.weight",
         "k_bank.weight",
+        "gate.bias",
+        "q_base",
+        "k_base",
     )
 
     def __init__(
@@ -235,6 +323,7 @@ class AMEAttention(nn.Module):
         dhead=None,
         qk_norm=True,
         bank_init_std=1.0,
+        bank_gate="none",
         shift=True,
         pin_alpha=False,
         pin_beta=False,
@@ -250,6 +339,12 @@ class AMEAttention(nn.Module):
             raise ValueError(
                 f"unknown ame backend {backend!r}; expected auto, flex or reference"
             )
+        if bank_gate not in BANK_GATES:
+            raise ValueError(
+                f"unknown ame bank_gate {bank_gate!r}; expected one of "
+                f"{', '.join(BANK_GATES)}"
+            )
+        self.bank_gate = bank_gate
         self.dmodel = dmodel
         self.q_heads = q_heads
         # Kept so the registry's introspection (and get_model_dimensions) finds
@@ -278,6 +373,11 @@ class AMEAttention(nn.Module):
             for bank in (self.q_bank, self.k_bank):
                 if not bank.weight.is_meta:
                     bank.weight.normal_(mean=0.0, std=bank_init_std)
+        if bank_gate == "confidence":
+            # B1: H trust logits appended to every row (width H*d + H). Widened
+            # after the draw above, so the row part is the ungated draw.
+            self.q_bank = _with_trust_columns(self.q_bank, q_heads)
+            self.k_bank = _with_trust_columns(self.k_bank, q_heads)
 
         # Values and output stay exactly as in MHA.
         linear = partial(
@@ -337,6 +437,43 @@ class AMEAttention(nn.Module):
             self.k_sink = nn.Parameter(torch.zeros(q_heads, self.dhead))
             self.v_sink = nn.Parameter(torch.zeros(q_heads, self.dhead))
         self._block_mask_cache = {}
+        # Last, so every parameter above keeps its place in the state dict, and
+        # none of them draws from the global RNG (see the helpers' docstrings).
+        self._init_gate(bank_gate, init_scale)
+
+    def _init_gate(self, bank_gate, init_scale):
+        """The parameters of the B2, B3 and ST gates. B1's live in the banks."""
+        device = self.v_proj.weight.device
+        datt = self.q_heads * self.dhead
+        if bank_gate == "context":
+            # B2: one sigmoid gate per head, read off the query's hidden state.
+            self.gate = _rng_neutral_linear(self.dmodel, self.q_heads, True, device)
+            if not self.gate.weight.is_meta:
+                with torch.no_grad():
+                    self.gate.weight.zero_()
+                    self.gate.bias.fill_(CONTEXT_GATE_INIT_BIAS)
+        elif bank_gate == "backoff":
+            # B3: one shared vector per head, mixed into every row before the
+            # norm. Zero at init: the same forward as an ungated run.
+            self.q_base = nn.Parameter(torch.zeros(self.q_heads, self.dhead))
+            self.k_base = nn.Parameter(torch.zeros(self.q_heads, self.dhead))
+        elif bank_gate == "stem":
+            # ST: a dmodel -> H*d gate under silu, initialized by the rule the
+            # SwiGLU gate uses, drawn from a private generator.
+            self.gate = _rng_neutral_linear(self.dmodel, datt, False, device)
+            if not self.gate.weight.is_meta:
+                draw = torch.empty(datt, self.dmodel)
+                llm_random_weight_init(self.dmodel, init_scale)(
+                    draw, generator=_private_generator()
+                )
+                with torch.no_grad():
+                    self.gate.weight.copy_(draw)
+
+    @property
+    def scores_read_hidden_state(self):
+        """True for the gates that read x (B2, ST): their scores are no longer a
+        function of token ids and distance alone."""
+        return self.bank_gate in ("context", "stem")
 
     def _init_mix(self, name, pinned):
         """alpha/beta as `[H, 2]`: `(c1, c2)` per head, kept in fp32.
@@ -408,13 +545,83 @@ class AMEAttention(nn.Module):
         readout["horizon/min"] = horizons.min().item()
         readout["horizon/max"] = horizons.max().item()
 
+        readout.update(self._gate_readout())
+
         # Entropy and top-k mass need a batch; the trainer hands over the last
         # micro-batch's ids. They are the other half of 7's list, and unlike
         # everything above they describe what attention *did* rather than what
-        # its parameters are.
+        # its parameters are. A gate that reads x gets nothing here (see
+        # attention_diagnostics).
         if token_ids is not None:
             readout.update(self.attention_diagnostics(token_ids))
         return readout
+
+    def _trust_logits(self, which):
+        """B1's `[vocab, H]` trust logits of the q or k bank, or None when this
+        rank holds only a column shard of it (mem_parallel_size > 1).
+
+        Read from the fp32 master when the memory-parallel controller owns the
+        bank -- the forward's copy is bf16 -- and from the weight otherwise.
+        """
+        bank = getattr(self, f"{which}_bank")
+        weight = getattr(bank, "master", None)
+        if weight is None:
+            weight = bank.weight
+        datt = self.q_heads * self.dhead
+        if weight.shape[-1] != datt + self.q_heads:
+            return None
+        return _full(weight).detach()[:, datt:].float()
+
+    @torch.no_grad()
+    def _gate_readout(self):
+        """Parameter-only readouts of the bank gate, cheap enough for every
+        heavy-metric step. B2's and ST's gates depend on x, so for them this is
+        the gate's weights, not its values."""
+        readout = {}
+        if self.bank_gate == "confidence":
+            for which in ("q", "k"):
+                logits = self._trust_logits(which)
+                if logits is None:
+                    continue
+                trust = torch.sigmoid(logits).flatten()
+                levels = torch.tensor([0.1, 0.5, 0.9], device=trust.device)
+                p10, p50, p90 = torch.quantile(trust, levels).tolist()
+                readout[f"trust_{which}/mean"] = trust.mean().item()
+                readout[f"trust_{which}/p10"] = p10
+                readout[f"trust_{which}/p50"] = p50
+                readout[f"trust_{which}/p90"] = p90
+                readout[f"trust_{which}/above_half"] = (
+                    (trust > 0.5).float().mean().item()
+                )
+        elif self.bank_gate == "backoff":
+            for which in ("q", "k"):
+                norms = _full(getattr(self, f"{which}_base")).detach().float()
+                norms = norms.norm(dim=-1)
+                readout[f"base_{which}_norm/mean"] = norms.mean().item()
+                for head, value in enumerate(norms.tolist()):
+                    readout[f"base_{which}_norm/h{head}"] = value
+        elif self.bank_gate in ("context", "stem"):
+            weight = _full(self.gate.weight).detach().float()
+            readout["gate_weight/rms"] = weight.pow(2).mean().sqrt().item()
+            if self.bank_gate == "context":
+                bias = _full(self.gate.bias).detach().float()
+                readout["gate_bias/mean"] = bias.mean().item()
+                readout["gate_bias/min"] = bias.min().item()
+                readout["gate_bias/max"] = bias.max().item()
+        return readout
+
+    def _query_gate(self, x, q):
+        """B2's and ST's factor on the normalized query, in q's dtype.
+
+        B2: `sigmoid(W_g x + b)`, one scalar per position and head, computed in
+        fp32. ST: `silu(W_g x)`, one value per position and channel.
+        """
+        batch, seq_len = x.shape[:2]
+        if self.bank_gate == "context":
+            gate = torch.sigmoid(self.gate(x).float())
+            return gate.to(q.dtype).unsqueeze(-1)
+        gate = F.silu(self.gate(x))
+        return gate.view(batch, seq_len, self.q_heads, self.dhead).to(q.dtype)
 
     def _mixed_qkv(self, x, token_ids):
         """Everything up to the kernel: gather, normalize, mix, scale.
@@ -435,17 +642,40 @@ class AMEAttention(nn.Module):
         # unchanged.
         if self.qk_bank is not None:
             q, k = self.qk_bank(token_ids)
-            q = q.view(batch, seq_len, heads, dhead)
-            k = k.view(batch, seq_len, heads, dhead)
         else:
-            q = self.q_bank(token_ids).view(batch, seq_len, heads, dhead)
-            k = self.k_bank(token_ids).view(batch, seq_len, heads, dhead)
+            q = self.q_bank(token_ids)
+            k = self.k_bank(token_ids)
+        if self.bank_gate == "confidence":
+            # B1: a row's last H columns are its trust logits, one per head.
+            datt = heads * dhead
+            q, q_trust = q[..., :datt], q[..., datt:]
+            k, k_trust = k[..., :datt], k[..., datt:]
+        q = q.view(batch, seq_len, heads, dhead)
+        k = k.view(batch, seq_len, heads, dhead)
         v = self.v_proj(x).view(batch, seq_len, heads, dhead)
+
+        if self.bank_gate == "backoff":
+            # B3, Gemma 3n's per-layer-embedding mix: every row is averaged with
+            # one shared, densely trained vector before the norm. The norm makes
+            # the 1/sqrt(2) a no-op; it stays so this reads as Gemma's formula.
+            # base is cast to the rows' dtype so the prep runs in the precision
+            # every other arm's does.
+            q = (q + self.q_base.to(q.dtype)) / math.sqrt(2.0)
+            k = (k + self.k_base.to(k.dtype)) / math.sqrt(2.0)
 
         if self.qk_norm:
             # On the bank ROWS, before the mix. Not on the mixed key.
             q = F.normalize(q, dim=-1)
             k = F.normalize(k, dim=-1)
+
+        if self.bank_gate == "confidence":
+            # After the norm, before the mix: the KV shift mixes trust-scaled
+            # keys. The sigmoid in fp32, then cast.
+            q = q * torch.sigmoid(q_trust.float()).to(q.dtype).unsqueeze(-1)
+            k = k * torch.sigmoid(k_trust.float()).to(k.dtype).unsqueeze(-1)
+        elif self.scores_read_hidden_state:
+            # B2 and ST: the query only, after the norm and before tau.
+            q = q * self._query_gate(x, q)
 
         alpha = self.alpha.to(k.dtype)
         beta = self.beta.to(v.dtype)
@@ -728,7 +958,19 @@ class AMEAttention(nn.Module):
     def score_matrix(self, token_ids):
         """The `[B, H, n, n (+1)]` score matrix, for diagnostics: attention
         entropy, top-k mass, whether a sink row emerged. Reference path only --
-        it materializes the scores on purpose."""
+        it materializes the scores on purpose.
+
+        It feeds `x = 0`, which is exact only while the scores ignore x. Under a
+        gate that reads x it would be silently wrong -- B2's gate would read
+        sigmoid(b) everywhere and ST's silu(0) = 0 would erase every query -- so
+        those gates raise instead.
+        """
+        if self.scores_read_hidden_state:
+            raise ValueError(
+                f"score_matrix runs on x = 0, but bank_gate={self.bank_gate!r} "
+                "reads the hidden state, so its scores need real activations "
+                "(documents/scripts/bank_gates_eval.py computes them)"
+            )
         x = torch.zeros(
             *token_ids.shape,
             self.dmodel,
@@ -759,7 +1001,13 @@ class AMEAttention(nn.Module):
         divides by `ln(visible keys)` per row, so 1.0 is uniform attention over
         what the row can reach and 0.0 is a head collapsed onto one key --
         comparable across rows, heads and context lengths, and the one to read.
+
+        Empty for a gate that reads x (B2, ST): computed from `x = 0` their
+        readout would be wrong without saying so. Their attention statistics
+        come from the offline evaluation, which has real activations.
         """
+        if self.scores_read_hidden_state:
+            return {}
         ids = token_ids[:max_batch]
         batch, seq_len = ids.shape
         x = torch.zeros(
@@ -808,5 +1056,6 @@ class AMEAttention(nn.Module):
         return (
             f"vocab_size={self.vocab_size}, q_heads={self.q_heads}, dhead={self.dhead}, "
             f"qk_norm={self.qk_norm}, sink={self.use_sink}, "
-            f"alpha_pinned={self.alpha_is_pinned}, beta_pinned={self.beta_is_pinned}"
+            f"alpha_pinned={self.alpha_is_pinned}, beta_pinned={self.beta_is_pinned}, "
+            f"bank_gate={self.bank_gate}"
         )

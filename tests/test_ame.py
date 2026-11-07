@@ -1211,3 +1211,644 @@ def test_the_trainer_logs_the_parameter_readout_even_with_no_batch():
     stub._log_layer_instrumentation()
     suffixes = {name.split("/", 1)[1] for name in stub.metric_logger.logged}
     assert suffixes == _READOUT_KEYS
+
+
+# ---------------------------------------------------------------------------
+# Bank gates (documents/notes/ame_bank_gates_plan.md): four ways to trust a bank
+# row. `none` is the model every test above checks; each gate must change
+# exactly what the plan says and nothing else.
+
+GATES = ("confidence", "context", "backoff", "stem")
+# Gates whose scores still depend only on token ids and distance.
+ID_ONLY_GATES = ("none", "confidence", "backoff")
+# Gates that read the query's hidden state, and so break that on purpose.
+X_READING_GATES = ("context", "stem")
+
+
+def _perturb_gate(layer, seed=7):
+    """Move a gate's parameters off their init, so a test cannot pass because
+    every trust is 0.05, every B2 gate sigmoid(3) or every base zero."""
+    generator = torch.Generator().manual_seed(seed)
+    datt = layer.q_heads * layer.dhead
+    with torch.no_grad():
+        if layer.bank_gate == "confidence":
+            for bank in (layer.q_bank, layer.k_bank):
+                noise = torch.randn(bank.weight[:, datt:].shape, generator=generator)
+                bank.weight[:, datt:] = 2.0 * noise
+        elif layer.bank_gate == "context":
+            layer.gate.weight.copy_(
+                0.3 * torch.randn(layer.gate.weight.shape, generator=generator)
+            )
+            layer.gate.bias.copy_(
+                torch.randn(layer.gate.bias.shape, generator=generator)
+            )
+        elif layer.bank_gate == "backoff":
+            for base in (layer.q_base, layer.k_base):
+                base.copy_(torch.randn(base.shape, generator=generator))
+        elif layer.bank_gate == "stem":
+            layer.gate.weight.mul_(3.0)
+    return layer
+
+
+def _scores_with_x(layer, x, token_ids):
+    """`[B, H, n, n (+1)]` scores from real activations. score_matrix feeds
+    x = 0 and refuses the gates that read x; this is the general path."""
+    q, k, v = layer._mixed_qkv(x, token_ids)
+    _, scores = layer._attend_reference(q, k, v, return_scores=True)
+    return scores
+
+
+def _spec_gated_forward(layer, x, token_ids):
+    """The forward of every gate, transcribed from the plan's mechanism table.
+    Naive on purpose, like `_spec_forward`, and sink-free like it."""
+    batch, seq_len = token_ids.shape
+    heads, dhead = layer.q_heads, layer.dhead
+    datt = heads * dhead
+    gate = layer.bank_gate
+
+    q_rows = layer.q_bank.weight[token_ids]
+    k_rows = layer.k_bank.weight[token_ids]
+    q = q_rows[..., :datt].reshape(batch, seq_len, heads, dhead)
+    k = k_rows[..., :datt].reshape(batch, seq_len, heads, dhead)
+    if gate == "backoff":  # normalize((base + E[t]) / sqrt 2)
+        q = (layer.q_base + q) / math.sqrt(2)
+        k = (layer.k_base + k) / math.sqrt(2)
+    q = q / q.norm(dim=-1, keepdim=True)
+    k = k / k.norm(dim=-1, keepdim=True)
+    if gate == "confidence":  # sigmoid(c[t]) * normalize(E[t]), both sides
+        q = torch.sigmoid(q_rows[..., datt:]).unsqueeze(-1) * q
+        k = torch.sigmoid(k_rows[..., datt:]).unsqueeze(-1) * k
+    elif gate == "context":  # sigmoid(W_g x + b) * normalize(E_Q[t])
+        g = torch.sigmoid(x @ layer.gate.weight.T + layer.gate.bias)
+        q = g.unsqueeze(-1) * q
+    elif gate == "stem":  # silu(W_g x) (.) normalize(E_Q[t])
+        g = torch.nn.functional.silu(x @ layer.gate.weight.T)
+        q = g.reshape(batch, seq_len, heads, dhead) * q
+
+    def shift1(z):
+        shifted = torch.zeros_like(z)
+        shifted[:, 1:] = z[:, :-1]
+        return shifted
+
+    v = (x @ layer.v_proj.weight.T).view(batch, seq_len, heads, dhead)
+    alpha, beta = layer.alpha, layer.beta
+    k = alpha[:, 0].view(1, 1, -1, 1) * k + alpha[:, 1].view(1, 1, -1, 1) * shift1(k)
+    v = beta[:, 0].view(1, 1, -1, 1) * v + beta[:, 1].view(1, 1, -1, 1) * shift1(v)
+    scores = torch.einsum("bihd,bjhd->bhij", q, k) * layer.tau.view(1, -1, 1, 1)
+    i = torch.arange(seq_len).view(-1, 1)
+    j = torch.arange(seq_len).view(1, -1)
+    scores = scores - layer.slopes.view(1, -1, 1, 1) * (i - j).float()
+    scores = scores.masked_fill((j > i).view(1, 1, seq_len, seq_len), float("-inf"))
+    out = torch.einsum("bhij,bjhd->bihd", scores.softmax(dim=-1), v)
+    return out.reshape(batch, seq_len, datt) @ layer.o_proj.weight.T
+
+
+def test_bank_gate_none_is_the_default_and_adds_nothing():
+    """`none` is today's layer: no extra parameter, the same state dict, the
+    same forward."""
+    default, explicit = _layer(seed=3), _layer(seed=3, bank_gate="none")
+    assert list(default.state_dict()) == list(explicit.state_dict())
+    for name, tensor in default.state_dict().items():
+        assert torch.equal(tensor, explicit.state_dict()[name]), name
+    assert default.q_bank.weight.shape == (VOCAB, DIMS["dmodel"])
+    x, token_ids = _batch(default)
+    assert torch.equal(default(x, token_ids), explicit(x, token_ids))
+
+
+def test_an_unknown_bank_gate_is_rejected_with_the_valid_set():
+    with pytest.raises(ValueError, match="confidence, context, backoff, stem"):
+        _layer(bank_gate="confidense")
+
+
+def test_the_config_path_reaches_the_gate_and_rejects_a_typo():
+    model = _h4_ame(["+common.attention.ame={bank_gate: backoff, bank_init_std: 0.01}"])
+    for block in model.encoder.blocks:
+        assert block.attention_layer.layer.bank_gate == "backoff"
+    with pytest.raises(Exception, match="bank_gate"):
+        _h4_ame(["+common.attention.ame={bank_gate: bogus}"])
+
+
+@pytest.mark.parametrize("bank_gate", GATES)
+def test_every_gate_starts_every_shared_weight_where_none_does(bank_gate):
+    """The arms must differ in their mechanism only. A gate that drew its init
+    from the global RNG would shift every later parameter -- this layer's
+    values, the next blocks -- and the arms would differ by a seed as well."""
+    torch.manual_seed(11)
+    ungated = AMEAttention(**DIMS, vocab_size=VOCAB, bank_init_std=0.01)
+    after_ungated = torch.random.get_rng_state()
+    torch.manual_seed(11)
+    gated = AMEAttention(
+        **DIMS, vocab_size=VOCAB, bank_init_std=0.01, bank_gate=bank_gate
+    )
+    assert torch.equal(torch.random.get_rng_state(), after_ungated)
+    datt = DIMS["dmodel"]
+    for name, tensor in ungated.state_dict().items():
+        mine = gated.state_dict()[name]
+        if name.endswith("_bank.weight"):
+            mine = mine[:, :datt]
+        assert torch.equal(mine, tensor), name
+
+
+@pytest.mark.parametrize("bank_gate", GATES)
+def test_every_gate_matches_a_literal_transcription_of_its_formula(bank_gate):
+    layer = _perturb_gate(_layer(sink=False, bank_gate=bank_gate))
+    x, token_ids = _batch(layer)
+    torch.testing.assert_close(
+        layer(x, token_ids),
+        _spec_gated_forward(layer, x, token_ids),
+        rtol=1e-5,
+        atol=1e-6,
+    )
+
+
+# B1, per-row confidence.
+
+
+def test_b1_every_trust_starts_at_005_after_mains_build_path():
+    """Not only after the constructor: main.py hands the banks to the
+    memory-parallel controller, which copies them into fresh parameters and an
+    fp32 master. The trust columns must survive that copy."""
+    import main
+    from src.core.memory_parallel import ShardedBank, get_controller
+
+    with initialize_config_dir(
+        version_base=None, config_dir=os.path.join(REPO_ROOT, "configs")
+    ):
+        cfg = compose(
+            config_name="tiny_local",
+            overrides=[
+                "common.vocab_size=96",
+                "common.attention.type=ame",
+                "+common.attention.ame={bank_gate: confidence, bank_init_std: 0.01}",
+                "trainer.mem_parallel_size=1",
+            ],
+        )
+    torch.manual_seed(0)
+    model = instantiate(cfg.model, _convert_="all")
+    model, _, _ = main.get_model_optimizer_scheduler(cfg, model, 1e-3)
+    assert get_controller(model) is not None
+    layers = [m for m in model.modules() if isinstance(m, AMEAttention)]
+    assert len(layers) == 4
+    for layer in layers:
+        for which in ("q", "k"):
+            bank = getattr(layer, f"{which}_bank")
+            assert isinstance(bank, ShardedBank)
+            assert bank.width == 4 * 64 + 4
+            trust = torch.sigmoid(layer._trust_logits(which))
+            assert trust.shape == (96, 4)
+            torch.testing.assert_close(
+                trust, torch.full_like(trust, 0.05), rtol=0, atol=1e-6
+            )
+            # and the forward reads the same columns from the compute copy
+            torch.testing.assert_close(
+                torch.sigmoid(bank.weight[:, 256:].float()), trust, rtol=0, atol=1e-6
+            )
+
+
+def test_b1_scores_are_the_ungated_scores_times_both_trusts():
+    options = dict(shift=False, sink=False, slopes=[0.0] * DIMS["q_heads"])
+    ungated = _layer(seed=5, **options)
+    gated = _perturb_gate(_layer(seed=5, bank_gate="confidence", **options))
+    _, token_ids = _batch(gated)
+    datt = DIMS["dmodel"]
+    s_q = torch.sigmoid(gated.q_bank.weight[:, datt:])[token_ids]  # [B, n, H]
+    s_k = torch.sigmoid(gated.k_bank.weight[:, datt:])[token_ids]
+    factor = s_q.permute(0, 2, 1).unsqueeze(-1) * s_k.permute(0, 2, 1).unsqueeze(-2)
+    expected = ungated.score_matrix(token_ids)
+    finite = torch.isfinite(expected)
+    actual = gated.score_matrix(token_ids)
+    torch.testing.assert_close(
+        actual[finite], (factor * expected)[finite], rtol=1e-5, atol=1e-6
+    )
+    assert torch.equal(torch.isfinite(actual), finite)
+
+
+def test_b1_at_init_every_score_is_00025_of_the_ungated_one():
+    options = dict(shift=False, sink=False, slopes=[0.0] * DIMS["q_heads"])
+    ungated = _layer(seed=5, bank_init_std=0.01, **options)
+    gated = _layer(seed=5, bank_init_std=0.01, bank_gate="confidence", **options)
+    _, token_ids = _batch(gated)
+    expected = ungated.score_matrix(token_ids)
+    finite = torch.isfinite(expected)
+    torch.testing.assert_close(
+        gated.score_matrix(token_ids)[finite],
+        0.0025 * expected[finite],
+        rtol=1e-4,
+        atol=1e-7,
+    )
+
+
+def test_b1_trust_gets_gradient_only_for_ids_in_the_batch():
+    layer = _layer(bank_gate="confidence")
+    x, token_ids = _batch(layer)
+    layer(x, token_ids).sum().backward()
+    datt = DIMS["dmodel"]
+    for bank in (layer.q_bank, layer.k_bank):
+        rows = bank.weight.grad[:, datt:].abs().sum(dim=-1)
+        touched = token_ids.unique()
+        assert (rows[touched] > 0).all(), "every id in the batch moves its trust"
+        untouched = torch.ones(VOCAB, dtype=torch.bool)
+        untouched[touched] = False
+        assert rows[untouched].abs().max() == 0, "and no id outside it does"
+
+
+def test_b1_the_fused_memory_parallel_path_equals_the_plain_path():
+    """At width H*d + H the controller's fused gather and its scatter into
+    main_grad must give the plain nn.Embedding path's forward and gradient."""
+    import copy
+
+    from src.core.memory_parallel import MemoryParallelController
+
+    plain = _perturb_gate(_layer(bank_gate="confidence"))
+    fused = copy.deepcopy(plain)
+    controller = MemoryParallelController(
+        fused, mem_parallel_size=1, compute_dtype=torch.float32
+    )
+    assert fused.qk_bank is not None, "the pair is fused"
+    assert all(
+        bank.width == DIMS["dmodel"] + DIMS["q_heads"] for bank in controller.banks
+    )
+    controller.materialize()
+    x, token_ids = _batch(plain)
+    out_plain, out_fused = plain(x, token_ids), fused(x, token_ids)
+    torch.testing.assert_close(out_fused, out_plain, rtol=0, atol=0)
+    out_plain.square().sum().backward()
+    out_fused.square().sum().backward()
+    for bank, name in zip(controller.banks, ("q_bank", "k_bank")):
+        torch.testing.assert_close(
+            bank.main_grad, getattr(plain, name).weight.grad, rtol=1e-6, atol=1e-7
+        )
+
+
+# B2, the context gate.
+
+
+def test_b2_every_gate_starts_at_sigmoid_3_whatever_the_hidden_state():
+    layer = _layer(bank_gate="context")
+    x, _ = _batch(layer)
+    gate = layer._query_gate(x * 50.0, x)
+    torch.testing.assert_close(
+        gate, torch.full_like(gate, 1 / (1 + math.exp(-3.0))), rtol=0, atol=1e-7
+    )
+
+
+def test_b2_scores_are_the_ungated_scores_times_the_query_gate():
+    options = dict(shift=False, sink=False, slopes=[0.0] * DIMS["q_heads"])
+    ungated = _layer(seed=5, **options)
+    gated = _perturb_gate(_layer(seed=5, bank_gate="context", **options))
+    x, token_ids = _batch(gated)
+    g = torch.sigmoid(x @ gated.gate.weight.T + gated.gate.bias)  # [B, n, H]
+    expected = _scores_with_x(ungated, x, token_ids)
+    finite = torch.isfinite(expected)
+    actual = _scores_with_x(gated, x, token_ids)
+    factor = g.permute(0, 2, 1).unsqueeze(-1)
+    torch.testing.assert_close(
+        actual[finite], (factor * expected)[finite], rtol=1e-5, atol=1e-6
+    )
+
+
+@pytest.mark.parametrize("bank_gate", X_READING_GATES)
+def test_b2_and_st_leave_the_keys_unchanged(bank_gate):
+    ungated = _layer(seed=5)
+    gated = _perturb_gate(_layer(seed=5, bank_gate=bank_gate))
+    x, token_ids = _batch(gated)
+    _, k_ungated, v_ungated = ungated._mixed_qkv(x, token_ids)
+    q_gated, k_gated, v_gated = gated._mixed_qkv(x, token_ids)
+    assert torch.equal(k_gated, k_ungated)
+    assert torch.equal(v_gated, v_ungated)
+    q_ungated, _, _ = ungated._mixed_qkv(x, token_ids)
+    assert not torch.allclose(q_gated, q_ungated), "the query is what is gated"
+
+
+def test_b2_the_gate_bias_is_not_decayed_and_the_weight_is():
+    layer = _layer(bank_gate="context")
+    decayed, undecayed = parameter_groups(layer, weight_decay=0.1)
+    assert decayed["weight_decay"] == 0.1 and undecayed["weight_decay"] == 0.0
+    ids = lambda group: {id(p) for p in group["params"]}  # noqa: E731
+    assert id(layer.gate.bias) in ids(undecayed)
+    assert id(layer.gate.weight) in ids(decayed)
+
+
+def test_b2_at_init_every_score_is_sigmoid_3_of_the_ungated_one():
+    options = dict(shift=False, sink=False, slopes=[0.0] * DIMS["q_heads"])
+    ungated = _layer(seed=5, **options)
+    gated = _layer(seed=5, bank_gate="context", **options)
+    x, token_ids = _batch(gated)
+    expected = _scores_with_x(ungated, x, token_ids)
+    finite = torch.isfinite(expected)
+    torch.testing.assert_close(
+        _scores_with_x(gated, x, token_ids)[finite],
+        (1 / (1 + math.exp(-3.0))) * expected[finite],
+        rtol=1e-5,
+        atol=1e-6,
+    )
+
+
+# B3, the shared backoff vector.
+
+
+def test_b3_at_init_the_forward_is_the_ungated_forward():
+    """base = 0 at init, and the hard norm hides the 1/sqrt(2): an ungated run."""
+    ungated = _layer(seed=5, bank_init_std=0.01)
+    gated = _layer(seed=5, bank_init_std=0.01, bank_gate="backoff")
+    x, token_ids = _batch(gated)
+    torch.testing.assert_close(
+        gated(x, token_ids), ungated(x, token_ids), rtol=1e-5, atol=1e-6
+    )
+
+
+def test_b3_the_base_vectors_receive_gradient():
+    layer = _layer(bank_gate="backoff")
+    x, token_ids = _batch(layer)
+    layer(x, token_ids).sum().backward()
+    for base in (layer.q_base, layer.k_base):
+        assert base.grad is not None and base.grad.abs().sum() > 0
+
+
+def test_b3_the_base_is_neither_decayed_nor_counted_as_matmul_flops():
+    from src.core.mfu import model_flops_per_token
+
+    layer = _layer(bank_gate="backoff")
+    _, undecayed = parameter_groups(layer, weight_decay=0.1)
+    undecayed_ids = {id(p) for p in undecayed["params"]}
+    assert id(layer.q_base) in undecayed_ids and id(layer.k_base) in undecayed_ids
+    seq = DIMS["seq_len"]
+    assert model_flops_per_token(layer, seq) == model_flops_per_token(_layer(), seq)
+
+
+# ST, the STEM gate.
+
+
+def test_st_starts_at_about_half_the_ungated_logit_spread():
+    """silu(W_g x) at unit-RMS x has RMS ~0.5, so the identity logits start at
+    about half today's spread (the plan's estimate), not at zero and not at 1."""
+    dims = dict(dmodel=256, q_heads=4, kv_heads=4, seq_len=64, vocab_size=512)
+    options = dict(sink=False, shift=False, slopes=[0.0] * 4, backend="reference")
+    torch.manual_seed(0)
+    ungated = AMEAttention(**dims, **options)
+    torch.manual_seed(0)
+    gated = AMEAttention(**dims, bank_gate="stem", **options)
+    generator = torch.Generator().manual_seed(1)
+    ids = torch.randint(0, 512, (4, 64), generator=generator)
+    x = torch.randn(4, 64, 256, generator=generator)
+    spread = {}
+    for name, layer in (("ungated", ungated), ("stem", gated)):
+        scores = _scores_with_x(layer, x, ids)
+        spread[name] = scores[torch.isfinite(scores)].std().item()
+    assert 0.3 < spread["stem"] / spread["ungated"] < 0.8, spread
+
+
+# Invariants two arms break on purpose.
+
+
+@pytest.mark.parametrize("bank_gate", ID_ONLY_GATES)
+def test_with_an_id_only_gate_a_score_depends_only_on_the_pair_and_the_distance(
+    bank_gate,
+):
+    layer = _perturb_gate(
+        _layer(
+            shift=False,
+            sink=False,
+            slopes=[0.0] * DIMS["q_heads"],
+            bank_gate=bank_gate,
+        )
+    )
+    token_ids = torch.tensor([[5, 9, 5, 9, 5, 9, 5, 9, 5, 9]])
+    scores = layer.score_matrix(token_ids)[0]
+    for head in range(layer.q_heads):
+        pairs = [scores[head, i, j] for i in (4, 6, 8) for j in (1, 3, 5) if j <= i]
+        for value in pairs[1:]:
+            torch.testing.assert_close(value, pairs[0], rtol=0, atol=1e-6)
+
+
+@pytest.mark.parametrize("bank_gate", ID_ONLY_GATES)
+def test_with_an_id_only_gate_the_weights_ignore_the_hidden_state(bank_gate):
+    layer = _perturb_gate(_layer(bank_gate=bank_gate))
+    x, token_ids = _batch(layer)
+    other_x, _ = _batch(layer, seed=99)
+    torch.testing.assert_close(
+        _scores_with_x(layer, x, token_ids),
+        _scores_with_x(layer, other_x, token_ids),
+        rtol=0,
+        atol=0,
+    )
+    assert not torch.allclose(layer(x, token_ids), layer(other_x, token_ids))
+
+
+@pytest.mark.parametrize("bank_gate", X_READING_GATES)
+def test_a_gate_that_reads_x_makes_the_scores_depend_on_x(bank_gate):
+    """The break B2 and ST make on purpose: the same ids, another hidden state,
+    other scores."""
+    layer = _perturb_gate(_layer(bank_gate=bank_gate))
+    x, token_ids = _batch(layer)
+    other_x, _ = _batch(layer, seed=99)
+    first = _scores_with_x(layer, x, token_ids)
+    second = _scores_with_x(layer, other_x, token_ids)
+    finite = torch.isfinite(first)
+    assert not torch.allclose(first[finite], second[finite])
+
+
+@pytest.mark.parametrize("bank_gate", X_READING_GATES)
+def test_a_gate_that_reads_x_gets_no_readout_computed_from_x_zero(bank_gate):
+    """score_matrix and attention_diagnostics feed x = 0, which would read B2's
+    gate as sigmoid(b) everywhere and erase ST's queries -- silently."""
+    layer = _layer(bank_gate=bank_gate)
+    _, token_ids = _batch(layer)
+    with pytest.raises(ValueError, match="hidden state"):
+        layer.score_matrix(token_ids)
+    assert layer.attention_diagnostics(token_ids) == {}
+    readout = layer.instrumentation(token_ids)
+    assert not (_DIAGNOSTIC_KEYS & set(readout)), sorted(readout)
+
+
+@pytest.mark.parametrize("bank_gate", ("confidence", "backoff"))
+def test_an_id_only_gate_keeps_its_attention_diagnostics(bank_gate):
+    layer = _layer(bank_gate=bank_gate)
+    _, token_ids = _batch(layer)
+    assert set(layer.attention_diagnostics(token_ids)) == _DIAGNOSTIC_KEYS
+
+
+# Every arm.
+
+
+@pytest.mark.parametrize("bank_gate", GATES)
+def test_under_every_gate_the_two_backends_compute_the_same_function(bank_gate):
+    layer = _perturb_gate(_layer(bank_gate=bank_gate))
+    x, token_ids = _batch(layer)
+    layer.backend = "reference"
+    reference = layer(x, token_ids)
+    layer.backend = "flex"
+    torch.testing.assert_close(layer(x, token_ids), reference, rtol=1e-5, atol=1e-6)
+
+
+@pytest.mark.parametrize("bank_gate", GATES)
+def test_under_every_gate_bf16_gradients_are_finite(bank_gate):
+    layer = _perturb_gate(_layer(bank_gate=bank_gate))
+    x, token_ids = _batch(layer)
+    with torch.autocast("cpu", dtype=torch.bfloat16):
+        out = layer(x, token_ids)
+    assert out.dtype is torch.bfloat16
+    out.float().sum().backward()
+    for name, parameter in layer.named_parameters():
+        assert parameter.grad is not None, f"{name} got no gradient"
+        assert torch.isfinite(parameter.grad).all(), f"{name} has a non-finite grad"
+
+
+_GATE_READOUT_KEYS = {
+    "none": set(),
+    "confidence": {
+        f"trust_{which}/{stat}"
+        for which in ("q", "k")
+        for stat in ("mean", "p10", "p50", "p90", "above_half")
+    },
+    "context": {"gate_weight/rms", "gate_bias/mean", "gate_bias/min", "gate_bias/max"},
+    "backoff": {
+        f"base_{which}_norm/{stat}"
+        for which in ("q", "k")
+        for stat in ("mean", "h0", "h1", "h2", "h3")
+    },
+    "stem": {"gate_weight/rms"},
+}
+
+
+@pytest.mark.parametrize("bank_gate", ("none",) + GATES)
+def test_the_trainer_logs_every_gates_readout(bank_gate):
+    model = _h4_ame([f"+common.attention.ame={{bank_gate: {bank_gate}}}"])
+    ids = torch.randint(0, 96, (2, 16))
+    stub = _instrumentation_stub(model, token_ids=ids)
+    stub._log_layer_instrumentation()
+    assert stub._instrumentation_failures == set(), "a readout raised"
+    suffixes = {name.split("/", 1)[1] for name in stub.metric_logger.logged}
+    diagnostics = set() if bank_gate in X_READING_GATES else _DIAGNOSTIC_KEYS
+    assert suffixes == _READOUT_KEYS | diagnostics | _GATE_READOUT_KEYS[bank_gate]
+    assert all(isinstance(v, float) for v in stub.metric_logger.logged.values())
+
+
+def test_the_trust_readout_reports_the_init_and_moves_with_the_logits():
+    layer = _layer(bank_gate="confidence")
+    readout = layer.instrumentation()
+    assert readout["trust_q/mean"] == pytest.approx(0.05, abs=1e-6)
+    assert readout["trust_k/p90"] == pytest.approx(0.05, abs=1e-6)
+    assert readout["trust_q/above_half"] == 0.0
+    with torch.no_grad():
+        layer.q_bank.weight[: VOCAB // 2, DIMS["dmodel"] :] = 4.0
+    readout = layer.instrumentation()
+    assert readout["trust_q/above_half"] == pytest.approx(0.5)
+    assert readout["trust_k/above_half"] == 0.0
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("bank_gate", GATES)
+def test_on_cuda_every_gate_trains_under_compile_blocks_full(bank_gate):
+    """The production path: whole compiled blocks, flex, bf16 autocast."""
+    model = _h4_ame(
+        [f"+common.attention.ame={{bank_gate: {bank_gate}, bank_init_std: 0.01}}"],
+        vocab=96,
+        device="cuda",
+    )
+    ids = torch.randint(0, 96, (2, 16)).cuda()
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        eager = model(ids).float()
+    for block in model.encoder.blocks:
+        block.compile()
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        compiled = model(ids).float()
+    torch.testing.assert_close(compiled, eager, rtol=5e-2, atol=5e-2)
+    loss = torch.nn.functional.cross_entropy(compiled.flatten(0, -2), ids.reshape(-1))
+    loss.backward()
+    assert torch.isfinite(loss)
+    for name, parameter in model.named_parameters():
+        assert parameter.grad is not None, name
+        assert torch.isfinite(parameter.grad).all(), name
+
+
+# ---------------------------------------------------------------------------
+# The trainer side of the bank-gates plan: token update counts, the banks'
+# share of the gradient norm, and the clip factor.
+
+
+def _counting_stub(vocab=50, world_start_step=0):
+    from src.core.trainer import Trainer
+
+    class Stub:
+        _vocab_size = Trainer._vocab_size
+        _count_tokens = Trainer._count_tokens
+        _fold_token_counts = Trainer._fold_token_counts
+        _save_token_counts = Trainer._save_token_counts
+
+    stub = Stub()
+    stub.model = torch.nn.Sequential(torch.nn.Embedding(vocab, 4))
+    stub.start_step = world_start_step
+    stub.step = -1
+    stub._step_token_counts = None
+    stub._token_occurrences = None
+    stub._token_steps_seen = None
+    stub._token_count_steps = 0
+    return stub
+
+
+def test_token_counts_count_occurrences_and_the_steps_a_row_is_updated_in(tmp_path):
+    """steps_seen is the number of optimizer steps a token occurs in -- the
+    updates its bank rows get -- not the number of micro-batches or tokens."""
+    stub = _counting_stub()
+    steps = [
+        [torch.tensor([[1, 1, 2]]), torch.tensor([[2, 3, 3]])],  # step 0
+        [torch.tensor([[3, 4, 4]])],  # step 1
+        [torch.tensor([[1, 0, 0]]), torch.tensor([[0, 0, 0]])],  # step 2
+    ]
+    for step, micro_batches in enumerate(steps):
+        stub.step = step
+        for ids in micro_batches:
+            stub._count_tokens(ids)
+        stub._fold_token_counts()
+    occurrences = stub._token_occurrences
+    steps_seen = stub._token_steps_seen
+    assert occurrences[:5].tolist() == [5, 3, 2, 3, 2]
+    assert steps_seen[:5].tolist() == [1, 2, 1, 2, 1]
+    assert occurrences[5:].abs().sum() == 0 and steps_seen[5:].abs().sum() == 0
+    assert int(occurrences.sum()) == sum(ids.numel() for s in steps for ids in s)
+
+    stub._save_token_counts(str(tmp_path))
+    saved = torch.load(tmp_path / "token_counts.pt")
+    assert torch.equal(saved["occurrences"], occurrences.cpu())
+    assert torch.equal(saved["steps_seen"], steps_seen.cpu())
+    assert saved["steps"] == 3 and saved["first_step"] == 0 and saved["last_step"] == 2
+
+
+def test_without_counting_no_token_counts_file_is_written(tmp_path):
+    stub = _counting_stub()
+    stub._save_token_counts(str(tmp_path))
+    assert not (tmp_path / "token_counts.pt").exists()
+
+
+def test_the_clip_reports_the_banks_share_and_the_factor_it_applied():
+    """grad_norm/banks is sqrt of the bank term in the joint norm, and the clip
+    factor is the coefficient both the backbone and the banks were scaled by."""
+    from types import SimpleNamespace
+
+    from src.core.memory_parallel import MemoryParallelController
+    from src.core.trainer import Trainer
+
+    layer = _perturb_gate(_layer(bank_gate="confidence"))
+    controller = MemoryParallelController(
+        layer, mem_parallel_size=1, compute_dtype=torch.float32
+    )
+    controller.materialize()
+    x, token_ids = _batch(layer)
+    (100.0 * layer(x, token_ids)).square().sum().backward()
+    bank_norm = math.sqrt(
+        sum(bank.main_grad.double().square().sum().item() for bank in controller.banks)
+    )
+    backbone = [p.grad.double() for p in layer.parameters() if p.grad is not None]
+    total = math.sqrt(bank_norm**2 + sum(g.square().sum().item() for g in backbone))
+
+    stub = SimpleNamespace(model=layer, gradient_clipping=1.0, _banks=controller)
+    returned = Trainer.clip_gradient(stub)
+    assert returned.item() == pytest.approx(total, rel=1e-5)
+    assert stub._last_bank_grad_norm.item() == pytest.approx(bank_norm, rel=1e-5)
+    assert stub._last_clip_factor.item() == pytest.approx(1.0 / total, rel=1e-5)
+    # and the banks really were scaled by it
+    after = math.sqrt(
+        sum(bank.main_grad.double().square().sum().item() for bank in controller.banks)
+    )
+    assert after == pytest.approx(bank_norm / total, rel=1e-4)

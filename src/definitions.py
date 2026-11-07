@@ -159,6 +159,9 @@ class TrainerSchema:
     # column-shards every bank across contiguous blocks of N ranks. Must divide
     # world_size, and the model must have q_bank/k_bank embeddings.
     mem_parallel_size: Optional[int] = None
+    # Per-token occurrence and update counts, saved as token_counts.pt beside
+    # every checkpoint (documents/notes/ame_bank_gates_plan.md).
+    count_token_updates: bool = False
 
 
 @dataclass

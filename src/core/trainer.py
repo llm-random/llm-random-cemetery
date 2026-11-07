@@ -223,6 +223,13 @@ class Trainer:
     # this value, so a config that sets one and a model that was built without
     # the other fails loudly instead of silently training the baseline.
     mem_parallel_size: Optional[int] = None
+    # Count, per token id, how often it occurs in the training batches and in
+    # how many optimizer steps (`steps_seen`) -- the number of updates its AME
+    # bank rows receive. Written as `token_counts.pt` beside every checkpoint
+    # (documents/notes/ame_bank_gates_plan.md, "Token update counts"). One
+    # scatter-add per micro-batch and one fold per step, all on the device and
+    # with no host sync; off by default.
+    count_token_updates: bool = False
 
     # Checkpoint save types this trainer can actually write. Subclasses widen this;
     # anything outside it is rejected before training starts.
@@ -285,6 +292,16 @@ class Trainer:
         # Modules whose instrumentation raised; warned about once, then skipped
         # (see _log_layer_instrumentation).
         self._instrumentation_failures = set()
+        # Set by clip_gradient, read by log_metrics: the banks' share of the
+        # joint norm and the coefficient the clip applied.
+        self._last_bank_grad_norm = None
+        self._last_clip_factor = None
+        # count_token_updates: [vocab] int64 on the device, allocated on the
+        # first training micro-batch.
+        self._step_token_counts = None
+        self._token_occurrences = None
+        self._token_steps_seen = None
+        self._token_count_steps = 0
 
         # Tiers 2+3. None unless main.py built a MemoryParallelController, in
         # which case the Q/K banks are outside FSDP2 and outside self.optimizer
@@ -455,6 +472,8 @@ class Trainer:
             # targets); that is the sequence length the FLOPs count must use.
             self._seq_len_for_flops = batch.shape[-1] - 1
             loss_metrics = self.calculate_loss(batch)
+            if self.count_token_updates:
+                self._fold_token_counts()
 
             if self._banks is not None:
                 # O5 hook 2 / O2 / O8: one all-reduce for the whole optimizer
@@ -834,6 +853,8 @@ class Trainer:
                 self._last_input_ids = input_ids
                 if self.model.training:
                     self._update_processed_tokens(input_ids)
+                    if self.count_token_updates:
+                        self._count_tokens(input_ids)
                     # O9. Only the final micro-step's backward may reduce: the
                     # earlier ones accumulate locally. A no-op unless FSDP2 and
                     # the opt-in flag are both in play.
@@ -922,6 +943,7 @@ class Trainer:
                 # GPUs -- and clip twice as hard as asked, silently. Only the
                 # bank slices, which differ per rank, need summing.
                 replicated = isinstance(self.model, _DDP)
+                bank_norm_sq = None
                 if self._banks is not None:
                     # O4, and deliberately a JOINT clip rather than the separate
                     # one the plan's table lists. The baseline computes one
@@ -945,10 +967,91 @@ class Trainer:
                 )
                 if self._banks is not None:
                     self._banks.clip_(self.gradient_clipping, total_norm)
+                # Readouts for log_metrics, kept as tensors so nothing syncs
+                # here. The coefficient is the one both clips above applied.
+                self._last_clip_factor = torch.clamp(
+                    self.gradient_clipping / (total_norm + 1e-6), max=1.0
+                )
+                # The banks' own norm is a global quantity only where it was
+                # reduced on its own: one process, or DDP. Under FSDP2 it was
+                # summed into the joint norm before the all-reduce, so the rank's
+                # value here is partial; rather than log it wrong, it is skipped.
+                if bank_norm_sq is not None and (
+                    replicated or not dist.is_initialized()
+                ):
+                    self._last_bank_grad_norm = bank_norm_sq.sqrt()
                 return total_norm
 
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
+
+    def _vocab_size(self):
+        """The token embedding's row count: every id in a batch is below it."""
+        for module in self.model.modules():
+            if isinstance(module, torch.nn.Embedding):
+                return module.num_embeddings
+        raise ValueError(
+            "count_token_updates needs an nn.Embedding to size its counters, "
+            "and the model has none"
+        )
+
+    def _count_tokens(self, input_ids):
+        """count_token_updates, per micro-batch: scatter-add this micro-batch's
+        ids into the step's counter.
+
+        A scatter-add rather than `torch.bincount`: on CUDA bincount reads the
+        largest id back to the host to size its output, a sync per micro-batch.
+        """
+        ids = input_ids.reshape(-1)
+        if self._step_token_counts is None:
+            if self.start_step > 0:
+                logger.warning(
+                    "count_token_updates on a resumed run: the counts start at zero "
+                    f"at step {self.start_step}, so token_counts.pt covers only "
+                    "this segment."
+                )
+            size = self._vocab_size()
+            self._step_token_counts = torch.zeros(
+                size, dtype=torch.int64, device=ids.device
+            )
+            self._token_occurrences = torch.zeros_like(self._step_token_counts)
+            self._token_steps_seen = torch.zeros_like(self._step_token_counts)
+        self._step_token_counts.index_add_(0, ids, torch.ones_like(ids))
+
+    def _fold_token_counts(self):
+        """count_token_updates, per optimizer step: a token whose step count is
+        positive gets one more update of its bank rows. Summed over ranks
+        first, because a row is updated if its id occurs on any of them."""
+        step = self._step_token_counts
+        if step is None:
+            return
+        if dist.is_initialized():
+            dist.all_reduce(step, op=dist.ReduceOp.SUM)
+        self._token_occurrences += step
+        self._token_steps_seen += (step > 0).to(torch.int64)
+        self._token_count_steps += 1
+        step.zero_()
+
+    def _save_token_counts(self, folder):
+        """`token_counts.pt` beside a checkpoint: `occurrences` and `steps_seen`
+        per token id, and the number of optimizer steps they cover."""
+        if self._token_occurrences is None:
+            return
+        os.makedirs(folder, exist_ok=True)
+        path = os.path.join(folder, "token_counts.pt")
+        torch.save(
+            {
+                "occurrences": self._token_occurrences.cpu(),
+                "steps_seen": self._token_steps_seen.cpu(),
+                "steps": self._token_count_steps,
+                "first_step": self.start_step,
+                "last_step": self.step,
+            },
+            path,
+        )
+        logger.info(
+            f"Saved token update counts over {self._token_count_steps} steps in '{path}'"
+        )
 
     def log_metrics(self, loss_metrics: LossMetrics, grad_norm):
         self.metric_logger.set_tokens(self.processed_tokens)
@@ -956,6 +1059,16 @@ class Trainer:
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         if grad_norm is not None:
             self.metric_logger.log("train/grad_norm", grad_norm.item())
+        if self._last_clip_factor is not None:
+            # 1.0 while the joint norm is under the threshold; below 1 it is the
+            # factor every gradient, bank and backbone, was scaled by.
+            self.metric_logger.log("train/clip_factor", self._last_clip_factor.item())
+        if self._last_bank_grad_norm is not None:
+            # The banks' share of the joint norm. Its complement is the
+            # backbone's: sqrt(grad_norm^2 - grad_norm/banks^2).
+            self.metric_logger.log(
+                "train/grad_norm/banks", self._last_bank_grad_norm.item()
+            )
 
         if self._banks is not None:
             # O5 hook 3. The banks are stepped by their own optimizer, so "the
@@ -1138,6 +1251,8 @@ class Trainer:
             self._banks.save(checkpoint_folder)
 
         if os.environ["RANK"] == "0":
+            # Already summed over ranks every step, so rank 0's copy is global.
+            self._save_token_counts(checkpoint_folder)
             save_training_state(
                 save_config=self.checkpoint.save,
                 step=self.step,

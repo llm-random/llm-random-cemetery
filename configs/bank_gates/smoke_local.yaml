@@ -1,0 +1,70 @@
+# CPU smoke run of one bank-gates arm, end to end through main.py
+# (documents/notes/ame_bank_gates_plan.md, "Local checks").
+#
+# h4 at the production vocabulary and recipe shape (Tier 2 banks, the KV shift,
+# count_token_updates, a final checkpoint), on the 300-row local `data` copy.
+# It runs to completion with checkpoint saving on, so it exercises the end of a
+# run -- the final eval, the checkpoint save and the token_counts.pt write --
+# which is the part a 4-hour run can still die on after training has finished.
+# No compile (CPU inductor cannot lower the bank scatter, ame_implementation.md)
+# and no autocast (there is no CUDA).
+#
+#   python main.py --config-path configs/bank_gates --config-name smoke_local \
+#     common.attention.ame.bank_gate=confidence \
+#     trainer.checkpoint.save.path=/tmp/bank_gates_smoke/confidence
+#
+# `data` is gitignored; in a worktree, symlink it from the main checkout.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: local
+  - ../_model/h_balanced@_here_: h4
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none
+  - _self_
+
+common:
+  sequence_length: 33
+  batch_size: 4
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: 0.01
+      bank_gate: none # set the arm on the command line
+
+trainer:
+  gradient_accumulation_steps: 2
+  n_steps: 4
+  learning_rate: 8
+  scheduler:
+    warmup_steps: 1
+  eval_interval: 2
+  n_eval_steps: 2
+  mem_parallel_size: 1
+  distributed: null
+  count_token_updates: true
+  checkpoint:
+    save:
+      path: bank_gates_smoke_checkpoint # override per arm
+  train_dataloader:
+    dataset:
+      # `data` holds 300 rows, not fineweb's 1.27 billion: both dataloaders carry
+      # the same smaller holdout, as in smoketest_fineweb_final_eval_local.
+      holdout_rows: 100
+    num_workers: 0
+  eval_dataloader:
+    dataset:
+      holdout_rows: 100
+      max_samples: 8
+
+infrastructure:
+  metric_logger:
+    type: stdout
+    heavy_metrics_calculation_interval: 2
+    name: bank_gates_smoke
+    tags:
+      - bank_gates
+      - smoke
+      - local

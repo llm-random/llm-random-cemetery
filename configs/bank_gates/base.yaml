@@ -1,0 +1,78 @@
+# AME bank gates (documents/notes/ame_bank_gates_plan.md): the shared recipe.
+# One arm file per gate sets the two attention options and `bank_gates_arm`;
+# this file on its own is S2-PS exactly as W&B doi36p8k ran it on LEM, and is
+# what the common evaluator composes to score that run.
+#
+# A copy of configs/stage_2/ame_h12_pe_shift.yaml (S2-PS), not an inheritance,
+# so that edits to the Stage 2 file cannot change these runs. What differs:
+#   - learning_rate: 8, which doi36p8k passed at submit (n = 8, S2-PS's optimum,
+#     stage_2_report.md);
+#   - scheduler.warmup_steps: 38 written out, as the parity configs do, so it
+#     stays put if n_steps is ever overridden (the default is 1% of n_steps);
+#   - a 7 h limit (Stage 1-2 passed it at submit; stage_1_report.md, decision 4);
+#   - W&B names bank_gates_<arm>, and count_token_updates: true, which writes
+#     token_counts.pt beside the final checkpoint.
+# Node r16-11 is excluded at submit with +infrastructure.slurm.exclude=r16-11, as
+# in Stage 1-2 (stage_1_report.md, decision 3).
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+# Set by each arm file (b1, b2, b3, stem); names the run, the job and a tag.
+bank_gates_arm: ???
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # S2-PS: the implemented ALiBi ladder and the KV shift. The arm files add
+  # bank_init_std and bank_gate to this block.
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  # As S2-PS: micro-batch 32 x 16, Tier 2 banks (fp32 master, bf16 forward copy),
+  # no FSDP2 so AME's readouts are logged, autocast bf16.
+  gradient_accumulation_steps: 16
+  mem_parallel_size: 1
+  distributed: null
+  autocast_bf16: true
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks and scalars are exempt);
+  #   - cosine schedule to 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 8 # n = 8, LR = 2^-8, as doi36p8k
+  scheduler:
+    warmup_steps: 38
+  count_token_updates: true
+  checkpoint:
+    save:
+      # Only the final checkpoint (interval -1), in the job's cemetery clone under
+      # checkpoint/<job id>/0/step_3814/, with token_counts.pt beside it.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: bank_gates_${bank_gates_arm}
+    time: "0-07:00:00"
+  metric_logger:
+    project_name: nano-ame
+    name: bank_gates_${bank_gates_arm}
+    tags:
+      - ame
+      - h12
+      - bank_gates
+      - bank_gates_${bank_gates_arm}
