@@ -278,10 +278,22 @@ def test_the_flex_kernel_options_need_the_fp32_flag_and_reach_every_ame_layer():
         )
 
 
+@pytest.fixture
+def fresh_dynamo():
+    """These calls compile AME's module-level `_COMPILED_FLEX` at new dtypes, shapes
+    and kernel options. Left in its cache they count toward dynamo's recompile
+    limit (8), past which that function silently runs eager -- the unfused,
+    materializing flex that test_ame.py's memory regression then catches (job
+    36462). Start and leave the cache empty."""
+    torch._dynamo.reset()
+    yield
+    torch._dynamo.reset()
+
+
 @pytest.mark.gpu
 @pytest.mark.skipif(not torch.cuda.is_available(), reason="needs CUDA")
 @pytest.mark.parametrize("seq_len", [64, 2048])
-def test_on_cuda_the_ame_f_kernel_options_match_fp64_forward_and_backward(seq_len):
+def test_on_cuda_the_ame_f_kernel_options_match_fp64_forward_and_backward(seq_len, fresh_dynamo):
     from src.core.ame import AMEAttention
 
     torch.manual_seed(0)
