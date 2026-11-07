@@ -1,9 +1,11 @@
 # AME bank gates: four ways to trust a bank row, one h12 run each (plan)
 
-**Status: PLAN, written 2026-11-07 and revised the same day (Maciej): four runs, LEM as the
-cluster, the code on `ame_main`, the work in a separate worktree. Nothing is implemented or
-submitted yet. The goal that hands this plan to an agent is Maciej's go to implement, submit
-and evaluate.**
+**Status: implemented (`157c3122`, `9d7ed99d` on `ame_main`) and submitted
+2026-11-07 22:16-22:18: four runs on LEM, jobs 6264723, 6264725, 6264726, 6264733.
+The record of every job, check, decision and result is
+[ame_bank_gates_report.md](ame_bank_gates_report.md). Written 2026-11-07 and revised the
+same day (Maciej): four runs, LEM as the cluster, the code on `ame_main`, the work in a
+separate worktree.**
 
 Background: [pkmf_init_comparison.md](pkmf_init_comparison.md), sections "Memory-bank init
 for sparsely updated rows: a proposal" and "Implementation plans for the three bank-init
