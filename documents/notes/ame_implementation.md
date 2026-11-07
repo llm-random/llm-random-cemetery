@@ -5,7 +5,7 @@ and tested, on CPU and on an H100, and the code is committed. **No *scientific* 
 has been run — Stage 0 has not started.** The cluster jobs run since are throughput
 benchmarks, not quality measurements; their record is
 [ame_optimization_report.md](ame_optimization_report.md).
-Written 2026-11-03, last updated 2026-11-06.
+Written 2026-11-03, last updated 2026-11-07.
 
 AME — *Attention Memory Embedding* — replaces the Q and K projections of a standard
 attention head with two memory banks indexed by **token id**. The design record lives
@@ -69,21 +69,31 @@ Training is **unmodified O(n²) attention with two gathers**. There is no table,
 cache, no V-cache, no CPU offload, and none of it should be built before an experiment
 says the mechanism works.
 
-KV shifting (`alpha`, `beta`) is **prior art**: Xu, Cheng, Wang & Chen, arXiv 2411.19574.
+KV shifting (`alpha`, `beta`) is **prior art**: Xu, Cheng, Wang & Chen (Baichuan, 2024),
+[*KV Shifting Attention Enhances Language Modeling*](https://arxiv.org/abs/2411.19574).
 It is the only mechanism that gives an id-scored layer the induction/copy primitive, which
 is why it is on by default — and why any dense baseline AME is measured against must have
 it too, or AME collects a gain that is not its own. How it works, why nothing else can do
 its job, what it costs at decode, and what is planned: [KV shifting in AME](#kv-shifting-in-ame).
 
+The distance penalty (`s - m * dist`) is **prior art** too: ALiBi, from Press, Smith &
+Lewis (ICLR 2022), [*Train Short, Test Long: Attention with Linear Biases Enables Input
+Length Extrapolation*](https://arxiv.org/abs/2108.12409). AME keeps its form, a fixed
+per-head penalty that grows linearly with distance and is added to the score, but not its
+slopes: ALiBi's are the fixed set `2^(−8h/H)`, h = 1…H, while AME's are derived from the
+training context (horizons 16 … 4× the context). Why AME needs a penalty rather than RoPE,
+and what that means for a dense comparison:
+[Positional encoding](#positional-encoding-and-what-a-dense-comparison-must-control).
+
 ## KV shifting in AME
 
 *Written 2026-11-05 from the method record (`research/ame/ame.md` §1.2, §4.1, §4.3–§4.4),
-the code, and the paper itself (arXiv 2411.19574v2). Points marked **analysis** are
+the code, and the paper itself ([arXiv 2411.19574v2](https://arxiv.org/abs/2411.19574v2)). Points marked **analysis** are
 reasoning from the code, not measurements.*
 
 ### The operator
 
-KV shifting (Xu, Cheng, Wang & Chen, Baichuan, Nov 2024) replaces each position's key and
+KV shifting ([Xu, Cheng, Wang & Chen](https://arxiv.org/abs/2411.19574), Baichuan, Nov 2024) replaces each position's key and
 value with a learned blend of its own and the previous position's, before attention runs.
 Queries are not touched.
 
@@ -302,7 +312,7 @@ says about ALiBi vs RoPE, and what that implies for AME.*
 
 | | AME | dense baseline (`gqa` → `RoPEAttention`) |
 |---|---|---|
-| positional signal | **ALiBi only**: `s_ij = tau·T[t_i,t_j] − m_h·(i−j)`; no RoPE anywhere | **RoPE only**, on q and k; no ALiBi |
+| positional signal | **ALiBi only** ([Press, Smith & Lewis 2022](https://arxiv.org/abs/2108.12409)): `s_ij = tau·T[t_i,t_j] − m_h·(i−j)`; no RoPE anywhere | **RoPE only**, on q and k; no ALiBi |
 | settings | one slope per head from a geometric ladder of horizons, 16 tokens … 4× the training context, `m = tau_init / horizon`; fixed by default, learnable only as an ablation; applied in fp32 in the flex `score_mod` ([src/core/ame.py:686-694](../../src/core/ame.py#L686-L694)) | base 10000, no frequency scaling ([configs/_model/h_balanced/base.yaml:67-68](../../configs/_model/h_balanced/base.yaml#L67-L68)) |
 | other position-dependent parts | the KV shift's fixed one-step offset; the learned sink is position-independent | none |
 
@@ -484,7 +494,8 @@ is measured.*
 
 ## Weight initialization, dense and AME
 
-*Written 2026-11-06 from the code; values at h16 (`dmodel` 1024, `dff` 4096). Points marked
+*Written 2026-11-06 from the code; its two tables merged into one and re-checked against
+the code 2026-11-07. Values at h16 (`dmodel` 1024, `dff` 4096). Points marked
 **analysis** are reasoning, not measurements.*
 
 **How it runs.**
@@ -496,19 +507,36 @@ is measured.*
   separately.
 - A resumed run loads its weights from the checkpoint instead.
 - With `mem_parallel_size: 4`, each GPU slices its columns out of the already-initialized
-  bank ([src/core/memory_parallel.py:187-195](../../src/core/memory_parallel.py#L187-L195)),
+  bank ([src/core/memory_parallel.py:188-199](../../src/core/memory_parallel.py#L188-L199)),
   so 1-GPU and 4-GPU runs start from identical numbers.
+- **Bank precision.** The banks are drawn in fp32. Every AME science config (Stages 1 to
+  2b) runs them through the memory-parallel bank code (`mem_parallel_size: 1`,
+  `autocast_bf16: true`): AdamW steps an fp32 master, which starts from the exact fp32
+  draw, while the forward pass reads a bf16 copy refreshed from the master after every
+  step ([main.py:218-222](../../main.py#L218-L222),
+  [src/core/memory_parallel.py:569](../../src/core/memory_parallel.py#L569)). So the rows
+  that reach QK-norm are bf16-rounded; only the master, its gradient buffer and the Adam
+  state are fp32. Without that bank code the bank parameters themselves are fp32, since
+  autocast does not cast an embedding lookup.
 
-**Shared by both models** ([configs/_model/h_balanced/base.yaml](../../configs/_model/h_balanced/base.yaml#L35-L109)):
+**Every weight, both models** ([configs/_model/h_balanced/base.yaml](../../configs/_model/h_balanced/base.yaml#L35-L109),
+[src/core/ame.py:270-340](../../src/core/ame.py#L270-L340)):
 
-| weights | init | h16 std |
-|---|---|---|
-| every `Linear`: dense Q, K, V, O; AME `v_proj`, `o_proj`; FF in and gate; output head | truncated normal, std `1/√fan_in`, cut at ±2σ ([src/core/model.py:19-23](../../src/core/model.py#L19-L23)) | 0.031 |
-| FF out | the same rule; its fan_in is `dff` | 0.0156 |
-| token embedding | `trunc_normal_` with PyTorch's defaults: std 1, cut at ±2 | 1 |
-| output head | its own `Linear`, not tied to the embedding | 0.031 |
-| RMSNorm gains | 1 | |
-| biases | none: `Linear` defaults to `bias=False` | |
+| weights | model | init | h16 std | why |
+|---|---|---|---|---|
+| token embedding | both | `trunc_normal_` with PyTorch's defaults: std 1, cut at ±2 | 1 | |
+| attention Q, K, V, O | dense | truncated normal, std `1/√fan_in`, cut at ±2σ ([src/core/model.py:19-23](../../src/core/model.py#L19-L23)) | 0.031 | |
+| attention V, O (`v_proj`, `o_proj`) | AME | the same rule | 0.031 | |
+| **memory banks** `q_bank`, `k_bank` | AME | N(0, σ²) with σ = `bank_init_std` = 1, not truncated; two independent draws ([src/core/ame.py:280](../../src/core/ame.py#L280)) | 1 | `ame.md` §1 and §7: σ ≈ 1 is the per-element scale `W_Q·x` has in a standard transformer. Without QK-norm, σ = 0.02 would make attention uniform at init. |
+| FF in and gate (SwiGLU) | both | the `1/√fan_in` rule | 0.031 | |
+| FF out | both | the `1/√fan_in` rule; its fan_in is `dff` | 0.0156 | |
+| output head | both | the `1/√fan_in` rule; its own `Linear`, not tied to the embedding | 0.031 | |
+| RMSNorm gains | both | 1: PyTorch's `nn.RMSNorm` ([src/core/model.py:16](../../src/core/model.py#L16)), eps 1e-5, no bias term | | |
+| biases | both | none: `Linear` sets `bias=False` unless told otherwise ([src/core/model.py:41-47](../../src/core/model.py#L41-L47)), and no config or code overrides it | | |
+| `tau` | AME | `√d_head` = 8, learned | | puts the QK-normed scores at std ≈ 1 |
+| α, β (KV shift) | AME | `c₁ ~ U(0,1)`, `c₂ = 1 − c₁` per head; pinned arms hold a frozen `(1,0)` buffer | | Xu et al.'s init; both `(1,0)` and `(0,1)` are reachable |
+| ALiBi slopes | AME | a fixed buffer: `m = tau_init / horizon` = 8 / horizon, horizons 16 … 4× the context | | [Positional encoding](#positional-encoding-and-what-a-dense-comparison-must-control) |
+| sink key and value | AME | zeros, learned | | logit 0, neutral in a score distribution of std ≈ 1. With the value at 0 too, the sink starts as softmax with +1 in the denominator: attending to it only shrinks the head's output. What it is for: the sink row in [Choices the spec left open](#choices-the-spec-left-open-and-how-they-were-settled). |
 
 - The ±2σ cut makes the realized std about 0.88× the nominal one.
 - There is no depth scaling. O and FF-out are neither scaled by `1/√(2·n_blocks)` nor
@@ -517,16 +545,6 @@ is measured.*
 - The knobs are `init_scale` (the attention `Linear`s), the FF and head `scale`, and
   `bank_init_std`. All are 1 today.
 
-**AME only** ([src/core/ame.py:270-340](../../src/core/ame.py#L270-L340)):
-
-| weights | init | why |
-|---|---|---|
-| `q_bank`, `k_bank` | N(0, σ²) with σ = `bank_init_std` = 1, not truncated; two independent draws | `ame.md` §1 and §7: σ ≈ 1 is the per-element scale `W_Q·x` has in a standard transformer. Without QK-norm, σ = 0.02 would make attention uniform at init. |
-| `tau` | `√d_head` = 8, learned | puts the QK-normed scores at std ≈ 1 |
-| α, β | `c₁ ~ U(0,1)`, `c₂ = 1 − c₁` per head | Xu et al.'s init; both `(1,0)` and `(0,1)` are reachable. Pinned arms hold a frozen `(1,0)` buffer. |
-| ALiBi slopes | the horizon ladder, a fixed buffer | [Positional encoding](#positional-encoding-and-what-a-dense-comparison-must-control) |
-| sink key and value | zeros | logit 0, neutral in a score distribution of std ≈ 1 |
-
 **What follows** (analysis):
 - **No token matches itself at init.** The banks are independent draws, so `T[a,a] ≈ 0`.
   [What the shift does not buy](#what-the-shift-does-not-buy) covers this, including the
@@ -534,19 +552,132 @@ is measured.*
 - **With QK-norm, σ sets how fast the banks learn, not their scale.**
   - `tau` sets the score scale, so σ drops out of the forward pass.
   - Adam moves each element by about `lr` per step, so a row turns by about `lr/σ` per
-    step: 2.4·10⁻⁴ at the configs' `lr = 2⁻¹²`.
-  - A dense projection's weights move by about `lr/0.031 ≈ 8·10⁻³` of their size per
-    step, about 30× more. The matrix is shared by every token, so the queries it produces
-    can move faster still.
-  - The banks are embedding-like tables, and μP gives such tables a larger learning rate
-    than hidden matrices for exactly this reason. Here they share the global rate and get
-    no weight decay (the bank row in
+    step: 2·10⁻³ at the Stage 2 and 2b runs' `lr = 2⁻⁹` (2.4·10⁻⁴ at the throughput
+    configs' `2⁻¹²`).
+  - A dense projection's weights move by about `lr/0.031` of their size per step, about
+    30× more. The matrix is shared by every token, so the queries it produces can move
+    faster still.
+  - The banks are embedding-like tables, and μP points the other way: for Adam it keeps
+    such a table's learning rate independent of width while hidden matrices get
+    `∝ 1/fan_in` (Tensor Programs V, Table 3), so at our widths the tables should get
+    relatively more, not less. Here they share the global rate and get no weight decay
+    (the bank row in
     [Choices the spec left open](#choices-the-spec-left-open-and-how-they-were-settled)).
     Their norms therefore tend to grow over training, which slows them further.
   - The dense model's token embedding is in the same position. What AME changes is that
     Q and K now live in such tables.
-  - Untested. The knobs are `bank_init_std` and a per-group learning rate, and the
-    per-group rate does not exist yet.
+  - **Untested, and testable without code.** QK-norm hides σ from the forward pass, so
+    `attention.ame.bank_init_std` acts as an inverse learning rate for the banks: σ ≈ 0.03
+    would make them turn about as fast as hidden matrices. Without decay the rows then
+    grow quickly, so the speed-up shrinks over training. A per-group learning rate would
+    be the cleaner knob, and it does not exist yet.
+
+### How it compares with standard recipes
+
+*Researched 2026-11-07 from the papers and reference code listed below; the verdicts are
+analysis. Short version: the scheme is proper and nothing here is a bug. The dense side is
+the T5 / Mesh-TensorFlow scheme (`1/√fan_in` for every weight, a std-1 embedding, no depth
+scaling), and the AME parts match their source papers. pkmf's init methods are compared
+with ours in [the next subsection](#init-methods-ours-vs-pkmf).*
+
+| part | ours | standard recipes | verdict |
+|---|---|---|---|
+| `Linear` layers (attention, FF in and gate) | truncated normal, std `1/√fan_in` (0.031 at h16) | GPT-2, OLMo 2: N(0, 0.02). T5: N(0, `1/√fan_in`). μP: variance `1/fan_in` | standard: T5's and μP's rule, and close to 0.02 at our widths |
+| FF out, attention O | the same rule, no depth scaling | GPT-2, Megatron: × `1/√(2·n_blocks)`. OLMo 2, T5: no depth scaling | standard. OLMo 2 dropped its depth-scaled init for stability (gradient-spike score 0.40 → 0.03), at the cost of slightly slower convergence |
+| truncation | cut at ±2σ, not rescaled | JAX rescales its truncated init so the realized std matches; PyTorch's `trunc_normal_` does not | harmless: the realized std is 0.88× the nominal one |
+| token embedding | std 1 | GPT-2, OLMo 2: 0.02. T5: N(0, 1). μP: independent of width | standard (T5, μP) |
+| output head | untied, `1/√fan_in` | OLMo 2: untied, 0.02. μP: std ~`1/fan_in`, or zero | standard. The initial loss is ≈ 11.2 instead of ln V = 10.8, gone within a few steps. μP's small head matters only when hyperparameters are reused across widths, which this project does not do |
+| norm gains, biases | every RMSNorm is PyTorch's `nn.RMSNorm`, eps 1e-5: gains start at 1, no bias term. No layer has a bias: `Linear` sets `bias=False` unless told otherwise, and no config or code overrides it | LLaMA, OLMo 2: the same | standard |
+| memory banks | N(0, 1), not truncated; Q and K drawn independently | no precedent; the closest are embedding tables (T5, μP: std independent of width) | proper. QK-norm sees only a row's direction, and an untruncated normal gives uniformly random directions. Independent draws mean no token matches itself at init, which is also true of dense attention with independent `W_Q`, `W_K` |
+| `tau` | `√d_head` = 8, learned | nGPT: `√d_k` for normalized q and k, "to restore a variance of 1". Henry et al.: `log₂(L² − L)` ≈ 22 at L = 2048 | standard (nGPT). Henry's length-based rule would start higher; `tau` is learned and undecayed, so it can grow |
+| α, β | `c₁ ~ U(0,1)`, `c₂ = 1 − c₁` per head | Xu et al.: "we select α1 and β1 from U(0,1) and let α2=1−α1, β2=1−β1" | exact match |
+| ALiBi slopes | `8 / horizon`, horizons 16 … 4× the context | Press et al.: `2^(−8h/H)`, i.e. 0.71 … 0.0039 at 16 heads | a deliberate, documented change: 0.5 … 0.00098, so the long-range heads are 4× flatter |
+| sink key and value | zeros | a zero key and value equal softmax with +1 in the denominator | neutral start; its gradient is not zero, so it learns from step 1 |
+
+**The one that may matter** is the banks' learning speed: σ = 1 at the shared learning
+rate, with no decay. See the last bullets of *What follows* above.
+
+**Related, though not init: weight decay.** `weight_decay: 0.1`
+([configs/_trainer/llama.yaml:11](../../configs/_trainer/llama.yaml#L11)) also applies to
+the token embedding and to every RMSNorm gain, in both models; only `AMEAttention`
+declares exemptions ([src/core/ame.py:213](../../src/core/ame.py#L213)). nanoGPT exempts
+norm gains from decay, and OLMo 2 also exempts embeddings, because decay "results in very
+small embeddings" and "small embeddings can produce large gradients in early layers". Both
+arms are treated the same, so it is not a confound, but it differs from the usual recipe.
+pkmf, for comparison, uses Hugging Face's `get_decay_parameter_names`, which exempts biases
+and every norm gain (including `q_norm` and `k_norm`) but decays the token embedding and the
+head at 0.1, like ours; its memory tables get no decay and 4× the base LR
+([pkmf/src/poirot/models/qwen3_memory/param_groups.py:96-101](../../pkmf/src/poirot/models/qwen3_memory/param_groups.py#L96-L101)).
+
+Sources:
+- [OLMo 2](https://arxiv.org/abs/2501.00656): N(0, 0.02) for every parameter (§2.3,
+  §3.2), replacing a depth-scaled init; embeddings exempt from decay (§3, §3.4.2).
+- [T5's init](https://github.com/huggingface/transformers/blob/main/src/transformers/models/t5/modeling_t5.py),
+  HF's port of Mesh TensorFlow (`_init_weights`).
+- [Radford et al. 2019](https://cdn.openai.com/better-language-models/language_models_are_unsupervised_multitask_learners.pdf),
+  GPT-2: residual layers scaled by `1/√N` at init.
+- [Yang et al. 2022](https://arxiv.org/abs/2203.03466), μP (Tensor Programs V), Table 3.
+- [Loshchilov et al. 2024](https://arxiv.org/abs/2410.01131), nGPT.
+- [Henry et al. 2020](https://arxiv.org/abs/2010.04245), QK-Norm.
+- [Xu et al. 2024](https://arxiv.org/abs/2411.19574), KV shifting, §2.2.
+- [Press et al. 2022](https://arxiv.org/abs/2108.12409), ALiBi.
+
+### Init methods: ours vs pkmf
+
+*Read from both codebases 2026-11-07. Methods only; shapes are left out. pkmf is followed
+along the STEM / static token-ID run in `pkmf/running/running_static_Hx.ipynb`
+(`scripts/pretrain_memory.py` with `routing=token_id`, i.e. `Qwen3MemoryForCausalLM` with
+the static router), which builds its model with `from_config` and initializes it in
+`_qwen3_memory_init_weights`.*
+
+| weights | ours | pkmf | |
+|---|---|---|---|
+| **memory banks** (our AME Q/K banks, pkmf's STEM memory tables) | plain normal with a fixed std: N(0, σ²), σ = `bank_init_std` = 1, whatever the table's shape; untruncated | **Xavier (Glorot) normal**: std `√(2/(fan_in + fan_out))` of the whole table, so it follows the table's vocabulary and width; untruncated. Forced for static routing: `memory_init_std` must stay null | **different**: Xavier is used nowhere in our framework |
+| `Linear` layers (attention, FF, output head) | fan-in (LeCun) truncated normal with the scale on the std: std `scale/√fan_in`, scale 1 (`llm_random_weight_init`) | fan-in (LeCun) truncated normal with the scale on the variance: std `√(scale/fan_in)`, scale 0.1 (`truncated_normal`), i.e. √0.1 ≈ 0.32× our std at every width | **different** scale convention and value; same family |
+| truncation of those normals | relative: ±2σ | fixed: ±2·scale = ±0.2 whatever σ is, which never binds on a `Linear` layer but cuts the embedding hard. pkmf's non-default `truncated_normal_fixed` is exactly our rule | **different** |
+| token embedding | its own rule: a standard normal truncated at ±2 (PyTorch's `trunc_normal_` defaults), whatever the shape | the `Linear` rule with `fan_in = 1` (std √0.1) under the fixed ±0.2 cut, so close to uniform on [−0.2, 0.2] | **different** |
+| depth or residual scaling | none | none | same |
+| norm gains | ones | ones, including Qwen3's QK-norm gains | same |
+| biases | none exist | zeroed if present; none exist | same in effect |
+| where the init runs | in each module's constructor, from init functions the Hydra config injects per module (`partial_init_fn`, `init_fn`, `bank_init_std`) | after construction: Hugging Face's `post_init()` runs one `_init_weights` that dispatches on module type, driven by the global `init_type` and `init_scale`, and overwrites whatever the constructors set | **different** |
+| precision of the draw | fp32: the model is built on CPU in fp32 | bf16: `from_config(dtype=bfloat16)` | **different** at the draw; after it, both keep the memory tables as an fp32 master plus a bf16 forward copy (ours: *Bank precision* above; pkmf: [memory_parallel.py:794](../../pkmf/src/poirot/memory_parallel.py#L794)) |
+| sharded tables | one full init, then each rank slices out its columns | each rank draws the full table from the same seeded RNG and keeps its column band | same result |
+| seeding | one `torch.manual_seed` (the dataset seed) before the build | `set_seed` (random, numpy, torch) before the build | same |
+
+AME's own parameters (τ = √d_head, α and β from U(0,1) as in Xu et al., the fixed slope
+ladder, a zero sink) have no pkmf counterpart; they are model differences, not framework
+ones.
+
+**The differences, most consequential first** (analysis):
+1. **Memory banks: Xavier against a fixed std.** Xavier ties the init to the
+   table's shape; ours is a chosen constant. Under our QK-norm that constant only sets how
+   fast the banks learn. pkmf's table feeds the FFN with no norm after it, so its Xavier
+   scale is also the memory layer's starting output.
+2. **The fan-in rule's scale convention.** pkmf puts its 0.1 under the square root, so
+   every `Linear` weight starts √0.1 ≈ 0.32× ours, at any width.
+3. **Truncation, and through it the embedding.** pkmf's fixed ±0.2 bound applied to a
+   `fan_in = 1` draw turns its embedding into a near-uniform [−0.2, 0.2]; ours stays a
+   truncated standard normal.
+4. **Mechanism and precision.** Ours runs in each constructor, per module, in fp32; pkmf's
+   runs after construction as one type dispatch with global settings, in bf16.
+
+*Source caveat.* The local pkmf snapshot (`pkmf/`, gitignored here) has the package as
+`src/poirot/` and lacks `src/pkmf/memory/`, so `NdEmbedding`'s own class is not readable
+here. The table's values come from `_qwen3_memory_init_weights`, which `post_init()`
+applies to every module after construction, and a pkmf test
+([test_static_router.py:87](../../pkmf/tests/poirot/test_static_router.py#L87)) pins them
+bit-exactly to `torch.nn.init.xavier_normal_`. `Qwen3Attention`, `Qwen3RMSNorm` and the
+head are transformers' stock Qwen3 code (checked against 4.56.2).
+
+pkmf code (local, gitignored):
+[`_qwen3_memory_init_weights`](../../pkmf/src/poirot/models/qwen3_memory/modeling_qwen3_memory.py#L917-L1009)
+and its [Xavier std](../../pkmf/src/poirot/models/qwen3_memory/modeling_qwen3_memory.py#L808-L811);
+[`get_init_weight`](../../pkmf/src/poirot/models/jmsl_moe/initialization.py#L11-L53)
+(`truncated_normal` at L40, `truncated_normal_fixed` at L48);
+[config defaults](../../pkmf/src/poirot/models/qwen3_memory/configuration_qwen3_memory.py#L75-L123);
+the [token-ID overlay](../../pkmf/scripts/conf/routing/token_id.yaml); the
+[bf16 model build](../../pkmf/scripts/pretrain_memory.py#L1434-L1438); and
+[`set_seed`](../../pkmf/src/poirot/utils.py#L383-L391).
 
 ## What landed
 
