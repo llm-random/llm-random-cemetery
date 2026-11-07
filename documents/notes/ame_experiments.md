@@ -1,19 +1,23 @@
 # AME — experimental program
 
-**Status: the live plan since 2026-11-05. Stages 1b and 2b were added on 2026-11-06.**
-- Stage 0 is under way on its own branch.
-- Stage 1 is under way, and [stage_1_report.md](stage_1_report.md) is its record. Stage 2
-  has not started. Their configs were pre-flighted locally on 2026-11-05, in
-  [configs/stage_1/](../../configs/stage_1/) and [configs/stage_2/](../../configs/stage_2/).
+**Status: the live plan since 2026-11-05. Stages 1b and 2b were added on 2026-11-06, and
+Stages 1c and 2c on 2026-11-07.**
+- Stage 0 has been paused since 2026-11-06 07:18
+  ([ame_optimization_report.md](ame_optimization_report.md) §7.11).
+- **Stages 1, 2, 1b and 2b are complete.** Their reports are the record:
+  [stage_1_report.md](stage_1_report.md), [stage_2_report.md](stage_2_report.md),
+  [stage_1b_report.md](stage_1b_report.md), [stage_2b_report.md](stage_2b_report.md).
+  - At both scales, the best AME variant is ALiBi with the KV shift, at n = 8.
+  - Its `final_ce` is 3.1250 at h12 and 2.8594 at h16. Dense's best is 2.9824 at h12 and
+    2.7441 at h16.
 - **Every Stage 1–2 run is on LEM.** All six configs were switched from entropy on
   2026-11-05, before the first submit, so that every run shares one hardware. The s/step
   figures in this plan are entropy's; the LEM smoke runs set LEM's baseline, which
   [stage_1_report.md](stage_1_report.md) records.
-- **Stages 1b and 2b repeat Stages 1 and 2 at h16 and 8B tokens**, also on LEM with 1 GPU
-  per run. Their configs were written on 2026-11-06, in
-  [configs/stage_1b/](../../configs/stage_1b/) and [configs/stage_2b/](../../configs/stage_2b/).
-  The agent that runs them pre-flights and commits them first.
-- Stage 3 will be written once Stages 1 and 2 have results.
+- **Stages 1c and 2c go one size up again: h20, 16B tokens, 4 GPUs per run**, also on
+  LEM. Stage 1c tunes the learning rate for dense only. Stage 2c trains only the best AME
+  variant. Their configs are not written yet, and nothing is submitted.
+- Stage 3 is not written yet.
 
 This plan was rewritten from the ground up on 2026-11-05. The program it replaces is kept
 at the end, unchanged, as [the previous plan](#appendix-the-previous-plan-superseded-2026-11-05).
@@ -24,7 +28,10 @@ It is there for reference only; nothing in it is scheduled.
 2. Add AME's positional encoding and its KV shift, one at a time (Stage 2).
 3. Repeat both at h16 and 8B tokens (Stages 1b and 2b). Stage 1b needs nothing from
    Stage 1, so it runs alongside Stages 1 and 2.
-4. Implementation and efficiency work (Stage 0) runs alongside all of them, and never in
+4. Go to h20 and 16B tokens, on 4 GPUs per run:
+   - a learning-rate grid for dense only (Stage 1c);
+   - then the best AME variant at dense's best n and its two neighbours (Stage 2c).
+5. Implementation and efficiency work (Stage 0) runs alongside all of them, and never in
    front.
 
 ## The stages
@@ -32,10 +39,12 @@ It is there for reference only; nothing in it is scheduled.
 | Stage | What | Priority | Branch · worktree | Progress goes to |
 |---|---|---|---|---|
 | **0** | Implementation: reading about other methods and baselines; implementing and improving AME; the MFU of AME and of the baselines | Below Stages 1 and 2; continuous and asynchronous | `ame_optimize` · `~/code/nano-ame` | [ame_optimization_report.md](ame_optimization_report.md), which keeps its name |
-| **1** | First models: a dense h12 baseline and the simplest AME h12, 4B tokens each, with a learning-rate grid for both | **Next** | `ame_main` · `~/code/nano` | `stage_1_report.md` |
-| **2** | AME with positional encoding, with the shift, and with both; which is best | After Stage 1 | `ame_main` · `~/code/nano` | `stage_2_report.md` |
-| **1b** | Stage 1 at h16 and 8B tokens: a dense h16 baseline and the simplest AME h16, with a learning-rate grid for both | Alongside Stages 1 and 2 | `ame_main` · `~/code/nano` | `stage_1b_report.md` |
-| **2b** | Stage 2 at h16 and 8B tokens | After Stage 1b | `ame_main` · `~/code/nano` | `stage_2b_report.md` |
+| **1** | First models: a dense h12 baseline and the simplest AME h12, 4B tokens each, with a learning-rate grid for both | Done, 2026-11-06 | `ame_main` · `~/code/nano` | `stage_1_report.md` |
+| **2** | AME with positional encoding, with the shift, and with both; which is best | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2_report.md` |
+| **1b** | Stage 1 at h16 and 8B tokens: a dense h16 baseline and the simplest AME h16, with a learning-rate grid for both | Done, 2026-11-06 | `ame_main` · `~/code/nano` | `stage_1b_report.md` |
+| **2b** | Stage 2 at h16 and 8B tokens | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2b_report.md` |
+| **1c** | Dense h20 at 16B tokens on 4 GPUs, with a learning-rate grid. No AME arm | **Next** | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
+| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run can start alongside it | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
 | **3** | Not written yet. It is decided from the results of Stages 1 and 2 | — | — | — |
 
 Rules for every stage:
@@ -64,20 +73,21 @@ owns this stage and its report. [ame_implementation.md](ame_implementation.md) l
 implementation items found so far, under "Plans and open items" and "Positional encoding,
 and what a dense comparison must control".
 
-Two Stage 0 items touch Stages 1 and 2. Neither one blocks them:
+Two Stage 0 items touch the experiment stages. Neither one blocks them:
 
 | Item | What it affects | Without it |
 |---|---|---|
-| **AME readouts under FSDP2** (details below) | Only runs that use FSDP2. The Stage 1–2 configs train on 1 GPU without it, so their readouts are logged | Nothing changes for the current configs |
+| **AME readouts under FSDP2** (details below) | Only runs that use FSDP2, which means Stage 2c, on 4 GPUs. Stages 1–2b train on 1 GPU without FSDP2, so their readouts are logged | Stage 2c reads α₂, β₂ and τ from its final checkpoints, and has no attention entropy |
 | **Research on positional encoding for AME** (ALiBi vs RoPE, and alternatives) | What "AME with positional encoding" means in Stage 2 | The implemented ALiBi ladder |
 
 **The readout problem:**
 - `instrumentation()` hits sharded parameters.
-- The trainer then drops it for the rest of the run
-  ([src/core/trainer.py:996](../../src/core/trainer.py#L996)).
+- The trainer then logs one warning and drops it for the rest of the run
+  ([src/core/trainer.py:1090](../../src/core/trainer.py#L1090)).
 - So under FSDP2, α₂/β₂, τ, the horizons and the attention entropy are never logged.
-- Every `configs/ame/` file runs FSDP2 except `h20_1gpu.yaml`. The Stage 1–2 configs set
-  `distributed: null`, so they are not affected.
+- Every `configs/ame/` file runs FSDP2 except `h20_1gpu.yaml`.
+  - The Stage 1–2b configs set `distributed: null`, so they are not affected.
+  - Stage 2c runs FSDP2, so it is affected.
 
 ## Stage 1 — first models
 
@@ -468,6 +478,216 @@ one run, submitted with
 - `learning_rate` is `null` in all four until Stage 1b has n\*, and `run_exp.py` refuses a
   null learning rate. Set n\* in the four files and commit before submitting.
 - The W&B names read `s2b_<arm>_h16_lr<n>.0`, tagged `stage_2b`.
+
+## Stage 1c — dense h20 at 16B tokens, on 4 GPUs
+
+**Question:** what learning rate does a dense h20 baseline need at 16B tokens, and what
+loss does it reach? It is Stage 2c's reference, and the third point of the dense series
+after Stages 1 and 1b.
+
+**Scope, as set by Maciej on 2026-11-07:**
+- one size up from Stage 1b and twice the tokens, on 4 GPUs per run;
+- only dense's learning rate is tuned. AME takes its grid from dense's best n (Stage 2c).
+
+Stage 1c needs nothing from the other stages, so it can start at once. Section numbers (§)
+in Stages 1c and 2c refer to [ame_optimization_report.md](ame_optimization_report.md).
+
+**Arm.** S1c-D is S1b-D on h_balanced h20: `gqa` attention with RoPE, 20 query heads and
+10 KV heads.
+
+### What changes from Stage 1b
+
+Everything not in this table is Stage 1b's recipe: LEM, FineWeb-Edu with seed 123,
+512 × 2,048 tokens per step, the `llama` trainer, the same eval and held-out set, and the
+final checkpoint only.
+
+| Setting | Stage 1b | Stage 1c |
+|---|---|---|
+| Model | h_balanced h16 | **h_balanced h20**: 20 blocks, 20 heads (10 KV in dense), d_model 1,280, d_head 64, SwiGLU d_ff 5,120 |
+| Tokens | 8B = 7,630 steps | **16B = 15,259 steps**: 16·10⁹ / 1,048,576, rounded up |
+| Warmup, 1% | 76 steps | 152 steps |
+| GPUs per run | 1 | **4, one whole LEM node** (`gres: gpu:hopper:4`) |
+| Sharding, precision | none (`distributed: null`); bf16 from autocast | **FSDP2**, with `reshard_after_forward: false` (O33, §1.10); bf16 from FSDP2's mixed precision |
+| Micro-batch × accumulation | 16 × 32 | **16 × 8 per GPU**: 4 GPUs × 16 × 8 = 512 |
+| Arms | dense and the simplest AME | **dense only** |
+| Learning-rate grid | n ∈ {9, 10, 11} | **n ∈ {8, 9, 10}** |
+| Time limit | 24 h | 24 h, for runs of about 12 h (dense) and 14.5 h (AME, Stage 2c) |
+| Final checkpoint | 4 GB dense, 23 GB AME | about 7 GB dense and 37 GB AME, scaled by parameter count |
+
+**Why 4 GPUs, FSDP2 and micro-batch 16.** All three hold in Stage 2c too.
+- **4 GPUs:** on 1 GPU, one AME h20 run would take about 2 days, at 11.2 s/step with
+  micro-batch 4 on entropy (§1.11).
+- **FSDP2:** AME h20 fits 4 GPUs only with the backbone under FSDP2 and the banks
+  column-sharded over all four GPUs (`mem_parallel_size: 4`, Tier 3).
+  - `mem_parallel_size` 1 or 2 runs out of memory (§1.3).
+  - A DDP backbone ran out of memory at micro-batch 16 on entropy's 80 GB cards, and was
+    slower where it fit (§1.5).
+- **Micro-batch 16:** AME peaks at 64.63 GiB with it (§1.15). Micro-batch 32 ran out of
+  memory on entropy. It would double the ~50 GiB of activations, which would not fit LEM's
+  93.6 GiB either.
+- **Dense uses the same settings**, so the two h20 stages share one precision path.
+  Micro-batch 16 is also dense's best on 4 GPUs (44.47% MFU, §1.16).
+- **What FSDP2 costs:**
+  - AME's readouts are not logged (Stage 0, above).
+  - The precision path differs from that of Stages 1–2b. That is one more difference
+    between the scales.
+- **The data order depends on the GPU count** (`world_size_independent: false` in
+  [configs/_dataset/fineweb.yaml](../../configs/_dataset/fineweb.yaml)). Every Stage 1c–2c
+  run uses 4 GPUs, so all of them share one order. It is not the order of Stages 1–2b.
+
+**Model sizes**, by arithmetic as in Stage 1; check them against the logged count.
+
+| | S1c-D, dense | S2c-PS, AME |
+|---|---:|---:|
+| Backbone, non-embedding | 491.6M | 458.9M: no W_Q or W_K; W_V is 20 heads wide |
+| Q/K banks | — | 2,575.6M: 2 banks × 50,304 × 1,280 × 20 layers. Their state is 46.4 GB (§1.12), 11.6 GB per GPU when sharded |
+| Embedding + LM head, untied | 128.8M | 128.8M |
+| **Total** | **620.4M** | **3.16B** |
+| Training FLOPs per token, seq 2048 | 3.965 G | 3.768 G (§1.16) |
+
+- 16B tokens is 25.8 tokens per dense parameter, against 21.8 in Stage 1 and 22.6 in
+  Stage 1b.
+- Dense training compute is 3.6× Stage 1b's: 1.78× the FLOPs per token, over twice the
+  tokens.
+- AME has 5.1× the dense parameter count (5.6× at h16). It does 0.95× the dense FLOPs per
+  token.
+
+### S1c.1 — the learning-rate grid
+
+| | |
+|---|---|
+| Grid | n ∈ {8, 9, 10}, LR = 2⁻ⁿ, dense only: **3 runs** |
+| Why these points | Maciej, 2026-11-07. Dense's best n was 8 at h12 (Stage 1). At h16 it was 9, at the grid's high-LR edge, where Stage 1b stopped. The grid covers both |
+| Selection | As in Stage 1: the lowest `final_ce`, extending past an edge until the best lies inside. Each extension is 1 run. Start the next n early once the edge leads mid-run ([stage_1_report.md](stage_1_report.md), decisions 6–7) |
+| Output | **n_d\***, dense h20's best n, which sets Stage 2c's grid |
+
+**Before the grid:**
+1. **Write the two Stage 1c–2c configs and pre-flight them locally**, as Stage 1b's were:
+   - they compose;
+   - every grid point passes `run_exp.py`'s schema check;
+   - the models build at the sizes above;
+   - the bank gates are off (`bank_gate: none`, the default), so S2c-PS is S2b-PS's method.
+2. **Smoke runs**, with `trainer.n_steps=60 trainer.eval_interval=20`:
+   - **dense:** the S1c-D grid file, which runs 3 short runs;
+   - **AME:** the S2c-PS file with `trainer.learning_rate=9`.
+
+   Check that:
+   - micro-batch 16 fits under FSDP2 on LEM;
+   - the s/step is close to the table below;
+   - `final_ce` is logged and the checkpoint is written;
+   - AME's readouts fail with one warning, and the run goes on.
+
+   Then delete the smoke checkpoints.
+
+**Cost — estimated; h20 has not trained on LEM.**
+- The figures start from entropy's 4-GPU benchmarks at micro-batch 16:
+  - for dense, §1.16;
+  - for AME, `configs/ame/h20_4gpu.yaml` as it stands on `ame_main` (35.02% MFU, the
+    report's headline).
+- They are scaled by ×1.10–1.14, which is how much slower LEM ran:
+  - the same 4-GPU AME h20 config: 4.09 against 3.72 s/step
+    ([archive/ame_optimization_plan.md:680](archive/ame_optimization_plan.md#L680), B1-lem);
+  - Stage 1b's runs.
+- The smoke runs replace these figures.
+
+| Arm | Entropy s/step | LEM s/step, estimated | 15,259 steps | Whole run, with evals and startup | GPU-h per run |
+|---|---:|---:|---:|---:|---:|
+| S1c-D | 2.364 | 2.60–2.70 | 11.0–11.4 h | about 12 h | about 48 |
+| S2c-PS, for Stage 2c | 2.852 | 3.14–3.25 | 13.3–13.8 h | about 14.5 h | about 58 |
+
+- The grid is about 145 GPU-h: one wave of about 12 h on 3 nodes.
+- Stages 1c and 2c together cost about 320 GPU-h. The LEM grant had 72,150 GPU-h left on
+  2026-11-07 ([stage_2b_report.md](stage_2b_report.md), decision 4).
+- 4-GPU jobs may wait longer in LEM's queue than 1-GPU ones (Maciej, 2026-11-06).
+- **There are no mid-run checkpoints**, as in Stages 1 and 1b. A run that dies starts
+  again from step 0, and loses up to about 58 GPU-h.
+
+**Config**, to be written:
+
+| Arm | Config | One submit |
+|---|---|---|
+| S1c-D | `configs/stage_1c/dense_h20_lr_grid.yaml`: the S1b-D file with the changes above | 3 runs, one per n ∈ {8, 9, 10}, as one sbatch array |
+
+- Submit with
+  `run_exp.py --config-path configs/stage_1c --config-name dense_h20_lr_grid`.
+  - Submit from a clean worktree of its own.
+  - Exclude node r16-11 ([stage_1_report.md](stage_1_report.md), decision 3).
+- The runs go to W&B `nano-ame`, named `s1c_d_h20_lr<n>` and tagged `stage_1c`.
+
+**Stage 1c is done when** dense's best n lies inside the grid, and `stage_1c_report.md`
+records:
+- the chosen n, and the `final_ce` at every grid point;
+- the loss curves;
+- dense h20 against dense h12 and h16;
+- the commit, config and W&B run ids.
+
+## Stage 2c — the best AME variant at h20
+
+**Question:** how far is AME's best variant, ALiBi with the KV shift, from dense at h20
+and 16B tokens? And does the gap keep shrinking with scale?
+
+**Scope, as set by Maciej on 2026-11-07:** one arm only, S2c-PS.
+- Stages 2 and 2b both named it the best variant, at n = 8: 3.1250 at h12, 2.8594 at h16.
+- So h20 has no 2 × 2, no simplest-AME cell and no noise floor.
+
+S2c-PS is S2b-PS on Stage 1c's model, recipe and hardware:
+- `shift: true`, so α and β are learned per head and layer;
+- the slopes are unset, so AME uses its ALiBi ladder, with horizons from 16 to 8,192
+  tokens over 20 heads ([src/core/ame.py:148-163](../../src/core/ame.py#L148-L163));
+- `mem_parallel_size: 4`, as Stage 1c explains.
+
+**Learning rate:**
+1. S2c-PS trains at n_d\* − 1, n_d\* and n_d\* + 1, where n_d\* is Stage 1c's best n:
+   **3 runs**.
+2. If its best n is at an edge, the next n beyond it is added, as in every grid.
+3. **The n = 9 run can start alongside Stage 1c.**
+   - n = 9 is in the grid whichever of 8, 9 or 10 Stage 1c picks.
+   - It was also n\* at h12 and at h16, so it gives a like-for-like point across the three
+     scales.
+   - The other two runs start once n_d\* is known. They can start earlier, once Stage 1c's
+     leader is clear mid-run ([stage_2b_report.md](stage_2b_report.md), decision 4).
+
+**Analysis**, in `stage_2c_report.md`:
+- `final_ce` at each n, and S2c-PS's best n;
+- the gap to dense at n_d\*, and best against best;
+- the same gaps at the smaller scales, from Stages 2 and 2b:
+
+  | Gap, PS − dense | h12, 4B | h16, 8B | h20, 16B |
+  |---|---:|---:|---:|
+  | At n = 9 | +0.162 | +0.152 | ? |
+  | Best against best | +0.143, both at n = 8 | +0.115; dense's best was not bracketed | ? |
+
+- what the comparison does not match:
+  - AME has 5.1× the parameters and does 0.95× the FLOPs per token;
+  - the positional signal is ALiBi with the shift, against RoPE;
+  - the banks are exempt from weight decay.
+
+Between the scales, model size, tokens and tokens per dense parameter (21.8, 22.6, 25.8)
+change together. At h20 the GPU count and the precision path change too. So a difference
+between the scales is a scaling result, not the effect of any one change.
+
+**Readouts are not logged under FSDP2** (Stage 0, above).
+- If a fix reaches `ame_main` before Stage 2c starts, use it.
+- Otherwise, read α₂, β₂ and τ from each final checkpoint, since they are parameters. The
+  horizons follow from τ.
+- Attention entropy and top-8 mass need a forward pass, so leave them out.
+
+**Cost**, estimated as for Stage 1c:
+- three 4-GPU runs, about 175 GPU-h: one wave of about 14.5 h on 3 nodes;
+- an extension past an edge adds about 58 GPU-h.
+- Stage 0's later code is about 12% faster at h20 on 4 GPUs: 2.50 s/step on entropy, at
+  40.0% MFU (§6.1). It is on `ame_optimize`, not `ame_main`. It shortens Stage 2c only if
+  it is merged before Stage 2c's first run.
+
+**Config**, to be written: `configs/stage_2c/ame_h20_pe_shift.yaml`. It is the S2b-PS file
+with Stage 1c's changes and `mem_parallel_size: 4`. Each submit is one run.
+- `learning_rate` is `null` in the file. Each run sets it on the command line,
+  `trainer.learning_rate=<n>`, as Stage 2b's learning-rate check did.
+- All three runs use one `ame_main` commit.
+- The runs go to W&B `nano-ame`, named `s2c_ps_h20_lr<n>.0` and tagged `stage_2c`.
+
+**Stage 2c is done when** S2c-PS's best n lies inside its grid, and `stage_2c_report.md`
+records the analysis above, with the commit, config and W&B run ids.
 
 ## Reporting — every stage
 
