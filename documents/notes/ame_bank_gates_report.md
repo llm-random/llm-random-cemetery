@@ -394,3 +394,33 @@ the first loss spike in this plan.
     | Train loss | 4.03 | 4.28 | 5.72 | 7.97 | 6.41 | 5.38 | 5.06 | 4.75 | 4.69 | 4.50 |
 
     The final CE will show whether the detour cost B2 anything lasting at h16.
+
+**Step 500, 23:48.** Every check passes, with a second transient spike, in B3.
+
+| Arm | Loss, steps 400-499 (min/mean/max) | `grad_norm`, 400-499 | `grad_norm/banks` | Clip factor | s/step |
+|---|---|---:|---:|---|---:|
+| B1 | 4.25/4.38/4.56 | 0.152 | 0.0031 | 1.000 | 7.013 |
+| B2 | 4.06/4.28/4.69 | 0.155 | 0.026 | 1.000 | 6.863 |
+| B3 | 4.00/4.53/6.56 | 0.481 | 0.070 | 0.30-1.00 (spike) | 6.816 |
+| ST | 3.72/3.82/3.97 | 0.126 | 0.032 | 1.000 | 7.023 |
+| `hjw7znbz` | 4.19/4.34/4.53 | 0.150 | not logged | — | 6.810 |
+
+- **No NaN.** s/step is steady.
+- **B2's recovery held:** 4.28 over steps 400-499, level with the reference.
+- **B3 spiked at steps 404-416 and recovered by step 430.**
+  - The loss went from 4.28 at step 400 to a peak of 6.56 at step 408, was back to 4.66
+    by step 430, and reached 3.92 at step 560, below its pre-spike 4.0-4.2.
+  - `grad_norm` peaked at 3.35, and the clip was active (down to 0.30) through steps
+    404-416.
+  - The banks were a larger share of the norm than in B2's spike, at most 0.95 of 3.35
+    (8% of the squared norm). The backbone still dominated, so again the stop rule does
+    not apply.
+  - At step 500, B3's layers 0 and 1 have nearly collapsed attention (normalized entropy
+    0.24 and 0.13, top-8 mass 0.86 and 0.93), and the largest base vectors (norms
+    0.45-0.61, against 0.20-0.39 in layers 2-15). The shared vector is strongest where
+    attention is sharpest; the bucket analysis looks at it with real activations.
+- **The readouts:**
+  - B1's trust: mean 0.0510 (q) and 0.0508 (k); the first entries cross 0.5.
+  - B2's bias: mean 3.14, minimum 2.76; weight RMS 0.065.
+  - B3's base norms: 0.33 (q) and 0.28 (k), layer means.
+  - ST's gate RMS: 0.064; τ 7.68.
