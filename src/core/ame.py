@@ -192,6 +192,13 @@ class AMEAttention(nn.Module):
     # on the ordinary bank path), and the kernel and the sink merge run with
     # autocast off, in fp32. False here: every shipped path is unchanged.
     parity_attention_fp32 = False
+    # The same plan, opt-in, set per instance by main.py from the top-level key
+    # `parity_flex_kernel_options` (only together with parity_attention_fp32):
+    # extra `kernel_options` for the fp32 flex kernel. flex takes its fp32 dot
+    # precision from float32_matmul_precision -- "highest" means IEEE dots on CUDA
+    # cores -- and a 16x16 one-stage backward tile, which ran AME-F at 34 s/step.
+    # None here: the call passes no kernel_options, as on every shipped path.
+    parity_flex_kernel_options = None
 
     # 2-D by shape, but not matmul weights: src.core.mfu would otherwise charge
     # 6*P of matmul FLOPs for per-head scalars and one key vector.
@@ -725,6 +732,9 @@ class AMEAttention(nn.Module):
         # owns that -- `_preprocess_input` shifts for next-token targets, so a
         # batch 2049 wide is what puts seq_len at 2048.
         block_mask = self._block_mask(q.shape[2], offset, q.device)
+        extra = {}
+        if self.parity_flex_kernel_options:
+            extra["kernel_options"] = dict(self.parity_flex_kernel_options)
         return _flex_attention(
             q,
             k,
@@ -733,6 +743,7 @@ class AMEAttention(nn.Module):
             block_mask=block_mask,
             scale=1.0,
             return_lse=return_lse,
+            **extra,
         )
 
     # ---- instrumentation -----------------------------------------------------

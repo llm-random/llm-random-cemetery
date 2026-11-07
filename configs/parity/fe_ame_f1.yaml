@@ -3,6 +3,17 @@ defaults:
   - fe_s2_ps_base
   - _self_
 parity_attention_fp32: true
+# fp32-accurate flex at a usable speed (flex bench, jobs 36460-36461): tf32x3 dots
+# (dq 4.2e-7 from fp64, as IEEE) and a 32x128 backward tile, 8 warps, 2 stages,
+# instead of IEEE dots on CUDA cores with a 16x16 tile (34 s/step, job 36445).
+parity_flex_kernel_options:
+  FLOAT32_PRECISION: tf32x3
+  bwd_BLOCK_M1: 32
+  bwd_BLOCK_N1: 128
+  bwd_BLOCK_M2: 128
+  bwd_BLOCK_N2: 32
+  bwd_num_warps: 8
+  bwd_num_stages: 2
 trainer:
   mem_parallel_size: null
   gradient_accumulation_steps: 32 # micro-batch 16: 32 does not fit (probe 36396, OOM)

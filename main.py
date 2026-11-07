@@ -6,7 +6,7 @@ from src.core.distributed_training import setup_distributed_training
 import resolver as _  # noqa: F401  side-effect import: registers OmegaConf resolvers
 import logging
 from typing import cast
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 
 import torch
 import torch.distributed as dist
@@ -256,6 +256,9 @@ def apply_parity_attention_flags(cfg, model):
 
         parity_attention_fp32: true        -- AME: attention core in fp32
         parity_dense_attention_fp32: true  -- dense: SDPA in fp32
+        parity_flex_kernel_options: {...}  -- AME, with parity_attention_fp32 only:
+            extra flex kernel_options for the fp32 kernel, e.g.
+            {FLOAT32_PRECISION: tf32x3, bwd_BLOCK_M1: 32, ...}
     """
     from src.core.ame import AMEAttention
     from src.core.model import RoPEAttention
@@ -271,6 +274,23 @@ def apply_parity_attention_flags(cfg, model):
             for module in layers:
                 module.parity_attention_fp32 = True
             logger.info(f"{key}: {len(layers)} {cls.__name__} layers in fp32")
+    options = cfg.get("parity_flex_kernel_options", None)
+    if options:
+        if not cfg.get("parity_attention_fp32", False):
+            raise ValueError(
+                "parity_flex_kernel_options tunes the fp32 flex kernel: set it only with "
+                "parity_attention_fp32 (alone it would retile the bf16 production kernel)"
+            )
+        # Plain Python values: flex keys its compiled kernel on these options.
+        options = dict(OmegaConf.to_container(options, resolve=True) if OmegaConf.is_config(options) else options)
+        precision = options.get("FLOAT32_PRECISION")
+        if precision is not None and not str(precision).startswith("'"):
+            # flex pastes the value into the Triton source as a literal.
+            options["FLOAT32_PRECISION"] = f"'{precision}'"
+        layers = [m for m in model.modules() if isinstance(m, AMEAttention)]
+        for module in layers:
+            module.parity_flex_kernel_options = options
+        logger.info(f"parity_flex_kernel_options: {options} on {len(layers)} AMEAttention layers")
 
 
 def get_model_optimizer_scheduler(cfg, model, learning_rate):

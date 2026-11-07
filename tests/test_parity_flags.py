@@ -209,3 +209,101 @@ def test_on_cuda_the_dense_fp32_path_runs_sdpa_in_fp32_and_matches_fp64():
     assert seen["dtypes"] == (torch.float32, torch.float32, torch.float32, False), seen
     assert seen["out"] == torch.float32
     assert seen["err"] < 1e-5, f"fp32 SDPA is {seen['err']:.2e} from fp64: not IEEE fp32"
+
+
+# ---- the same plan: flex kernel options for the fp32 kernel (AME-F's speed) ----
+
+# The options the AME-F runs use (configs/parity/fe_ame_f*.yaml): tf32x3 dots
+# (three TF32 products per fp32 one, on the tensor cores) and a 32x128 fp32
+# backward tile instead of flex's 16x16, one-stage default.
+AME_F_OPTIONS = {"FLOAT32_PRECISION": "tf32x3", "bwd_BLOCK_M1": 32, "bwd_BLOCK_N1": 128,
+                 "bwd_BLOCK_M2": 128, "bwd_BLOCK_N2": 32, "bwd_num_warps": 8, "bwd_num_stages": 2}
+
+
+def _ame_flex_layer(seed=0):
+    from src.core.ame import AMEAttention
+
+    torch.manual_seed(seed)
+    return AMEAttention(128, 2, 2, seq_len=64, vocab_size=VOCAB, backend="flex")
+
+
+def _flex_kwargs_seen(layer, ids, x):
+    """The kwargs AMEAttention hands `_flex_attention`, on CPU (uncompiled flex)."""
+    import src.core.ame as ame
+
+    seen = {}
+    original = ame._flex_attention
+
+    def spy(q, k, v, **kwargs):
+        seen.update(kwargs)
+        kwargs.pop("kernel_options", None)  # CPU's eager flex has no Triton kernel to tune
+        return original(q, k, v, **kwargs)
+
+    ame._flex_attention = spy
+    try:
+        layer(x, ids)
+    finally:
+        ame._flex_attention = original
+    return seen
+
+
+def test_the_flex_kernel_options_are_unset_by_default_and_the_call_passes_none():
+    from src.core.ame import AMEAttention
+
+    assert AMEAttention.parity_flex_kernel_options is None
+    layer = _ame_flex_layer()
+    apply_parity_attention_flags(OmegaConf.create({}), torch.nn.ModuleList([layer]))
+    assert "parity_flex_kernel_options" not in vars(layer)
+    ids = torch.randint(0, VOCAB, (2, 64), generator=torch.Generator().manual_seed(3))
+    seen = _flex_kwargs_seen(layer, ids, torch.randn(2, 64, 128))
+    assert "kernel_options" not in seen and "score_mod" in seen, sorted(seen)
+
+
+def test_the_flex_kernel_options_need_the_fp32_flag_and_reach_every_ame_layer():
+    model = torch.nn.ModuleList([_ame_layer(), _ame_layer(seed=1), _dense_layer()])
+    apply_parity_attention_flags(
+        OmegaConf.create({"parity_attention_fp32": True, "parity_flex_kernel_options": AME_F_OPTIONS}), model
+    )
+    expected = {**AME_F_OPTIONS, "FLOAT32_PRECISION": "'tf32x3'"}  # a Triton literal
+    assert model[0].parity_flex_kernel_options == expected
+    assert model[1].parity_flex_kernel_options == expected
+    assert "parity_flex_kernel_options" not in vars(model[2])
+    layer = _ame_flex_layer()
+    layer.parity_flex_kernel_options = expected
+    ids = torch.randint(0, VOCAB, (2, 64), generator=torch.Generator().manual_seed(3))
+    assert _flex_kwargs_seen(layer, ids, torch.randn(2, 64, 128))["kernel_options"] == expected
+    with pytest.raises(ValueError):
+        apply_parity_attention_flags(
+            OmegaConf.create({"parity_flex_kernel_options": AME_F_OPTIONS}), torch.nn.ModuleList([_ame_layer()])
+        )
+
+
+@pytest.mark.gpu
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="needs CUDA")
+@pytest.mark.parametrize("seq_len", [64, 2048])
+def test_on_cuda_the_ame_f_kernel_options_match_fp64_forward_and_backward(seq_len):
+    from src.core.ame import AMEAttention
+
+    torch.manual_seed(0)
+    layer = AMEAttention(128, 2, 2, seq_len=seq_len, vocab_size=VOCAB, backend="auto").cuda()
+    layer.parity_attention_fp32 = True
+    layer.parity_flex_kernel_options = {**AME_F_OPTIONS, "FLOAT32_PRECISION": "'tf32x3'"}
+    g = torch.Generator(device="cuda").manual_seed(5)
+    q = F.normalize(torch.randn(2, 2, seq_len, 64, device="cuda", generator=g), dim=-1) * 10
+    k = F.normalize(torch.randn(2, 2, seq_len, 64, device="cuda", generator=g), dim=-1)
+    v = torch.randn(2, 2, seq_len, 64, device="cuda", generator=g)
+    go = torch.randn(2, 2, seq_len, 64, device="cuda", generator=g)
+    q32, k32, v32 = (t.clone().requires_grad_() for t in (q, k, v))
+    out32 = layer._attend_flex(q32, k32, v32)
+    grads32 = torch.autograd.grad(out32, (q32, k32, v32), go)
+    ref_layer = AMEAttention(128, 2, 2, seq_len=seq_len, vocab_size=VOCAB, backend="auto").cuda().double()
+    ref_layer.load_state_dict(layer.state_dict())
+    q64, k64, v64 = (t.double().requires_grad_() for t in (q, k, v))
+    ref = ref_layer._attend_reference(q64, k64, v64)
+    grads64 = torch.autograd.grad(ref, (q64, k64, v64), go.double())
+
+    def rel(a, b):
+        return ((a.double() - b).norm() / b.norm()).item()
+
+    errs = {"out": rel(out32, ref), **{n: rel(a, b) for n, a, b in zip(("dq", "dk", "dv"), grads32, grads64)}}
+    assert all(e < 1e-5 for e in errs.values()), f"tf32x3 flex is not fp32-accurate: {errs}"

@@ -12,7 +12,7 @@ for short in "$@"; do
   case $short in
     ame_b*|p0b) arm=ame; ev=ame_ref32,ame_prod ;;
     p1_*) arm=ame; ev=ame_ref32,ame_std ;;
-    ame_f*) arm=ame; ev=ame_ref32,ame_f ;;
+    ame_f*) arm=ame; ev=ame_ref32,ame_f3x ;;
     pref) arm=ame; ev=ame_ref32,ame_pref ;;
     db*) arm=dense; ev=dense_ref32,dense_prod ;;
     df*) arm=dense; ev=dense_ref32,dense_f ;;

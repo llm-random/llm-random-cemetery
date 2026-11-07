@@ -96,6 +96,11 @@ VARIANTS["ame_t2eager"] = ("ame", ["++parity_bank_eager=true"], True, 32)
 VARIANTS["ame_f"] = ("ame", [MP_NULL, "++parity_attention_fp32=true"], True, 32)
 VARIANTS["dense_f"] = ("dense", ["++parity_dense_attention_fp32=true"], True, 32)
 VARIANTS["ame_pref"] = ("ame", [MP_NULL, REFERENCE], True, 8)
+# AME-F as the full runs train it after 02:40 (fe_ame_f*.yaml): the same fp32 kernel
+# with tf32x3 dots and a 32x128 backward tile (ame_f keeps flex's IEEE default).
+F3X = ("++parity_flex_kernel_options={FLOAT32_PRECISION:tf32x3,bwd_BLOCK_M1:32,bwd_BLOCK_N1:128,"
+       "bwd_BLOCK_M2:128,bwd_BLOCK_N2:32,bwd_num_warps:8,bwd_num_stages:2}")
+VARIANTS["ame_f3x"] = ("ame", [MP_NULL, "++parity_attention_fp32=true", F3X], True, 32)
 
 
 def log(msg):

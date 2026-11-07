@@ -42,7 +42,7 @@ GROUPS = {
 }
 COMMON = {"AME-B": "ame_ref32", "P1": "ame_ref32", "P1-16": "ame_ref32", "AME-F": "ame_ref32",
           "P-REF": "ame_ref32", "P0b": "ame_ref32", "D-B": "dense_ref32", "D-F": "dense_ref32"}
-OWN = {"AME-B": "ame_prod", "P1": "ame_std", "P1-16": "ame_std", "AME-F": "ame_f",
+OWN = {"AME-B": "ame_prod", "P1": "ame_std", "P1-16": "ame_std", "AME-F": "ame_f3x",
        "P-REF": "ame_pref", "P0b": "ame_prod", "D-B": "dense_prod", "D-F": "dense_f"}
 
 
