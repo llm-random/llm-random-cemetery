@@ -1,11 +1,10 @@
 # Stage 2b — positional encoding and the shift at h16: report
 
-**Status: wave 2 finished (2026-11-07 18:43). The learning-rate check moved S2b-PS's best
-n to 8: `final_ce` 2.8594, against 2.8965 at n = 9 and 2.9688 at n = 10. By the plan's
-rule, S2b-P and S2b-S re-run at n = 8 before the winner is named. That is wave 3, running
-since 08:17 (jobs 6261187, 6261188; decision 4), done about 23:00. At n = 9 the order of
-the cells matched h12, with S2b-PS best. The noise-floor run S2b-N was cancelled at
-Maciej's request.**
+**Status: complete (2026-11-07 23:15). The best AME variant at h16 and 8B tokens is
+S2b-PS, ALiBi with the KV shift: `final_ce` 2.8594 at n = 8. It is the best of the three
+arms at both n = 8 and n = 9, its own learning-rate check puts its best n at 8, and the
+order of the cells matches h12. No Stage 2b job is queued or running. The noise-floor run
+S2b-N was cancelled at Maciej's request.**
 
 The plan is [ame_experiments.md, "Stage 2b — positional encoding and the shift at h16"](ame_experiments.md#stage-2b--positional-encoding-and-the-shift-at-h16).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -181,7 +180,7 @@ The h12 pattern repeats:
 
 **The best AME variant at h16 and 8B tokens, provisionally: S2b-PS, ALiBi with the KV
 shift**, at `final_ce` 2.8965, 0.152 behind dense. The plan names it only after the
-learning-rate check below.
+learning-rate check below. [It is named at n = 8](#the-best-ame-variant-at-h16-and-8b-tokens-s2b-ps-alibi-with-the-kv-shift).
 
 ## Wave 2 — the learning-rate check on S2b-PS, at n = 8 and 10
 
@@ -285,7 +284,7 @@ Both started at 08:17 and passed the startup check (08:27, step 50):
 - **S2b-P:** 1,986,331,904 parameters, 6.52 s/step.
 - **S2b-S:** 1,986,332,928 parameters (the shift's 1,024 more), 6.77 s/step.
 
-Both match wave 1. They finish around 22:30 (S2b-P) and 23:00 (S2b-S).
+Both match wave 1.
 
 **At 20% (11:14)**, against wave 1's runs at n = 9 on the same steps (train loss, 200-step
 windows):
@@ -337,9 +336,140 @@ windows):
 **At 90% (21:36):** S2b-P at n = 8 leads its n = 9 run by 0.041 (steps 6,800–6,999:
 3.0263 against 3.0673). S2b-S at n = 8 leads by 0.082 (steps 6,400–6,599: 3.5155 against
 3.5970), after a fifth, smaller spike at steps 4,478–4,526, to 5.72. S2b-P has not spiked.
-They finish about 22:50 (S2b-P) and 23:20 (S2b-S). If wave 2 still ends with n = 9 best,
-wave 1 names the winner, and these two runs are reported as a learning-rate check of
-S2b-P and S2b-S.
+
+### Results — wave 3 finished 22:45 (S2b-P) and 23:15 (S2b-S)
+
+Both jobs `COMPLETED`, after 14 h 28 min and 14 h 58 min, 29.4 GPU-h together. Parameters,
+FLOPs per token and code as their wave 1 runs: S2b-P 1,986,331,904 and S2b-S 1,986,332,928
+parameters, 2.121 GFLOP/token, `89975bbf` with `trainer.learning_rate=8` on the command
+line. At 23:20 no Stage 1–2b job was queued or running. The ten jobs then running under
+`plgmstefaniak` (`bank_gates_*`, `ai_h12_ps_bank4`, `ai_h16_ps_bank4`) were submitted
+22:16–23:11 by another session, from `.../plgllmefficont3/mstefaniak/llmrandom_cemetery/`,
+and are not part of these stages.
+
+| Cell | n | `final_ce` | Loss spikes (train) | s/step | MFU | W&B run | Commit | Config |
+|---|---:|---:|---|---:|---:|---|---|---|
+| S1b-A0 (Stage 1b) | 9: no run at 8 | 3.9746 | steps 380 → 6.66; 1,600–1,622 → 7.00 | 6.540 | 34.4% | `n15qni7a` | `31cbc268` | stage_1b/ame_h16_simplest_lr_grid |
+| S2b-S | 8 | 3.3721 | steps 1,056–1,137 → 8.00; 1,204 → 6.50; 2,236–2,290 → 7.47; 2,903–2,924 → 5.03; 4,478–4,526 → 5.72 | 6.757 | 33.3% | `eeuebwsj` | `89975bbf` | stage_2b/ame_h16_shift |
+| S2b-P | 8 | 2.9404 | none | 6.520 | 34.5% | `le2dr3r6` | `89975bbf` | stage_2b/ame_h16_pe |
+| **S2b-PS** | 8 | **2.8594** | none | 6.810 | 33.0% | `hjw7znbz` | `89975bbf` | stage_2b/ame_h16_pe_shift |
+| S1b-D (Stage 1b) | 9: no run at 8 | 2.7441 | none | 5.964 | 39.5% | `eh2sjsh7` | `31cbc268` | stage_1b/dense_h16_lr_grid |
+
+**Every arm is better at n = 8 than at n = 9**: S2b-S by 0.094, S2b-P by 0.043, S2b-PS by
+0.037.
+
+![Stage 2b eval loss at n = 8](stage_figures/stage_2b_n8_eval_loss.png)
+
+*Eval loss on 10 batches by step, from step 300, with the y-axis cut at 6. The end labels
+are the last such eval, not `final_ce`. Made with
+[documents/scripts/stage_results.py](../scripts/stage_results.py) `curves`.*
+
+### Analysis at n = 8 — the plan's list
+
+**The four cells.** S1b-A0 has no run at n = 8, because Stage 1b stopped at n = 9 by
+Maciej's call (decision 1). Its n = 9 result stands in, marked †. At h12 the same cell
+gained 0.061 from n = 9 to n = 8. So every effect that uses it credits the n = 8 arms with
+the learning rate's gain as well; the effects without † compare like with like.
+
+|  | no shift | KV shift |
+|---|---:|---:|
+| **no positional encoding** | S1b-A0†: 3.9746 | S2b-S: 3.3721 |
+| **ALiBi** | S2b-P: 2.9404 | **S2b-PS: 2.8594** |
+
+**Main effects and interaction**, next to n = 9 and to Stage 2 at n = 8:
+
+| | h16, n = 8 | h16, n = 9 | h12, n = 8 (Stage 2) |
+|---|---:|---:|---:|
+| ALiBi without the shift (P − A0) | −1.034† | −0.991 | −1.123 |
+| ALiBi with the shift (PS − S) | −0.513 | −0.569 | −0.810 |
+| **ALiBi, averaged** | **−0.773†** | **−0.780** | **−0.966** |
+| Shift without ALiBi (S − A0) | −0.603† | −0.509 | −0.437 |
+| Shift with ALiBi (PS − P) | −0.081 | −0.087 | −0.123 |
+| **Shift, averaged** | **−0.342†** | **−0.298** | **−0.280** |
+| **Interaction**, (PS − P) − (S − A0) | **+0.521†** | **+0.422** | **+0.314** |
+
+- **The order is unchanged: PS < P < S < A0.** S1b-A0 would have to gain 0.60 from
+  n = 9 to n = 8 to pass S2b-S; at h12 it gained 0.061.
+- **The like-for-like effects barely move with the learning rate.** ALiBi on top of the
+  shift: −0.513 at n = 8, −0.569 at n = 9. The shift on top of ALiBi: −0.081 and −0.087.
+- **The † effects grow by each arm's own gain from n = 9 to n = 8**, because S1b-A0 stays
+  at n = 9. They add no evidence beyond the n = 9 column.
+- **Against h12 at n = 8**, ALiBi is worth less at h16: −0.77† against −0.97 averaged,
+  and −0.78 against −0.94 like for like at n = 9. The difference is mostly ALiBi on top of
+  the shift (−0.51 against −0.81). The shift on top of ALiBi stays small at both scales
+  (−0.08 against −0.12).
+- **The noise floor.** S2b-PS against S2b-P, −0.081, is below the proxy floor of 0.232,
+  so it is a tie by the proxy rule. But the margin has the same sign and size in all four
+  measurements: −0.081 and −0.087 at h16 (n = 8, 9), −0.123 and −0.111 at h12. None of
+  the ALiBi runs spiked at either scale, so their own seed spread is probably far below
+  0.232. "For Maciej" 4 has the run that would settle it.
+
+**Against dense.** S1b-D has no run at n = 8 either; at n = 9 it is 2.7441. At h12, dense
+gained 0.042 from n = 9 to n = 8, so these gaps probably understate the matched-n gap by
+about that much:
+
+| Cell | h16: gap to S1b-D at n = 9 | h12: gap to S1-D, both at n = 8 |
+|---|---:|---:|
+| S1b-A0† / S1-A0 | +1.231 | +1.389 |
+| S2b-S / S2-S | +0.628 | +0.952 |
+| S2b-P / S2-P | +0.196 | +0.266 |
+| **S2b-PS / S2-PS** | **+0.115** | **+0.143** |
+
+The like-for-like comparison of the two scales is the n = 9 table above, where every cell
+and dense share n = 9. The caveats there hold here too: AME has 5.6× the parameters, 0.95×
+the FLOPs per token, and its banks are exempt from weight decay, while the dense W_Q and
+W_K get 0.1.
+
+**Readouts at the end of training**, averaged over the 16 layers, next to n = 9:
+
+| Cell | n | τ, mean | Shortest horizon | Attention entropy, normalized | Top-8 mass | α₂, mean \|·\| | β₂, mean \|·\| |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| S2b-S | 8 | 8.23 | ∞ | 0.703 | 0.341 | 0.321 | 0.707 |
+| S2b-S | 9 | 8.20 | ∞ | 0.784 | 0.269 | 0.297 | 0.740 |
+| S2b-P | 8 | 8.03 | 6.5 (2.3–2.9 in layers 2–4) | 0.479 | 0.626 | pinned 0 | pinned 0 |
+| S2b-P | 9 | 7.23 | 6.0 (4.1 in layers 3–4) | 0.527 | 0.574 | pinned 0 | pinned 0 |
+| S2b-PS | 8 | 8.53 | 14.8 | 0.502 | 0.594 | 0.550 | 0.725 |
+| S2b-PS | 9 | 8.33 | 15.0 | 0.536 | 0.555 | 0.454 | 0.669 |
+
+At the higher learning rate, as at h12:
+- **Every arm attends more sharply.** Normalized entropy falls by 0.03–0.08, and top-8
+  mass rises.
+- **S2b-PS leans harder on the shift**: α₂ 0.55 and β₂ 0.73, against 0.45 and 0.67 at
+  n = 9. At h12: 0.50 and 0.71, against 0.40 and 0.68.
+- **S2b-P's shortest horizons fall in the early layers**, to 2.3–2.9 tokens in layers 2–4
+  (h12: 2.2 in layer 2). Its mean τ rises all the same, from the last layers: 9.2–10.2 in
+  layers 11–16.
+
+## The best AME variant at h16 and 8B tokens: S2b-PS, ALiBi with the KV shift
+
+The plan's Stage 2b analysis ends by naming the best variant. The learning-rate check moved
+the best arm to n = 8, so the other two arms re-ran there first (wave 3). Done:
+
+- **S2b-PS is best at both learning rates where all three arms ran:** 2.8594 at n = 8, its
+  best, and 2.8965 at n = 9. S2b-P is next, 0.081 behind at n = 8 and 0.087 at n = 9.
+- **It is 0.115 nats behind dense with RoPE** (S1b-D, 2.7441 at n = 9). At h12, with both
+  at n = 8, the gap was 0.143. Dense at n = 8 is untested at h16 ("For Maciej" 3).
+- **ALiBi does most of the work at h16 too**, 0.5–1.0 nats. The shift adds about 0.08 on
+  top of it: a tie by the proxy floor, but the same sign and size at both learning rates
+  and both scales.
+
+**Against Stage 2, the plan's two questions:**
+- **Do the four cells rank in the same order at both scales? Yes.** PS < P < S < A0 at h12
+  (n = 8 and 9) and at h16 (n = 9, and n = 8 with S1b-A0 at n = 9). The winner is the same
+  variant at the same n: S2-PS at n = 8 (3.1250) at h12, S2b-PS at n = 8 at h16.
+- **How does each cell's gap to dense change from h12/4B to h16/8B? Every gap shrinks**
+  (n = 9 table above, all cells and dense at n = 9). The position-free cells shrink most:
+  −0.18 for A0, −0.19 for S. The winner barely moves: +0.162 to +0.152. Model size and
+  tokens changed together, so this is a scaling result, not the effect of either change
+  alone.
+
+**Cost.** Stage 2b used 103.9 GPU-h on LEM:
+- wave 1: 44.4 GPU-h, three runs;
+- wave 2: 30.1 GPU-h;
+- wave 3: 29.4 GPU-h.
+
+The plan estimated 93 GPU-h for waves 1 and 2 with S2b-N; wave 3 is the plan's
+conditional re-run.
 
 ## For Maciej
 
@@ -348,10 +478,11 @@ Items that need your decision. None blocks a run.
 1. **n\* = 9 sits at the high-LR edge of Stage 1b's grid.** You set it while the grid was
    10% in (decision 1). The finished grid has both arms' lowest `final_ce` at n = 9,
    its edge ([stage_1b_report.md](stage_1b_report.md)), and Stage 1b stopped there by
-   your call. Two hints that h16 AME wants a higher learning rate than n = 9:
+   your call. Two signs that h16 AME wants a higher learning rate than n = 9:
    - at h12, S1-A0 kept improving down to n = 6
      ([stage_1_report.md](stage_1_report.md), decision 10);
-   - here, S2b-PS at n = 8 leads n = 9 at 30% of the run (wave 2).
+   - here, every arm improved from n = 9 to n = 8: S2b-S by 0.094, S2b-P by 0.043,
+     S2b-PS by 0.037 (waves 2 and 3).
 
    S1b-A0 at n = 8, about 15 GPU-h, would give the 2 × 2's reference cell at n = 8 and
    test whether the h16 optimum moves.
@@ -365,3 +496,7 @@ Items that need your decision. None blocks a run.
      gained 0.042 from n = 9 to n = 8. So the AME-to-dense gaps measured against S1b-D at
      n = 9 probably flatter AME by a few hundredths. S1b-D at n = 8 would cost about
      14 GPU-h.
+4. **A second seed for S2b-P and S2b-PS at n = 8** would settle whether the shift's 0.08 on
+   top of ALiBi is real at h16. Stage 2b has no noise floor of its own (decision 3), and
+   the proxy floor, 0.232, is mostly one loss spike in an h12 run. About 30 GPU-h and 15 h.
+   Stage 2's "For Maciej" 5 is the same question at h12, for about 8.7 GPU-h.
