@@ -352,3 +352,45 @@ minutes.
 
 As at h12, the banks are a small share of the norm, and any clipping in the warmup is the
 backbone's.
+
+**Step 300, 23:24.** All four passed the step-300 checks. B2 then spiked at steps 345-359,
+the first loss spike in this plan.
+
+| Arm | Loss, steps 200-299 | `grad_norm`, 100-199 / 200-299 | `grad_norm/banks`, 200-299 | Clip factor, steps 100-299 | s/step | vs 6.810 |
+|---|---|---|---:|---|---:|---:|
+| B1 | 4.81/5.05/5.34 | 0.325 / 0.204 | 0.0026 | 1.000 | 7.011 | +3.0% |
+| B2 | 4.09/4.28/4.53 | 0.316 / 0.188 | 0.034 | 1.000 | 6.867 | +0.8% |
+| B3 | 4.12/4.30/4.50 | 0.354 / 0.233 | 0.041 | 0.96-1.00 | 6.804 | −0.1% |
+| ST | 4.12/4.34/4.56 | 0.325 / 0.207 | 0.055 | 1.000 | 7.023 | +3.1% |
+| `hjw7znbz` | 4.84/5.10/5.41 | 0.282 / 0.237 | not logged | — | 6.810 | |
+
+- **Up to step 300 the h16 runs look like the h12 runs.**
+  - No NaN.
+  - s/step within the plan's limits; B1's and ST's overhead matches h12's.
+  - `grad_norm` tracks the reference.
+  - The banks are a small share of the norm, and the clip has been inactive since about
+    step 100.
+  - The readouts move: B1's trust mean 0.0506 (q); B2's bias mean 3.08, minimum 2.64,
+    weight RMS 0.045; B3's base norms 0.25 (q) and 0.18 (k); ST's gate RMS
+    0.027 → 0.055, τ 7.74.
+  - The same early lead as at h12: B2, B3 and ST at 4.28-4.34 over steps 200-299 against
+    the reference's 5.10, with B1 level with it.
+- **B2 spiked at steps 345-359.**
+  - The train loss rose from 4.0 at step 335 to 4.28 at 345 and 5.09 at 347, peaked at
+    7.97 at step 354, and was back to 6.69 by step 359.
+  - `grad_norm` peaked at 5.49 at step 348, and the clip was active (factor 0.18-0.97)
+    through the spike.
+  - The banks were 0.14-0.58 of that norm. So the spike is mostly the backbone's, and the
+    stop rule's condition (the banks dominating the norm after the warmup) does not hold.
+  - It is not a crash or a NaN, so nothing is cancelled or resubmitted. Earlier AME runs
+    recovered from spikes like it: Stage 2's S2-S at steps 555-581 (to 9.50) and S1-A0
+    at 609-635 (to 14.69).
+  - **Recovered by 23:32.** The clip was back at 1.0 by step 360, and `grad_norm` had
+    settled to 0.15-0.3 by step 380. The 20-step mean loss was 4.59 at step 414: back
+    under 4.6, though still above the pre-spike 4.0.
+
+    | Step | 335 | 345 | 350 | 354 | 360 | 370 | 380 | 390 | 400 | 414 |
+    |---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+    | Train loss | 4.03 | 4.28 | 5.72 | 7.97 | 6.41 | 5.38 | 5.06 | 4.75 | 4.69 | 4.50 |
+
+    The final CE will show whether the detour cost B2 anything lasting at h16.
