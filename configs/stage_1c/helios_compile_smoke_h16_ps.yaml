@@ -1,0 +1,63 @@
+# Helios compile proof for Stages 1c and 2c: Stage 2b's S2b-PS run (AME h16 with
+# ALiBi and the KV shift, n = 9) moved to Helios and cut to 60 steps. One
+# submit = 1 run on 1 GH200 under --qos=now, which starts within minutes (1 GPU,
+# up to 12 h, one job at a time); 4-GPU jobs queue under normal QoS.
+#
+#   Plan: documents/notes/ame_experiments.md, "Helios -- what Stages 1c and 2c
+#   need first". torch.compile died on Helios at the first forward (job
+#   25828493): the aarch64 torch 2.6.0+cu126 wheel declared no Triton. The fix
+#   moves aarch64 to torch 2.7.1 from the cu128 index, with triton 3.3.1
+#   (pixi.toml). This run proves it on the path AME needs: compile_blocks_full
+#   and flex attention, both Triton.
+#
+# Everything else is configs/stage_2b/ame_h16_pe_shift.yaml unchanged: 1 GPU,
+# no FSDP2 (autocast bf16), micro-batch 16 x 32, the final checkpoint and
+# final_ce. It is not a Stage 1c or 2c result.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: helios
+  - ../_model/h_balanced@_here_: h16
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049
+  batch_size: 512
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 32 # micro-batch 16
+  mem_parallel_size: 1 # hand-managed bank path (Tier 2), banks unsharded
+  distributed: null
+  autocast_bf16: true
+  n_steps: 60 # a smoke run: Stage 2b's 7,630 cut to 60
+  eval_interval: 20
+  learning_rate: 9 # S2b-PS's n* (stage_2b_report.md)
+  checkpoint:
+    save:
+      path: checkpoint # about 24 GB; deleted after the check
+
+infrastructure:
+  slurm:
+    account: plgllmefficont3-gpu-gh200
+    gres: gpu:1
+    qos: now
+    job-name: smoke_helios_h16_ps
+    time: "0-01:30:00"
+  metric_logger:
+    project_name: nano-ame
+    name: smoke_helios_h16_ps_lr9
+    tags:
+      - smoke
+      - ame
+      - h16
+      - stage_1c
+      - helios_compile

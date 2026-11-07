@@ -52,7 +52,12 @@ wandb = ">=0.23.1, <0.24"
 torch = { version = "==2.7.1", index = "https://download.pytorch.org/whl/cu128" }
 
 [target.linux-aarch64.pypi-dependencies]
-torch = { version = "==2.6", index = "https://download.pytorch.org/whl/cu126"}
+# helios (GH200, aarch64). torch 2.7.1 from the cu128 index, as on lem and entropy: the
+# 2.6.0+cu126 aarch64 wheel declared no triton, so torch.compile and flex attention died at
+# the first forward there (job 25828493). The 2.7.1 wheel declares triton==3.3.1, which PyPI
+# has no aarch64 wheel for, so triton is pinned to the same index, which hosts one.
+torch = { version = "==2.7.1", index = "https://download.pytorch.org/whl/cu128" }
+triton = { version = "==3.3.1", index = "https://download.pytorch.org/whl/cu128" }
 
 # macOS (Apple Silicon): CPU wheels (PyPI has arm64 wheels)
 [target.osx-arm64.pypi-dependencies]

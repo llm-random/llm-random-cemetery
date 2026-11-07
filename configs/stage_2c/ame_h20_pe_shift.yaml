@@ -1,0 +1,94 @@
+# Stage 2c, arm S2c-PS: AME at h20 on 16B tokens, with both the implemented
+# ALiBi positional encoding and the KV shift -- the best AME variant at h12 and
+# h16 (Stages 2 and 2b) -- on one Helios node (4 GH200). One submit = 1 run.
+#
+#   Plan: documents/notes/ame_experiments.md, "Stage 2c -- the best AME variant
+#   at h20". This is configs/stage_2b/ame_h16_pe_shift.yaml with Stage 1c's
+#   changes (model h20, 16B tokens, Helios, 4 GPUs per run under FSDP2 with
+#   reshard_after_forward: false, micro-batch 16 x 8 per GPU) and the banks
+#   column-sharded over the 4 GPUs (mem_parallel_size: 4).
+#   Pair: configs/stage_1c/dense_h20_lr_grid.yaml (S1c-D). The training recipe
+#   (steps, batch, schedule, eval, precision, sharding, checkpointing) is
+#   identical in both files; change them together.
+#
+# learning_rate is null on purpose. Each run sets it on the command line,
+# trainer.learning_rate=<n>: n = 9 alongside Stage 1c, then n_d* - 1, n_d* and
+# n_d* + 1 around Stage 1c's best n. run_exp.py's schema check refuses a null
+# learning rate (validate, src/definitions.py), so a submit without it fails
+# before anything is queued. The run name then reads s2c_ps_h20_lr<n>.0.
+#
+# FSDP2 is on, so AME's readouts (alpha/beta, tau, horizons, attention entropy)
+# are not logged: instrumentation() hits sharded parameters, and the trainer
+# logs one warning per layer and drops it (src/core/trainer.py,
+# _log_layer_instrumentation). Read alpha_2, beta_2 and tau from the final
+# checkpoint instead (the plan, Stage 2c).
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: helios
+  - ../_model/h_balanced@_here_: h20
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # The arm. shift: true learns (alpha_1, alpha_2) and (beta_1, beta_2) per head
+  # and layer (pin_alpha and pin_beta default to false). slopes is unset, so AME
+  # uses its implemented ALiBi ladder: one fixed slope per head, with horizons
+  # from 16 to 8192 tokens spread over the 20 heads (src/core/ame.py:148-163).
+  # bank_gate is left at its default, none: the method of Stages 2 and 2b.
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  # 4 GPUs, micro-batch 16 per GPU: 4 x 16 x 8 = 512 sequences per step.
+  # AME h20 fits 4 GPUs only with the backbone under FSDP2 and the banks
+  # column-sharded over all four (mem_parallel_size 1 or 2 runs out of memory,
+  # ame_optimization_report.md §1.3). It peaked at 64.63 GiB at micro-batch 16
+  # on entropy (§1.15); 32 ran out of memory. FSDP2's MixedPrecisionPolicy
+  # computes in bf16, so autocast is off. Expect about 3.14-3.25 s/step on
+  # Helios, entropy's 2.852 scaled by LEM's slowdown; the smoke run measures it.
+  gradient_accumulation_steps: 8 # micro-batch 16 = 512 / (4 GPUs x 8)
+  mem_parallel_size: 4 # banks column-sharded over the 4 GPUs (Tier 3)
+  distributed:
+    fsdp2:
+      reshard_after_forward: false # O33, ame_optimization_report.md §1.10
+  autocast_bf16: false # bf16 comes from FSDP2's mixed precision
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks are exempt);
+  #   - cosine schedule, warmup 1% = 152 steps, final LR 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 15259 # D = 16B tokens / 1,048,576 tokens per step, rounded up
+  learning_rate: null # set per run: trainer.learning_rate=<n>, LR = 2^-n
+  checkpoint:
+    save:
+      # Only the final checkpoint is written (interval -1): the backbone sharded
+      # by FSDP2, and each GPU's column shard of the banks. It lands in the job's
+      # cemetery clone, under checkpoint/<job id>/. About 37 GB per checkpoint,
+      # banks and their optimizer state included.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    # No cluster file sets the Helios account, so the config must.
+    account: plgllmefficont3-gpu-gh200
+    gres: gpu:4 # one whole Helios node; Helios's gres syntax
+    job-name: s2c_ps
+    time: "1-00:00:00" # about 14.5 h per run on Helios (estimated), plus margin
+  metric_logger:
+    project_name: nano-ame
+    name: s2c_ps_h20_lr${trainer.learning_rate}
+    tags:
+      - ame
+      - h20
+      - stage_2c
+      - s2c_ps

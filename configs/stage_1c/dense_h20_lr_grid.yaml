@@ -1,0 +1,86 @@
+# Stage 1c, arm S1c-D: the dense h20 baseline (GQA with RoPE, no KV shift),
+# trained on 16B tokens on one Helios node (4 GH200), as a learning-rate grid.
+# One submit = 3 runs (one sbatch array), one per learning_rate n, LR = 2^-n.
+#
+#   Plan: documents/notes/ame_experiments.md, "Stage 1c -- dense h20 at 16B
+#   tokens, on 4 GPUs". This is configs/stage_1b/dense_h16_lr_grid.yaml with the
+#   plan's changes: model h20, 16B tokens, Helios, 4 GPUs per run under FSDP2
+#   with reshard_after_forward: false, micro-batch 16 x 8 per GPU, and the grid
+#   n in {8, 9, 10}.
+#   Pair: configs/stage_2c/ame_h20_pe_shift.yaml (S2c-PS), the same recipe with
+#   AME attention, ALiBi and the KV shift. The training recipe (steps, batch,
+#   schedule, eval, precision, sharding, checkpointing) is identical in both
+#   files; change them together.
+#
+# No /base_schema in the defaults list: the schema would reject the ^ grid key
+# under `trainer` as unknown. run_exp.py schema-checks every expanded grid point
+# instead (check_point, src/definitions.py).
+#
+# Submitting starts all 3 runs at once, unless infrastructure.max_concurrent_jobs
+# is set. Every Stage 1c-2c run uses 4 GPUs, so all of them share one data order
+# (world_size_independent: false in _dataset/fineweb.yaml); it is not the order
+# of Stages 1-2b.
+defaults:
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: helios
+  - ../_model/h_balanced@_here_: h20
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128; kept equal to the AME arm
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # The arm: dense attention with RoPE (base 10000), the h_balanced default.
+  attention:
+    type: gqa
+
+compile_blocks_full: true
+
+trainer:
+  # 4 GPUs, micro-batch 16 per GPU: 4 x 16 x 8 = 512 sequences per step.
+  # FSDP2 shards the embedding, the blocks and the head (_trainer/llama.yaml), and
+  # its MixedPrecisionPolicy computes in bf16, so autocast is off. The same
+  # settings as S2c-PS, which needs FSDP2 to fit (the plan, "Why 4 GPUs, FSDP2
+  # and micro-batch 16"), so both h20 stages share one precision path.
+  # Micro-batch 16 is also dense's best on 4 GPUs: 44.47% MFU on entropy
+  # (ame_optimization_report.md §1.16). Expect about 2.60-2.70 s/step on
+  # Helios, entropy's 2.364 scaled by LEM's slowdown; the smoke runs measure it.
+  gradient_accumulation_steps: 8 # micro-batch 16 = 512 / (4 GPUs x 8)
+  mem_parallel_size: null # dense attention has no banks
+  distributed:
+    fsdp2:
+      reshard_after_forward: false # O33, ame_optimization_report.md §1.10
+  autocast_bf16: false # bf16 comes from FSDP2's mixed precision
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1;
+  #   - cosine schedule, warmup 1% = 152 steps, final LR 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 15259 # D = 16B tokens / 1,048,576 tokens per step, rounded up
+  ^learning_rate: [8, 9, 10] # n, LR = 2^-n; one run per value
+  checkpoint:
+    save:
+      # Only the final checkpoint is written (interval -1), sharded by FSDP2. It
+      # lands in the job's cemetery clone, under
+      # checkpoint/<job id>/<array task id>/, at about 7 GB per checkpoint.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    # No cluster file sets the Helios account, so the config must.
+    account: plgllmefficont3-gpu-gh200
+    gres: gpu:4 # one whole Helios node; Helios's gres syntax
+    job-name: s1c_d
+    time: "1-00:00:00" # about 12 h per run on Helios (estimated), plus margin
+  metric_logger:
+    project_name: nano-ame
+    name: s1c_d_h20_lr${trainer.learning_rate}
+    tags:
+      - dense
+      - h20
+      - stage_1c
+      - s1c_d
+      - lr_grid
