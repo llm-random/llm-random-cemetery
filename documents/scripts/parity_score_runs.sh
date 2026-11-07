@@ -18,9 +18,13 @@ for short in "$@"; do
     df*) arm=dense; ev=dense_ref32,dense_f ;;
     *) echo "unknown run $short" >&2; exit 1 ;;
   esac
-  ckpt=$(ssh -o BatchMode=yes entropy "ls -d ~/llmrandom_cemetery/parity_full_${short}_*/checkpoint/*/0/step_3814 2>/dev/null | tail -1")
-  [ -n "$ckpt" ] || { echo "no final checkpoint for $short" >&2; exit 1; }
+  # The checkpoints live on h100a's NVMe, which the login node cannot see, so the glob
+  # is written into the job script unexpanded and resolves on the node. Runs started
+  # before the move (2026-11-07 ~02:00) save under <short>, later ones under
+  # parity_full_<short>; `*<short>` matches either and nothing else.
+  ckpt="/storage_nvme_1/\$USER/parity_full/*${short}/*/0/step_3814"
   cmds+=("score --arms $arm --ckpt-$arm $ckpt --evaluators $ev --tag $short")
 done
 joined=$(printf ' :: %s' "${cmds[@]}"); joined=${joined# :: }
+set -f  # $joined is split into words below; its globs must reach the node unexpanded
 "$(dirname "$0")/parity_submit.sh" "$COMMIT" "$NAME" 1 00:55:00 -- $joined

@@ -9,7 +9,10 @@ trainer:
     warmup_steps: 38
   checkpoint:
     save:
-      path: checkpoint
+      # On h100a's NVMe, not in the cemetery clone under /home: the 120 GB /home quota
+      # cannot hold 13.2 GB AME checkpoints (P1-1, job 36408, died of it at step 1,500,
+      # and the 12 queued runs failed at launch). Resolved on the node.
+      path: /storage_nvme_1/${oc.env:USER}/parity_full/${infrastructure.metric_logger.name}
       interval: -1
 infrastructure:
   slurm:
