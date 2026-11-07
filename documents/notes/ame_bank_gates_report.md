@@ -1,7 +1,8 @@
 # AME bank gates — report
 
-**Status: implemented and submitted (2026-11-07). Four runs, one per gate, train on LEM;
-nothing is scored yet.**
+**Status: implemented and submitted (2026-11-07). Four h12 runs, one per gate, train on
+LEM. An h16 wave of four more at 8B tokens was added the same evening (decision 7). The
+evaluator is validated; nothing is scored yet.**
 
 The plan is [ame_bank_gates_plan.md](ame_bank_gates_plan.md). This file is its record:
 every job, check, result and decision, each with its reason. Times are CET.
@@ -64,6 +65,15 @@ every job, check, result and decision, each with its reason. Times are CET.
 
    Reformatting them would rewrite other sessions' files and invite merge conflicts,
    so they are left for their owners.
+7. **An h16 wave, by Maciej's request (2026-11-07, about 22:30).** Four more runs, one per
+   gate: "Each is AME h16 at n = 8 (LR 2^-8) on 8B tokens, on LEM. Run them alongside the
+   h12 wave without disturbing it, and keep finishing the h12 scoring and report as
+   planned."
+   - The plan's [h16 extension](ame_bank_gates_plan.md#h16-extension-maciej-2026-11-07)
+     specifies them.
+   - The reference is S2b-PS h16 at n = 8 (`hjw7znbz`).
+   - The h12 noise floor does not transfer to h16 and 8B. h16 gaps are reported beside it
+     as a stated proxy, with that caveat ([The h16 wave](#the-h16-wave)).
 
 ## Implementation and local checks
 
@@ -152,4 +162,55 @@ with `bank_gates_lem_eval.sh` from `9d7ed99d`, while the four runs train:
 2. `dump_data`: the held-out set rebuilt from LEM's FineWeb copy and compared with the
    entropy dump that every score uses.
 
+**The evaluator is validated (22:22).** On `doi36p8k`'s checkpoint the port gives
+`ame_ref32` = **3.1252272**, the plan's 3.125227 to every digit it states, in 242 s.
+- The production path (`ame_prod`) gives 3.1253729 in 49 s. The parity audit had
+  3.125377 for it on entropy; the 4e-6 gap is bf16 nondeterminism in that path.
+- The common evaluator, fp32 and eager, is the one the plan scores with, and it agrees
+  exactly.
+- LEM's own held-out set, rebuilt by `dump_data` from LEM's FineWeb copy, is identical
+  to the entropy dump (`torch.equal` on the `[8192, 2049]` tensor; fingerprint
+  `[21440, 25411, …, 48684]`).
+
+So a score from LEM's dataloader and a score from the copied tensor are the same
+measurement. Job 6264732 completed in 5 min 44 s.
+
 ### Checks
+
+**Start, 22:18-22:21.** All four were running within two minutes of submission and logged
+their first steps by 22:21. FineWeb opened in about 3 minutes, against the 10-21 the plan
+warned of. The logged parameter counts equal the plan's table. The banks run Tier 2 in
+bf16 ("Memory-parallel banks enabled: mem_parallel_size=1, compute dtype torch.bfloat16").
+
+| Arm | Step | loss | grad_norm | grad_norm/banks | clip factor | s/step |
+|---|---:|---:|---:|---:|---:|---:|
+| B1 | 12 | 7.69 | 0.87 | 0.00004 | 1.00 | 3.87 |
+| B2 | 13 | 7.66 | 1.51 | 0.014 | 0.66 | 3.83 |
+| B3 | 12 | 7.59 | 1.41 | 0.022 | 0.71 | 3.77 |
+| ST | 3 | 9.25 | 1.98 | 0.013 | 0.50 | 3.88 |
+
+- **The banks are a small share of the joint norm, not the bulk of it.** The plan's
+  worry was that σ = 0.01 would make the bank gradients dominate the clip (the stop
+  rule). In these first steps the banks contribute 0.00004-0.022 of a norm of 0.9-2.0.
+  The clipping during warmup is the backbone's, as in `doi36p8k`, whose `grad_norm`
+  averaged 2.5-2.8 before step 38.
+- **B1's banks barely move at first:** every score starts at 0.0025 of its ungated size
+  (the trust is 0.05 on both sides), so the rows' gradient is scaled down by the trust
+  as well.
+
+## The h16 wave
+
+Four runs, one per gate, at h16 on 8B tokens (decision 7; the plan's
+[h16 extension](ame_bank_gates_plan.md#h16-extension-maciej-2026-11-07)). They train
+alongside the h12 wave.
+
+| | |
+|---|---|
+| Configs | `configs/bank_gates/h16_base.yaml`, a copy of [configs/stage_2b/ame_h16_pe_shift.yaml](../../configs/stage_2b/ame_h16_pe_shift.yaml) (S2b-PS h16), plus `h16_b1.yaml`, `h16_b2.yaml`, `h16_b3.yaml`, `h16_stem.yaml` |
+| Recipe | S2b-PS h16 as `hjw7znbz` ran it: one H100, micro-batch 16 × 32, Tier 2 banks, no FSDP2, autocast bf16, `compile_blocks_full`, 24 h limit. Changed: n = 8, 7,630 steps = 8.00B tokens with warmup 76 written out, `count_token_updates`, W&B names `bank_gates_h16_<arm>` |
+| Reference | S2b-PS h16 at n = 8: job 6260570, W&B `hjw7znbz`, clone `s2b_ps_h16_lr8.0_2026-11-07_03-36-02`. Trainer `final_ce` 2.8594; 1,986,332,928 parameters; 6.810 s/step; peak 72.17 GiB; 15 h 06 min |
+| Noise floor | None measured at h16 and 8B. The h12 floor (±0.019 at h12 and 4B) does not transfer; h16 gaps are reported beside it as a stated proxy, with that caveat |
+
+### Before submitting
+
+*Filled in by the pre-submit checks.*

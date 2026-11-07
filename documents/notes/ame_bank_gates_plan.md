@@ -2,8 +2,9 @@
 
 **Status: implemented (`157c3122`, `9d7ed99d` on `ame_main`) and submitted
 2026-11-07 22:16-22:18: four runs on LEM, jobs 6264723, 6264725, 6264726, 6264733.
-The record of every job, check, decision and result is
-[ame_bank_gates_report.md](ame_bank_gates_report.md). Written 2026-11-07 and revised the
+Extended the same evening with an h16 wave of four more runs at 8B tokens
+([h16 extension](#h16-extension-maciej-2026-11-07)). The record of every job, check,
+decision and result is [ame_bank_gates_report.md](ame_bank_gates_report.md). Written 2026-11-07 and revised the
 same day (Maciej): four runs, LEM as the cluster, the code on `ame_main`, the work in a
 separate worktree.**
 
@@ -393,6 +394,102 @@ An arm meets the requirement if three things hold:
 - **A fast-forward into `ame_main` can be refused** while `~/code/nano` holds someone's
   uncommitted edit in a file the commit changes. That is the safe failure: stop and ask.
 
+## h16 extension (Maciej, 2026-11-07)
+
+Four more runs, one per gate, at h16 on 8B tokens, on LEM. They train alongside the h12 wave
+and do not change it; the h12 scoring and report go on as above. From here on they are part
+of this plan: the checks, the scoring, the bucket analysis, the report, and "no job from this
+plan is still running" all apply to them.
+
+### What is trained
+
+| Run | W&B name | Config | `attention.ame` options |
+|---|---|---|---|
+| B1 | `bank_gates_h16_b1` | `configs/bank_gates/h16_b1.yaml` | `bank_init_std: 0.01`, `bank_gate: confidence` |
+| B2 | `bank_gates_h16_b2` | `configs/bank_gates/h16_b2.yaml` | `bank_init_std: 0.01`, `bank_gate: context` |
+| B3 | `bank_gates_h16_b3` | `configs/bank_gates/h16_b3.yaml` | `bank_init_std: 0.01`, `bank_gate: backoff` |
+| ST | `bank_gates_h16_stem` | `configs/bank_gates/h16_stem.yaml` | `bank_init_std: 0.01`, `bank_gate: stem` |
+| h16 production reference (done) | `s2b_ps_h16_lr8.0`, W&B `hjw7znbz`, job 6260570 | `configs/stage_2b/ame_h16_pe_shift.yaml`, `trainer.learning_rate=8` | none; banks at σ = 1. Trainer `final_ce` 2.8594; scored here by the common evaluator |
+
+### The configs
+
+`configs/bank_gates/h16_base.yaml` is a copy, not an inheritance, of the S2b-PS h16 config
+that Stage 2b ran on LEM ([configs/stage_2b/ame_h16_pe_shift.yaml](../../configs/stage_2b/ame_h16_pe_shift.yaml),
+run `hjw7znbz` at n = 8; [stage_2b_report.md](stage_2b_report.md)). Its recipe stays as it
+is: one H100, micro-batch 16 × 32 accumulation, Tier 2 banks, no FSDP2, autocast bf16,
+`compile_blocks_full`, and the 24 h limit. Only these change:
+- `learning_rate: 8`, which `hjw7znbz` passed at submit;
+- `n_steps: 7630` (8B tokens at 1,048,576 tokens per step) with `warmup_steps: 76`
+  written out, the value the default (1% of `n_steps`) gave the reference;
+- `count_token_updates: true`;
+- W&B project `nano-ame`; run and job names `bank_gates_h16_<arm>`, with no dots.
+
+Each arm file, `h16_b1`, `h16_b2`, `h16_b3` and `h16_stem`, sets `bank_init_std: 0.01` and
+its `bank_gate`, as at h12.
+
+### The mechanisms at h16
+
+H = 16, d = 64, dmodel = 1024, V = 50,304, 16 layers × 2 banks. The reference has
+1,986,332,928 parameters, of which 1,648,361,472 are the 32 banks, and 2.121 GFLOP/token.
+
+| | B1 | B2 | B3 | ST |
+|---|---:|---:|---:|---:|
+| Extra parameters | 25,755,648 (16 columns × V × 32 banks) | 262,400 | 32,768 | 16,777,216 |
+| Parameter count at startup | 2,012,088,576 | 1,986,595,328 | 1,986,365,696 | 2,003,110,144 |
+| Extra FLOPs per token | none | a `1024 → 16` matmul per layer (+0.07%) | none | a `1024 → 1024` matmul per layer, about +4.7% |
+
+The same formulas give the h12 table above exactly. Composing the configs checks these
+counts before submitting.
+
+### Before submitting
+
+- Compose each config as `run_exp.py` does, pass `check_point`, build it on the meta
+  device, and record its parameter count and GFLOP/token.
+- **Time.** `hjw7znbz` took 15 h 06 min at 6.810 s/step. ST's extra 4.7% FLOPs projects to
+  about 16 h, inside the 24 h limit.
+- **Memory.** `hjw7znbz` peaked at 72.17 GiB on a 94 GB H100. B1's wider banks add about
+  0.5 GiB of Tier 2 state (18 bytes per parameter), and ST's gate about 0.3 GiB of weights
+  and optimizer state plus 2-3 GiB of activations at micro-batch 16. So the heaviest arm
+  is near 75 GiB.
+- If 8B tokens fits neither the time limit nor the memory, stop and ask.
+
+### Submitting and checks
+
+As at h12:
+- the configs reach `ame_main` by rebase and `git -C ~/code/nano merge --ff-only
+  bank_gates_lem`, and jobs are submitted from the worktree only when `bank_gates_lem`
+  equals `ame_main`, with `+infrastructure.slurm.exclude=r16-11`;
+- `run_exp.py` runs one at a time, with `< /dev/null`, and is never killed mid-flight.
+
+Each job is checked about 2 minutes after it starts, then at step 300 and at step 500. The
+comparison is `hjw7znbz`'s same steps:
+- loss and NaN;
+- s/step within 10% of 6.810 (ST within 15%);
+- `grad_norm`, `grad_norm/banks` and the clip factor;
+- the mechanism readouts.
+
+The stop rule is the h12 one: ask Maciej before cancelling anything.
+
+### Evaluation
+
+As at h12, on LEM through `bank_gates_lem_eval.sh`:
+- every arm and `hjw7znbz`'s final checkpoint (job 6260570, clone
+  `s2b_ps_h16_lr8.0_2026-11-07_03-36-02`) scored with the common evaluator
+  (`parity_numerics.py score`, `ame_ref32`);
+- the bucket analysis on all five. The reference uses an arm's `token_counts.pt`, after
+  checking that its data config (dataset, seed, sequence length, batch size, world size)
+  matches the arms'.
+
+The report gives the best h16 gate, each arm against the others and against the h16
+reference, the bucket results, and whether the h16 ranking agrees with h12.
+
+**The h12 noise floor does not transfer.** ±0.019 is the 95% half-width of one run against
+another at h12 and 4B tokens, from same-seed replicates there. No replicate exists at h16
+and 8B: Stage 2b's noise-floor run was cancelled. h16 gaps are therefore reported beside
+the h12 floor as a stated proxy, with that caveat, as Stage 2b did. A gap inside it is
+treated as a tie, and the report proposes the replicates that would settle it. They are
+submitted only on Maciej's go.
+
 ## Decisions for Maciej
 
 The defaults below are taken unless you say otherwise.
@@ -417,7 +514,8 @@ Settled by Maciej on 2026-11-07: four runs with no control, LEM as the cluster, 
 
 A σ = 0.01 control without a gate (Plan C), Plan A (the soft QK-norm), Gemma's projection
 variant of B3, Engram's full gate (which scores x against a key computed from the row), lazy
-or selective bank updates, h16, and longer runs.
+or selective bank updates, and runs beyond h12 at 4B and h16 at 8B tokens (the
+h16 extension).
 
 ## Sources
 
