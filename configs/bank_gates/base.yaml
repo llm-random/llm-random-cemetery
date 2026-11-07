@@ -24,8 +24,10 @@ defaults:
   - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
   - _self_
 
-# Set by each arm file (b1, b2, b3, stem); names the run, the job and a tag.
-bank_gates_arm: ???
+# Names the run, the job and a tag. Each arm file sets its own (b1, b2, b3, stem);
+# the default names this file alone, the ungated recipe. A plain value rather than
+# ???: an interpolation of a missing value fails the config hygiene test.
+bank_gates_arm: base
 
 common:
   sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align

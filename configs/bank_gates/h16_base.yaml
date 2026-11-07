@@ -1,0 +1,83 @@
+# AME bank gates, the h16 extension (documents/notes/ame_bank_gates_plan.md,
+# "h16 extension"): the shared h16 recipe. One arm file per gate (h16_b1,
+# h16_b2, h16_b3, h16_stem) sets the two attention options and `bank_gates_arm`;
+# this file on its own is S2b-PS h16 exactly as W&B hjw7znbz ran it on LEM, and is
+# what the common evaluator composes to score that run.
+#
+# A copy of configs/stage_2b/ame_h16_pe_shift.yaml (S2b-PS h16), not an
+# inheritance, so that edits to the Stage 2b file cannot change these runs. Its
+# recipe is kept as is: one H100, micro-batch 16 x 32, Tier 2 banks, no FSDP2,
+# autocast bf16, compile_blocks_full, the 24 h limit. What differs:
+#   - learning_rate: 8, which hjw7znbz passed at submit (n = 8, S2b-PS's optimum,
+#     stage_2b_report.md);
+#   - scheduler.warmup_steps: 76 written out, the value the default (1% of
+#     n_steps) gave the reference, so it stays put if n_steps is ever overridden;
+#   - W&B names bank_gates_h16_<arm>, and count_token_updates: true, which writes
+#     token_counts.pt beside the final checkpoint.
+# Node r16-11 is excluded at submit with +infrastructure.slurm.exclude=r16-11.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h16
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+# Names the run, the job and a tag. Each arm file sets its own (b1, b2, b3, stem);
+# the default names this file alone, the ungated recipe. A plain value rather than
+# ???: an interpolation of a missing value fails the config hygiene test.
+bank_gates_arm: base
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # S2b-PS: the implemented ALiBi ladder and the KV shift. The arm files add
+  # bank_init_std and bank_gate to this block.
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+compile_blocks_full: true
+
+trainer:
+  # As S2b-PS h16: micro-batch 16 (AME h16 runs out of memory at 32), Tier 2
+  # banks (fp32 master, bf16 forward copy), no FSDP2 so AME's readouts are
+  # logged, autocast bf16.
+  gradient_accumulation_steps: 32
+  mem_parallel_size: 1
+  distributed: null
+  autocast_bf16: true
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks and scalars are exempt);
+  #   - cosine schedule to 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 7630 # D = 8B tokens / 1,048,576 tokens per step, rounded up
+  learning_rate: 8 # n = 8, LR = 2^-8, as hjw7znbz
+  scheduler:
+    warmup_steps: 76
+  count_token_updates: true
+  checkpoint:
+    save:
+      # Only the final checkpoint (interval -1), in the job's cemetery clone under
+      # checkpoint/<job id>/0/step_7629/, with token_counts.pt beside it. About
+      # 23 GB per checkpoint.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: bank_gates_h16_${bank_gates_arm}
+    time: "1-00:00:00" # hjw7znbz took 15 h 06 min; ST adds about 5%
+  metric_logger:
+    project_name: nano-ame
+    name: bank_gates_h16_${bank_gates_arm}
+    tags:
+      - ame
+      - h16
+      - bank_gates
+      - bank_gates_h16_${bank_gates_arm}
