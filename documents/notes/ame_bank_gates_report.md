@@ -198,6 +198,45 @@ bf16 ("Memory-parallel banks enabled: mem_parallel_size=1, compute dtype torch.b
   (the trust is 0.05 on both sides), so the rows' gradient is scaled down by the trust
   as well.
 
+**Step 300, 22:42.** Every check passes, and the stop rule does not apply.
+
+Train loss and `grad_norm` are window means (min/mean/max for the loss), and `doi36p8k`'s
+are at the same steps. s/step is the median, excluding the eval steps.
+
+| Arm | Loss, steps 200-299 | `grad_norm`, 100-199 / 200-299 | `grad_norm/banks`, 200-299 | Clip factor after step 76 | s/step | vs `doi36p8k`'s 3.746 |
+|---|---|---|---:|---|---:|---:|
+| B1 | 4.91/5.16/5.53 | 0.243 / 0.212 | 0.0016 | 1.000 | 3.880 | +3.6% |
+| B2 | 4.25/4.43/4.69 | 0.251 / 0.197 | 0.045 | 1.000 | 3.836 | +2.4% |
+| B3 | 4.12/4.35/4.66 | 0.286 / 0.237 | 0.043 | 1.000 | 3.773 | +0.7% |
+| ST | 4.38/4.58/4.81 | 0.262 / 0.193 | 0.059 | 1.000 | 3.892 | +3.9% |
+| `doi36p8k` | 4.81/5.03/5.28 | 0.293 / 0.182 | not logged | — | 3.746 | |
+
+- **No NaN or inf** in any run.
+- **s/step** is within the plan's 10% (ST: 15%) in every arm.
+- **`grad_norm`** tracks `doi36p8k`'s.
+- **The banks never dominate the norm.** At most about a fifth of it, so 4% of the
+  squared norm. B1's banks are a hundredth of that. The clip has been inactive since the
+  warmup in all four runs, as in production. So the stop rule's condition (a clip factor
+  far below 1 after the warmup) is not met.
+- **The readouts move** (layer means; the range over layers in brackets):
+
+  | Arm | Step 0 | Step 300 |
+  |---|---|---|
+  | B1 trust, q / k | 0.0500 / 0.0500 | 0.0509 / 0.0504; p90 0.0534 [0.0517, 0.0605] / 0.0509; none above 0.5 |
+  | B2 gate | bias 3.000, weight RMS 0 | bias mean 3.055, min 2.92 [2.49, 3.05]; weight RMS 0.044 |
+  | B3 base norm, q / k | 0 / 0 | 0.246 [0.131, 0.313] / 0.220 [0.166, 0.265] |
+  | ST gate weight RMS | 0.0317 | 0.0556; τ falling, 8.00 → 7.69 |
+
+  B1's trust climbs as slowly as the plan predicts: reaching s = 0.5 takes at least 754
+  of a token's own updates at the peak learning rate. B3's base vectors are already
+  about three times the rows' initial length per head (0.08 at σ = 0.01).
+- **An early lead, not a result.** Three arms are well ahead of production at the same
+  step: 4.35-4.58 against 5.03 over steps 200-299. That fits σ = 0.01 turning the banks
+  about 100× faster at the start, since QK-norm makes σ an inverse learning rate for
+  the banks ([ame_implementation.md](ame_implementation.md), weight init). B1, whose
+  trust mutes that, trails production slightly (5.16). The plan does not read a
+  step-300 loss as quality: production's 220-step losses spread with an sd of 0.13.
+
 ## The h16 wave
 
 Four runs, one per gate, at h16 on 8B tokens (decision 7; the plan's
@@ -213,4 +252,68 @@ alongside the h12 wave.
 
 ### Before submitting
 
-*Filled in by the pre-submit checks.*
+Configs committed in `c96c31a4` and fast-forwarded into `ame_main`.
+
+**Composed as `run_exp.py` composes them**, each passed `check_point` and was built on the
+meta device. The parameter counts equal the plan's arithmetic:
+
+| Arm | Parameters | GFLOP/token (seq 2048) |
+|---|---:|---:|
+| none (`h16_base.yaml`, = `hjw7znbz`) | 1,986,332,928 | 2.1212 |
+| B1 | 2,012,088,576 | 2.1212 |
+| B2 | 1,986,595,328 | 2.1228 |
+| B3 | 1,986,365,696 | 2.1212 |
+| ST | 2,003,110,144 | 2.2219 (+4.75%) |
+
+**The copy is the reference's recipe.** `h16_base.yaml`, resolved, was compared key by
+key with `hjw7znbz`'s own generated config from its cemetery clone, also resolved. They
+differ only in:
+- names and tags;
+- `count_token_updates`;
+- `run_exp.py`'s bookkeeping keys;
+- the exclude, which both pass at submit;
+- the RAM request: 228G, the LEM cluster file's value since 2026-11-07, against the
+  reference's 220G. It is host memory and changes nothing in the run.
+
+So the data config (dataset, seed 123, sequence length 2049, batch 512) is the arms'
+own. With world size 1 on both sides (W&B config), an arm's `token_counts.pt` describes
+the reference's data stream too.
+
+**Time.** `hjw7znbz` took 15 h 06 min at 6.810 s/step. ST, at +4.75% FLOPs, projects to
+about 15.8 h. The limit is 24 h.
+
+**Memory.** `hjw7znbz` peaked at 72.17 GiB; the H100 has 93.6 GiB.
+- B1's 16 extra columns over 32 banks add 25.8M parameters, about 0.5 GiB of Tier 2 state
+  at 18 bytes per parameter.
+- ST's gate adds 16.8M parameters (about 0.3 GiB with AdamW) and at most about 3 GiB of
+  saved activations at micro-batch 16 (three `[16, 2048, 1024]` bf16 tensors per layer).
+- The heaviest arm is therefore at most about 76 GiB.
+
+8B tokens fits both, so there was no reason to stop and ask.
+
+**A test fixed on the way (`c96c31a4`).** `test_every_runnable_config_composes_and_resolves`
+failed once `base.yaml` was tracked (`157c3122`). It resolves every config, and
+interpolating the mandatory `bank_gates_arm: ???` raises even with missing values allowed.
+The suite reported in "Implementation and local checks" ran before the configs were
+tracked, so it never saw them. `bank_gates_arm` now defaults to `base`. At `c96c31a4` the
+suite passes with every config tracked: 381 passed, 18 skipped. The running h12 jobs are
+unaffected, since their arm files set the key.
+
+### Jobs — submitted 2026-11-07 22:39-22:40
+
+All four were submitted with `run_exp.py --config-path configs/bank_gates --config-name
+h16_<arm> +infrastructure.slurm.exclude=r16-11`, one at a time, from the worktree at
+`c96c31a4` (= `ame_main`). Every cemetery commit has `c96c31a4` as its parent and changes
+only `exp.job`, `generated_configs/config_0.yaml` and the two pixi files.
+
+| Arm | `bank_gate` | Job | Cemetery commit | Cemetery clone (under `.../nano/plgmstefaniak/llmrandom_cemetery/`) | W&B run | Node | Parameters, as logged |
+|---|---|---|---|---|---|---|---:|
+| B1 | confidence | 6264776_0 | `02e1be80` | `bank_gates_h16_b1_2026-11-07_22-39-03` | `h85djd57` | r16-10 | 2,012,088,576 |
+| B2 | context | 6264777_0 | `f8434114` | `bank_gates_h16_b2_2026-11-07_22-39-24` | `jwirkswo` | r16-13 | 1,986,595,328 |
+| B3 | backoff | 6264778_0 | `92509a63` | `bank_gates_h16_b3_2026-11-07_22-39-46` | `3yc7haqu` | r16-14 | 1,986,365,696 |
+| ST | stem | 6264779_0 | `b6dd7a5f` | `bank_gates_h16_stem_2026-11-07_22-40-08` | `ug8g2i2x` | r16-15 | 2,003,110,144 |
+
+Each final checkpoint lands under `checkpoint/<job>/0/step_7629/` in its clone, with
+`token_counts.pt` beside it.
+
+### Checks
