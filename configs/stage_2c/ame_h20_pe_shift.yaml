@@ -1,15 +1,20 @@
 # Stage 2c, arm S2c-PS: AME at h20 on 16B tokens, with both the implemented
 # ALiBi positional encoding and the KV shift -- the best AME variant at h12 and
-# h16 (Stages 2 and 2b) -- on one Helios node (4 GH200). One submit = 1 run.
+# h16 (Stages 2 and 2b) -- on one LEM node (4 H100). One submit = 1 run.
 #
 #   Plan: documents/notes/ame_experiments.md, "Stage 2c -- the best AME variant
 #   at h20". This is configs/stage_2b/ame_h16_pe_shift.yaml with Stage 1c's
-#   changes (model h20, 16B tokens, Helios, 4 GPUs per run under FSDP2 with
+#   changes (model h20, 16B tokens, 4 GPUs per run under FSDP2 with
 #   reshard_after_forward: false, micro-batch 16 x 8 per GPU) and the banks
 #   column-sharded over the 4 GPUs (mem_parallel_size: 4).
 #   Pair: configs/stage_1c/dense_h20_lr_grid.yaml (S1c-D). The training recipe
 #   (steps, batch, schedule, eval, precision, sharding, checkpointing) is
 #   identical in both files; change them together.
+#
+# Cluster: LEM, since 2026-11-08 (Maciej). Helios goes down for maintenance, with its
+# GPUs off until the end of the month, before these runs could start there. LEM is the
+# plan's fallback: one node of 4 H100 (gres gpu:hopper:4), with node r16-11 excluded at
+# submit, +infrastructure.slurm.exclude=r16-11 (stage_1_report.md, decision 3).
 #
 # learning_rate is null on purpose. Each run sets it on the command line,
 # trainer.learning_rate=<n>: n = 9 alongside Stage 1c, then n_d* - 1, n_d* and
@@ -25,7 +30,7 @@
 defaults:
   - /base_schema
   - ../_misc@_here_: default
-  - ../_cluster@_here_: helios
+  - ../_cluster@_here_: lem
   - ../_model/h_balanced@_here_: h20
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -54,7 +59,7 @@ trainer:
   # ame_optimization_report.md §1.3). It peaked at 64.63 GiB at micro-batch 16
   # on entropy (§1.15); 32 ran out of memory. FSDP2's MixedPrecisionPolicy
   # computes in bf16, so autocast is off. Expect about 3.14-3.25 s/step on
-  # Helios, entropy's 2.852 scaled by LEM's slowdown; the smoke run measures it.
+  # LEM, entropy's 2.852 scaled by LEM's slowdown; the smoke run measures it.
   gradient_accumulation_steps: 8 # micro-batch 16 = 512 / (4 GPUs x 8)
   mem_parallel_size: 4 # banks column-sharded over the 4 GPUs (Tier 3)
   distributed:
@@ -79,11 +84,10 @@ trainer:
 
 infrastructure:
   slurm:
-    # No cluster file sets the Helios account, so the config must.
-    account: plgllmefficont3-gpu-gh200
-    gres: gpu:4 # one whole Helios node; Helios's gres syntax
+    # The account is lem.yaml's. r16-11 is excluded at submit (see the header).
+    gres: gpu:hopper:4 # one whole LEM node; LEM's gres syntax
     job-name: s2c_ps
-    time: "1-00:00:00" # about 14.5 h per run on Helios (estimated), plus margin
+    time: "1-00:00:00" # about 14.5 h per run on LEM (estimated), plus margin
   metric_logger:
     project_name: nano-ame
     name: s2c_ps_h20_lr${trainer.learning_rate}
