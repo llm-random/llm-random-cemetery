@@ -1,0 +1,13 @@
+# Stage 2, b3_std1: B3 at production's init -- sigma = 1 (Q1, Q2).
+# Plan: documents/notes/ame_bank_gates_stage2_plan.md. Everything else is base.yaml.
+defaults:
+  - base
+  - _self_
+
+bank_gates_arm: stage2_b3_std1
+
+common:
+  attention:
+    ame:
+      bank_init_std: 1.0
+      bank_gate: backoff

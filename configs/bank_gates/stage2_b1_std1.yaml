@@ -1,0 +1,14 @@
+# Stage 2, b1_std1: B1 at production's init -- sigma = 1, trust starting at 0.05
+# (Q1, Q3).
+# Plan: documents/notes/ame_bank_gates_stage2_plan.md. Everything else is base.yaml.
+defaults:
+  - base
+  - _self_
+
+bank_gates_arm: stage2_b1_std1
+
+common:
+  attention:
+    ame:
+      bank_init_std: 1.0
+      bank_gate: confidence

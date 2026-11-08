@@ -1,0 +1,15 @@
+# Stage 2, b1open_std001: B1 started open -- sigma = 0.01, trust starting at 0.95,
+# so scores start at 0.9025 of their size instead of stage 1's 0.0025 (Q3).
+# Plan: documents/notes/ame_bank_gates_stage2_plan.md. Everything else is base.yaml.
+defaults:
+  - base
+  - _self_
+
+bank_gates_arm: stage2_b1open_std001
+
+common:
+  attention:
+    ame:
+      bank_init_std: 0.01
+      bank_gate: confidence
+      confidence_init: 0.95

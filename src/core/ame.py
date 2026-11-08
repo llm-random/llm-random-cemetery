@@ -48,7 +48,8 @@ identity reaches the scores; "none" is the model above, bit for bit:
 
     confidence  (B1)  q = sigmoid(c_Q[t]) * norm(E_Q[t]), the same for k; c is
                       one trust logit per token and head, stored as H extra
-                      bank columns and started at logit(0.05)
+                      bank columns and started at logit(confidence_init),
+                      0.05 unless set
     context     (B2)  q = sigmoid(W_g x_i + b) * norm(E_Q[t]), one scalar per
                       query position and head; W_g = 0, b = 3 at init
     backoff     (B3)  q = norm((base_Q + E_Q[t]) / sqrt 2), the same for k; one
@@ -74,11 +75,12 @@ from src.core.model import Linear, llm_random_weight_init
 # The values `bank_gate` takes. One enum rather than a boolean per mechanism, so
 # that "one mechanism per run" is structural.
 BANK_GATES = ("none", "confidence", "context", "backoff", "stem")
-# B1: every trust scalar starts at sigmoid(logit(0.05)) = 0.05, so every score
-# starts at 0.05 * 0.05 = 0.0025 of its ungated size: attention begins as the
-# ALiBi prior plus the sink, until a token's own updates earn it trust.
+# B1's default `confidence_init`: every trust scalar starts at 0.05, so every
+# score starts at 0.05 * 0.05 = 0.0025 of its ungated size: attention begins as
+# the ALiBi prior plus the sink, until a token's own updates earn it trust.
+# Stage 2's b1open_std001 starts it at 0.95 instead, so scores start at 0.9025
+# of their size (documents/notes/ame_bank_gates_stage2_plan.md).
 CONFIDENCE_INIT = 0.05
-CONFIDENCE_INIT_LOGIT = math.log(CONFIDENCE_INIT / (1.0 - CONFIDENCE_INIT))
 # B2: W_g = 0 and b = 3 open every gate to sigmoid(3) = 0.953, the strongest of
 # Highway networks' carry settings (a transform-gate bias of -1 to -3,
 # Srivastava, Greff & Schmidhuber 2015). Not tuned.
@@ -112,20 +114,23 @@ def _shift1(z):
     return F.pad(z, pad)[:, :-1]
 
 
-def _with_trust_columns(bank, heads):
-    """B1: `bank`, `heads` columns wider, the new columns at logit(0.05).
+def _with_trust_columns(bank, heads, init=CONFIDENCE_INIT):
+    """B1: `bank`, `heads` columns wider, the new columns at logit(`init`).
 
     Built from the bank as already drawn, so the first `H*d` columns are exactly
     the ungated model's draw and the global RNG is not touched: every arm then
     starts every shared weight from the same numbers, and differs from "none"
     only in its mechanism. `_weight=` keeps nn.Embedding from re-drawing.
+
+    The logit is the expression the module constant used to be, so the default
+    0.05 writes the same fp32 value as stage 1's B1, bit for bit.
     """
     vocab, width = bank.weight.shape
     wide = bank.weight.new_empty(vocab, width + heads)
     if not wide.is_meta:
         with torch.no_grad():
             wide[:, :width] = bank.weight
-            wide[:, width:] = CONFIDENCE_INIT_LOGIT
+            wide[:, width:] = math.log(init / (1.0 - init))
     return nn.Embedding(vocab, width + heads, _weight=wide)
 
 
@@ -324,6 +329,7 @@ class AMEAttention(nn.Module):
         qk_norm=True,
         bank_init_std=1.0,
         bank_gate="none",
+        confidence_init=CONFIDENCE_INIT,
         shift=True,
         pin_alpha=False,
         pin_beta=False,
@@ -344,7 +350,19 @@ class AMEAttention(nn.Module):
                 f"unknown ame bank_gate {bank_gate!r}; expected one of "
                 f"{', '.join(BANK_GATES)}"
             )
+        if not 0.0 < confidence_init < 1.0:
+            raise ValueError(
+                f"ame confidence_init is B1's starting trust, a sigmoid value; it "
+                f"must lie strictly between 0 and 1, got {confidence_init!r}"
+            )
+        if bank_gate != "confidence" and confidence_init != CONFIDENCE_INIT:
+            # Not silently ignored: a run that sets it believes it changed B1.
+            raise ValueError(
+                f"ame confidence_init={confidence_init!r} applies only to "
+                f"bank_gate=confidence, got bank_gate={bank_gate!r}"
+            )
         self.bank_gate = bank_gate
+        self.confidence_init = confidence_init
         self.dmodel = dmodel
         self.q_heads = q_heads
         # Kept so the registry's introspection (and get_model_dimensions) finds
@@ -374,10 +392,11 @@ class AMEAttention(nn.Module):
                 if not bank.weight.is_meta:
                     bank.weight.normal_(mean=0.0, std=bank_init_std)
         if bank_gate == "confidence":
-            # B1: H trust logits appended to every row (width H*d + H). Widened
-            # after the draw above, so the row part is the ungated draw.
-            self.q_bank = _with_trust_columns(self.q_bank, q_heads)
-            self.k_bank = _with_trust_columns(self.k_bank, q_heads)
+            # B1: H trust logits appended to every row (width H*d + H), all at
+            # logit(confidence_init). Widened after the draw above, so the row
+            # part is the ungated draw.
+            self.q_bank = _with_trust_columns(self.q_bank, q_heads, confidence_init)
+            self.k_bank = _with_trust_columns(self.k_bank, q_heads, confidence_init)
 
         # Values and output stay exactly as in MHA.
         linear = partial(
@@ -1058,4 +1077,9 @@ class AMEAttention(nn.Module):
             f"qk_norm={self.qk_norm}, sink={self.use_sink}, "
             f"alpha_pinned={self.alpha_is_pinned}, beta_pinned={self.beta_is_pinned}, "
             f"bank_gate={self.bank_gate}"
+            + (
+                f", confidence_init={self.confidence_init}"
+                if self.bank_gate == "confidence"
+                else ""
+            )
         )

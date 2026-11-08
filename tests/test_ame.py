@@ -1364,10 +1364,16 @@ def test_every_gate_matches_a_literal_transcription_of_its_formula(bank_gate):
 # B1, per-row confidence.
 
 
-def test_b1_every_trust_starts_at_005_after_mains_build_path():
+@pytest.mark.parametrize(
+    "option, trust_init",
+    [("", 0.05), (", confidence_init: 0.95", 0.95)],
+    ids=["default_005", "stage2_open_095"],
+)
+def test_b1_every_trust_starts_at_its_init_after_mains_build_path(option, trust_init):
     """Not only after the constructor: main.py hands the banks to the
     memory-parallel controller, which copies them into fresh parameters and an
-    fp32 master. The trust columns must survive that copy."""
+    fp32 master. The trust columns must survive that copy, and `confidence_init`
+    must reach the layer from the config's `attention.ame` block."""
     import main
     from src.core.memory_parallel import ShardedBank, get_controller
 
@@ -1379,7 +1385,8 @@ def test_b1_every_trust_starts_at_005_after_mains_build_path():
             overrides=[
                 "common.vocab_size=96",
                 "common.attention.type=ame",
-                "+common.attention.ame={bank_gate: confidence, bank_init_std: 0.01}",
+                "+common.attention.ame="
+                f"{{bank_gate: confidence, bank_init_std: 0.01{option}}}",
                 "trainer.mem_parallel_size=1",
             ],
         )
@@ -1397,7 +1404,7 @@ def test_b1_every_trust_starts_at_005_after_mains_build_path():
             trust = torch.sigmoid(layer._trust_logits(which))
             assert trust.shape == (96, 4)
             torch.testing.assert_close(
-                trust, torch.full_like(trust, 0.05), rtol=0, atol=1e-6
+                trust, torch.full_like(trust, trust_init), rtol=0, atol=1e-6
             )
             # and the forward reads the same columns from the compute copy
             torch.testing.assert_close(
@@ -1423,19 +1430,72 @@ def test_b1_scores_are_the_ungated_scores_times_both_trusts():
     assert torch.equal(torch.isfinite(actual), finite)
 
 
-def test_b1_at_init_every_score_is_00025_of_the_ungated_one():
+@pytest.mark.parametrize(
+    "init, factor",
+    [({}, 0.0025), ({"confidence_init": 0.95}, 0.9025)],
+    ids=["default_005", "stage2_open_095"],
+)
+def test_b1_at_init_every_score_is_trust_squared_of_the_ungated_one(init, factor):
+    """0.05 * 0.05 = 0.0025 by default (stage 1's B1); 0.95 * 0.95 = 0.9025 for
+    stage 2's b1open_std001."""
     options = dict(shift=False, sink=False, slopes=[0.0] * DIMS["q_heads"])
     ungated = _layer(seed=5, bank_init_std=0.01, **options)
-    gated = _layer(seed=5, bank_init_std=0.01, bank_gate="confidence", **options)
+    gated = _layer(
+        seed=5, bank_init_std=0.01, bank_gate="confidence", **init, **options
+    )
     _, token_ids = _batch(gated)
     expected = ungated.score_matrix(token_ids)
     finite = torch.isfinite(expected)
     torch.testing.assert_close(
         gated.score_matrix(token_ids)[finite],
-        0.0025 * expected[finite],
+        factor * expected[finite],
         rtol=1e-4,
         atol=1e-7,
     )
+
+
+def test_b1_the_default_confidence_init_is_stage_1s_b1_bit_for_bit():
+    """Making the init an option must not move stage 1's B1: the default and an
+    explicit 0.05 build the same state dict, and the trust columns hold the
+    fp32 value the old module constant, logit(0.05), wrote."""
+    default = _layer(seed=5, bank_init_std=0.01, bank_gate="confidence")
+    explicit = _layer(
+        seed=5, bank_init_std=0.01, bank_gate="confidence", confidence_init=0.05
+    )
+    assert list(default.state_dict()) == list(explicit.state_dict())
+    for name, tensor in default.state_dict().items():
+        assert torch.equal(explicit.state_dict()[name], tensor), name
+    datt = DIMS["dmodel"]
+    for bank in (default.q_bank, default.k_bank):
+        trust_logits = bank.weight[:, datt:]
+        assert torch.equal(
+            trust_logits, torch.full_like(trust_logits, -2.9444389791664403)
+        )
+
+
+def test_b1_open_trust_reads_out_at_095():
+    layer = _layer(bank_gate="confidence", confidence_init=0.95)
+    readout = layer.instrumentation()
+    assert readout["trust_q/mean"] == pytest.approx(0.95, abs=1e-6)
+    assert readout["trust_k/p10"] == pytest.approx(0.95, abs=1e-6)
+    assert readout["trust_q/above_half"] == 1.0
+    assert "confidence_init=0.95" in repr(layer)
+
+
+@pytest.mark.parametrize("value", (0.0, 1.0, -0.1, 1.5))
+def test_a_confidence_init_outside_0_1_is_rejected(value):
+    with pytest.raises(ValueError, match="strictly between 0 and 1"):
+        _layer(bank_gate="confidence", confidence_init=value)
+
+
+@pytest.mark.parametrize("bank_gate", ("none", "context", "backoff", "stem"))
+def test_confidence_init_on_another_gate_is_rejected_not_ignored(bank_gate):
+    with pytest.raises(ValueError, match="applies only to bank_gate=confidence"):
+        _layer(bank_gate=bank_gate, confidence_init=0.95)
+    # Stated at its default value it changes nothing, so it is accepted.
+    _layer(bank_gate=bank_gate, confidence_init=0.05)
+    with pytest.raises(Exception, match="confidence_init"):
+        _h4_ame(["+common.attention.ame={bank_gate: backoff, confidence_init: 0.95}"])
 
 
 def test_b1_trust_gets_gradient_only_for_ids_in_the_batch():

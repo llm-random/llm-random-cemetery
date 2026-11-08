@@ -208,6 +208,7 @@ _AME_OPTIONS = (
     "qk_norm",
     "bank_init_std",
     "bank_gate",
+    "confidence_init",
     "shift",
     "pin_alpha",
     "pin_beta",
