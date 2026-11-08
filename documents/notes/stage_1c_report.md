@@ -1,8 +1,8 @@
 # Stage 1c — dense h20 at 16B tokens, on 4 GPUs: report
 
-**Status: in progress (started 2026-11-08 00:40). The Helios compile fix is committed
-(`683c316b`) and the Helios environment is being rebuilt with it. Nothing of Stage 1c
-proper is submitted yet.**
+**Status: in progress (started 2026-11-08 00:40). The Helios compile fix works (job
+25860605). The S1c-D grid, n ∈ {8, 9, 10}, is queued on Helios as job 25862221 (submitted
+01:15), behind its 4-GPU smoke runs (25862155).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first". This file is its record:
@@ -84,7 +84,13 @@ it and left it at v6. The env now holds torch 2.7.1+cu128, triton 3.3.1 and symp
 [configs/stage_1c/helios_compile_smoke_h16_ps.yaml](../../configs/stage_1c/helios_compile_smoke_h16_ps.yaml),
 Stage 2b's S2b-PS file moved to Helios and cut to 60 steps (`compile_blocks_full` and flex
 attention, both Triton). Job 25860605, submitted at 01:00:06 and started within a minute on
-x1002c6s0b0n0; it reads FineWeb from the `$SCRATCH` copy. Result: pending.
+x1002c6s0b0n0; it reads FineWeb from the `$SCRATCH` copy.
+
+**Compile works on Helios.** The job log reads `torch.compile applied to 16 whole blocks`,
+and the run (W&B `7f1uzqtu`) trained through its first forward and on: step 10 at 01:13,
+loss 11.25 → 8.06, 6.35 s/step on one GH200 (S2b-PS's LEM smoke: 6.765 s/step on an H100).
+The W&B key reached it through the sbatch environment, as described below. So both stages
+stay on Helios. The end of the run (`final_ce`, checkpoint, readouts) is under "Smoke runs".
 
 ## Submission: how the W&B key reaches the jobs
 
@@ -108,15 +114,26 @@ session is made, so the run-name dot problem of Stages 2 and 2b
 
 ## Smoke runs
 
-Pending: the plan's 4-GPU smoke runs (`trainer.n_steps=60 trainer.eval_interval=20`),
-the S1c-D grid file and S2c-PS at n = 9.
+**Submitted at 01:14, together with the real runs (decision 3)**, with
+`trainer.n_steps=60 trainer.eval_interval=20`, named `smoke_*`, tagged `smoke`, with a
+1.5 h limit, as in Stages 1 and 1b ([stage_1_report.md](stage_1_report.md), decision 2):
+- **dense:** the S1c-D grid file, 3 points, job 25862155 (`smoke_s1c_d_h20_lr<n>`);
+- **AME:** the S2c-PS file with `trainer.learning_rate=9`, job 25862201
+  (`smoke_s2c_ps_h20_lr9`), recorded in [stage_2c_report.md](stage_2c_report.md).
+
+The checks, as the plan lists them: micro-batch 16 fits under FSDP2 on Helios; the s/step
+against the plan's estimate (2.60–2.70 dense, 3.14–3.25 AME); `final_ce` is logged and
+the checkpoint written; AME's readouts fail with a warning per layer and the run goes on.
+Results: pending.
 
 ## Jobs
 
 | Job | What | n | W&B run | Node | Submitted | Started | Ended | State | `final_ce` |
 |---|---|---:|---|---|---|---|---|---|---:|
 | 25860316 | `update_pixi.py`: rebuild the Helios env (srun, `--qos=now`, 4 CPUs, no GPU) | — | — | — | 00:56 | 00:57 | 00:59 | completed | — |
-| 25860605 | Compile proof: S2b-PS on 1 GH200, 60 steps, `--qos=now` | 9 | pending | x1002c6s0b0n0 | 01:00 | 01:00 | | running | |
+| 25860605 | Compile proof: S2b-PS on 1 GH200, 60 steps, `--qos=now` | 9 | `7f1uzqtu` | x1002c6s0b0n0 | 01:00 | 01:00 | | running | |
+| 25862155_0–2 | 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | | | 01:14 | | | pending | |
+| 25862221_0–2 | **S1c-D grid** | 8, 9, 10 | | | 01:15 | | | pending | |
 
 ## Decisions
 
@@ -128,6 +145,18 @@ the S1c-D grid file and S2c-PS at n = 9.
    ([src/core/trainer.py](../../src/core/trainer.py), `_log_layer_instrumentation`: one
    warning per layer, then dropped). So Stage 2c reads α₂, β₂ and τ from its final
    checkpoints, as the plan says.
+3. **The 4-GPU smoke runs and the real runs were submitted together, at 01:14–01:16,
+   once the compile proof had trained 10 steps.** The plan's Helios section: prove the fix
+   with the 1-GPU run, "then submit the 4-GPU jobs without delay". 4-GPU jobs queue by age
+   under normal QoS (a grant job waited 25 h on 2026-11-07), so holding the grid back until
+   the smokes finished could cost a day of queue. The smokes have a 1.5 h limit, which the
+   backfill scheduler can fit into gaps, so they are likely to start, and finish, before the
+   24 h runs. If a smoke fails, the queued runs are mine to cancel, fix and resubmit, at no
+   GPU cost. The compile proof had by then shown what the 4-GPU runs share with it: the
+   Helios env, compile and flex attention, FineWeb from `$SCRATCH`, and the W&B key.
+4. **Stage 2c's n = 9 run was submitted with the Stage 1c grid**, as the plan allows: n = 9
+   is in Stage 2c's grid whichever of 8, 9 or 10 Stage 1c picks
+   ([stage_2c_report.md](stage_2c_report.md)).
 
 ## For Maciej
 
