@@ -1,12 +1,17 @@
 # AME bank gates: four ways to trust a bank row, one h12 run each (plan)
 
-**Status: implemented (`157c3122`, `9d7ed99d` on `ame_main`) and submitted
-2026-11-07 22:16-22:18: four runs on LEM, jobs 6264723, 6264725, 6264726, 6264733.
-Extended the same evening with an h16 wave of four more runs at 8B tokens
-([h16 extension](#h16-extension-maciej-2026-11-07)). The record of every job, check,
-decision and result is [ame_bank_gates_report.md](ame_bank_gates_report.md). Written 2026-11-07 and revised the
-same day (Maciej): four runs, LEM as the cluster, the code on `ame_main`, the work in a
-separate worktree.**
+**Status:**
+- **Implemented** in `157c3122` and `9d7ed99d` on `ame_main`.
+- **Submitted** 2026-11-07 22:16-22:18: four runs on LEM, jobs 6264723, 6264725,
+  6264726, 6264733.
+- **Scored** 2026-11-08: ST, B2 and B3 tie for best at the noise floor, and B1 is last.
+  Replicates are proposed.
+- **Extended** the same evening with an h16 wave of four more runs at 8B tokens
+  ([h16 extension](#h16-extension-maciej-2026-11-07)), still training.
+
+[ame_bank_gates_report.md](ame_bank_gates_report.md) records every job, check, decision
+and result. The plan was written 2026-11-07 and revised the same day with Maciej: four
+runs, LEM as the cluster, the code on `ame_main`, the work in a separate worktree.
 
 Background: [pkmf_init_comparison.md](pkmf_init_comparison.md), sections "Memory-bank init
 for sparsely updated rows: a proposal" and "Implementation plans for the three bank-init

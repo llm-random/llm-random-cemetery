@@ -1,8 +1,12 @@
 # AME bank gates — report
 
-**Status: implemented and submitted (2026-11-07). Four h12 runs, one per gate, train on
-LEM. An h16 wave of four more at 8B tokens was added the same evening (decision 7). The
-evaluator is validated; nothing is scored yet.**
+**Status (2026-11-08 03:05): the h12 wave is trained and scored.**
+- **Best gate:** ST, B2 and B3 tie for best at the plan's noise floor (3.0191, 3.0355,
+  3.0358; production 3.1252). B1 is last (3.1420).
+- **Rare rows:** a rarely updated row is less influential only in B1.
+- **Replicates:** proposed to break the tie ([Results](#results)), not submitted.
+- **The h16 wave** (decision 7) is training on LEM: steps 2,099-2,193 of 7,630 at 03:01,
+  expected to finish about 13:40-14:30.
 
 The plan is [ame_bank_gates_plan.md](ame_bank_gates_plan.md). This file is its record:
 every job, check, result and decision, each with its reason. Times are CET.
@@ -74,6 +78,16 @@ every job, check, result and decision, each with its reason. Times are CET.
    - The reference is S2b-PS h16 at n = 8 (`hjw7znbz`).
    - The h12 noise floor does not transfer to h16 and 8B. h16 gaps are reported beside it
      as a stated proxy, with that caveat ([The h16 wave](#the-h16-wave)).
+8. **The rare-row reading rests on the u = 101-1000 bucket (2026-11-08).** The held-out
+   set's rarer buckets are too thin or too narrow to read:
+   - u = 0 is 5 positions;
+   - u = 1-10 is 99% one token, ' COVID', which the training stream almost never
+     contains;
+   - half of u = 11-100 comes from five documents.
+
+   The attention sample (the first 512 sequences) holds 4, 61 and 16 positions of them.
+   u = 101-1000 has 17,812 positions over 4,026 ids and 4,575 sequences. The thin buckets
+   are still reported, labelled ([Results](#results)).
 
 ## Implementation and local checks
 
@@ -149,7 +163,7 @@ untracking of `pixi.toml` and `pixi.lock`.
 | B1 | confidence | 6264723_0 | `49456e2` | `bank_gates_b1_2026-11-07_22-16-06` | `621sjn71` | r12-6 | 1,118,086,608 |
 | B2 | context | 6264725_0 | `fda924b` | `bank_gates_b2_2026-11-07_22-16-34` | `kgk0prvf` | r12-7 | 1,103,709,792 |
 | B3 | backoff | 6264726_0 | `12d2779` | `bank_gates_b3_2026-11-07_22-16-59` | `5w6p64bv` | r12-10 | 1,103,617,488 |
-| ST | stem | 6264733_0 | `6af74f7` | `bank_gates_stem_2026-11-07_22-17-22` | `l54pyyqp` | r14-9 | *pending* |
+| ST | stem | 6264733_0 | `6af74f7` | `bank_gates_stem_2026-11-07_22-17-22` | `l54pyyqp` | r14-9 | 1,110,676,944 |
 
 W&B project `nano-ame`; run names `bank_gates_<arm>`. Each run's final checkpoint lands
 in its clone under `checkpoint/<job>/0/step_3814/`, with `token_counts.pt` beside it.
@@ -257,6 +271,241 @@ are at the same steps. s/step is the median, excluding the eval steps.
   - ST's gate RMS: 0.065; τ 7.65.
 - **The early lead over production is shrinking:** 0.32-0.45 over steps 400-499,
   against 0.45-0.68 over steps 200-299.
+
+### Finish — 2026-11-08 02:31-02:39
+
+All four completed (Slurm `COMPLETED`, exit 0) at step 3,814, after 4,000,317,440 tokens.
+The watch kept to the end flagged nothing; it read W&B and Slurm every 4 minutes and
+scanned the job logs.
+
+| Arm | Job | Elapsed | s/step, median | vs `doi36p8k` | Peak memory, GiB | Train loss, last 100 steps | In-training `final_ce` (bf16) |
+|---|---|---|---:|---:|---:|---:|---:|
+| B1 | 6264723_0 | 4:21:18 | 3.880 | +3.6% | 70.66 | 3.225 | 3.1406 |
+| B2 | 6264725_0 | 4:18:35 | 3.835 | +2.4% | 70.42 | 3.108 | 3.0352 |
+| B3 | 6264726_0 | 4:14:02 | 3.771 | +0.7% | 70.58 | 3.108 | 3.0361 |
+| ST | 6264733_0 | 4:21:23 | 3.880 | +3.6% | 71.65 | 3.088 | 3.0186 |
+| `doi36p8k` | 6256577_0 | 4:12:54 | 3.746 | | 70.40 | 3.212 | 3.125 |
+
+- **Clean from first step to last,** over every step of the full W&B histories:
+  - no NaN or inf in any arm;
+  - no loss spike in any arm or in `doi36p8k`, where a spike is a step more than 0.3
+    above the median of the 50 before it;
+  - after the warmup the clip acted on four steps in all: B1's 38, 40 and 41 (minimum
+    0.53, as the warmup ended) and B3's 57 (0.97). It never acted in B2 or ST.
+- **Checkpoints:** each `step_3814/` holds three files:
+  - the model, 2.12-2.20 GB;
+  - the banks' sidecar `memory_parallel_rank0.pt`, 11.13 GB (B1's is 11.30 GB, wider by
+    the trust columns);
+  - `token_counts.pt`.
+- **The four `token_counts.pt` are byte-identical** (sha256 `ab1df510…`): every arm saw the
+  same tokens in the same steps.
+- **Readouts at step 3,800** (layer means; the range over layers in brackets):
+
+  | Arm | Readouts |
+  |---|---|
+  | B1 | trust mean 0.055 (q) and 0.057 (k), p90 0.068 both; 0.012% of (token, head) entries above 0.5; τ 11.3 [9.7, 12.8] |
+  | B2 | gate bias mean 2.60 [2.44, 2.92], minimum 2.20; weight RMS 0.065; τ 8.34 |
+  | B3 | base norms 0.47 [0.27, 0.58] (q) and 0.58 [0.40, 0.83] (k); τ 8.20 |
+  | ST | gate weight RMS 0.084 [0.071, 0.095]; τ 7.83 |
+
+  B1's trust hardly left its start. Its scores end at about s_q·s_k ≈ 0.003 of their
+  ungated size, and its τ rose further than any other arm's.
+
+### Scoring — submitted 2026-11-08 02:44-02:45
+
+Five one-GPU jobs were run through `bank_gates_lem_eval.sh`, from the worktree at
+**`8b07c983`** (= `ame_main`).
+
+`ame_main` had moved past `9d7ed99d` by then:
+- my report commits;
+- `c96c31a4`'s default arm name;
+- other sessions' docs, Stage 1c/2c configs and Helios pins in the pixi files.
+
+Nothing under `src/` or `documents/scripts/` changed, so the evaluator is the one validated
+on `doi36p8k`.
+
+**What each job ran:**
+- **Each arm's job:** `parity_numerics.py score` (`ame_ref32`, then `ame_prod`), then
+  `bank_gates_eval.py`, on its `step_3814/` checkpoint with its own counts.
+- **The fifth job:** the bucket analysis on `doi36p8k`'s final checkpoint, with B1's counts.
+  Its run predates the counter. Its logged config differs from the arms' in no data, seed,
+  batch, step or learning-rate key, only in:
+  - the gate keys and the names;
+  - `count_token_updates`;
+  - the Slurm memory request;
+  - a `gqa: null` that its older commit did not log.
+
+| Job | Name | Scores | Node | Elapsed | Status |
+|---|---|---|---|---|---|
+| 6265588 | `bg_eval_b1` | B1 | r10-3 | 9:30 | COMPLETED |
+| 6265589 | `bg_eval_b2` | B2 | r10-4 | 9:26 | COMPLETED |
+| 6265590 | `bg_eval_b3` | B3 | r10-9 | 9:29 | COMPLETED |
+| 6265591 | `bg_eval_stem` | ST | r10-13 | 9:38 | COMPLETED |
+| 6265592 | `bg_buckets_doi36p8k` | `doi36p8k`, buckets only | r10-16 | 4:34 | COMPLETED |
+
+Outputs (`score_<tag>.json`, `buckets_<tag>.json`) are under
+`.../nano/plgmstefaniak/bank_gates/out/<name>_<job>/`.
+
+### Results
+
+**Final CE, common evaluator** (`ame_ref32`; 8,192 held-out sequences, 16.8M
+predictions). `ame_ref32` is fp32 and eager, with reference attention and the banks
+loaded from the fp32 masters.
+
+| Rank | Arm | `ame_ref32` | − `doi36p8k` | `ame_prod` |
+|---|---|---:|---:|---:|
+| 1 | ST, stem | **3.019112** | −0.1061 | 3.019252 |
+| 2 | B2, context | 3.035505 | −0.0897 | 3.035630 |
+| 3 | B3, backoff | 3.035837 | −0.0894 | 3.035979 |
+| 4 | B1, confidence | 3.141958 | +0.0167 | 3.142109 |
+| | `doi36p8k`, production S2-PS | 3.125227 | | 3.125373 |
+
+Three consistency checks hold:
+- each bucket pass reproduced its arm's `ame_ref32` to six digits;
+- `ame_prod` sits 0.00012-0.00015 above `ame_ref32` in every arm, as in production
+  (0.00015);
+- the in-training `final_ce` (bf16, same held-out set) ranks the arms the same way.
+
+**Pairwise**, row minus column. A tie is a gap inside the plan's ±0.019, the 95%
+half-width of one run against another.
+
+| | B2 | B3 | B1 | `doi36p8k` |
+|---|---:|---:|---:|---:|
+| ST | −0.0164, tie | −0.0167, tie | −0.1228 | −0.1061 |
+| B2 | | −0.0003, tie | −0.1065 | −0.0897 |
+| B3 | | | −0.1061 | −0.0894 |
+| B1 | | | | +0.0167, tie |
+
+**Best gate: a three-way tie between ST, B2 and B3.**
+- ST is lowest, but its lead over B2 (0.0164) and B3 (0.0167) is inside the floor. That
+  lead is 1.98 standard deviations of a one-run difference (two-sided p ≈ 0.08 at 8 df):
+  suggestive, not resolved. B2 and B3 are 0.0003 apart.
+- B1 is resolved last, 0.106-0.123 behind the other three. Against production it ties
+  (+0.0167).
+- ST, B2 and B3 beat production by 0.089-0.106, 4.7-5.6 half-widths. As the plan says,
+  that gain is the mechanism and the σ = 0.01 init together.
+- σ = 0.01 probably does most of that work. Three dissimilar gates land within 0.017 of
+  each other, and none of them mutes rare rows (below). Only a σ = 0.01 run without a
+  gate (Plan C, outside this plan) can split σ from the mechanism.
+
+**Replicates that would break the tie (proposed; not submitted).**
+- **Which runs:** two more runs each of ST and B2 at the same seed, as the plan
+  prescribes. B3 too, since it is as much the runner-up as B2 (0.0003 behind).
+- **What they resolve:** with three runs per arm, the 95% half-width for a difference of
+  means falls to about ±0.010 (t at 12-14 df × 0.00585 × √(2/3)). ST's 0.016 lead
+  resolves if it holds.
+- **What else they measure:** LEM's own run-to-run spread, which the plan has so far
+  assumed equals entropy's.
+- **Cost:** about 4.3 h per run on one LEM H100, all in parallel. Four runs (ST, B2) take
+  about 17.5 GPU-hours, six (with B3) about 26.
+- **Status:** waiting for Maciej's go.
+
+**Rare-row buckets: what each one holds.** u is the number of training steps a token
+occurred in.
+
+| u | Token ids | Held-out positions | In the attention sample (first 512 sequences) | What dominates |
+|---|---:|---:|---:|---|
+| 0 | 1,026 | 5 | 4 | 2 ids |
+| 1-10 | 476 | 1,702 | 61 | ' COVID' (id 19314): 1,686 positions in 520 sequences |
+| 11-100 | 1,143 | 502 | 16 | five sequences hold 49%; the commonest ids are byte pieces from Gujarati and Lao text |
+| 101-1000 | 5,920 | 17,812 | 1,123 | nothing: 4,026 ids in 4,575 sequences, none above 1.4% |
+| 1001-3814 | 32,928 | 1,884,321 | | nothing |
+| 3815 | 8,811 | 14,872,874 | | nothing |
+
+**The held-out set is not drawn like the training stream.** It is FineWeb-Edu's reserved
+tail (`holdout: eval`, the last 262,144 rows).
+- ' COVID' occurs twice in the runs' 4.0B training tokens and never in the 2.1M-token
+  training sample stored in `parity_batches.pt`.
+- It occurs 1,686 times in the held-out set's 16.8M tokens, in passages about COVID-19 and
+  2022.
+
+So u = 1-10 is in effect one token the runs never learned, and u = 0 and u = 11-100 are a
+handful of documents. The reading below rests on u = 101-1000 (decision 8). The shift
+affects every run's CE alike, so the comparisons above stand.
+
+**Loss** at positions whose input token is in the bucket:
+
+| u | `doi36p8k` | ST | B2 | B3 | B1 |
+|---|---:|---:|---:|---:|---:|
+| 0 (5 positions) | 6.26 | 7.64 | 5.66 | 7.09 | 5.60 |
+| 1-10 (' COVID') | 3.99 | 6.35 | 5.74 | 4.73 | 4.97 |
+| 11-100 | 4.44 | 4.10 | 4.08 | 4.02 | 4.34 |
+| **101-1000** | **3.305** | **2.942** | **2.963** | **2.952** | **3.416** |
+| 1001-3814 | 2.471 | 2.344 | 2.360 | 2.354 | 2.525 |
+| 3815 | 3.208 | 3.104 | 3.121 | 3.122 | 3.220 |
+
+**Influence as queries and as keys**, at u = 101-1000 / u = 3815 (the commonest tokens):
+
+| | `doi36p8k` | ST | B2 | B3 | B1 |
+|---|---|---|---|---|---|
+| Identity spread as queries (std of q·k over the visible keys) | 0.90 / 1.00 | 1.24 / 1.10 | 1.10 / 0.91 | 1.26 / 1.19 | 0.32 / 0.64 |
+| Attention entropy as queries (÷ ln of the visible keys) | 0.561 / 0.519 | 0.543 / 0.509 | 0.551 / 0.579 | 0.486 / 0.511 | 0.577 / 0.543 |
+| Mass received as keys ÷ uniform share | 0.835 / 0.808 | 0.852 / 0.750 | 0.976 / 0.843 | 0.882 / 0.725 | 0.782 / 0.748 |
+| q row length per head | 7.97 / 8.00 | 0.69 / 1.05 | 0.73 / 1.03 | 0.69 / 0.99 | 0.32 / 0.74 |
+
+**Mechanism readouts by bucket.** B1's trust is per (token, head); B2's g and ST's gate
+RMS are on real activations; B3's is cos(row, base).
+
+| u | B1 trust, q / k | B2 g | ST gate RMS | B3 cos(row, base), q / k |
+|---|---|---:|---:|---|
+| 0 | 0.0500 / 0.0500 | 0.76 | 1.66 | 0.000 / −0.001 |
+| 1-10 | 0.0501 / 0.0500 | 0.81 | 1.70 | 0.009 / −0.001 |
+| 11-100 | 0.0506 / 0.0501 | 0.75 | 1.56 | 0.013 / −0.007 |
+| 101-1000 | 0.0522 / 0.0509 | 0.71 | 1.51 | 0.005 / −0.015 |
+| 1001-3814 | 0.0548 / 0.0551 | 0.69 | 1.47 | 0.022 / 0.009 |
+| 3815 | 0.0612 / 0.0686 | 0.61 | 1.26 | 0.076 / 0.026 |
+
+**What the buckets show:**
+1. **Only B1 makes rare rows less influential, and it pays for it.**
+   - Its trust rises with u but stays near its start everywhere, so identity logits are
+     flat for every token: spread 0.32 at u = 101-1000 against production's 0.90, and
+     0.64 even at u = 3815.
+   - Its rare keys draw the least mass, and its rare queries attend the most diffusely.
+   - Its loss is above production's from u = 101 up: +0.11 at u = 101-1000.
+2. **ST, B2 and B3 make rare rows more influential, not less, and gain most on rare
+   tokens.**
+   - Their rare queries' identity logits are sharper than production's (1.10-1.26 against
+     0.90).
+   - Their rare keys draw as much mass or more (0.85-0.98 against 0.84).
+   - Their loss gain over production grows as tokens get rarer:
+     - −0.09 to −0.10 at u = 3815;
+     - −0.11 to −0.13 at 1001-3814;
+     - −0.34 to −0.36 at 101-1000 (and −0.34 to −0.43 at 11-100).
+3. **B2's and ST's gates open wider for rare query tokens, not narrower.**
+   - B2's g is 0.71 at u = 101-1000 and 0.81 at 1-10, against 0.61 at u = 3815.
+   - ST's gate RMS is 1.51 and 1.70 there, against 1.26.
+4. **B3 backs a rare row off to its shared vector, as designed, but that vector is a sharp
+   query.**
+   - The rows stay nearly orthogonal to the base (|cos| ≤ 0.08), so the backoff works
+     through length.
+   - At u = 1-10 a row is 0.17-0.22 long per head, against base norms of 0.47 (q) and
+     0.58 (k), so the normalized sum is mostly base. At u = 3815 the row, about 1.0 long,
+     dominates.
+   - Rare queries in B3 attend the most sharply of any arm: entropy 0.38-0.49 at
+     u = 1-1000, against 0.52 at 1001-3814.
+5. **At the ' COVID' positions every σ = 0.01 arm is worse than production, by 0.73 (B3)
+   to 2.35 (ST).** This is one token: an anecdote, not a bucket result.
+   - Production's rows there are still their σ = 1 draws, 7.97 long.
+   - In the σ = 0.01 arms, rows with 1-10 updates grew from 0.08 to 0.10-0.35 per head.
+     A few updates and the Adam momentum after them outweigh the init, as the plan's
+     "idle rows keep moving" risk anticipates. Production's rows, 100 times longer, barely
+     turn.
+   - B3, whose rare rows are mostly the base, is hurt least.
+
+**Against the plan's requirement, no arm meets all three conditions.** u = 0 (5 positions)
+is not read.
+
+| Arm | Rare rows less influential? | Overall CE within the floor, or better | Rare loss not above production's |
+|---|---|---|---|
+| B1 | yes: flat identity logits, s ≈ 0.05, least key mass | yes, +0.017 | no: +0.11 at u = 101-1000 |
+| B2 | no: sharper logits, most key mass, gate widest on rare tokens | yes, −0.090 | yes from u = 11 up; no at ' COVID' (+1.74) |
+| B3 | no, by the plan's measures; rare rows back off to a shared vector that is itself sharp | yes, −0.089 | yes from u = 11 up; no at ' COVID' (+0.73) |
+| ST | no: sharpest logits, gate widest on rare tokens | yes, −0.106 | yes from u = 11 up; no at ' COVID' (+2.35) |
+
+**The plan's second question at h12, answered:** a rarely updated row is less influential
+only in B1, which mutes every row and is the worst arm. In the three arms that tie for
+best, rare rows are at least as influential as in production, and their gain is largest on
+rare tokens.
 
 ## The h16 wave
 
