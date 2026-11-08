@@ -2,7 +2,8 @@
 
 **Status: in progress (started 2026-11-08 00:40). The Helios compile fix works (job
 25860605). The S1c-D grid, n ∈ {8, 9, 10}, is queued on Helios as job 25862221 (submitted
-01:15), behind its 4-GPU smoke runs (25862155).**
+01:15), behind its 4-GPU smoke runs (25862155). At 09:30 every job was still pending, behind
+higher-priority jobs, after 8 h 15 min in the queue (decision 5).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first". This file is its record:
@@ -173,6 +174,22 @@ Results: pending.
 4. **Stage 2c's n = 9 run was submitted with the Stage 1c grid**, as the plan allows: n = 9
    is in Stage 2c's grid whichever of 8, 9 or 10 Stage 1c picks
    ([stage_2c_report.md](stage_2c_report.md)).
+5. **The jobs stay queued on Helios after 8 h 15 min without a start (09:30).** Every job
+   is pending with reason `Priority`. The partition is full:
+   - of its 110 nodes, every usable one has all 4 GPUs allocated, and most are planned for
+     higher-priority jobs;
+   - Helios hides other users' jobs (`PrivateData=jobs`), so the queue ahead of ours
+     cannot be seen.
+
+   Our priority is 11,612:
+   - fair-share 9,986 of 10,000 and partition 1,000;
+   - age 563, rising to 5,000 at 3 days;
+   - job size 63.
+
+   QoS `normal` adds nothing. The account's only other QoS, `now`, allows 1 GPU. The plan
+   expects this wait: a grant job waited 25 h on 2026-11-07. It names LEM only for the
+   case where compile still fails, and keeps both stages on one cluster. So nothing is
+   moved or resubmitted; the jobs keep aging in the queue.
 
 ## For Maciej
 
