@@ -16,8 +16,9 @@ Stages 1c and 2c on 2026-11-07.**
   [stage_1_report.md](stage_1_report.md) records.
 - **Stages 1c and 2c go one size up again: h20, 16B tokens, 4 GPUs per run**, on Helios
   instead of LEM (Maciej, 2026-11-08). Stage 1c tunes the learning rate for dense only.
-  Stage 2c trains only the best AME variant. Their configs are not written yet, and
-  nothing is submitted.
+  Stage 2c trains only the best AME variant. Their configs and the Helios compile fix
+  were committed in `683c316b` on 2026-11-08, and the runs are on Helios:
+  [stage_1c_report.md](stage_1c_report.md), [stage_2c_report.md](stage_2c_report.md).
 - Stage 3 is not written yet.
 
 This plan was rewritten from the ground up on 2026-11-05. The program it replaces is kept
@@ -44,8 +45,8 @@ It is there for reference only; nothing in it is scheduled.
 | **2** | AME with positional encoding, with the shift, and with both; which is best | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2_report.md` |
 | **1b** | Stage 1 at h16 and 8B tokens: a dense h16 baseline and the simplest AME h16, with a learning-rate grid for both | Done, 2026-11-06 | `ame_main` · `~/code/nano` | `stage_1b_report.md` |
 | **2b** | Stage 2 at h16 and 8B tokens | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2b_report.md` |
-| **1c** | Dense h20 at 16B tokens on 4 Helios GPUs, with a learning-rate grid. No AME arm | **Next** | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
-| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run can start alongside it | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
+| **1c** | Dense h20 at 16B tokens on 4 Helios GPUs, with a learning-rate grid. No AME arm | **Running**, from 2026-11-08 | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
+| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run was submitted alongside it on 2026-11-08 | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
 | **3** | Not written yet. It is decided from the results of Stages 1 and 2 | — | — | — |
 
 Rules for every stage:
@@ -557,12 +558,13 @@ final checkpoint only.
 
 ### Helios — what Stages 1c and 2c need first
 
-No AME config has run on Helios yet. What was known on 2026-11-07:
+No AME config had run on Helios before 2026-11-08, when the compile proof below did
+(job 25860605, [stage_1c_report.md](stage_1c_report.md)). What was known on 2026-11-07:
 
 | | |
 |---|---|
 | **`torch.compile` does not work there** | Helios's aarch64 torch 2.6.0+cu126 wheel declares no Triton. So every config with `compile_blocks_full`, dense or AME, dies at its first forward (job 25828493). Running without compile is no way around it, because AME's flex attention needs Triton too |
-| The planned fix, not yet applied | aarch64 torch → 2.7.1 from the cu128 index, which declares `triton==3.3.1` and hosts the aarch64 wheel. It also brings Helios to LEM's and entropy's 2.7.1. Keep `pixi.lock` at v6, because Helios's pixi 0.67.1 cannot read v7, so never use `pixi run`. Then rebuild the Helios env with `update_pixi.py` |
+| The fix, applied in `683c316b` on 2026-11-08 and proven by job 25860605 | aarch64 torch → 2.7.1 from the cu128 index, which declares `triton==3.3.1` and hosts the aarch64 wheel. It also brings Helios to LEM's and entropy's 2.7.1. Keep `pixi.lock` at v6, because Helios's pixi 0.67.1 cannot read v7, so never use `pixi run`. Then rebuild the Helios env with `update_pixi.py` |
 | If compile still fails | Run both stages on LEM, as this plan was first written: `gres: gpu:hopper:4`, with node r16-11 excluded ([stage_1_report.md](stage_1_report.md), decision 3). Record why. Both stages stay on one cluster |
 | Queue | Helios is full. `--qos=now` starts within minutes, but only for 1-GPU jobs of up to 12 h, one at a time. 4-GPU jobs queue under normal QoS by age; one grant job waited 25 h on 2026-11-07. So prove the fix with a 1-GPU `--qos=now` smoke run, for example Stage 2b's h16 PS file moved to Helios with 60 steps. Then submit the 4-GPU jobs without delay |
 | Data | Jobs read FineWeb from a `$SCRATCH` copy while it is fresh, about 1.5 min to open instead of 32 ([configs/_cluster/helios.yaml](../../configs/_cluster/helios.yaml)). Each job log prints `FineWeb: <dir>` |
@@ -618,11 +620,11 @@ No AME config has run on Helios yet. What was known on 2026-11-07:
 - **There are no mid-run checkpoints**, as in Stages 1 and 1b. A run that dies starts
   again from step 0, and loses up to about 58 GPU-h.
 
-**Config**, to be written:
+**Config**, written on 2026-11-08 (`683c316b`):
 
 | Arm | Config | One submit |
 |---|---|---|
-| S1c-D | `configs/stage_1c/dense_h20_lr_grid.yaml`: the S1b-D file with the changes above | 3 runs, one per n ∈ {8, 9, 10}, as one sbatch array |
+| S1c-D | [configs/stage_1c/dense_h20_lr_grid.yaml](../../configs/stage_1c/dense_h20_lr_grid.yaml): the S1b-D file with the changes above | 3 runs, one per n ∈ {8, 9, 10}, as one sbatch array |
 
 - Submit with
   `run_exp.py --config-path configs/stage_1c --config-name dense_h20_lr_grid`, from a
@@ -694,7 +696,7 @@ between the scales is a scaling result, not the effect of any one change.
   40.0% MFU (§6.1). It is on `ame_optimize`, not `ame_main`. It shortens Stage 2c only if
   it is merged before Stage 2c's first run.
 
-**Config**, to be written: `configs/stage_2c/ame_h20_pe_shift.yaml`. It is the S2b-PS file
+**Config**, written on 2026-11-08 (`683c316b`): [configs/stage_2c/ame_h20_pe_shift.yaml](../../configs/stage_2c/ame_h20_pe_shift.yaml). It is the S2b-PS file
 with Stage 1c's changes and `mem_parallel_size: 4`. Each submit is one run.
 - `learning_rate` is `null` in the file. Each run sets it on the command line,
   `trainer.learning_rate=<n>`, as Stage 2b's learning-rate check did.
