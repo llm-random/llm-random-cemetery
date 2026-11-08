@@ -153,7 +153,16 @@ code, tests, run configs and script are commit `79108114`.
 ### Local tests
 
 - **Full suite** (`-m "not gpu"`, the repo's default; this machine has no CUDA):
-  _running_. A first run without `-m` also ran the 13 `gpu` tests. They call
+  **every test passes, 428 of 428**, with the 13 `gpu` tests deselected.
+  - The full run: 406 passed, 22 skipped. The skipped ones need `data_eval/`, which
+    the worktree lacked.
+  - With `data_eval` symlinked from the main checkout (gitignored), those 22 pass
+    too: the two files that hold them gave 47 passed, 0 skipped.
+  - The plan's `ame_main` baseline (393 passed, 18 skipped) ran in the main
+    checkout and on an earlier `ame_main`, so its counts don't line up one to one
+    with these. What matters holds: nothing fails.
+
+  A first run without `-m` also ran the 13 `gpu` tests. They call
   `.cuda()`, so they fail on any machine without CUDA ("No CUDA GPUs are
   available"), on any branch. That run's other failures were caused by the change
   and are fixed in `79108114`:
@@ -202,12 +211,18 @@ code, tests, run configs and script are commit `79108114`.
 
 ### Runs
 
-| Run | Job | W&B | Node | Submitted | Finished | State |
-|---|---|---|---|---|---|---|
-| `ame_h12` | | | | | | |
-| `ame_h16` | | | | | | |
-| `dense_h12` | | | | | | |
-| `dense_h16` | | | | | | |
+Submitted with the plan's command from `~/code/nano-ame-init` at `950c74e0` (code
+`79108114` plus this doc), one `run_exp.py` at a time. Each clone is under
+`/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
+Pre-flight: no Lustre quota limit for the user or group, and 502 TB free on pd03,
+so the final checkpoints (about 23 GB for `ame_h16`) fit.
+
+| Run | Job | Clone | W&B | Node | Submitted | Finished | State |
+|---|---|---|---|---|---|---|---|
+| `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | | | 18:56 | | PENDING |
+| `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | | | 18:51 | | PENDING (Priority) |
+| `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | | | 18:57 | | PENDING |
+| `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | | | 18:52 | | PENDING (Priority) |
 
 ### Checks
 
@@ -223,3 +238,20 @@ code, tests, run configs and script are commit `79108114`.
 AME − dense gap: h12 old 0.143, new —; h16 old 0.115, new —.
 
 ### Decisions and issues
+
+- **18:51-18:56, the queue.** Both h16 jobs pend with reason `Priority`. Slurm
+  forecasts a start at 03:05 for `ame_h16` and 05:06 for `dense_h16`; `sbatch
+  --test-only` for the same shape says 2026-11-11.
+  - **Ahead of them:** our account's two 4-GPU Stage 1c/2c jobs (priority 533 and
+    531, moved from Helios today) and five 1-GPU jobs from another user (530). Ours
+    are at 481. Every other pending GPU job is held by a dependency or a budget
+    limit.
+  - **Limits are not the cause:** the grant QoS is at 10 of its 128 GPUs. The
+    partition's GPUs are mostly taken by the hidden `lem-gpu-short` and
+    `lem-gpu-normal` partitions, which share the nodes.
+  - **Open question:** four r16 nodes sit fully idle (r16-4, -5, -7, -15) and none of
+    these jobs starts there, not even the 4-GPU one that fits. r16-9 failed to power
+    up at 16:54 ("ResumeTimeout reached"), so the r16 rack may have a problem the
+    node states don't show.
+  - **Plan:** forecasts assume every running job uses its full limit, so they run
+    pessimistic. The jobs stay queued, and I submit the two h12 runs too.
