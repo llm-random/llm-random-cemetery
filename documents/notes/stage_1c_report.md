@@ -4,8 +4,9 @@
 2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its GPUs off
 until the end of the month (decision 6). No Helios job had started. On LEM the dense smoke
 runs passed every check (18:22–18:31). The S1c-D grid, n ∈ {8, 9, 10}, was submitted at
-18:34 as job 6275160. At 18:40 it was pending (`Resources`), with Slurm's forecast at
-2026-11-09 03:45 for its first task (decision 9).**
+18:34 as job 6275160. n = 8 and n = 9 started at 18:50 and 18:51, well before Slurm's
+forecast, and train at 2.47–2.49 s/step. n = 10 is pending, forecast for 2026-11-09 07:00
+(decision 9).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -213,7 +214,9 @@ passes there too.
 | 25862155_0–2 | Helios 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | — | — | 01:14 | never | 18:16 | cancelled, never started (decision 6) | — |
 | 25862221_0–2 | Helios **S1c-D grid** | 8, 9, 10 | — | — | 01:15 | never | 18:16 | cancelled, never started (decision 6) | — |
 | 6274930_0–2 | LEM 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | `mo7jtzjt`, `iuroj05q`, `s6qlhzjb` | r16-4, r16-5, r16-7 | 18:21 | 18:22 | 18:31 | completed | 7.3164, 7.2988, 7.0703 (60 steps) |
-| 6275160_0–2 | **S1c-D grid** | 8, 9, 10 | | | 18:34 | | | pending | |
+| 6275160_0 | **S1c-D** | 8 | `abtjvllm` | r18-12 | 18:34 | 18:49:55 | | running | |
+| 6275160_1 | **S1c-D** | 9 | `1x82rzby` | r10-11 | 18:34 | 18:50:57 | | running | |
+| 6275160_2 | **S1c-D** | 10 | | | 18:34 | | | pending | |
 
 ## Decisions
 
@@ -302,6 +305,13 @@ passes there too.
    - Slurm forecasts the grid's first task at 2026-11-09 03:45 (r10-12) and S2c-PS at 08:28.
      Its forecasts assume running jobs use their full time limit.
    - Nothing on our side can speed this up, so the jobs wait in the queue.
+
+   **n = 8 and n = 9 started at 18:49:55 (r18-12) and 18:50:57 (r10-11)**, 6 h before the
+   forecast, as nodes on racks r18 and r10 freed. At 18:59 they were at steps 154 and 131:
+   - median 2.468 and 2.489 s/step from step 15, 1–2% slower than the smoke runs on r16;
+   - each will take about 11 h.
+
+   n = 10 was then forecast for 2026-11-09 07:00, and S2c-PS for 08:28.
 
 ## For Maciej
 
