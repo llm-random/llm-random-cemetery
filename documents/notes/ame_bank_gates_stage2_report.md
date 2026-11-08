@@ -1,8 +1,9 @@
 # AME bank gates, stage 2 — report
 
-**Status (2026-11-08 15:25): the four runs are training on LEM** and passed the step-500
-check. `b1open_std001` spiked at step 391 and recovered. They should finish about
-18:45-18:57; scoring follows.
+**Status (2026-11-08 19:20): the four runs finished cleanly at 18:50-19:00,** and the
+four scoring jobs have been running on LEM since 19:02. `b1open_std001`'s spike at step 391
+was its only one. In-training CE already puts `none_std001` level with stage-1 B3; the
+common evaluator decides.
 
 The plan is [ame_bank_gates_stage2_plan.md](ame_bank_gates_stage2_plan.md). This file is
 its record: every job, check, result and decision, each with its reason. Times are CET.
@@ -187,7 +188,8 @@ the windows are steps 10-38, against `doi36p8k`'s same steps):
 - **B1's trust moves, but only in the third decimal place, from either start.**
   - `b1_std1`'s p90 went 0.0500 → 0.0505, stage-1 B1's 0.0500 → 0.0564, and
     `b1open_std001`'s 0.9500 → 0.9522.
-  - At p90 that is a logit drift of +0.010, +0.047 and +0.127. That is the order of
+  - At p90 that is a logit drift of +0.010, +0.127 and +0.047, in the same order.
+    (Corrected at 19:20: the first version swapped the last two.) That is the order of
     lr × √steps ≈ 0.09, the drift of a gradient with no consistent sign.
   - Starting the trust open does not let it learn. It mostly stays where it is put.
 - **`b1_std1`'s banks are no longer starved.** Its `grad_norm/banks` grew a
@@ -198,3 +200,106 @@ the windows are steps 10-38, against `doi36p8k`'s same steps):
   stage-1 B3 (3.88) at steps 400-499, 0.44 below production. Both σ = 1 runs stay near
   production: `b3_std1` −0.03, `b1_std1` +0.11. Stage 1's early leads shrank but held to
   the end, so only final CE answers the questions.
+
+### Finish — 2026-11-08 18:50-19:00
+
+All four completed (Slurm `COMPLETED`, exit 0) at step 3,814, after 4,000,317,440 tokens.
+The run-to-finish watch read W&B and Slurm every 5 minutes from 15:17 to the end and
+flagged nothing.
+
+| Run | Job | Elapsed | s/step, median | vs `doi36p8k` | Peak memory, GiB | Train loss, last 100 steps | In-training `final_ce` (bf16) |
+|---|---|---|---:|---:|---:|---:|---:|
+| `none_std001` | 6272065_0 | 4:17:33 | 3.758 | +0.3% | 70.40 | 3.108 | 3.0352 |
+| `b1_std1` | 6272075_0 | 4:26:01 | 3.900 | +4.1% | 70.66 | 3.295 | 3.2100 |
+| `b3_std1` | 6272076_0 | 4:18:16 | 3.786 | +1.1% | 70.58 | 3.204 | 3.1182 |
+| `b1open_std001` | 6272078_0 | 4:24:28 | 3.900 | +4.1% | 70.66 | 3.183 | 3.1084 |
+| stage-1 B3 | 6264726_0 | 4:14:02 | 3.771 | +0.7% | 70.58 | 3.108 | 3.0361 |
+| stage-1 B1 | 6264723_0 | 4:21:18 | 3.880 | +3.6% | 70.66 | 3.225 | 3.1406 |
+| `doi36p8k` | 6256577_0 | 4:12:54 | 3.746 | | 70.40 | 3.212 | 3.125 |
+
+- **Clean apart from `b1open_std001`'s spike,** over every step of the full W&B histories:
+  - no NaN or inf in any run;
+  - one loss spike in the four: `b1open_std001`'s, at steps 382-438, peak 7.16 at 391. It is
+    the one recorded above. A spike here is a step more than 0.3 above the median of the
+    50 before it; the loss stayed that far above its pre-spike 4.16 until step 438;
+  - after the warmup the clip acted on 14 steps in all. Eleven were `b1open_std001`'s, all
+    inside the spike (steps 382-394, minimum 0.20 at 388). Three were `b3_std1`'s 38, 39
+    and 41, as the warmup ended (minimum 0.58). It never acted in `none_std001` or
+    `b1_std1`.
+- **Checkpoints:** each `step_3814/` holds three files:
+  - the model, 2.12 GB;
+  - the banks' sidecar, 11.13 GB (11.30 GB for the two B1 runs, wider by the trust
+    columns);
+  - `token_counts.pt`.
+- **The four `token_counts.pt` are byte-identical with stage 1's** (sha256 `ab1df510…`; stage
+  1 bucketed `doi36p8k` with these counts too). All seven cells saw the same tokens in the
+  same steps.
+- **Train-loss windows** (means). Same seed and batches, so the gaps are paired; final CE
+  from the common evaluator still decides:
+
+  | Steps | `none_std001` | stage-1 B3 | `b1open_std001` | `b3_std1` | `doi36p8k` | stage-1 B1 | `b1_std1` |
+  |---|---:|---:|---:|---:|---:|---:|---:|
+  | 500-999 | 3.6460 | 3.6437 | 3.8755 | 3.8768 | 3.8963 | 4.0228 | 4.0411 |
+  | 1000-1999 | 3.3787 | 3.3813 | 3.5099 | 3.5087 | 3.5198 | 3.5799 | 3.6453 |
+  | 2000-3433 | 3.1900 | 3.1910 | 3.2758 | 3.2929 | 3.3027 | 3.3227 | 3.3966 |
+  | 3434-3814 | 3.1140 | 3.1142 | 3.1908 | 3.2102 | 3.2192 | 3.2325 | 3.3024 |
+
+  `none_std001` and stage-1 B3 agree within 0.003 in every window.
+- **Readouts at step 3,800** (layer means; the range over layers in brackets):
+
+  | Run | Readouts |
+  |---|---|
+  | `none_std001` | τ 8.04 [7.90, 8.29]; entropy 0.52 |
+  | `b1_std1` | trust mean 0.051 (q and k), p90 0.053 (q) and 0.051 (k); 0.002-0.003% of (token, head) entries above 0.5; τ 10.5 [9.9, 11.2]; entropy 0.66 |
+  | `b3_std1` | base norms 4.79 [2.98, 6.17] (q) and 2.24 [2.01, 2.50] (k); τ 8.53 [7.94, 9.70]; entropy 0.42 |
+  | `b1open_std001` | trust mean 0.950 (q and k), p90 0.954 (q) and 0.955 (k); every entry above 0.5; τ 8.11 [7.93, 8.36]; entropy 0.52 |
+  | stage-1 B1 | trust mean 0.055 (q) and 0.057 (k), p90 0.068 both; τ 11.3 [9.7, 12.8]; entropy 0.54 |
+  | stage-1 B3 | base norms 0.47 [0.27, 0.58] (q) and 0.58 [0.40, 0.83] (k); τ 8.20; entropy 0.51 |
+
+- **B1's trust ends where it started, from either start.**
+  - Over the whole run, the p90 logit drifted +0.06 (q) and +0.03 (k) in `b1_std1`, and
+    +0.10 and +0.11 in `b1open_std001`. Stage-1 B1's drifted +0.32 and +0.33.
+  - lr × √steps is now 0.24, so all of these are the size of a drift with no consistent
+    sign. The means moved less still: +0.02, −0.01 and +0.11.
+  - No B1 run learned a per-token, per-head confidence. `b1_std1`'s scores end at
+    s_q·s_k ≈ 0.0026 of their ungated size; `b1open_std001`'s end at 0.90.
+- **`b1_std1`'s banks trained after a slow start.** `grad_norm/banks`, median per window:
+
+  | Steps | `none_std001` | `b1open_std001` | `b3_std1` | `b1_std1` |
+  |---|---:|---:|---:|---:|
+  | 0-99 | 0.042 | 0.035 | 3.4e-4 | 1.0e-5 |
+  | 100-499 | 0.037 | 0.040 | 1.3e-3 | 7.8e-4 |
+  | 500-999 | 0.018 | 0.022 | 1.4e-3 | 2.0e-3 |
+  | 1000-1999 | 0.012 | 0.014 | 1.3e-3 | 1.5e-3 |
+  | 2000-3433 | 0.0083 | 0.0094 | 1.1e-3 | 1.1e-3 |
+  | 3434-3814 | 0.0077 | 0.0083 | 9.8e-4 | 9.9e-4 |
+
+  - From step 500 on, `b1_std1`'s bank gradient is level with `b3_std1`'s, at the same σ.
+    Adam's ε could have held it back only in the first few hundred steps.
+  - So its CE reads as B1's at σ = 1, not as a run whose banks never trained.
+  - At σ = 1 both runs' bank gradients stay about 8 times below σ = 0.01's to the end.
+
+### Scoring — submitted 2026-11-08 19:01
+
+Four one-GPU jobs were run through `bank_gates_lem_eval.sh` from the worktree at
+**`c6d46c64`** (= `ame_main`, clean; archived at `.../bank_gates/code/c6d46c64`).
+- Since the runs' `03317133`, `ame_main` gained only other sessions' docs and Stage 1c/2c
+  configs. Nothing under `src/`, `documents/scripts/`, `configs/bank_gates/` or the base
+  configs changed.
+- Since stage 1's h12 scoring at `8b07c983`, the only `src/` change is `confidence_init`,
+  whose default is stage 1's B1 bit for bit. So the three existing cells' scores stand,
+  and all seven cells share one evaluator.
+
+Each job scores its run's `step_3814` checkpoint and its own `token_counts.pt`, in one go:
+1. `parity_numerics.py score`: `ame_ref32`, then `ame_prod`, on the 8,192 × 2,049 held-out
+   tokens;
+2. `bank_gates_eval.py`: the buckets by u, with the readouts.
+
+| Run | Eval job | Node |
+|---|---|---|
+| `none_std001` | 6275729 | r16-1 |
+| `b1_std1` | 6275730 | r16-1 |
+| `b3_std1` | 6275731 | r16-2 |
+| `b1open_std001` | 6275732 | r16-2 |
+
+All four started at 19:02.
