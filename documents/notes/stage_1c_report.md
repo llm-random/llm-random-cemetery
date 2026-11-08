@@ -8,9 +8,11 @@ runs passed every check (18:22–18:31). The S1c-D grid, n ∈ {8, 9, 10}, was s
 n = 9 since 18:50 and 18:51, n = 10 since 20:18. By 20:20 n = 8 was stuck at a loss of
 about 5.2, 2.1 nats behind n = 9 at step 2,000. So it cannot be the best n, and the grid
 needs no n = 7; it runs to the end for its `final_ce` (decision 10). At 22:30 n = 10 led
-n = 9 at matched steps, but by less each window (0.023 at steps 2,600–2,799). So n = 11 was
-not started early (decision 11), and the next check is at about 00:30. Stage 2c's n = 10
-run was queued at 20:23 ([stage_2c_report.md](stage_2c_report.md), decision 4).**
+n = 9 at matched steps, but by less each window (0.023 at steps 2,600–2,799), so n = 11
+was not started then (decision 11). By 00:30 the lead had stopped shrinking. It had held at
+about 0.012 for 2,000 steps, so n = 11 was submitted at 00:34 on 2026-11-09 as job 6281083
+(decision 12). Stage 2c's n = 10 run was queued at 20:23
+([stage_2c_report.md](stage_2c_report.md), decision 4).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -221,6 +223,7 @@ passes there too.
 | 6275160_0 | **S1c-D** | 8 | `abtjvllm` | r18-12 | 18:34 | 18:49:55 | | running | |
 | 6275160_1 | **S1c-D** | 9 | `1x82rzby` | r10-11 | 18:34 | 18:50:57 | | running | |
 | 6275160_2 | **S1c-D** | 10 | `mona5up0` | r18-8 | 18:34 | 20:17:55 | | running | |
+| 6281083_0 | **S1c-D** | 11 | | | 11-09 00:34 | | | pending | |
 
 ## Progress
 
@@ -281,6 +284,33 @@ train-loss means over 200-step windows at matched steps.
 - **n = 8 is learning again**, as Stage 1's dense n = 7 did. Its eval loss fell from 5.16
   at step 2,000 to 4.03 at step 4,900, where n = 9 had 2.75.
 - Median s/step since step 15: 2.465, 2.486 and 2.472 for n = 8, 9 and 10.
+
+**2026-11-09 00:30: n = 10's lead has stopped shrinking.** The table shows train-loss means
+over 200-step windows at matched steps.
+
+| Steps | n = 8 | n = 9 | n = 10 | n = 10 − n = 9 |
+|---|---:|---:|---:|---:|
+| 2,600–2,799 | 4.9681 | 3.1028 | 3.0798 | −0.023 |
+| 3,000–3,199 | 4.7915 | 3.0578 | 3.0412 | −0.017 |
+| 3,600–3,799 | 4.5831 | 3.0037 | 2.9906 | −0.013 |
+| 4,200–4,399 | 4.3900 | 2.9634 | 2.9512 | −0.012 |
+| 4,800–4,999 | 4.2145 | 2.9320 | 2.9201 | −0.012 |
+| 5,400–5,599 | 4.0561 | 2.9043 | 2.8926 | −0.012 |
+
+- **The lead has held for 2,000 steps.** Since step 3,600, 24% of the run, n = 10 has led
+  by 0.012–0.014 in every window.
+- **The 10-batch evals cannot separate the two runs.** Both read 2.7188 at steps 5,500–5,700,
+  and bf16's step there is 0.0156.
+- **At h16, the gaps between neighbouring n settled by about 40% of the run.** After that
+  they moved by at most 0.014 to the end. These are Stage 1b's dense runs, `eh2sjsh7`,
+  `8jm0qkjs` and `7rd0xax5`, as train-loss means over 200-step windows:
+
+  | Gap | at 42% | 63% | 84% | 97% | `final_ce` |
+  |---|---:|---:|---:|---:|---:|
+  | n = 10 − n = 9 | +0.123 | +0.109 | +0.110 | +0.111 | +0.100 |
+  | n = 11 − n = 10 | +0.113 | +0.115 | +0.123 | +0.127 | +0.116 |
+
+- n = 8's train loss keeps falling: 4.06 at steps 5,400–5,599.
 
 ## Decisions
 
@@ -407,9 +437,35 @@ train-loss means over 200-step windows at matched steps.
       - If n = 10 still leads then, n = 11 starts.
       - If n = 9 has drawn level and pulls ahead, n = 9 is the leader. Then Stage 2c's
         third run, n = 8, can start.
+12. **n = 11 was started early, at 00:34 on 2026-11-09, as job 6281083.** Decision 11's
+    condition was met: at the 00:30 check, n = 10 still led n = 9 (Progress, above).
+    - **n = 10 is likely to end below n = 9.** Its lead has held at 0.012–0.014 a window
+      since step 3,600. At h16, the gaps between neighbouring n settled by 40% of the run
+      and held to the end within 0.014. If n = 10 ends best, the plan's edge rule asks for
+      n = 11.
+    - **If n = 9 ends best after all**, n = 11 is an extra grid point, about 48 GPU-h.
+    - **It queues behind Stage 2c's two runs**, which are older.
+    - **How it was submitted.** The plan says a `^` key cannot be overridden from the
+      command line, and fewer points are run by editing the list. So, as in Stage 1:
+      - the grid file's `^learning_rate` list was edited to `[11]` in the worktree and
+        left uncommitted;
+      - the file was restored right after the local half, and the worktree is back at
+        `a8553b7e`, clean.
+
+      The cemetery snapshot is `18bfea8`, clone `s1c_d_h20_lrNone_2026-11-09_00-34-03`. Its
+      `src` tree is `a8553b7e`'s. Its `configs` differ only in that list, and its `exp.job`
+      only in the array, `0-0`.
+    - **The snapshots carry stale configs, which are never read.** `dump_grid_configs`
+      does not clear `generated_configs/`. So the snapshots after the grid's also carry
+      the grid's `config_1.yaml` and `config_2.yaml`: S2c-PS at n = 9 and 10, and this
+      one.
+      - Each of these jobs is a 1-task array, and `exp.job` reads
+        `config_${SLURM_ARRAY_TASK_ID}.yaml`, so only `config_0.yaml` is used.
+      - From now on, each submit clears the directory first.
 
 ## For Maciej
 
-- **n = 8 is stuck and runs to the end (decision 10)**, because the plan's record asks for
-  its `final_ce`. If you would rather have its node now, cancelling job 6275160_0 would
-  probably start Stage 2c's n = 9 about 10 h sooner. Tell me and I will cancel it.
+- **n = 8 got stuck and runs to the end (decision 10)**, because the plan's record asks
+  for its `final_ce`. It has been learning again since step ~2,000 and should finish at
+  about 06:00. If you would rather have its node now, cancelling job 6275160_0 would
+  probably start Stage 2c's n = 9 sooner. Tell me and I will cancel it.

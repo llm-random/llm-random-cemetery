@@ -9,7 +9,8 @@ Stage 1c picks, now that Stage 1c's n = 8 cannot win. Both are pending. At 20:30
 the only jobs in LEM's partition waiting for nodes rather than on a dependency. Slurm
 forecasts them at 2026-11-10 04:11 and 2026-11-09 18:50, assuming every running job uses
 its full time limit. The third run, n = 8 or n = 11, waits for Stage 1c's n = 9 against
-n = 10.**
+n = 10. At 00:30 on 2026-11-09, n = 10 led there by only 0.012, so it still waits
+(decision 5).**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -134,6 +135,21 @@ r16-15 (W&B `yss8c50l`):
      at `a8553b7e`, adding `trainer.learning_rate=10`. Its clone's `src` and `configs`
      trees match those of `a8553b7e` and of the n = 9 clone, and its config differs from
      n = 9's only in `learning_rate`.
+5. **The third run still waits (2026-11-09 00:30).** Stage 1c's n = 10 leads n = 9 by
+   0.012 a window, steadily since step 3,600 ([stage_1c_report.md](stage_1c_report.md),
+   decision 12).
+   - **That lead is enough for Stage 1c's early start of n = 11**, which costs one dense
+     run if it is wrong.
+   - **It does not yet make the leader clear for Stage 2c.** At h16, the gaps between
+     neighbouring n moved by up to 0.014 after 40% of the run, about the size of this lead.
+   - **A wrong guess here costs a 58 GPU-h AME run on the wrong side of the grid.** The
+     third run is n = 11 if n_d\* = 10, and n = 8 if n_d\* = 9.
+   - **Waiting costs little.** The run would queue behind Stage 2c's n = 9 and 10 and
+     Stage 1c's n = 11, which are all older.
+   - **Next check:** at about 03:00, when n = 10 is about 60% through. Otherwise when n = 9
+     and n = 10 finish, at about 06:00 and 07:30.
+   - **The snapshots of n = 9 and 10 carry two stale grid configs**, which are never
+     read ([stage_1c_report.md](stage_1c_report.md), decision 12).
 
 ## For Maciej
 
