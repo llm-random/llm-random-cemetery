@@ -304,10 +304,13 @@ less.**
 |---|---|---:|---:|---:|---:|---:|
 | `ame_h12` (step 622) | 4.28 (4.22) | −0.017 | +0.016 | +0.077 (500-622) | 0.70 (0.65) | 3.782 (3.747) |
 | `dense_h16` (step 505) | 5.22 (3.70) | +1.44 | +1.68 | +1.54 (500-505) | 1.42 (0.89) | 5.954 (5.970) |
+| `ame_h16` (step 515, 20:43) | 4.25 (4.19) | −0.213 | −0.070 | +0.043 (500-515) | 0.81 (0.71) | 6.800 (6.810) |
 
 - **`ame_h12`** catches up by step 100 and stays level through step 500. Its gap
   creeps up to +0.077 over steps 500-622; the mid-run check shows whether it keeps
   growing. No NaN or spike.
+- **`ame_h16`** is ahead of its reference from step 50 to step 400 (−0.21 over
+  100-199) and level by step 500. No NaN or spike.
 - **`dense_h16`** peaks at +1.69 at step 300 and narrows to +1.52 at step 500. Its
   loss keeps falling (6.38 at step 200, 5.22 at step 500), unlike `dense_h12`'s flat
   6.3-6.5.
@@ -323,6 +326,24 @@ less.**
     start near-uniform and must learn to find the current token first.
   - AME's stream also stays far smaller: 4,300 into block 11 at step 100, against
     108,000 for dense h12.
+
+**`dense_h12`, mid-run check, 20:51 (step 1,939 of 3,815). Narrowing too slowly to
+close.**
+
+| Step | 500 | 750 | 1,000 | 1,250 | 1,500 | 1,750 | 1,900 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| New | 6.28 | 6.00 | 5.59 | 5.34 | 5.09 | 4.94 | 4.84 |
+| Reference | 4.25 | 3.86 | 3.63 | 3.48 | 3.41 | 3.36 | 3.30 |
+| Difference | +2.03 | +2.14 | +1.97 | +1.86 | +1.69 | +1.58 | +1.55 |
+
+- Paired gap: +1.75 over the first quarter, +1.79 over the second, +1.66 over steps
+  1,435-1,934. Eval loss is 4.75 at step 1,943.
+- **Health:** no NaN.
+  - Spikes: one cluster of 7 at steps 513-523; the reference had its own cluster of
+    11 at steps 194-203.
+  - Grad-norm max after step 100: 3.14 at step 794 (reference 2.58 at step 198).
+  - 3.280 s/step against 3.272.
+  - `max_memory_gib` is logged only at the end of a run.
 
 ### Results
 
