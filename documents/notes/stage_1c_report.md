@@ -7,9 +7,10 @@ runs passed every check (18:22–18:31). The S1c-D grid, n ∈ {8, 9, 10}, was s
 18:34 as job 6275160. All three run, each started well before Slurm's forecast: n = 8 and
 n = 9 since 18:50 and 18:51, n = 10 since 20:18. By 20:20 n = 8 was stuck at a loss of
 about 5.2, 2.1 nats behind n = 9 at step 2,000. So it cannot be the best n, and the grid
-needs no n = 7; it runs to the end for its `final_ce` (decision 10). n = 9 against n = 10
-decides whether n = 11 is needed. Stage 2c's n = 10 run was queued at 20:23
-([stage_2c_report.md](stage_2c_report.md), decision 4).**
+needs no n = 7; it runs to the end for its `final_ce` (decision 10). At 22:30 n = 10 led
+n = 9 at matched steps, but by less each window (0.023 at steps 2,600–2,799). So n = 11 was
+not started early (decision 11), and the next check is at about 00:30. Stage 2c's n = 10
+run was queued at 20:23 ([stage_2c_report.md](stage_2c_report.md), decision 4).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -257,6 +258,30 @@ the same order.
   ([ame_init_exp.md](ame_init_exp.md)), but its init lives on its own branch,
   `ame_initialization`, and none of it is in this worktree.
 
+**22:30: n = 10 leads n = 9 at matched steps, by less each window.** The table shows
+train-loss means over 200-step windows at matched steps.
+
+| Steps | n = 8 | n = 9 | n = 10 | n = 10 − n = 9 |
+|---|---:|---:|---:|---:|
+| 1,000–1,199 | 5.4081 | 3.7773 | 3.4731 | −0.304 |
+| 1,400–1,599 | 5.3517 | 3.4146 | 3.3057 | −0.109 |
+| 1,800–1,999 | 5.3920 | 3.2573 | 3.2039 | −0.053 |
+| 2,000–2,199 | 5.2062 | 3.2070 | 3.1678 | −0.039 |
+| 2,200–2,399 | 5.0936 | 3.1652 | 3.1346 | −0.031 |
+| 2,400–2,599 | 5.0711 | 3.1315 | 3.1041 | −0.027 |
+| 2,600–2,799 | 4.9681 | 3.1028 | 3.0799 | −0.023 |
+
+- **n = 10's lead comes from n = 9's spike, and it is shrinking.** n = 9 lost ground at
+  steps 264–290 and has been catching up since: by 0.004–0.008 a window over the last four.
+  At the last two windows' pace, 0.004 a window, the two draw level near step 3,900. At the
+  step-2,900 eval, n = 10 had 2.8750 and n = 9 2.8906. That is two steps of bf16's
+  resolution there.
+- **n = 10 spiked twice**: at steps 140–165, at the end of warmup, to 8.62; and at steps
+  452–458, to 5.50.
+- **n = 8 is learning again**, as Stage 1's dense n = 7 did. Its eval loss fell from 5.16
+  at step 2,000 to 4.03 at step 4,900, where n = 9 had 2.75.
+- Median s/step since step 15: 2.465, 2.486 and 2.472 for n = 8, 9 and 10.
+
 ## Decisions
 
 1. **Stage 0's faster code is not used.** The plan says Stage 0's later code (about 12%
@@ -366,6 +391,22 @@ the same order.
       priority rather than on a dependency. But the stages' end is set by the runs that
       start when the other grid runs finish, around 06:00–07:30. The 10 h would matter only
       if both grids need an extension.
+11. **n = 11 is not started early (22:30).** n = 10, the grid's low-LR edge, leads n = 9 at
+    matched steps. But its lead shrinks every window, from 0.304 at steps 1,000–1,199 to
+    0.023 at 2,600–2,799 (Progress, above).
+    - **Stage 1's early starts needed a lead that would last.** Stage 1 started the next n
+      when the edge's lead was likely to hold or grow
+      ([stage_1_report.md](stage_1_report.md), decisions 6–7). Stage 2b's decision 4 rested
+      on a lead that grew. Here the trend points the other way: n = 9 is recovering from
+      its spike.
+    - **Starting n = 11 now would gain little anyway.** It would queue behind Stage 2c's
+      two pending runs, which are older and share our fairshare. Our own nodes free at
+      about 06:00 and 07:30.
+    - **Next check: about 00:30**, when the matched windows reach about step 5,800, 38% of
+      the run.
+      - If n = 10 still leads then, n = 11 starts.
+      - If n = 9 has drawn level and pulls ahead, n = 9 is the leader. Then Stage 2c's
+        third run, n = 8, can start.
 
 ## For Maciej
 
