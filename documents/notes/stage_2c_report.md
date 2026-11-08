@@ -3,9 +3,13 @@
 **Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM with Stage 1c
 at 18:16, at Maciej's instruction; no Helios job had started
 ([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
-every check (18:23–18:34). S2c-PS at n = 9 was submitted at 18:35 as job 6275194. At 18:40
-it was pending, with Slurm's forecast at 2026-11-09 08:28 (stage_1c_report.md, decision
-9). The other two runs wait for Stage 1c's best n.**
+every check (18:23–18:34). S2c-PS at n = 9 was submitted at 18:35 as job 6275194, and at
+n = 10 at 20:23 as job 6277615 (decision 4). n = 10 is in the grid whichever of 9, 10 or 11
+Stage 1c picks, now that Stage 1c's n = 8 cannot win. Both are pending. At 20:30 they were
+the only jobs in LEM's partition waiting for nodes rather than on a dependency. Slurm
+forecasts them at 2026-11-10 04:11 and 2026-11-09 18:50, assuming every running job uses
+its full time limit. The third run, n = 8 or n = 11, waits for Stage 1c's n = 9 against
+n = 10.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -62,6 +66,7 @@ attention entropy and top-8 mass are left out, as the plan says.
 | 25862255 | Helios **S2c-PS** | 9 | — | — | 01:15 | never | 18:16 | cancelled, never started | — |
 | 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | `yss8c50l` | r16-15 | 18:23 | 18:23 | 18:34 | completed | 7.3535 (60 steps) |
 | 6275194 | **S2c-PS** | 9 | | | 18:35 | | | pending | |
+| 6277615 | **S2c-PS** | 10 | | | 20:23 | | | pending | |
 
 ## Smoke run
 
@@ -112,6 +117,23 @@ r16-15 (W&B `yss8c50l`):
 3. **S2c-PS at n = 9 was submitted at 18:35, as soon as the AME smoke run passed.** It
    waits in LEM's queue with Stage 1c's grid ([stage_1c_report.md](stage_1c_report.md),
    decision 9).
+4. **S2c-PS at n = 10 was submitted at 20:23, before Stage 1c's best n is known.**
+   - **n = 10 is in the grid whichever of 9, 10 or 11 Stage 1c picks.** The grid is
+     n_d\* − 1, n_d\* and n_d\* + 1. Stage 1c's n = 8 can no longer be best: at step 2,000
+     it is 2.1 nats behind n = 9 ([stage_1c_report.md](stage_1c_report.md), decision 10).
+     This is the plan's reason for starting n = 9 early, applied once n = 8 dropped out.
+   - **Only n_d\* ≥ 12 would leave n = 10 out.** For that, n = 10 must beat n = 9, and then
+     n = 11 must beat n = 10. Dense's best was n = 8 at h12 and n = 9 at h16. If it
+     happens anyway, the run is one more grid point, about 58 GPU-h.
+   - **Waiting would cost queue age.** On LEM, age adds about 59 priority points an hour
+     (weight 10,000, full after about 7 days; n = 9 had 105 after 1.8 h). So five hours of
+     age equal our whole fairshare term, 303. Meanwhile the queue moves: between 18:40 and
+     20:20, Slurm moved n = 9's forecast from 2026-11-09 08:28 to 2026-11-10 04:11.
+   - **The third run waits:** n = 8 if n_d\* = 9, n = 11 if n_d\* = 10.
+   - **It runs on the same code.** It was submitted with the same script from the worktree
+     at `a8553b7e`, adding `trainer.learning_rate=10`. Its clone's `src` and `configs`
+     trees match those of `a8553b7e` and of the n = 9 clone, and its config differs from
+     n = 9's only in `learning_rate`.
 
 ## For Maciej
 

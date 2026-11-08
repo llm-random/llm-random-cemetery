@@ -4,9 +4,12 @@
 2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its GPUs off
 until the end of the month (decision 6). No Helios job had started. On LEM the dense smoke
 runs passed every check (18:22–18:31). The S1c-D grid, n ∈ {8, 9, 10}, was submitted at
-18:34 as job 6275160. n = 8 and n = 9 started at 18:50 and 18:51, well before Slurm's
-forecast, and train at 2.47–2.49 s/step. n = 10 is pending, forecast for 2026-11-09 07:00
-(decision 9).**
+18:34 as job 6275160. All three run, each started well before Slurm's forecast: n = 8 and
+n = 9 since 18:50 and 18:51, n = 10 since 20:18. By 20:20 n = 8 was stuck at a loss of
+about 5.2, 2.1 nats behind n = 9 at step 2,000. So it cannot be the best n, and the grid
+needs no n = 7; it runs to the end for its `final_ce` (decision 10). n = 9 against n = 10
+decides whether n = 11 is needed. Stage 2c's n = 10 run was queued at 20:23
+([stage_2c_report.md](stage_2c_report.md), decision 4).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -216,7 +219,43 @@ passes there too.
 | 6274930_0–2 | LEM 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | `mo7jtzjt`, `iuroj05q`, `s6qlhzjb` | r16-4, r16-5, r16-7 | 18:21 | 18:22 | 18:31 | completed | 7.3164, 7.2988, 7.0703 (60 steps) |
 | 6275160_0 | **S1c-D** | 8 | `abtjvllm` | r18-12 | 18:34 | 18:49:55 | | running | |
 | 6275160_1 | **S1c-D** | 9 | `1x82rzby` | r10-11 | 18:34 | 18:50:57 | | running | |
-| 6275160_2 | **S1c-D** | 10 | | | 18:34 | | | pending | |
+| 6275160_2 | **S1c-D** | 10 | `mona5up0` | r18-8 | 18:34 | 20:17:55 | | running | |
+
+## Progress
+
+**20:20: n = 8 is stuck; n = 9 has recovered from its spike; n = 10 has started.** The
+table shows the 10-batch `eval/loss` at matched steps. All the runs see the same data in
+the same order.
+
+| Step | n = 8 | n = 9 |
+|---:|---:|---:|
+| 200 | 5.781 | 4.562 |
+| 300 | 5.906 | 7.031 |
+| 500 | 5.875 | 6.188 |
+| 1,000 | 5.375 | 3.766 |
+| 1,500 | 5.250 | 3.219 |
+| 2,000 | 5.156 | 3.047 |
+
+- **n = 8 spiked once, in warmup, and has not recovered.**
+  - Its train loss rose to 8.00 at steps 86–97, inside the 152-step warmup.
+  - Since step 200 it has hardly moved. Its 50-step means are 5.88 at steps 200–249 and
+    5.26 at 2,000–2,049, with a bump to 5.66 at 1,700–1,749.
+  - Its gradient norm stays high and erratic: 0.3–3, and 19.6 at step 1,801. n = 9's is
+    0.09–0.6.
+- **This is how Stage 1's dense n = 7 at h12 behaved**: "stuck near 6.0 from step ~280 to
+  ~1,200, then learning as the LR decayed" ([stage_1_report.md](stage_1_report.md)). It
+  ended at 4.2734, against 2.9824 for the best n there. At h20 the instability starts
+  one step lower in learning rate.
+- **n = 9 spiked once**, at steps 264–290, to 9.44 from a running median of 4.50:
+  - its eval loss rose from 4.56 at step 200 to 7.03 at step 300;
+  - it was back below the step-200 level by step 900 (4.06), and has fallen steadily
+    since.
+- **What counts as a spike:** a step whose train loss exceeds the median of the previous 50
+  steps by more than 0.5, as in [stage_1_report.md](stage_1_report.md).
+- **The stall is not the init experiment's.** The runs use `683c316b`'s init, which has a
+  truncated-normal embedding. The init experiment's dense runs also stall early
+  ([ame_init_exp.md](ame_init_exp.md)), but its init lives on its own branch,
+  `ame_initialization`, and none of it is in this worktree.
 
 ## Decisions
 
@@ -311,9 +350,25 @@ passes there too.
    - median 2.468 and 2.489 s/step from step 15, 1–2% slower than the smoke runs on r16;
    - each will take about 11 h.
 
-   n = 10 was then forecast for 2026-11-09 07:00, and S2c-PS for 08:28.
+   n = 10 was then forecast for 2026-11-09 07:00, and S2c-PS for 08:28. n = 10 started at
+   20:17:55 on r18-8.
+10. **No n = 7, and n = 8 runs to the end (20:20).** n = 8, the grid's high-LR edge,
+    trails n = 9 by 2.1 nats at step 2,000 and has barely improved since step ~1,200
+    (Progress, above).
+    - **The grid needs no n = 7.** The plan extends past an edge only when the best n is at
+      that edge, and n = 8 cannot end below n = 9. At h12 the same stall cost 1.29 nats at
+      the end.
+    - **n = 8 is not cancelled.** The plan's record needs `final_ce` at every grid point.
+      Stage 1 also ran its stuck dense n = 7 to the end.
+    - **The cost:** about 40 GPU-h more, and node r18-12 held until about 06:00.
+      Cancelling n = 8 would probably let Stage 2c's n = 9 start on that node about 10 h
+      sooner. At 20:30 our two AME runs were the only jobs in the partition waiting on
+      priority rather than on a dependency. But the stages' end is set by the runs that
+      start when the other grid runs finish, around 06:00–07:30. The 10 h would matter only
+      if both grids need an extension.
 
 ## For Maciej
 
-Nothing open. The Helios queue question was settled at 18:16, when you moved the runs to
-LEM (decision 6).
+- **n = 8 is stuck and runs to the end (decision 10)**, because the plan's record asks for
+  its `final_ce`. If you would rather have its node now, cancelling job 6275160_0 would
+  probably start Stage 2c's n = 9 about 10 h sooner. Tell me and I will cancel it.
