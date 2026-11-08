@@ -2,8 +2,8 @@
 
 **Status (2026-11-08 03:40): h12 finished, and ratio 4 beats ratio 1 by 0.031 in
 `final_ce` (3.0938 against 3.1250), well outside AME's run-to-run spread. h16 trains with no
-NaN or loss spike, 0.046 ahead of its baseline at the same step; it ends about 14:10.
-Checks every 2 h.**
+NaN or loss spike, 0.042 ahead of its baseline at the same step (05:38, step 3,270 of
+7,625); it ends about 14:10. Checks every 2 h.**
 
 Two runs test the `ame_improve` features on Stage 2's winning AME recipe (S2-PS: ALiBi and
 the KV shift). The point of the test is `trainer.bank_lr_ratio: 4.0`, which trains AME's Q/K
@@ -62,6 +62,7 @@ means are used instead.
 | 01:18 | h16 | 1,043 of 7,625 | 6.782 (6.810) | −0.071 (steps 944–1,043) | none | Ahead from the start, but the lead is shrinking: −0.068, −0.160, −0.113, −0.081 and −0.067 per 250-step window; eval gap −0.19 at step 400, −0.047 at 1,000. h12's lead shrank the same way until about a quarter of its training, then held. Grad norm as the baseline's: max 0.708 at step 140 (baseline 0.715 at 121). `bank_lr`/`lr` = 4 throughout |
 | 03:35 | h12 | 3,811 of 3,812 | 3.753 (3.746) | −0.033 (steps 3,712–3,811) | none | **Finished at 03:23** (COMPLETED after 4 h 12 min). `final_ce` 3.09375 against 3.1250; checkpoint and bank state saved at step 3,811. Gap −0.034 to −0.038 per 500-step window from step 1,000 on. See Results |
 | 03:35 | h16 | 2,213 of 7,625 | 6.782 (6.810) | −0.046 (steps 2,114–2,213) | none | The lead stopped shrinking: −0.052, −0.047 and −0.047 per 250-step window since step 1,500. Eval gap −0.047 at 10 of the 13 evals from step 1,000 to 2,200 (−0.031 to −0.063 at the rest). Grad norm last 0.042. Effective 7.05 s/step with evals, so it ends about 14:10 |
+| 05:38 | h16 | 3,270 of 7,625 | 6.783 (6.810) | −0.042 (steps 3,171–3,270) | none | The lead still shrinks, slowly: −0.050, −0.047, −0.043 and −0.042 per 500-step window since step 1,500. Eval gap −0.031 or −0.047 at every eval since step 2,000. Grad norm last 0.042. Still ends about 14:10 |
 
 ## Results
 
