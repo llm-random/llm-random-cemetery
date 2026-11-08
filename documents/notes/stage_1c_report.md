@@ -2,9 +2,10 @@
 
 **Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM at 18:16 on
 2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its GPUs off
-until the end of the month (decision 6). No Helios job had started. On LEM the three dense
-smoke runs (job 6274930) started at 18:22. The S1c-D grid follows once they pass
-(decision 8).**
+until the end of the month (decision 6). No Helios job had started. On LEM the dense smoke
+runs passed every check (18:22–18:31). The S1c-D grid, n ∈ {8, 9, 10}, was submitted at
+18:34 as job 6275160. At 18:40 it was pending (`Resources`), with Slurm's forecast at
+2026-11-09 03:45 for its first task (decision 9).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -175,7 +176,33 @@ The checks, as the plan lists them:
 - `final_ce` is logged and the checkpoint written;
 - AME's readouts fail with a warning per layer and the run goes on.
 
-Results: pending.
+**Dense results: all checks pass.** Every task completed with exit code 0 in 8 min 47 s:
+
+| | n = 8 | n = 9 | n = 10 | Plan |
+|---|---:|---:|---:|---|
+| Task, node | 6274930_0, r16-4 | 6274930_1, r16-5 | 6274930_2, r16-7 | |
+| W&B run | `mo7jtzjt` | `iuroj05q` | `s6qlhzjb` | |
+| s/step, median over steps 15–59 | 2.453 | **2.443** | 2.460 | 2.60–2.70 |
+| Peak memory | 44.53 GiB | 44.53 GiB | 44.53 GiB | under LEM's 93.6 |
+| `final_ce` after 60 steps | 7.3164 | 7.2988 | 7.0703 | logged |
+| Checkpoint | written | written | written | 4 FSDP2 shards of 1.86 GB and the training state, 7.45 GB per run |
+
+- **The steps run 6–10% faster than the plan's estimate.** They are steady at 2.42–2.45 s
+  between evals. That is 428k tokens/s, or 42.9% MFU against 4 × 989 TFLOP/s, computed
+  offline. The trainer logs no MFU on LEM ("No BF16 peak known for 'NVIDIA H100'").
+- **Each eval costs about 13–16 s.** It lands in the step after it: steps 21 and 41 took
+  18.9 and 15.4 s.
+- **Start to the first step took 5 min 11 s** (n = 9, 18:22:47 → 18:27:58). FineWeb's two
+  opens took 3 min 48 s and 38 s; the rest is the model build and compile.
+- The 60-step `final_ce` only shows that the end-of-run path works.
+- **Whole-run estimate on LEM: about 11 h**, which fits the 24 h limit with 2.2× margin:
+  - 15,259 steps × 2.45 s = 10.4 h;
+  - 152 evals × about 14 s = 0.6 h;
+  - about 5 min to start, then `final_ce` and the checkpoint.
+- The checkpoints, 22,346,095,019 bytes, were deleted at 18:33:19.
+
+The AME smoke run's results are in [stage_2c_report.md](stage_2c_report.md): every check
+passes there too.
 
 ## Jobs
 
@@ -185,7 +212,8 @@ Results: pending.
 | 25860605 | Compile proof: S2b-PS on 1 GH200, 60 steps, `--qos=now` | 9 | `7f1uzqtu` | x1002c6s0b0n0 | 01:00 | 01:00 | 01:21 | completed | 7.1602 (60 steps) |
 | 25862155_0–2 | Helios 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | — | — | 01:14 | never | 18:16 | cancelled, never started (decision 6) | — |
 | 25862221_0–2 | Helios **S1c-D grid** | 8, 9, 10 | — | — | 01:15 | never | 18:16 | cancelled, never started (decision 6) | — |
-| 6274930_0–2 | LEM 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | | r16-4, r16-5, r16-7 | 18:21 | 18:22 | | running | |
+| 6274930_0–2 | LEM 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | `mo7jtzjt`, `iuroj05q`, `s6qlhzjb` | r16-4, r16-5, r16-7 | 18:21 | 18:22 | 18:31 | completed | 7.3164, 7.2988, 7.0703 (60 steps) |
+| 6275160_0–2 | **S1c-D grid** | 8, 9, 10 | | | 18:34 | | | pending | |
 
 ## Decisions
 
@@ -259,6 +287,21 @@ Results: pending.
    Helios only because of its queue. On LEM, 4-GPU nodes were free at 18:15 (5 idle and 5
    powered down), and the dense smoke runs started within a minute. A smoke run takes about
    half an hour.
+9. **The grid was submitted at 18:34, as soon as the dense smoke runs passed, and S2c-PS
+   at n = 9 at 18:35, after the AME smoke run passed.** Both are pending on LEM, though
+   LEM had 11 idle nodes at 18:37:
+   - **The idle nodes are all on rack r16 and are blocked until 2026-11-11 02:30.** On r16-4
+     and r16-5, idle since the smoke runs, `sbatch --test-only` puts even a 1-minute 4-GPU
+     job at 2026-11-11 02:30.
+   - Ours are the only pending jobs in the partition that are not waiting on a
+     dependency.
+   - LEM hides reservations from users (`PrivateData=reservations`). A reservation is the
+     likely cause: rack r12 is in maintenance under reservation `cyfro-2026`, to which our
+     account has no access. The smoke runs started on r16 at 18:22–18:23, so whatever
+     blocks r16 came after them.
+   - Slurm forecasts the grid's first task at 2026-11-09 03:45 (r10-12) and S2c-PS at 08:28.
+     Its forecasts assume running jobs use their full time limit.
+   - Nothing on our side can speed this up, so the jobs wait in the queue.
 
 ## For Maciej
 

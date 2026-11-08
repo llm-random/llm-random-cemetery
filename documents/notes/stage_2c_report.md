@@ -2,9 +2,10 @@
 
 **Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM with Stage 1c
 at 18:16, at Maciej's instruction; no Helios job had started
-([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run (job
-6274942) was submitted at 18:23. S2c-PS at n = 9 follows once it passes. The other two
-runs wait for Stage 1c's best n.**
+([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
+every check (18:23–18:34). S2c-PS at n = 9 was submitted at 18:35 as job 6275194. At 18:40
+it was pending, with Slurm's forecast at 2026-11-09 08:28 (stage_1c_report.md, decision
+9). The other two runs wait for Stage 1c's best n.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -59,7 +60,8 @@ attention entropy and top-8 mass are left out, as the plan says.
 |---|---|---:|---|---|---|---|---|---|---:|
 | 25862201 | Helios 4-GPU smoke: the S2c-PS file, 60 steps | 9 | — | — | 01:14 | never | 18:16 | cancelled, never started | — |
 | 25862255 | Helios **S2c-PS** | 9 | — | — | 01:15 | never | 18:16 | cancelled, never started | — |
-| 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | | | 18:23 | | | pending | |
+| 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | `yss8c50l` | r16-15 | 18:23 | 18:23 | 18:34 | completed | 7.3535 (60 steps) |
+| 6275194 | **S2c-PS** | 9 | | | 18:35 | | | pending | |
 
 ## Smoke run
 
@@ -77,7 +79,25 @@ limit, with r16-11 excluded, and was submitted at 18:23, before the real run
   shard);
 - that the readouts fail with a warning per layer while the run goes on.
 
-Results: pending.
+**Results: every check passes.** The job completed with exit code 0 in 10 min 30 s on
+r16-15 (W&B `yss8c50l`):
+
+| Check | Result | Plan |
+|---|---|---|
+| Peak memory | **64.63 GiB**, the same as on entropy (§1.15) | under LEM's 93.6 |
+| s/step, median over steps 15–59 | **2.964**, steady at 2.94–2.97 between evals | 3.14–3.25 |
+| Eval cost | about 16–21 s each: steps 21 and 41 took 24.3 and 18.9 s | — |
+| `final_ce` after 60 steps | 7.3535 | logged |
+| Checkpoint | 37,964,561,848 bytes: 4 FSDP2 backbone shards (1.76 GB each), each GPU's bank shard `memory_parallel_rank<k>.pt` (7.73 GB each), the metadata and the training state | about 37 GB |
+| Readouts | 80 warnings, one per layer on each of the 4 ranks ("instrumentation … failed and is disabled for the rest of this run"); no AME readout keys in W&B; the run went on | one warning per layer |
+
+- **2.964 s/step is 354k tokens/s, 33.7% MFU** against 4 × 989 TFLOP/s, computed offline. It
+  is 1.21× dense's 2.443 on the same nodes.
+- **Whole-run estimate on LEM: about 13.4 h**, which fits the 24 h limit with 1.8× margin:
+  - 15,259 steps × 2.964 s = 12.6 h;
+  - 152 evals × about 18 s = 0.75 h;
+  - about 6 min to start, then `final_ce` and the checkpoint.
+- The checkpoint was deleted at 18:35:05.
 
 ## Decisions
 
@@ -89,6 +109,9 @@ Results: pending.
    decisions 6–8). Helios jobs 25862201 and 25862255 never started and were cancelled. On
    LEM the smoke run goes first, then n = 9, which still runs alongside Stage 1c's grid
    for the reason in decision 1. Both stages stay on one cluster, as the plan requires.
+3. **S2c-PS at n = 9 was submitted at 18:35, as soon as the AME smoke run passed.** It
+   waits in LEM's queue with Stage 1c's grid ([stage_1c_report.md](stage_1c_report.md),
+   decision 9).
 
 ## For Maciej
 
