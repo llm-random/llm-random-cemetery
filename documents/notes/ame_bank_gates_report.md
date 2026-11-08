@@ -1,12 +1,18 @@
 # AME bank gates — report
 
-**Status (2026-11-08 03:05): the h12 wave is trained and scored.**
-- **Best gate:** ST, B2 and B3 tie for best at the plan's noise floor (3.0191, 3.0355,
-  3.0358; production 3.1252). B1 is last (3.1420).
-- **Rare rows:** a rarely updated row is less influential only in B1.
-- **Replicates:** proposed to break the tie ([Results](#results)), not submitted.
-- **The h16 wave** (decision 7) is training on LEM: steps 2,099-2,193 of 7,630 at 03:01,
-  expected to finish about 13:40-14:30.
+**Status (2026-11-08 15:05): both waves are trained and scored. No job from this plan is
+running.**
+- **h12, best gate:** ST, B2 and B3 tie for best at the plan's noise floor (3.0191,
+  3.0355, 3.0358; production 3.1252). B1 is last (3.1420).
+- **h16, best gate:** ST, resolved against the h12 floor used as a proxy (2.7530; B3
+  2.8112, B2 2.8183, B1 2.8460; reference `hjw7znbz` 2.8610). The ranking agrees with
+  h12's.
+- **Rare rows:** a rarely updated row is less influential only in B1, at both scales. At
+  h16 that no longer costs B1 its rare tokens.
+- **Replicates:** proposed for the ties at both scales ([h12](#results),
+  [h16](#results-1)), not submitted.
+- **Next:** [stage 2](ame_bank_gates_stage2_report.md) separates the σ = 0.01 init from
+  the gates.
 
 The plan is [ame_bank_gates_plan.md](ame_bank_gates_plan.md). This file is its record:
 every job, check, result and decision, each with its reason. Times are CET.
@@ -720,3 +726,186 @@ minutes and scanned the job logs.
   As at h12, B1's trust hardly left its start and its τ rose furthest. B2's bias fell
   further than at h12 (2.48 against 2.60), and B3's bases grew longer (0.65 and 0.88
   against 0.47 and 0.58).
+
+### Scoring — submitted 2026-11-08 14:34
+
+Five one-GPU jobs were run through `bank_gates_lem_eval.sh`, from the worktree at
+**`03317133`** (= `ame_main`, archived at `.../bank_gates/code/03317133`).
+- Since the h12 scoring at `8b07c983`, nothing under `documents/scripts/` has changed.
+- The only `src/` change is stage 2's `confidence_init`
+  ([stage-2 report](ame_bank_gates_stage2_report.md)). Its default leaves every model
+  bit-identical, which a test pins. So this is the evaluator that scored h12.
+
+**What each job ran:**
+- **Each arm's job:** `parity_numerics.py score` (`ame_ref32`, then `ame_prod`), then
+  `bank_gates_eval.py`, on its `step_7629/` checkpoint with its own counts.
+- **The reference's job** (`hjw7znbz`, the plan's h16 reference): the same two steps, on
+  `h16_base.yaml` with `bank_gates_arm=ref`, using B1's `token_counts.pt`.
+  - The counts fit `hjw7znbz`: its data config is the arms' own ("Before submitting":
+    the same dataset, seed 123, sequence length 2049, batch 512 and world size 1).
+  - All four arms' counts are byte-identical (Finish), so which arm's file it takes does
+    not matter.
+
+| Job | Name | Scores | Node | Elapsed | Status |
+|---|---|---|---|---|---|
+| 6272081 | `bg_eval_h16_b1` | B1 | r16-1 | 17:26 | COMPLETED |
+| 6272082 | `bg_eval_h16_b2` | B2 | r16-2 | 17:34 | COMPLETED |
+| 6272083 | `bg_eval_h16_b3` | B3 | r16-2 | 17:36 | COMPLETED |
+| 6272084 | `bg_eval_h16_stem` | ST | r16-2 | 17:57 | COMPLETED |
+| 6272085 | `bg_eval_hjw7znbz` | `hjw7znbz` | r16-2 | 17:28 | COMPLETED |
+
+Outputs (`score_<tag>.json`, `buckets_<tag>.json`) are under
+`.../nano/plgmstefaniak/bank_gates/out/<name>_<job>/`.
+
+### Results
+
+**Final CE, common evaluator** (`ame_ref32`; the same 8,192 held-out sequences as h12,
+16.8M predictions):
+
+| Rank | Arm | `ame_ref32` | − `hjw7znbz` | `ame_prod` |
+|---|---|---:|---:|---:|
+| 1 | ST, stem | **2.753039** | −0.1079 | 2.753170 |
+| 2 | B3, backoff | 2.811172 | −0.0498 | 2.811307 |
+| 3 | B2, context | 2.818295 | −0.0427 | 2.818424 |
+| 4 | B1, confidence | 2.845979 | −0.0150 | 2.846129 |
+| | `hjw7znbz`, S2b-PS h16 at n = 8 | 2.860982 | | 2.861128 |
+
+The same three consistency checks hold as at h12:
+- each bucket pass reproduced its arm's `ame_ref32` to six digits;
+- `ame_prod` sits 0.00013-0.00015 above `ame_ref32` in every run;
+- the in-training `final_ce` ranks the five runs the same way.
+
+**Pairwise**, row minus column, against the h12 floor ±0.019 as a stated proxy. No noise
+floor has been measured at h16 and 8B tokens (Setup of this section).
+
+| | B3 | B2 | B1 | `hjw7znbz` |
+|---|---:|---:|---:|---:|
+| ST | −0.0581 | −0.0653 | −0.0929 | −0.1079 |
+| B3 | | −0.0071, tie | −0.0348 | −0.0498 |
+| B2 | | | −0.0277 | −0.0427 |
+| B1 | | | | −0.0150, tie |
+
+**Best h16 gate: ST, resolved.**
+- **The lead:** 0.058 over B3 and 0.065 over B2, three times the proxy half-width.
+  - For it to be a tie, h16's run-to-run spread would have to be about three times
+    h12's: an sd of at least 0.018 against 0.00585.
+- **What the comparison holds fixed:** tokens, not compute. ST is the costliest arm, at
+  +4.75% FLOPs per token and +3.1% s/step.
+- **Two ties below it:**
+  - B3 and B2 are 0.007 apart;
+  - B1 is level with the reference (−0.015).
+- **Every gate beats the reference.** Three do so outside the proxy: ST by 0.108, B3 by
+  0.050, B2 by 0.043.
+
+**The h16 ranking agrees with h12's.**
+- **The order:** ST first and B1 last at both scales. B2 and B3 sit between them, tied at
+  both (0.0003 apart at h12, 0.0071 at h16), so their swap means nothing.
+- **What scale changed:**
+  - ST keeps its whole gain over the reference (−0.106 at h12, −0.108 at h16);
+  - B2's and B3's gains roughly halve (−0.090 and −0.089 to −0.043 and −0.050);
+  - so ST's lead over them grows from a tie (0.016) to a resolved 0.058-0.065;
+  - B1 moves from +0.017 to −0.015, a tie both times.
+- **Against the σ = 0.01 confound:** every arm here also starts its banks at σ = 0.01.
+  If that init is the gain the arms share (stage 2's question 1), it shrinks with scale,
+  while what ST adds does not.
+
+**Replicates for the ties (proposed; not submitted).**
+- **Which runs, at the plan's same-seed recipe:**
+  - **ST, two more:** they measure h16's own run-to-run spread, which turns the ±0.019
+    proxy into a measured floor and tests ST's lead.
+  - **B3 and B2, two more each:** they break the B3-B2 tie. It matters for deployment,
+    since B3 keeps AME's id-only scores and B2 does not.
+  - The B1-reference tie is not worth runs: B1 is the weakest gate at both scales.
+- **Cost:** six runs at about 15.3 h each on one LEM H100, about 92 GPU-hours, all in
+  parallel in about 15.5 h of wall-clock (ST alone: about 31 GPU-hours).
+- **Status:** waiting for Maciej's go.
+
+**Rare-row buckets at h16: what each one holds.** S = 7,630, so the same u range now
+picks rarer tokens than at h12. u = 101-1000 means seen in 1.3-13% of steps, against
+2.6-26% at h12.
+
+| u | Token ids | Held-out positions | In the attention sample (first 512 sequences) | What dominates |
+|---|---:|---:|---:|---|
+| 0 | 964 | 5 | 4 | 2 ids, as at h12 |
+| 1-10 | 367 | 1,694 | 60 | ' COVID': 1,686 positions (99.5%). Its u is still 2 after 8B tokens |
+| 11-100 | 753 | 141 | 7 | 58 ids in 61 sequences; the top 5 sequences hold 37% |
+| 101-1000 | 3,685 | 5,819 | 360 | nothing: 1,683 ids in 1,759 sequences, none above 3.3%. Recent topics lead (' cryptocurrencies' 3.3%, ' Ethereum' 2.9%, 'OVID' 1.8%, ' Docker' 1.6%) |
+| 1001-7629 | 36,306 | 2,012,491 | | nothing |
+| 7630 | 8,229 | 14,757,066 | | nothing |
+
+As at h12, the reading rests on u = 101-1000 (decision 8). It is a third the size of h12's
+(5,819 positions against 17,812) and tilted to the held-out tail's recent topics.
+
+**Loss** at positions whose input token is in the bucket:
+
+| u | `hjw7znbz` | ST | B3 | B2 | B1 |
+|---|---:|---:|---:|---:|---:|
+| 0 (5 positions) | 5.58 | 8.18 | 6.09 | 6.16 | 5.43 |
+| 1-10 (' COVID') | 4.17 | 4.99 | 3.70 | 3.63 | 5.33 |
+| 11-100 (141 positions) | 4.92 | 4.08 | 4.62 | 4.43 | 4.87 |
+| **101-1000** | **3.071** | **2.775** | **2.788** | **2.844** | **3.030** |
+| 1001-7629 | 2.222 | 2.105 | 2.150 | 2.161 | 2.202 |
+| 7630 | 2.948 | 2.841 | 2.901 | 2.908 | 2.933 |
+
+**Influence as queries and as keys**, at u = 101-1000 / u = 7630:
+
+| | `hjw7znbz` | ST | B3 | B2 | B1 |
+|---|---|---|---|---|---|
+| Identity spread as queries | 0.95 / 1.10 | 1.24 / 1.13 | 1.31 / 1.22 | 1.07 / 0.89 | 0.43 / 0.91 |
+| Attention entropy as queries | 0.534 / 0.500 | 0.540 / 0.503 | 0.437 / 0.490 | 0.550 / 0.569 | 0.550 / 0.521 |
+| Mass received as keys ÷ uniform share | 0.945 / 0.793 | 1.043 / 0.733 | 1.078 / 0.701 | 1.124 / 0.822 | 0.889 / 0.744 |
+| q row length per head | 7.97 / 8.01 | 0.74 / 1.32 | 0.72 / 1.33 | 0.80 / 1.36 | 0.32 / 0.85 |
+
+**Mechanism readouts by bucket** (as at h12):
+
+| u | B1 trust, q / k | B2 g | ST gate RMS | B3 cos(row, base), q / k |
+|---|---|---:|---:|---|
+| 0 | 0.0500 / 0.0500 | 0.76 | 1.42 | 0.000 / −0.000 |
+| 1-10 | 0.0500 / 0.0500 | 0.76 | 1.20 | 0.007 / −0.003 |
+| 11-100 | 0.0504 / 0.0501 | 0.70 | 1.17 | 0.017 / −0.012 |
+| 101-1000 | 0.0517 / 0.0509 | 0.66 | 1.06 | 0.008 / −0.025 |
+| 1001-7629 | 0.0550 / 0.0555 | 0.63 | 1.07 | 0.016 / −0.002 |
+| 7630 | 0.0624 / 0.0676 | 0.57 | 0.90 | 0.078 / 0.017 |
+
+**What the h16 buckets show** (h12's findings, rechecked):
+1. **Only B1 makes rare rows less influential, and at h16 that no longer costs it on
+   rare tokens.**
+   - Its trust still hardly leaves 0.05.
+   - Its rare queries have the flattest identity logits (spread 0.43 at u = 101-1000,
+     against the reference's 0.95), and its rare keys draw the least mass (0.89 against
+     0.95).
+   - Unlike at h12 (+0.11), its loss there is now 0.04 below the reference's, and it is
+     below the reference's in every bucket from u = 11 up.
+2. **ST, B2 and B3 make rare rows more influential and gain most on rare tokens,** as at
+   h12.
+   - Their spread is 1.07-1.31 and their key mass 1.04-1.12, against 0.95 for both.
+   - Their gain over the reference grows as tokens get rarer: −0.04 to −0.11 at u = 7630,
+     −0.06 to −0.12 at 1001-7629, and −0.23 to −0.30 at 101-1000.
+3. **B2's and ST's gates open wider for rarer query tokens.**
+   - B2's g is 0.66 at u = 101-1000 and 0.76 at 1-10, against 0.57 at u = 7630.
+   - ST's gate RMS is 1.06 and 1.20 there, against 0.90.
+4. **B3 backs rare rows off to its base, and its rare queries attend the most sharply of
+   any arm.**
+   - The rows stay nearly orthogonal to the base (|cos| ≤ 0.08).
+   - Entropy is 0.30-0.44 at u ≤ 1000, against 0.49-0.50 for common tokens, more
+     pronounced than at h12.
+5. **At ' COVID' the σ = 0.01 arms split, where at h12 all were worse:**
+   - B2 and B3 are now better than the reference, by 0.54 and 0.47;
+   - ST and B1 are worse, by 0.82 and 1.16;
+   - it is one token, so an anecdote again.
+
+**Against the plan's requirement at h16, B1 is the one arm that meets all three
+conditions, on the u = 101-1000 reading.** It fails only at ' COVID', which decision 8
+sets aside. u = 0 (5 positions) is not read.
+
+| Arm | Rare rows less influential? | Overall CE within the floor, or better | Rare loss not above the reference's |
+|---|---|---|---|
+| B1 | yes: flat identity logits, s ≈ 0.05, least key mass | yes, −0.015 | yes from u = 11 up (−0.04 at 101-1000); no at ' COVID' (+1.16) |
+| B2 | no: sharper logits, most key mass, gate widest on rare tokens | yes, −0.043 | yes in every bucket from u = 1 up |
+| B3 | no, by the plan's measures; rare rows back off to a sharp shared vector | yes, −0.050 | yes in every bucket from u = 1 up |
+| ST | no: sharp logits, gate widest on rare tokens | yes, −0.108 | yes from u = 11 up; no at ' COVID' (+0.82) |
+
+**The plan's second question at h16, answered:** as at h12, a rarely updated row is less
+influential only in B1. At h16 that no longer costs B1 its rare tokens. It is still the
+weakest gate overall (2.846, against ST's 2.753). The three gates that do not mute rare
+rows gain the most on them.

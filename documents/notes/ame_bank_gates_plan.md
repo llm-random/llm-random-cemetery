@@ -7,7 +7,11 @@
 - **Scored** 2026-11-08: ST, B2 and B3 tie for best at the noise floor, and B1 is last.
   Replicates are proposed.
 - **Extended** the same evening with an h16 wave of four more runs at 8B tokens
-  ([h16 extension](#h16-extension-maciej-2026-11-07)), still training.
+  ([h16 extension](#h16-extension-maciej-2026-11-07)), jobs 6264776-6264779.
+- **h16 scored** 2026-11-08: ST is the best gate, resolved against the proxy floor, and
+  the ranking agrees with h12's. Replicates are proposed for the ties.
+- **Followed** by [stage 2](ame_bank_gates_stage2_plan.md), which separates the σ = 0.01
+  init from the gates.
 
 [ame_bank_gates_report.md](ame_bank_gates_report.md) records every job, check, decision
 and result. The plan was written 2026-11-07 and revised the same day with Maciej: four
