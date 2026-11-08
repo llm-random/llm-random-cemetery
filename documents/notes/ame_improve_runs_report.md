@@ -1,7 +1,8 @@
 # AME with the banks at 4× the learning rate — report
 
-**Status (2026-11-07 23:20): both runs train and passed the start check (`train/bank_lr`
-= 4 × `train/lr` exactly). h12 ends about 03:15, h16 about 13:45 on 11-08. Checks every 2 h.**
+**Status (2026-11-08 01:20): both runs train with no NaN or loss spike, and both are ahead
+of their baselines at the same step: h12 by 0.038, h16 by 0.071 and shrinking (mean train
+loss over the last 100 steps). h12 ends about 03:20, h16 about 13:45. Checks every 2 h.**
 
 Two runs test the `ame_improve` features on Stage 2's winning AME recipe (S2-PS: ALiBi and
 the KV shift). The point of the test is `trainer.bank_lr_ratio: 4.0`, which trains AME's Q/K
@@ -56,6 +57,8 @@ means are used instead.
 |---|---|---:|---|---|---|---|
 | 23:15 | h12 | 27 | 3.755 (3.746) | −0.002 (steps 0–27) | none | **Start check passed.** The log resolves `n_tokens_b` 4 to 3,812 steps; 1.053 GFLOP/token as the baseline; `bank_lr`/`lr` = 4.000000 at every step; alpha/beta/tau/entropy readouts logged |
 | 23:15 | h16 | 7 | 6.777 (6.810) | 0.000 (steps 0–7) | none | **Start check passed.** 7,625 steps; 2.121 GFLOP/token as the baseline; `bank_lr`/`lr` = 4.000000; readouts logged |
+| 01:18 | h12 | 1,888 of 3,812 | 3.753 (3.746) | −0.038 (steps 1,789–1,888) | none | Behind over steps 0–250 (+0.084; eval +0.094 at steps 100 and 200), ahead since: −0.045 to −0.049 per 250-step window until step 750, then flat at −0.036 to −0.038 from step 1,000. Eval gap −0.031 (two bf16 steps) at every eval from 1,200 to 1,800. Grad norm after step 100 as the baseline's: max 0.691 at step 143 (baseline 0.650 at 130). `bank_lr`/`lr` = 4 throughout |
+| 01:18 | h16 | 1,043 of 7,625 | 6.782 (6.810) | −0.071 (steps 944–1,043) | none | Ahead from the start, but the lead is shrinking: −0.068, −0.160, −0.113, −0.081 and −0.067 per 250-step window; eval gap −0.19 at step 400, −0.047 at 1,000. h12's lead shrank the same way until about a quarter of its training, then held. Grad norm as the baseline's: max 0.708 at step 140 (baseline 0.715 at 121). `bank_lr`/`lr` = 4 throughout |
 
 ## Results
 
