@@ -110,3 +110,32 @@ The plan's checks, at about 2 minutes after each start and at step 500:
 - no NaN;
 - s/step within 10% of stage 1's: 3.746 with no gate, 3.771 for B3, 3.880 for B1;
 - B1's trust and B3's base norms moving.
+
+**Start, 14:39-14:42.** All four were running within a minute of submission, logged the
+composed parameter counts, and trained from 14:40. Taken at steps 30-34 (step-0 readouts;
+the windows are steps 10-38, against `doi36p8k`'s same steps):
+
+| Run | Step | loss | grad_norm | grad_norm/banks, steps 10-38 | clip factor | s/step | vs stage 1 |
+|---|---:|---:|---:|---|---:|---:|---:|
+| `none_std001` | 34 | 6.63 | 0.65 | 0.011-0.24 | 1.00 | 3.760 | +0.4% (3.746) |
+| `b1_std1` | 30 | 7.16 | 1.32 | 9e-7 to 8e-5 | 0.76 | 3.901 | +0.5% (3.880) |
+| `b3_std1` | 32 | 7.03 | 0.54 | 9e-5 to 0.035 | 1.00 | 3.787 | +0.4% (3.771) |
+| `b1open_std001` | 30 | 7.09 | 1.28 | 0.010-4.8 | 0.78 | 3.900 | +0.5% (3.880) |
+
+- **No NaN; s/step within 0.5% of stage 1's** for the same gate.
+- **Loss tracks production's early steps:** a mean of 7.09-7.52 over steps 10-38, against
+  `doi36p8k`'s 7.34. The warmup's `grad_norm` peaks (up to 46-50) are the backbone's, as in
+  `doi36p8k` (46.5 in the same steps).
+- **Every mechanism starts at its init** in every layer: trust 0.05 (`b1_std1`) and 0.95
+  (`b1open_std001`), base norms 0 (`b3_std1`). Step 500 reads whether they move.
+- **`b1_std1`'s banks get almost no gradient, as the plan feared.**
+  - Its `grad_norm/banks` is 9e-7 to 8e-5, four orders of magnitude below
+    `none_std001`'s. Stage-1 B1 (σ = 0.01) started at 4e-5.
+  - Two factors shrink it. A σ = 1 row is 8 long per head, so the norm divides its
+    gradient by 8 rather than 0.08. The trusts (0.05 × 0.05) scale the scores, and
+    so the gradient, down by another 400.
+  - The banks' AdamW uses the default ε = 1e-8. Spread over the hundreds of millions of
+    bank entries a batch touches, a norm of 1e-5 leaves a typical entry's gradient far
+    below ε. Adam's step is then about g/ε of the learning rate rather than the learning
+    rate itself, so the rows and trusts may hardly train. This is a reading to check, not
+    a fault: nothing is cancelled.
