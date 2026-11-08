@@ -297,6 +297,33 @@ watcher's first look):**
   to 2.4 by step 2.
 - A paired gap of +0.55 over steps 1-9. At step 18 it is at 7.69 against 7.34.
 
+**Step-500 checks, 20:35. AME doesn't stall; dense h16 stalls like dense h12, but
+less.**
+
+| Run, at the check | Loss at step 500 (reference) | Gap 100-199 | Gap 200-499 | Gap 500+ | Grad-norm max after step 100 (reference) | s/step (reference) |
+|---|---|---:|---:|---:|---:|---:|
+| `ame_h12` (step 622) | 4.28 (4.22) | −0.017 | +0.016 | +0.077 (500-622) | 0.70 (0.65) | 3.782 (3.747) |
+| `dense_h16` (step 505) | 5.22 (3.70) | +1.44 | +1.68 | +1.54 (500-505) | 1.42 (0.89) | 5.954 (5.970) |
+
+- **`ame_h12`** catches up by step 100 and stays level through step 500. Its gap
+  creeps up to +0.077 over steps 500-622; the mid-run check shows whether it keeps
+  growing. No NaN or spike.
+- **`dense_h16`** peaks at +1.69 at step 300 and narrows to +1.52 at step 500. Its
+  loss keeps falling (6.38 at step 200, 5.22 at step 500), unlike `dense_h12`'s flat
+  6.3-6.5.
+- **Why AME escapes, from its block norms:**
+  - AME's embedding is drowned too: 0.44 → 1.1 at block 0, against an attention
+    update of 847 → 327 over steps 100-500, about 300:1. Its reference keeps the
+    embedding at about 20 against an update of 7-10.
+  - The difference is plausibly where attention gets token identity. AME's Q/K come
+    from id-indexed banks, so every layer's attention pattern sees the token ids
+    directly, and a head can attend to the current position from step 0 and copy
+    its value.
+  - Dense Q/K are projections of the drowned stream through small weights. They
+    start near-uniform and must learn to find the current token first.
+  - AME's stream also stays far smaller: 4,300 into block 11 at step 100, against
+    108,000 for dense h12.
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
