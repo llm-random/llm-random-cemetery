@@ -90,7 +90,23 @@ x1002c6s0b0n0; it reads FineWeb from the `$SCRATCH` copy.
 and the run (W&B `7f1uzqtu`) trained through its first forward and on: step 10 at 01:13,
 loss 11.25 → 8.06, 6.35 s/step on one GH200 (S2b-PS's LEM smoke: 6.765 s/step on an H100).
 The W&B key reached it through the sbatch environment, as described below. So both stages
-stay on Helios. The end of the run (`final_ce`, checkpoint, readouts) is under "Smoke runs".
+stay on Helios. The run completed at 01:21:33 (exit 0:0, 21 min 24 s in all):
+
+| Check | Helios, 1 GH200, n = 9 | S2b-PS's LEM smoke, 1 H100, n = 10 ([stage_1b_report.md](stage_1b_report.md)) |
+|---|---|---|
+| Start to step 0 | 12 min 11 s (01:00:09 → 01:12:20): env, FineWeb from `$SCRATCH`, model build, the first step's compile | — |
+| s/step, median over steps 15–59 | **6.398** | 6.765 |
+| MFU, as the trainer logs it | 35.05% | 33.2% (offline, 989 TFLOP/s) |
+| Peak memory | 71.92 GiB of the GH200's 96 GB | 71.92 GiB of 93.6 |
+| AME readouts in W&B | yes, 240 keys (1 GPU, no FSDP2) | yes |
+| `final_ce` after 60 steps | 7.1602 | 6.9980 |
+| Checkpoint | written at 01:20:29–01:20:48: a 4,055,929,647-byte model file and 19,780,378,103 bytes of bank state, 23.84 GB; deleted at 01:22 | 23.84 GB |
+
+- **One GH200 runs this config 5.4% faster than one LEM H100.** The plan's h20 estimates
+  scaled entropy's speed up by LEM's ×1.10–1.14, so the 4-GPU smokes will likely come in
+  under them.
+- The 60-step `final_ce` only shows that the end-of-run path works; the two runs used
+  different n.
 
 ## Submission: how the W&B key reaches the jobs
 
@@ -131,7 +147,7 @@ Results: pending.
 | Job | What | n | W&B run | Node | Submitted | Started | Ended | State | `final_ce` |
 |---|---|---:|---|---|---|---|---|---|---:|
 | 25860316 | `update_pixi.py`: rebuild the Helios env (srun, `--qos=now`, 4 CPUs, no GPU) | — | — | — | 00:56 | 00:57 | 00:59 | completed | — |
-| 25860605 | Compile proof: S2b-PS on 1 GH200, 60 steps, `--qos=now` | 9 | `7f1uzqtu` | x1002c6s0b0n0 | 01:00 | 01:00 | | running | |
+| 25860605 | Compile proof: S2b-PS on 1 GH200, 60 steps, `--qos=now` | 9 | `7f1uzqtu` | x1002c6s0b0n0 | 01:00 | 01:00 | 01:21 | completed | 7.1602 (60 steps) |
 | 25862155_0–2 | 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | | | 01:14 | | | pending | |
 | 25862221_0–2 | **S1c-D grid** | 8, 9, 10 | | | 01:15 | | | pending | |
 
