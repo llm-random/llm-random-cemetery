@@ -1,7 +1,8 @@
 # AME bank gates, stage 2 — report
 
-**Status (2026-11-08 14:45): the four runs are training on LEM,** submitted 14:32-14:35
-and expected to finish about 18:50-19:00. Scoring follows.
+**Status (2026-11-08 15:25): the four runs are training on LEM** and passed the step-500
+check. `b1open_std001` spiked at step 391 and recovered. They should finish about
+18:45-18:57; scoring follows.
 
 The plan is [ame_bank_gates_stage2_plan.md](ame_bank_gates_stage2_plan.md). This file is
 its record: every job, check, result and decision, each with its reason. Times are CET.
