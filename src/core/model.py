@@ -17,13 +17,40 @@ from torch.nn.modules.normalization import RMSNorm as RMSNorm
 
 
 def llm_random_weight_init(fan_in, scale):
+    """Truncated normal, std = scale * sqrt(1 / fan_in), cut at +-2 std.
+
+    The cut leaves an actual std of 0.88 * that. The attention and FF Linears
+    default to scale sqrt(0.1) (configs/_model/h_balanced/base.yaml), pkmf's
+    sqrt(0.1 / fan_in); stage 1-2 ran scale 1.
+    """
     std = scale * (1 / fan_in) ** 0.5
     low = -2 * std
     high = 2 * std
     return partial(trunc_normal_, mean=0.0, std=std, a=low, b=high)
 
 
+def xavier_normal_weight_init(fan_in):
+    """`Linear`'s `partial_init_fn` for Xavier (Glorot) normal, not truncated.
+
+    std = sqrt(2 / (fan_in + fan_out)). torch reads both fans off the weight's
+    shape, so the `fan_in` that `Linear` passes to every init rule is unused.
+    The head's default (configs/_model/h_balanced/base.yaml): for its
+    `[vocab, dmodel]` weight it gives sqrt(2 / (V + d)), 0.0063 at h12, the same
+    std as the token embedding.
+    """
+    del fan_in
+    return nn.init.xavier_normal_
+
+
 class TransformerEmbedding(nn.Embedding):
+    # No weight decay on the token embedding (parameter_groups reads this), as
+    # in OLMo 2. A row is updated only in steps where its token occurs, while
+    # decoupled decay shrinks every row every step, so decay pulls rare rows
+    # toward zero. The default init is already small: Xavier normal,
+    # sqrt(2 / (V + d)) = 0.0063 (base.yaml), the range where Takase et al.
+    # (Spike No More, 2023) tie small embeddings to loss spikes.
+    no_weight_decay_parameters = ("weight",)
+
     def __init__(
         self, vocab_size: int, dmodel: int, init_fn: Optional[Callable], **kwargs
     ):
@@ -640,8 +667,10 @@ def parameter_groups(model, weight_decay, exclude=None):
 
     A module opts its own parameters out by naming them in a
     `no_weight_decay_parameters` attribute. **A model where nothing declares any
-    returns a single group holding exactly `model.parameters()`**, so every
-    existing config keeps the optimizer it had and no committed number moves.
+    returns a single group holding exactly `model.parameters()`.** Since branch
+    ame_initialization every LLM declares one, its token embedding
+    (TransformerEmbedding), so every config gets two groups and a dense run's
+    embedding is no longer decayed; only a bare layer still gets one group.
 
     `exclude` drops parameters from the optimizer entirely -- not from decay,
     from the optimizer. The memory-parallel bank controller

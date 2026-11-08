@@ -26,10 +26,15 @@ Five things here are load-bearing and easy to get subtly wrong:
    mixed key. Normalizing the mix would make a key's norm a function of the
    bigram `(t_{j-1}, t_j)`, which destroys the property that a score is a linear
    combination of two entries of one row of `T`, i.e. the entire decode-time win.
-3. **Bank rows initialize at per-element sigma ~ 1**, not the 0.02 one reaches
-   for by habit on something shaped like an embedding table. Bank rows answer to
-   no normalized residual stream, so at 0.02 the scores have std ~4e-4, attention
-   is uniform at init, and symmetry may never break.
+3. **Bank init: Xavier normal by default** (branch ame_initialization),
+   sigma = sqrt(2 / (V + H*d)), 0.0063 at h12; stage 1-2 ran N(0, 1), which an
+   explicit `bank_init_std` number still gives. With QK-norm (the default) only a
+   row's direction reaches the score, so sigma does not set the scores' spread
+   at init (tau does). It sets how fast a row turns: Adam moves each element by
+   about lr per step, so a row turns by about lr / sigma per update. **Without
+   QK-norm a small sigma is fatal**: at 0.02 the scores have std ~4e-4,
+   attention is uniform at init, and symmetry may never break. Pass
+   `bank_init_std: 1.0` with `qk_norm: false`.
 4. **The shift must not wrap.** `_shift1` pads and slices; `torch.roll` would mix
    the last token of a packed row into position 0 of the next one, which corrupts
    a run silently and surfaces only as "the shift didn't help".
@@ -327,7 +332,7 @@ class AMEAttention(nn.Module):
         vocab_size,
         dhead=None,
         qk_norm=True,
-        bank_init_std=1.0,
+        bank_init_std=None,
         bank_gate="none",
         confidence_init=CONFIDENCE_INIT,
         shift=True,
@@ -361,6 +366,11 @@ class AMEAttention(nn.Module):
                 f"ame confidence_init={confidence_init!r} applies only to "
                 f"bank_gate=confidence, got bank_gate={bank_gate!r}"
             )
+        if bank_init_std is not None and not bank_init_std > 0:
+            raise ValueError(
+                f"ame bank_init_std is the banks' N(0, std^2) init, a positive "
+                f"number, or null for Xavier normal; got {bank_init_std!r}"
+            )
         self.bank_gate = bank_gate
         self.confidence_init = confidence_init
         self.dmodel = dmodel
@@ -387,10 +397,17 @@ class AMEAttention(nn.Module):
         # measurement in ame_implementation.md, so the default path is the one
         # those numbers were taken on.
         self.qk_bank = None
+        # The draw (header note 3): Xavier normal over the bank's [V, H*d] shape
+        # by default, sqrt(2 / (V + H*d)); N(0, bank_init_std^2) when a number is
+        # given. Either way one normal draw per element, so the global RNG ends
+        # where it did before.
         with torch.no_grad():
             for bank in (self.q_bank, self.k_bank):
                 if not bank.weight.is_meta:
-                    bank.weight.normal_(mean=0.0, std=bank_init_std)
+                    if bank_init_std is None:
+                        nn.init.xavier_normal_(bank.weight)
+                    else:
+                        bank.weight.normal_(mean=0.0, std=bank_init_std)
         if bank_gate == "confidence":
             # B1: H trust logits appended to every row (width H*d + H), all at
             # logit(confidence_init). Widened after the draw above, so the row

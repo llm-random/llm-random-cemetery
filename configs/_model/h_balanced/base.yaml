@@ -32,12 +32,20 @@ common:
 model:
   _target_: src.core.model.LLM
 
+  # Initialization, the defaults since branch ame_initialization
+  # (documents/notes/ame_init_exp.md):
+  #   - embedding, head and AME banks: Xavier normal, sqrt(2 / (V + d)), not cut
+  #     (the banks' default lives in src/core/ame.py);
+  #   - attention and FF Linears: pkmf's sqrt(0.1 / fan_in), cut at +-2 std;
+  #   - no weight decay on the embedding or the banks.
+  # Stage 1-2 ran a cut N(0, 1) embedding, scale 1 everywhere else and N(0, 1)
+  # banks, with weight decay on the embedding.
   embedding:
     _target_: src.core.model.TransformerEmbedding
     vocab_size: ${common.vocab_size}
     dmodel: ${common.dmodel}
     init_fn:
-      _target_: src.core.model.trunc_normal_
+      _target_: torch.nn.init.xavier_normal_
       _partial_: true
 
   encoder:
@@ -66,7 +74,7 @@ model:
         # llm-random lineage: base 10000, no llama frequency scaling.
         rope_base: 10000
         rope_scale_freqs: false
-        init_scale: 1
+        init_scale: ${eval:'0.1 ** 0.5'} # std sqrt(0.1 / fan_in), cut at +-2 std
 
       ff_layer_fn:
         _target_: src.core.model.GatedFeedForward
@@ -79,7 +87,7 @@ model:
           partial_init_fn:
             _target_: src.core.model.llm_random_weight_init
             _partial_: true
-            scale: 1
+            scale: ${eval:'0.1 ** 0.5'}
         ff_post_act_fn:
           _target_: src.core.model.Linear
           _partial_: true
@@ -88,7 +96,7 @@ model:
           partial_init_fn:
             _target_: src.core.model.llm_random_weight_init
             _partial_: true
-            scale: 1
+            scale: ${eval:'0.1 ** 0.5'}
         gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
 
   head:
@@ -99,9 +107,8 @@ model:
       in_features: ${common.dmodel}
       out_features: ${common.vocab_size}
       partial_init_fn:
-        _target_: src.core.model.llm_random_weight_init
+        _target_: src.core.model.xavier_normal_weight_init
         _partial_: true
-        scale: 1
     norm_fn:
       _target_: src.core.model.RMSNorm
       _partial_: true

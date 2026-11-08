@@ -60,6 +60,12 @@ class ToyBlock(nn.Module):
             seq_len=SEQ,
             vocab_size=VOCAB,
             backend="reference",
+            # N(0, 1), the regime these tolerances were set in. Under the Xavier
+            # default (std 0.079 here) Adam turns a row by about LR / std = 0.13
+            # rad per step instead of 0.01, and float64 rounding between
+            # mem_parallel sizes grows past the 1e-12 loss tolerance by step 2;
+            # the 1e-14 gradient check still passes.
+            bank_init_std=1.0,
         )
         self.norm = nn.LayerNorm(DMODEL)
         self.ff = nn.Sequential(

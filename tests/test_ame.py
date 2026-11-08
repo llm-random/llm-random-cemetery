@@ -577,11 +577,12 @@ def _declared_scales(model):
 
 
 def test_a_model_that_declares_no_scales_gets_exactly_one_parameter_group():
-    """The compatibility guarantee: every gqa/mha/mqa config keeps the optimizer
-    it had, so no committed baseline number moves. Checked by identity and order
-    rather than by count -- a second, empty group would also pass a count test
-    and is not the same optimizer."""
-    model = _h4_ame(["common.attention.type=gqa"])
+    """The mechanism's guarantee: a model that declares nothing keeps the flat
+    optimizer it had. Checked by identity and order rather than by count -- a
+    second, empty group would also pass a count test and is not the same
+    optimizer. Since branch ame_initialization every LLM declares its token
+    embedding, so the fixture here is a bare stack of Linears."""
+    model = torch.nn.Sequential(torch.nn.Linear(8, 8), torch.nn.Linear(8, 8))
     assert _declared_scales(model) == set(), "fixture is not scale-free"
 
     groups = parameter_groups(model, 0.1)
@@ -590,6 +591,22 @@ def test_a_model_that_declares_no_scales_gets_exactly_one_parameter_group():
     assert groups[0]["weight_decay"] == 0.1
     assert len(groups[0]["params"]) == len(expected)
     assert all(a is b for a, b in zip(groups[0]["params"], expected))
+
+
+def test_a_dense_model_spares_only_its_token_embedding():
+    """Since branch ame_initialization (ame_init_exp.md): a gqa model's only
+    undecayed parameter is its token embedding; everything else stays at
+    `weight_decay`, in its original order."""
+    model = _h4_ame(["common.attention.type=gqa"])
+    embedding = model.embedding.weight
+    assert _declared_scales(model) == {id(embedding)}
+
+    groups = parameter_groups(model, 0.1)
+    expected = [p for p in model.parameters() if p is not embedding]
+    assert [group["weight_decay"] for group in groups] == [0.1, 0.0]
+    assert len(groups[0]["params"]) == len(expected)
+    assert all(a is b for a, b in zip(groups[0]["params"], expected))
+    assert len(groups[1]["params"]) == 1 and groups[1]["params"][0] is embedding
 
 
 def test_an_ame_model_puts_its_scales_in_an_undecayed_group():
@@ -640,10 +657,10 @@ def test_the_banks_are_not_decayed():
         assert id(layer.k_bank.weight) in undecayed
         assert id(layer.q_bank.weight) not in decayed
 
-    # The token embedding is a different table and keeps the repo's default.
-    assert (
-        id(model.embedding.weight) in decayed
-    ), "only AME's banks were exempted; the input embedding is unchanged"
+    # The token embedding is exempt too since branch ame_initialization
+    # (TransformerEmbedding, ame_init_exp.md); the head is not.
+    assert id(model.embedding.weight) in undecayed
+    assert id(model.head.linear.weight) in decayed
     # The projections are ordinary matmul weights and still decay.
     assert id(model.encoder.blocks[0].attention_layer.layer.v_proj.weight) in decayed
 
