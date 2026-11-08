@@ -219,7 +219,7 @@ so the final checkpoints (about 23 GB for `ame_h16`) fit.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
-| `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | `ycwqa7k9` | r14-9 | 18:56 | | RUNNING since 19:51:52 |
+| `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | `ycwqa7k9` | r14-9 | 18:56 | 11-09 00:06 | COMPLETED, exit 0, 4 h 14 min |
 | `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | `3lgj6lxg` | r18-6 | 18:51 | | RUNNING since 19:38:43 |
 | `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | `355fr6rn` | r16-1 | 18:57 | 22:40 | COMPLETED, exit 0, 3 h 42 min |
 | `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | `3vpbp9oj` | r18-13 | 18:52 | | RUNNING since 19:40:45 |
@@ -391,16 +391,39 @@ recovers: final_ce 4.2188 against 2.9824.**
     reference's: 108,000 at step 100, 12,461 at step 1,000, 4,444 at step 1,900 and
     1,594 at step 3,800, against 210.
 
+**`ame_h12`, end of run, 11-09 00:06 (COMPLETED, exit 0, 4 h 14 min on r14-9). A
+tie, on the behind side: final_ce 3.1504 against 3.1250.**
+
+| Steps | 0-499 | 500-999 | 1,000-1,499 | 1,500-1,999 | 2,000-2,499 | 2,500-2,999 | 3,000-3,499 | 3,500-3,814 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Paired gap | +0.051 | +0.075 | +0.047 | +0.026 | +0.016 | +0.012 | +0.014 | +0.015 |
+
+- The gap narrows until step 2,500, then holds at +0.012 to +0.015. The last 500
+  steps average +0.0143, inside AME's ±0.022, so by the plan's rule this is a tie.
+  But it is behind in every window, from start to end.
+- final_ce is +0.0254, and eval loss at step 3,800 is 3.156 against 3.125. Both are
+  bf16-quantized, so the paired gap decides.
+- **Health:** no NaN, and no spike in either run.
+  - Grad-norm max after step 100: 0.70 at step 156 (reference 0.65 at step 130).
+  - 3.780 s/step against 3.746 (+0.9%). Peak memory 70.40 GiB, the same as the
+    reference.
+- **Checkpoint:** in the clone's `checkpoint/6275639/0/step_3814/`, 13 GB: the
+  model, the training state, the memory-parallel bank state and `token_counts.pt`.
+- **Block norms, step 3,800:**
+  - Block 0 still drowns the embedding, though less: 2.4 against an attention
+    update of 34, 14:1. The reference has 10.7 against 4.1.
+  - The stream into block 11 is now smaller than the reference's: 242 against 315.
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
 |---|---:|---:|---:|---:|---|
-| `ame_h12` | | 3.1250 | | | |
+| `ame_h12` | 3.1504 | 3.1250 | +0.025 | +0.014 | **Tie** (inside ±0.022), on the behind side. Behind in every 500-step window; the gap narrows to about +0.013 by step 2,500 and holds there. |
 | `ame_h16` | | 2.8594 | | | |
 | `dense_h12` | 4.2188 | 2.9824 | +1.236 | +1.271 | **Much worse.** It stalls from the start; the gap peaks at +2.13 over steps 500-999 and is still +1.26 at the end. |
 | `dense_h16` | | 2.7441 | | | |
 
-AME − dense gap: h12 old 0.143, new —; h16 old 0.115, new —.
+AME − dense gap: h12 old 0.143, new −1.068 (3.1504 − 4.2188); h16 old 0.115, new —.
 
 ### Decisions and issues
 
