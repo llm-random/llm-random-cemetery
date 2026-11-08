@@ -221,10 +221,58 @@ so the final checkpoints (about 23 GB for `ame_h16`) fit.
 |---|---|---|---|---|---|---|---|
 | `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | | | 18:56 | | PENDING |
 | `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | | | 18:51 | | PENDING (Priority) |
-| `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | | | 18:57 | | PENDING |
+| `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | `355fr6rn` | r16-1 | 18:57 | | RUNNING since 18:58 |
 | `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | | | 18:52 | | PENDING (Priority) |
 
 ### Checks
+
+Gaps are paired: new − reference at the same step, as a mean over the window.
+
+**`dense_h12`, start check, 19:02 (step 47):**
+- First loss 10.8125, which is ln V = 10.826 in bf16. The reference started at
+  11.1875: its old head gave logits of std ≈ 0.88.
+- 3.269 s/step against the reference's 3.274.
+- No NaN. The grad norm is 2.95 at step 0 and 5.40 at step 1, against 2.38 and 2.92.
+- **Early on, the new init is behind:** it stays at the unigram level (7.6-7.7) from
+  step 10 to step 47, while the reference has reached 6.81 by step 47.
+  - Paired gap: +0.48 over steps 1-9, +0.52 over steps 10-49.
+  - A small init has to grow its weights first. The step-500 check shows whether the
+    gap closes.
+
+**`dense_h12`, step-500 check, 19:30 (step 524). The new init stalls; the gap grows.**
+- No NaN and no spike. The grad-norm max after step 100 is 2.20, against the
+  reference's 2.58, and s/step is 3.280 against 3.276.
+- **The loss stagnates:** 6.50 at step 250, 6.28 at step 500 (reference 5.06 and
+  4.25). The paired gap grows:
+
+  | Steps | 1-9 | 10-49 | 50-99 | 100-199 | 200-499 | 500-524 |
+  |---|---:|---:|---:|---:|---:|---:|
+  | Gap | +0.48 | +0.53 | +1.00 | +1.10 | +1.72 | +2.15 |
+
+- **Why, from the per-block norms W&B logs** (mean per-token L2 norm of the
+  residual and of each sublayer's update):
+
+  | | New, step 0 | New, step 100 | New, step 500 | Reference, step 500 |
+  |---|---:|---:|---:|---:|
+  | Embedding (block 0's residual) | 0.17 | 0.84 | 3.15 | 20.4 |
+  | Block 0 attention update | 0.22 | 1,471 | 3,849 | 6.0 |
+  | Block 0 FF update | 0.27 | 27,355 | 9,946 | 256 |
+  | Residual into block 11 | 6.3 | 108,000 | 23,000 | 776 |
+
+  - The embedding is drowned: the first attention output is about 1,000 times its
+    norm. From block 0's FF on, the stream carries the attention's mix over the
+    context, not the current token.
+  - In the reference the embedding dominates about 3:1, so each layer sees the
+    token. Here the model must recover which token it is at.
+- **Likely cause:**
+  - The Xavier embedding (std 0.006, norm 0.17) feeds a pre-LN stack without the √d
+    multiplier or embedding LayerNorm that Takase et al. pair small embeddings with.
+    Here it shows up as stagnation, not spikes.
+  - The LR (n = 8, tuned for the old init) makes it worse. Adam moves each weight by
+    about lr per step whatever its size, and lr/std is now about 0.6 for the
+    embedding and head, against 0.004 and 0.12 before.
+- **The AME runs likely stall the same way:** they share the embedding and the
+  stack, and AME's id-indexed Q/K don't reach the values or the FF.
 
 ### Results
 
@@ -255,3 +303,12 @@ AME − dense gap: h12 old 0.143, new —; h16 old 0.115, new —.
     node states don't show.
   - **Plan:** forecasts assume every running job uses its full limit, so they run
     pessimistic. The jobs stay queued, and I submit the two h12 runs too.
+- **18:58:** `dense_h12` started on r16-1 within a minute of its submit, when a
+  stage-2 bank-gates job there finished. The other three stay pending.
+- **19:35, decision after `dense_h12`'s step-500 check (see Checks):** nothing is
+  cancelled; the plan's rule is to ask first. The three pending runs stay queued, and
+  `dense_h12` runs to the end. Maciej is asked to choose:
+  - **Run all four as planned:** the measurement stands as "the new init at the old
+    LRs".
+  - **Revise first:** cancel the three pending runs, change the embedding init (a √d
+    multiplier, i.e. Scaled Embed, or back to std ≈ 1), and resubmit.
