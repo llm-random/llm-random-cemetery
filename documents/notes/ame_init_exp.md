@@ -219,10 +219,10 @@ so the final checkpoints (about 23 GB for `ame_h16`) fit.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
-| `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | | | 18:56 | | PENDING |
-| `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | | | 18:51 | | PENDING (Priority) |
-| `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | `355fr6rn` | r16-1 | 18:57 | | RUNNING since 18:58 |
-| `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | | | 18:52 | | PENDING (Priority) |
+| `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | `ycwqa7k9` | r14-9 | 18:56 | | RUNNING since 19:51:52 |
+| `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | `3lgj6lxg` | r18-6 | 18:51 | | RUNNING since 19:38:43 |
+| `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | `355fr6rn` | r16-1 | 18:57 | | RUNNING since 18:58:02 |
+| `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | `3vpbp9oj` | r18-13 | 18:52 | | RUNNING since 19:40:45 |
 
 ### Checks
 
@@ -273,6 +273,29 @@ Gaps are paired: new − reference at the same step, as a mean over the window.
     embedding and head, against 0.004 and 0.12 before.
 - **The AME runs likely stall the same way:** they share the embedding and the
   stack, and AME's id-indexed Q/K don't reach the values or the FF.
+
+**`ame_h16`, start check, 19:43 (step 8):**
+- First loss 10.8125, which is ln V in bf16; the reference started at 11.25.
+- 6.767 s/step against the reference's 6.786.
+- No NaN. The grad norm is 5.53 at step 0 and 6.59 at step 1, against 2.95 and 4.65.
+- The first 8 steps track the reference: a paired gap of +0.22 over steps 1-8, and
+  7.875 against 8.06 at step 8.
+
+**`dense_h16`, start check, 19:54 (step 99; it started at 19:40, before the queue
+watcher's first look):**
+- First loss 10.8125; the reference started at 11.25.
+- 5.946 s/step against the reference's 5.959. No NaN.
+- **The same early stall as `dense_h12`:** a paired gap of +0.54 over steps 1-9,
+  +0.61 over 10-49 and +1.06 over 50-99 (`dense_h12`: +0.48, +0.53, +1.00). It is at
+  7.66 at step 50 and 6.94 at step 99, against 6.53 and 5.84.
+
+**`ame_h12`, start check, 19:56 (step 18):**
+- First loss 10.875, the bf16 value next to ln V (bf16 steps are 0.0625 here); the
+  reference started at 11.25.
+- 3.771 s/step against the reference's 3.743 (+0.7%). No NaN.
+- **A one-step grad-norm jump:** 12.69 at step 1 (the reference had 3.20), then back
+  to 2.4 by step 2.
+- A paired gap of +0.55 over steps 1-9. At step 18 it is at 7.69 against 7.34.
 
 ### Results
 
