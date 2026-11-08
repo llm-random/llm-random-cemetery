@@ -673,3 +673,50 @@ the first loss spike in this plan.
   - B2's bias: mean 3.14, minimum 2.76; weight RMS 0.065.
   - B3's base norms: 0.33 (q) and 0.28 (k), layer means.
   - ST's gate RMS: 0.064; τ 7.68.
+
+### Finish — 2026-11-08 13:43-14:16
+
+All four completed (Slurm `COMPLETED`, exit 0) at step 7,629, after 8,000,634,880 tokens.
+The watch kept from step 2,100 to the end flagged nothing; it read W&B and Slurm every 5
+minutes and scanned the job logs.
+
+| Arm | Job | Elapsed | s/step, median | vs `hjw7znbz` | Peak memory, GiB | Train loss, last 100 steps | In-training `final_ce` (bf16) |
+|---|---|---|---:|---:|---:|---:|---:|
+| B1 | 6264776_0 | 15:29:20 | 7.011 | +3.0% | 72.77 | 2.911 | 2.8457 |
+| B2 | 6264777_0 | 15:10:39 | 6.863 | +0.8% | 72.19 | 2.874 | 2.8203 |
+| B3 | 6264778_0 | 15:03:02 | 6.813 | 0.0% | 72.17 | 2.867 | 2.8105 |
+| ST | 6264779_0 | 15:35:07 | 7.020 | +3.1% | 73.45 | 2.802 | 2.7520 |
+| `hjw7znbz` | 6260570_0 | 15:06:01 | 6.810 | | 72.17 | 2.930 | 2.8594 |
+
+- **Clean after step 450,** over every step of the full W&B histories:
+  - no NaN or inf in any arm;
+  - two loss spikes, both under Checks above: B2's at steps 346-424 (peak 7.97 at 354)
+    and B3's at 402-450 (6.56 at 408). None in B1, ST or `hjw7znbz`, and none in any arm
+    after step 450;
+  - after the warmup the clip acted only inside those spikes, plus three light steps in
+    B3 just after the warmup (77, 88 and 107; 0.88-0.96):
+    - B2: 14 steps, 347-361, minimum 0.18;
+    - B3: 11 steps, 404-416, minimum 0.30;
+    - never in B1 or ST.
+- **Memory and time** stayed where the pre-submit estimate put them: peak 72.2-73.5 GiB
+  against the H100's 93.6, and 15.0-15.6 h against the 24 h limit.
+- **Checkpoints:** each `step_7629/` holds:
+  - the model, 4.06-4.26 GB;
+  - the banks' sidecar `memory_parallel_rank0.pt`, 19.78 GB (B1's is 20.09 GB, wider by
+    the trust columns);
+  - the training state;
+  - `token_counts.pt`.
+- **The four `token_counts.pt` are byte-identical** (sha256 `e8aad098…`): every arm saw the
+  same tokens in the same steps.
+- **Readouts at step 7,600** (layer means; the range over layers in brackets):
+
+  | Arm | Readouts |
+  |---|---|
+  | B1 | trust mean 0.056 (q) and 0.057 (k), p90 0.069 and 0.070; 0.011% of (token, head) entries above 0.5; τ 12.5 [10.1, 14.2] |
+  | B2 | gate bias mean 2.48 [2.20, 2.83], minimum 1.98; weight RMS 0.079; τ 8.37 |
+  | B3 | base norms 0.65 [0.43, 0.94] (q) and 0.88 [0.65, 1.14] (k); τ 8.23 |
+  | ST | gate weight RMS 0.092 [0.080, 0.099]; τ 8.20 |
+
+  As at h12, B1's trust hardly left its start and its τ rose furthest. B2's bias fell
+  further than at h12 (2.48 against 2.60), and B3's bases grew longer (0.65 and 0.88
+  against 0.47 and 0.58).
