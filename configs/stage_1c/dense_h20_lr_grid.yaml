@@ -65,7 +65,7 @@ trainer:
   #   - eval every 100 steps on 10 batches;
   #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
   n_steps: 15259 # D = 16B tokens / 1,048,576 tokens per step, rounded up
-  ^learning_rate: [8, 9, 10] # n, LR = 2^-n; one run per value
+  ^learning_rate: [11] # n, LR = 2^-n; one run per value
   checkpoint:
     save:
       # Only the final checkpoint is written (interval -1), sharded by FSDP2. It
