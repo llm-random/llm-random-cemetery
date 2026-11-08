@@ -139,3 +139,61 @@ the windows are steps 10-38, against `doi36p8k`'s same steps):
     below ε. Adam's step is then about g/ε of the learning rate rather than the learning
     rate itself, so the rows and trusts may hardly train. This is a reading to check, not
     a fault: nothing is cancelled.
+
+**`b1open_std001` spiked at steps 381-391, 15:05.** The step-500 watch flagged it at step
+390, against a low of 4.13.
+- **The loss:** 4.10-4.13 at steps 350-370, creeping to 4.34 by step 380. It then rose
+  from step 381, peaked at 7.16 at step 391, and was back to 5.63 by step 398.
+- **The gradient:** `grad_norm` peaked at 4.96 at step 388, and the clip was active
+  (factor 0.20-0.80) at steps 382-394.
+- **The backbone's, not the banks':** the banks were 0.06-0.21 of the norm throughout
+  (at most 4.5% of the squared norm).
+- **The banks' share before the spike was `none_std001`'s:** a median of 0.25 of the
+  norm over steps 340-380, against 0.26. At trust 0.95, B1 passes nearly the whole score
+  gradient, so its banks train like the ungated σ = 0.01 run's.
+  - Stage-1 B1, at trust 0.05, had 0.014.
+  - Both σ = 1 runs had about 0.01 (`b3_std1` 0.009, `b1_std1` 0.006).
+- **Like stage 1's h16 spikes:** B2's at steps 345-359 (to 7.97) and B3's at 404-416 (to
+  6.56) were of the same kind, and both runs recovered and finished normally.
+- **Not a crash or a NaN,** so nothing is cancelled or resubmitted. Step 500 shows whether
+  it recovered.
+
+| Step | 370 | 380 | 382 | 385 | 388 | 391 | 394 | 398 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Train loss | 4.13 | 4.34 | 4.88 | 5.88 | 6.63 | 7.16 | 6.19 | 5.63 |
+| `grad_norm` | 0.18 | 0.40 | 1.33 | 2.54 | 4.96 | 2.45 | 1.25 | 0.65 |
+
+**Step 500, 15:15.** Every check passes. `b1open_std001` has recovered from its spike.
+
+| Run | Loss, steps 400-499 (min/mean/max) | vs `doi36p8k` (4.33) | `grad_norm/banks` | Clip factor | s/step | At step 500 (layer mean [range]) |
+|---|---|---:|---:|---|---:|---|
+| `none_std001` | 3.80/3.89/4.00 | −0.44 | 0.027 | 1.000 | 3.759 | entropy 0.49; τ 8.08 |
+| `b1_std1` | 4.31/4.44/4.59 | +0.11 | 0.0015 | 1.000 | 3.900 | trust mean 0.0501 (q), p90 0.0505 (q) and 0.0501 (k); entropy 0.69; τ 8.72 [8.15, 9.95] |
+| `b3_std1` | 4.16/4.30/4.44 | −0.03 | 0.0014 | 1.000 | 3.788 | base norms 1.87 [1.54, 2.24] (q) and 1.28 [1.11, 1.64] (k); entropy 0.51; τ 8.49 |
+| `b1open_std001` | 4.16/4.48/5.41 (the spike's tail) | +0.15 | 0.032 | 1.000 | 3.900 | trust mean 0.950, p90 0.9522 (q and k); entropy 0.44; τ 8.24 |
+| stage-1 B3 (`5w6p64bv`) | 3.78/3.88/3.98 | −0.45 | 0.025 | | | base norms 0.30 (q) and 0.29 (k) |
+| stage-1 B1 (`621sjn71`) | 4.31/4.47/4.62 | +0.14 | 0.0027 | | | trust mean 0.0516, p90 0.0564 (q) |
+
+- **No NaN; s/step steady** within 0.5% of stage 1's.
+- **`b1open_std001` recovered.**
+  - The clip was back at 1.0 from step 395.
+  - The loss was 4.16 by step 520, against 4.10-4.13 before the spike.
+  - Its 400-499 mean still carries the spike's tail. Before the spike it was already
+    behind `none_std001`: 4.44 against 4.33 over steps 200-299.
+- **B3's bases move fast.** 0 → 1.87 (q) and 1.28 (k) by step 500, six times stage-1
+  B3's. That is the length they need to count against rows 8 long: a quarter of the
+  row, where stage-1 B3's 0.3 already outweighed its 0.08-long rare rows.
+- **B1's trust moves, but only in the third decimal place, from either start.**
+  - `b1_std1`'s p90 went 0.0500 → 0.0505, stage-1 B1's 0.0500 → 0.0564, and
+    `b1open_std001`'s 0.9500 → 0.9522.
+  - That is a logit drift of about +0.01 to +0.2, about what noise alone gives:
+    lr × √steps ≈ 0.09 for a gradient without a consistent sign.
+  - Starting the trust open does not let it learn. It mostly stays where it is put.
+- **`b1_std1`'s banks are no longer starved.** Its `grad_norm/banks` grew a
+  thousandfold from the start, to 0.0015 over steps 400-499. That is level with
+  `b3_std1`'s 0.0014, at the same σ, so Adam's ε matters for the first steps at most.
+  Its trust is still the slowest of the three B1 runs.
+- **Early ordering, not a result:** the init alone (`none_std001`, 3.89) is level with
+  stage-1 B3 (3.88) at steps 400-499, 0.44 below production. Both σ = 1 runs stay near
+  production: `b3_std1` −0.03, `b1_std1` +0.11. Stage 1's early leads shrank but held to
+  the end, so only final CE answers the questions.
