@@ -186,8 +186,8 @@ the windows are steps 10-38, against `doi36p8k`'s same steps):
 - **B1's trust moves, but only in the third decimal place, from either start.**
   - `b1_std1`'s p90 went 0.0500 → 0.0505, stage-1 B1's 0.0500 → 0.0564, and
     `b1open_std001`'s 0.9500 → 0.9522.
-  - That is a logit drift of about +0.01 to +0.2, about what noise alone gives:
-    lr × √steps ≈ 0.09 for a gradient without a consistent sign.
+  - At p90 that is a logit drift of +0.010, +0.047 and +0.127. That is the order of
+    lr × √steps ≈ 0.09, the drift of a gradient with no consistent sign.
   - Starting the trust open does not let it learn. It mostly stays where it is put.
 - **`b1_std1`'s banks are no longer starved.** Its `grad_norm/banks` grew a
   thousandfold from the start, to 0.0015 over steps 400-499. That is level with
