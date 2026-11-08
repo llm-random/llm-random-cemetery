@@ -345,6 +345,28 @@ close.**
   - 3.280 s/step against 3.272.
   - `max_memory_gib` is logged only at the end of a run.
 
+**`ame_h12`, mid-run check, 22:01 (step 1,934 of 3,815). Behind by +0.08 at its
+widest, narrowing steadily since.**
+
+| Steps | 0-249 | 250-499 | 500-749 | 750-999 | 1,000-1,249 | 1,250-1,499 | 1,500-1,749 | 1,750-1,942 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Paired gap | +0.078 | +0.025 | +0.080 | +0.070 | +0.054 | +0.040 | +0.029 | +0.023 |
+
+- The gap opens again after step 500, peaks at +0.080 over steps 500-749, then
+  shrinks by 0.010-0.016 per 250 steps. Eval loss at step 1,900 is 3.344 against
+  3.313 (+0.031; eval loss is bf16 too).
+- **Health:** no NaN, and no spike in either run. The grad-norm max after step 100
+  is 0.70 at step 156 (reference 0.65 at step 130). 3.781 s/step against 3.746
+  (+0.9%).
+- **Block norms, step 1,900:**
+  - From block 5 on, the stream is the reference's size: 145 against 153 into
+    block 5, and 393 against 411 into block 11. At step 1,000 it was 264 and 579,
+    above the reference's 210 and 470.
+  - Block 0 still drowns the embedding: 2.1 against an attention update of 74,
+    35:1. In the reference the embedding is 13.1 against 5.7.
+  - For comparison, `dense_h12` at step 1,900: embedding 4.2 against 1,485 (350:1),
+    and 5,009 into block 11 against its reference's 344.
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
