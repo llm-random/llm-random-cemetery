@@ -186,7 +186,8 @@ Readouts at the end of training, averaged over the 16 layers:
 
 1. **The `run_exp.py` fix (`83ebaa85`) is not on `ame_improve` or origin yet.** It is one
    commit on top of 7345eebc and can be cherry-picked as it is. The only pushes were the two
-   snapshot branches `run_exp.py` pushes for every job, named like the clones. The branch
+   snapshot branches `run_exp.py` pushes to the cemetery repo for every job, named like
+   the clones. The branch
    `ame_improve_runs` (configs, fix, this report) and the report's commits on `ame_main` are
    local. Pushing them waits for your OK.
 2. **`n_tokens_b` gives 3 and 5 fewer steps than the baselines** (3,812 and 7,625 against
