@@ -1,9 +1,10 @@
 # AME with the banks at 4× the learning rate — report
 
-**Status (2026-11-08 03:40): h12 finished, and ratio 4 beats ratio 1 by 0.031 in
-`final_ce` (3.0938 against 3.1250), well outside AME's run-to-run spread. h16 trains with no
-NaN or loss spike, 0.035 ahead of its baseline at the same step, narrowing slowly as the
-learning rate anneals (11:40, step 6,351 of 7,625); it ends about 14:10. Checks every 2 h.**
+**Status (2026-11-08 14:20): done. `bank_lr_ratio: 4.0` beats ratio 1 at both sizes, outside
+AME's run-to-run spread. `final_ce` falls from 3.1250 to 3.0938 at h12 (−0.031) and from
+2.8594 to 2.8311 at h16 (−0.028). The paired train loss agrees: −0.034 and −0.033 over the
+last 500 steps. Neither run had a NaN, a spike or a slowdown, and both jobs completed
+without a resubmission.**
 
 Two runs test the `ame_improve` features on Stage 2's winning AME recipe (S2-PS: ALiBi and
 the KV shift). The point of the test is `trainer.bank_lr_ratio: 4.0`, which trains AME's Q/K
@@ -43,16 +44,18 @@ recipe at ratio 1. Maciej set the task by `/goal` on 2026-11-07. Times are CET.
 | h16 | 6264872 | `ai_h16_ps_bank4_lr8_2026-11-07_23-11-17` | [`hn1qal9z`](https://wandb.ai/ideas_cv/nano-ame/runs/hn1qal9z) | r16-3 | 23:11 |
 
 Both jobs started within a minute of submission. Training began at 23:13 (h12) and 23:14
-(h16); FineWeb opened in under 2 min.
+(h16); FineWeb opened in under 2 min. Both completed without a resubmission: h12 at 03:23
+(4 h 12 min), h16 at 14:10 (14 h 59 min). Each clone holds its final checkpoint, model and
+bank state: `checkpoint/6264870/0/step_3811/` and `checkpoint/6264872/0/step_7624/`.
 
 ## Checks
 
 Each check reads W&B. s/step is the median of `train/step_time`, the stage reports'
 convention. The loss gap is new − baseline at the same step: both runs see the same batches
 at the same step, so batch difficulty cancels. A spike is a train loss more than 0.5 above
-the median of the previous 50 steps. Train loss and `final_ce` are bf16 values: they move
-in steps of 1/64 = 0.0156 between 2 and 4, so a single step's gap means little, and window
-means are used instead.
+the median of the previous 50 steps. Train loss is a bf16 value: it moves in steps of
+1/64 = 0.0156 between 2 and 4, so a single step's gap means little, and window means are
+used instead.
 
 | Time | Run | Step | s/step (baseline) | Loss gap, mean over window | NaN / spikes | Notes |
 |---|---|---:|---|---|---|---|
@@ -66,6 +69,7 @@ means are used instead.
 | 07:38 | h16 | 4,299 of 7,625 | 6.783 (6.810) | −0.039 (steps 4,200–4,299) | none | The lead stopped shrinking: −0.041 per 500-step window since step 3,000, −0.040 over the last 500 steps. Eval gap −0.031 or −0.047 at every eval since step 2,000. Grad norm last 0.041. Still ends about 14:10 |
 | 09:39 | h16 | 5,328 of 7,625 | 6.783 (6.810) | −0.036 (steps 5,229–5,328) | none | The lead narrows slowly as the learning rate anneals: −0.040, −0.038 and −0.037 per 500-step window since step 4,000; h12's narrowed the same way in its last quarter (−0.037 to −0.034). Eval gap −0.031 at 8 of the last 10 evals, −0.047 at the other 2. Grad norm last 0.039. Still ends about 14:10 |
 | 11:40 | h16 | 6,351 of 7,625 | 6.782 (6.810) | −0.035 (steps 6,252–6,351) | none | Still narrowing slowly: −0.036 and −0.034 in the last two 500-step windows, −0.035 over the last 500 steps. Eval gap −0.031 at every eval since step 5,100. Grad norm last 0.036. The next check is the end of the run (about 14:10), not a 2-hour mark 30 min before it |
+| 14:15 | h16 | 7,624 of 7,625 | 6.782 (6.810) | −0.033 (steps 7,525–7,624) | none | **Finished at 14:10** (COMPLETED after 14 h 59 min). `final_ce` 2.8311 against 2.8594; checkpoint and bank state saved at step 7,624. See Results |
 
 ## Results
 
@@ -75,9 +79,21 @@ one seed: three runs of one configuration at h12 and 4B tokens end with sd 0.007
 14 AME runs of that study end within 0.015 of each other
 ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md)). A difference under
 3 sd = 0.022 is a tie. No spread is measured at h16, so the h12 value stands in for it.
-`final_ce` is a bf16 value that moves in steps of 0.0156 near 3, which leaves one run's
-`final_ce` difference uncertain by about one step. The paired train-loss gap (the same
-batches at the same step, averaged over hundreds of steps) is the finer measure.
+`final_ce` averages the losses of the held-out set's 16 batches, and each batch loss is a
+bf16 value, in steps of 0.0156 near 3 ([trainer.py](../../src/core/trainer.py)
+`final_eval`). The batches' losses lie close together, so the rounding does not average
+out: three of the four runs here logged an exact bf16 value. One run's `final_ce` can be
+off by up to 0.008, and a difference between two runs by up to 0.016. The paired
+train-loss gap is the finer measure: the same batches at the same step, averaged over 500
+steps whose rounding errors are independent.
+
+| Size | Ratio 4 | Ratio 1 | `final_ce` difference | Paired train-loss gap, last 500 steps | Verdict |
+|---|---:|---:|---:|---:|---|
+| h12, 4B tokens | 3.0938 | 3.1250 | **−0.031** | −0.034 | **ratio 4 wins** |
+| h16, 8B tokens | 2.8311 | 2.8594 | **−0.028** | −0.033 | **ratio 4 wins** |
+
+The gain is about the same at both sizes: it does not fade from h12 at 4B tokens to h16 at
+8B. Only ratio 4 was tried, so this shows the direction, not the best ratio.
 
 ### h12, 4B tokens: ratio 4 wins by 0.031
 
@@ -106,9 +122,9 @@ Readouts at the end of training, averaged over the 12 layers, as in
 | Ratio 1 | 8.47 | 15.1 | 0.523 | 0.572 | 0.504 | 0.708 |
 
 - **Ratio 4 wins.** −0.031 in `final_ce` is 4 sd of AME's spread and twice the range of
-  its 14 runs. The paired train loss agrees and is steadier: −0.034 to −0.037 over the
-  last three quarters of training. The eval gap is −0.031 at 25 of the 27 evals from step
-  1,200 on.
+  its 14 runs. Rounding alone could shrink it to −0.016, but the paired train loss settles
+  it: −0.034 to −0.037 over the last three quarters of training. The eval gap is −0.031 at
+  25 of the 27 evals from step 1,200 on.
 - **A slower start.** The first 250 steps ran 0.084 behind (eval +0.094 at steps 100 and
   200). The run led from step 250, by most over 10–25% of training (−0.050), then settled at
   −0.037. No spikes, and grad norms like the baseline's.
@@ -125,15 +141,59 @@ Readouts at the end of training, averaged over the 12 layers, as in
   shrinks from 0.143 to 0.111, by 22%. Dense's runs spread 6–24× more than AME's, so this
   gap is less certain than the AME-to-AME difference.
 
-### h16, 8B tokens
+### h16, 8B tokens: ratio 4 wins by 0.028
 
-Pending: the run ends about 14:10.
+| | Ratio 4 (`hn1qal9z`) | Ratio 1 (`hjw7znbz`) | Ratio 4 − ratio 1 |
+|---|---:|---:|---:|
+| `final_ce` | **2.8311** | 2.8594 | **−0.028** |
+| Last 10-batch eval (step 7,600) | 2.8281 | 2.8594 | −0.031 |
+| Loss spikes, NaN | none | none | |
+| Grad norm, max after step 100 | 0.708 | 0.715 | |
+| s/step | 6.782 | 6.810 | −0.4% |
+| MFU | 33.2% | 33.0% | |
+| Peak memory | 72.17 GiB | 72.17 GiB | |
+
+Paired train-loss gap (ratio 4 − ratio 1 at the same step), mean over each part of training:
+
+| 0–10% | 10–25% | 25–50% | 50–75% | 75–100% | Last 500 steps |
+|---:|---:|---:|---:|---:|---:|
+| −0.113 | −0.061 | −0.044 | −0.038 | −0.034 | −0.033 |
+
+Readouts at the end of training, averaged over the 16 layers:
+
+| Run | τ, mean | Shortest horizon | Attention entropy, normalized | Top-8 mass | α₂, mean \|·\| | β₂, mean \|·\| |
+|---|---:|---:|---:|---:|---:|---:|
+| Ratio 4 | 8.33 | 14.9 | 0.473 | 0.641 | 0.677 | 0.703 |
+| Ratio 1 | 8.53 | 14.8 | 0.502 | 0.594 | 0.550 | 0.725 |
+
+- **Ratio 4 wins.** −0.028 in `final_ce` is about 4 sd of AME's spread at h12. Rounding
+  alone could shrink it to −0.013, but the paired train loss settles it: −0.033 over the
+  last 500 steps. The eval gap is −0.031 at all 26 evals from step 5,100 on.
+- **Ahead from the start**, unlike h12. The lead peaked at −0.160 over steps 250–500. It
+  shrank to −0.041 by step 3,000, held there to about step 4,500, then narrowed to −0.033
+  as the learning rate annealed. No spikes, and grad norms like the baseline's.
+- **No cost.** s/step −0.4%, MFU 33.2% against 33.0%, the same peak memory.
+- **The readouts move as at h12, β₂ less.** Normalized entropy falls from 0.502 to 0.473,
+  top-8 mass rises from 0.594 to 0.641, α₂ rises from 0.550 to 0.677, and β₂ falls from 0.725
+  to 0.703. α₂ > β₂ in 8 of 16 layers, against 4 of 16 at ratio 1. τ falls slightly (8.53 to
+  8.33), and the shortest horizon does not move.
+- **Against dense** (S1b-D, [stage_1b_report.md](stage_1b_report.md)): the best dense run,
+  n = 9 (`eh2sjsh7`), ends at 2.7441. The gap to it shrinks from 0.115 to 0.087, by 25%.
+  But n = 9 is the dense grid's high-learning-rate edge, and n = 8 was not run. At h12, n = 8
+  beat n = 9 by 0.042, so dense's optimum may be lower and the gap larger.
 
 ## For Maciej
 
 1. **The `run_exp.py` fix (`83ebaa85`) is not on `ame_improve` or origin yet.** It is one
-   commit on top of 7345eebc and can be cherry-picked as it is. Pushing waits for your OK.
+   commit on top of 7345eebc and can be cherry-picked as it is. The only pushes were the two
+   snapshot branches `run_exp.py` pushes for every job, named like the clones. The branch
+   `ame_improve_runs` (configs, fix, this report) and the report's commits on `ame_main` are
+   local. Pushing them waits for your OK.
 2. **`n_tokens_b` gives 3 and 5 fewer steps than the baselines** (3,812 and 7,625 against
    3,815 and 7,630). It rounds down, and the hand-written baseline configs rounded up. That
    is 0.08% fewer tokens, with the same warmup and a cosine that ends at the same floor. It
    can only handicap ratio 4, and by far less than the differences here.
+3. **Optional: exact `final_ce`.** The verdicts don't need it, but the parity study's
+   common evaluator could score both new checkpoints at full precision, as it scored
+   `doi36p8k` (3.125227). That is one short job per checkpoint; I didn't run them, because
+   only the two training jobs were approved.
