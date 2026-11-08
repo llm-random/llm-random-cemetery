@@ -2,8 +2,8 @@
 
 **Status (2026-11-08 03:40): h12 finished, and ratio 4 beats ratio 1 by 0.031 in
 `final_ce` (3.0938 against 3.1250), well outside AME's run-to-run spread. h16 trains with no
-NaN or loss spike, 0.037 ahead of its baseline at the same step, narrowing slowly as the
-learning rate anneals (09:39, step 5,328 of 7,625); it ends about 14:10. Checks every 2 h.**
+NaN or loss spike, 0.035 ahead of its baseline at the same step, narrowing slowly as the
+learning rate anneals (11:40, step 6,351 of 7,625); it ends about 14:10. Checks every 2 h.**
 
 Two runs test the `ame_improve` features on Stage 2's winning AME recipe (S2-PS: ALiBi and
 the KV shift). The point of the test is `trainer.bank_lr_ratio: 4.0`, which trains AME's Q/K
@@ -65,6 +65,7 @@ means are used instead.
 | 05:38 | h16 | 3,270 of 7,625 | 6.783 (6.810) | −0.042 (steps 3,171–3,270) | none | The lead still shrinks, slowly: −0.050, −0.047, −0.043 and −0.042 per 500-step window since step 1,500. Eval gap −0.031 or −0.047 at every eval since step 2,000. Grad norm last 0.042. Still ends about 14:10 |
 | 07:38 | h16 | 4,299 of 7,625 | 6.783 (6.810) | −0.039 (steps 4,200–4,299) | none | The lead stopped shrinking: −0.041 per 500-step window since step 3,000, −0.040 over the last 500 steps. Eval gap −0.031 or −0.047 at every eval since step 2,000. Grad norm last 0.041. Still ends about 14:10 |
 | 09:39 | h16 | 5,328 of 7,625 | 6.783 (6.810) | −0.036 (steps 5,229–5,328) | none | The lead narrows slowly as the learning rate anneals: −0.040, −0.038 and −0.037 per 500-step window since step 4,000; h12's narrowed the same way in its last quarter (−0.037 to −0.034). Eval gap −0.031 at 8 of the last 10 evals, −0.047 at the other 2. Grad norm last 0.039. Still ends about 14:10 |
+| 11:40 | h16 | 6,351 of 7,625 | 6.782 (6.810) | −0.035 (steps 6,252–6,351) | none | Still narrowing slowly: −0.036 and −0.034 in the last two 500-step windows, −0.035 over the last 500 steps. Eval gap −0.031 at every eval since step 5,100. Grad norm last 0.036. The next check is the end of the run (about 14:10), not a 2-hour mark 30 min before it |
 
 ## Results
 
