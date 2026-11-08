@@ -14,11 +14,13 @@ Stages 1c and 2c on 2026-11-07.**
   2026-11-05, before the first submit, so that every run shares one hardware. The s/step
   figures in this plan are entropy's; the LEM smoke runs set LEM's baseline, which
   [stage_1_report.md](stage_1_report.md) records.
-- **Stages 1c and 2c go one size up again: h20, 16B tokens, 4 GPUs per run**, on Helios
-  instead of LEM (Maciej, 2026-11-08). Stage 1c tunes the learning rate for dense only.
-  Stage 2c trains only the best AME variant. Their configs and the Helios compile fix
-  were committed in `683c316b` on 2026-11-08, and the runs are on Helios:
-  [stage_1c_report.md](stage_1c_report.md), [stage_2c_report.md](stage_2c_report.md).
+- **Stages 1c and 2c go one size up again: h20, 16B tokens, 4 GPUs per run.** They were
+  set for Helios instead of LEM (Maciej, 2026-11-08). The same day they moved to LEM, the
+  plan's fallback, before any run had started on Helios: Helios goes down for maintenance,
+  with its GPUs off until the end of the month (Maciej, 18:16). Stage 1c tunes the
+  learning rate for dense only. Stage 2c trains only the best AME variant. Their configs
+  and the Helios compile fix were committed in `683c316b`, and the move to LEM in
+  `acb68ff5`: [stage_1c_report.md](stage_1c_report.md), [stage_2c_report.md](stage_2c_report.md).
 - Stage 3 is not written yet.
 
 This plan was rewritten from the ground up on 2026-11-05. The program it replaces is kept
@@ -45,8 +47,8 @@ It is there for reference only; nothing in it is scheduled.
 | **2** | AME with positional encoding, with the shift, and with both; which is best | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2_report.md` |
 | **1b** | Stage 1 at h16 and 8B tokens: a dense h16 baseline and the simplest AME h16, with a learning-rate grid for both | Done, 2026-11-06 | `ame_main` · `~/code/nano` | `stage_1b_report.md` |
 | **2b** | Stage 2 at h16 and 8B tokens | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2b_report.md` |
-| **1c** | Dense h20 at 16B tokens on 4 Helios GPUs, with a learning-rate grid. No AME arm | **Running**, from 2026-11-08 | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
-| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run was submitted alongside it on 2026-11-08 | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
+| **1c** | Dense h20 at 16B tokens on 4 GPUs, with a learning-rate grid. No AME arm | **Running** on LEM (moved from Helios on 2026-11-08), from 2026-11-08 | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
+| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run goes alongside it, on LEM since 2026-11-08 | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
 | **3** | Not written yet. It is decided from the results of Stages 1 and 2 | — | — | — |
 
 Rules for every stage:
@@ -489,7 +491,8 @@ after Stages 1 and 1b.
 
 **Scope, as set by Maciej on 2026-11-07 and 2026-11-08:**
 - one size up from Stage 1b and twice the tokens, on 4 GPUs per run;
-- on Helios, not LEM (2026-11-08);
+- on Helios, not LEM (2026-11-08); then on LEM after all, from 18:16 the same day, because
+  Helios goes down for maintenance;
 - only dense's learning rate is tuned. AME takes its grid from dense's best n (Stage 2c).
 
 Stage 1c needs nothing from the other stages, so it can start at once. Section numbers (§)
@@ -558,6 +561,10 @@ final checkpoint only.
 
 ### Helios — what Stages 1c and 2c need first
 
+**Moved to LEM on 2026-11-08 at 18:16** (Maciej): Helios goes down for maintenance, with
+its GPUs off until the end of the month, and no run had started there. The runs follow
+the fallback row below ([stage_1c_report.md](stage_1c_report.md), decision 6).
+
 No AME config had run on Helios before 2026-11-08, when the compile proof below did
 (job 25860605, [stage_1c_report.md](stage_1c_report.md)). What was known on 2026-11-07:
 
@@ -616,7 +623,8 @@ No AME config had run on Helios before 2026-11-08, when the compile proof below 
 | S2c-PS, for Stage 2c | 2.852 | 3.14–3.25 | 13.3–13.8 h | about 14.5 h | about 58 |
 
 - The grid is about 145 GPU-h: one wave of about 12 h on 3 nodes.
-- Stages 1c and 2c together cost about 320 GPU-h, a small share of Helios's grant (above).
+- Stages 1c and 2c together cost about 320 GPU-h, a small share of either grant. LEM, where
+  they run since 2026-11-08, had 28,271 of 100,000 GPU-h used that day.
 - **There are no mid-run checkpoints**, as in Stages 1 and 1b. A run that dies starts
   again from step 0, and loses up to about 58 GPU-h.
 

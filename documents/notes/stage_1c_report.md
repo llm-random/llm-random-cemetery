@@ -1,14 +1,14 @@
 # Stage 1c — dense h20 at 16B tokens, on 4 GPUs: report
 
-**Status: in progress (started 2026-11-08 00:40). The Helios compile fix works (job
-25860605). The S1c-D grid, n ∈ {8, 9, 10}, is queued on Helios as job 25862221 (submitted
-01:15), behind its 4-GPU smoke runs (25862155). At 09:30 every job was still pending, behind
-higher-priority jobs, after 8 h 15 min in the queue (decision 5). At 11:30 Slurm first
-forecast a start for the smoke runs, Tuesday 2026-11-10 at 05:05, and none for the real
-runs.**
+**Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM at 18:16 on
+2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its GPUs off
+until the end of the month (decision 6). No Helios job had started. On LEM the three dense
+smoke runs (job 6274930) started at 18:22. The S1c-D grid follows once they pass
+(decision 8).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
-with its section "Helios — what Stages 1c and 2c need first". This file is its record:
+with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
+runs now follow. This file is its record:
 every job, result and decision, each with its reason. Times are CET. Stage 2c runs
 alongside it on the same commit, worktree, cluster and recipe; its record is
 [stage_2c_report.md](stage_2c_report.md). The Helios fix and the submission method below
@@ -24,9 +24,9 @@ Pending.
 |---|---|
 | Question | What learning rate does a dense h20 baseline need at 16B tokens, and what loss does it reach? It is Stage 2c's reference and the third point of the dense series, after Stage 1 (h12, 4B) and Stage 1b (h16, 8B) |
 | Arm | S1c-D: S1b-D on h_balanced h20, `gqa` attention with RoPE (base 10000), 20 query heads and 10 KV heads |
-| Code and configs | Commit **`683c316b`** on `ame_main`, for every Stage 1c and 2c run. Jobs are submitted from the clean worktree `~/code/nano-stage1c2c` (branch `stage1c2c_helios`), held at that commit while other work lands on `ame_main`. Since Stage 2b's `89975bbf`, nothing in `src/core/ame.py`, `src/core/memory_parallel.py`, `src/core/trainer.py` or `main.py`'s model build has changed that the plan does not name; `683c316b` adds the two Stage 1c–2c configs, the compile-proof config and the Helios torch fix |
+| Code and configs | Commit **`a8553b7e`** on branch `stage1c2c_lem`, for every Stage 1c and 2c run. It is `683c316b`, which added the two Stage 1c–2c configs, the compile-proof config and the Helios torch fix, plus one cherry-picked commit, `ame_main`'s `acb68ff5`, which moves both configs to LEM. So the code is `683c316b`'s (decision 7). Jobs are submitted from the clean worktree `~/code/nano-stage1c2c`, held at that commit while other work lands on `ame_main`. Since Stage 2b's `89975bbf`, nothing in `src/core/ame.py`, `src/core/memory_parallel.py`, `src/core/trainer.py` or `main.py`'s model build has changed that the plan does not name |
 | Config | [configs/stage_1c/dense_h20_lr_grid.yaml](../../configs/stage_1c/dense_h20_lr_grid.yaml): one sbatch array of 3 runs, n ∈ {8, 9, 10} |
-| Cluster | Helios: partition `plgrid-gpu-gh200`, account `plgllmefficont3-gpu-gh200`, one whole node of 4 GH200 per run (`gres: gpu:4`), 32 CPUs and 109G per GPU from [configs/_cluster/helios.yaml](../../configs/_cluster/helios.yaml). The partition allows 2 days, so the 24 h limit is accepted. FineWeb is read from the `$SCRATCH` copy while its stamp is fresh; each job log prints `FineWeb: <dir>` |
+| Cluster | **LEM**, since 18:16 on 2026-11-08 (decision 6): partition `plgrid-lem-gpu-h100`, account `plgllmefficont3`, one whole node of 4 H100 per run (`gres: gpu:hopper:4`), 16 CPUs and 228G per GPU from [configs/_cluster/lem.yaml](../../configs/_cluster/lem.yaml). Node r16-11 is excluded at submit (`+infrastructure.slurm.exclude=r16-11`, [stage_1_report.md](stage_1_report.md), decision 3). The partition allows 3 days; the 24 h limit stays. FineWeb is read from LEM's copy on pd01. Until then the cluster was Helios (`plgrid-gpu-gh200`, 4 GH200 per node), where no run started |
 | W&B | `ideas_cv/nano-ame`, runs `s1c_d_h20_lr<n>`, tag `stage_1c` |
 | Recipe | Stage 1b's, with the plan's changes: h_balanced h20 (20 blocks, 20 heads, 10 KV, d_model 1,280, d_head 64, SwiGLU d_ff 5,120); 15,259 steps × 1,048,576 tokens = 16.00B tokens; warmup 152 steps; FSDP2 over 4 GPUs with `reshard_after_forward: false` and bf16 from its mixed precision (`autocast_bf16: false`); micro-batch 16 × 8 per GPU; seed 123; eval every 100 steps on 10 batches; `final_ce` on the fixed held-out set of 8192 × 2048 tokens; the final checkpoint only; 24 h limit |
 | Data order | `world_size_independent: false`, so the order depends on the GPU count. Every Stage 1c–2c run uses 4 GPUs and shares one order, which is not the order of Stages 1–2b |
@@ -47,7 +47,22 @@ model builds at the plan's sizes, counted on the meta device:
 
 16B tokens is 25.8 tokens per dense parameter (21.8 in Stage 1, 22.6 in Stage 1b).
 
+**Pre-flight again for LEM, 2026-11-08 18:19**, on `acb68ff5`'s configs. It ran in the main
+tree and then in the worktree at `a8553b7e`, with identical output:
+- every grid point passes the schema check with `server: lem`, partition
+  `plgrid-lem-gpu-h100`, account `plgllmefficont3`, `gres: gpu:hopper:4`, 16 CPUs and 228G
+  per GPU, and `--exclude=r16-11` in the sbatch header;
+- FineWeb is LEM's pd01 copy;
+- the recipe's values are unchanged;
+- the models build at the sizes above;
+- S2c-PS without a learning rate is still refused.
+
+`tests/test_typed_config.py` and `tests/test_repo_hygiene.py` pass.
+
 ## The Helios compile fix
+
+These runs no longer use Helios (decision 6). This section records the fix, which stays in
+`pixi.toml` for later Helios work.
 
 **What was broken.** Helios's aarch64 env had torch 2.6.0+cu126, whose wheel declares no
 Triton. So every config with `compile_blocks_full`, and AME's flex attention, died at the
@@ -106,8 +121,8 @@ stay on Helios. The run completed at 01:21:33 (exit 0:0, 21 min 24 s in all):
 | Checkpoint | written at 01:20:29–01:20:48: a 4,055,929,647-byte model file and 19,780,378,103 bytes of bank state, 23.84 GB; deleted at 01:22 | 23.84 GB |
 
 - **One GH200 runs this config 5.4% faster than one LEM H100.** The plan's h20 estimates
-  scaled entropy's speed up by LEM's ×1.10–1.14, so the 4-GPU smokes will likely come in
-  under them.
+  scaled entropy's speed up by LEM's ×1.10–1.14. On LEM, where the runs now go, they apply
+  as they stand.
 - The 60-step `final_ce` only shows that the end-of-run path works; the two runs used
   different n.
 
@@ -127,22 +142,39 @@ readable by the whole group. So every Stage 1c–2c job is submitted in two halv
   its environment (`--export=ALL` is the default, and Helios sets no `SBATCH_EXPORT`), and
   `srun` passes it on to the ranks.
 
+On LEM the cemetery (`/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery`)
+is `755`, readable by every LEM user, so the same two halves are used there. LEM sets no
+`SBATCH_EXPORT` either.
+
 The clone, the configs and `exp.job` are otherwise what `run_exp.py` would produce. No tmux
 session is made, so the run-name dot problem of Stages 2 and 2b
 ([stage_2_report.md](stage_2_report.md), decision 2) does not arise.
 
 ## Smoke runs
 
-**Submitted at 01:14, together with the real runs (decision 3)**, with
-`trainer.n_steps=60 trainer.eval_interval=20`, named `smoke_*`, tagged `smoke`, with a
-1.5 h limit, as in Stages 1 and 1b ([stage_1_report.md](stage_1_report.md), decision 2):
-- **dense:** the S1c-D grid file, 3 points, job 25862155 (`smoke_s1c_d_h20_lr<n>`);
-- **AME:** the S2c-PS file with `trainer.learning_rate=9`, job 25862201
+**On Helios: cancelled before they started.** Submitted at 01:14 together with the real
+runs (decision 3):
+- dense: job 25862155;
+- AME: job 25862201.
+
+They were still pending at 18:16 and were cancelled with the move to LEM (decisions 5–6).
+
+**On LEM: submitted at 18:21–18:23, before the real runs (decision 8)**, from `a8553b7e`.
+They use `trainer.n_steps=60 trainer.eval_interval=20` and r16-11 is excluded. They are
+named `smoke_*`, tagged `smoke` and have a 1.5 h limit, as in Stages 1 and 1b
+([stage_1_report.md](stage_1_report.md), decision 2):
+- **dense:** the S1c-D grid file, 3 points, job 6274930 (`smoke_s1c_d_h20_lr<n>`), started
+  at 18:22:47 on r16-4, r16-5 and r16-7;
+- **AME:** the S2c-PS file with `trainer.learning_rate=9`, job 6274942
   (`smoke_s2c_ps_h20_lr9`), recorded in [stage_2c_report.md](stage_2c_report.md).
 
-The checks, as the plan lists them: micro-batch 16 fits under FSDP2 on Helios; the s/step
-against the plan's estimate (2.60–2.70 dense, 3.14–3.25 AME); `final_ce` is logged and
-the checkpoint written; AME's readouts fail with a warning per layer and the run goes on.
+The checks, as the plan lists them:
+- micro-batch 16 fits under FSDP2, now on LEM's H100s (93.6 GiB each);
+- the s/step against the plan's estimate, 2.60–2.70 dense and 3.14–3.25 AME, which was made
+  for LEM;
+- `final_ce` is logged and the checkpoint written;
+- AME's readouts fail with a warning per layer and the run goes on.
+
 Results: pending.
 
 ## Jobs
@@ -151,8 +183,9 @@ Results: pending.
 |---|---|---:|---|---|---|---|---|---|---:|
 | 25860316 | `update_pixi.py`: rebuild the Helios env (srun, `--qos=now`, 4 CPUs, no GPU) | — | — | — | 00:56 | 00:57 | 00:59 | completed | — |
 | 25860605 | Compile proof: S2b-PS on 1 GH200, 60 steps, `--qos=now` | 9 | `7f1uzqtu` | x1002c6s0b0n0 | 01:00 | 01:00 | 01:21 | completed | 7.1602 (60 steps) |
-| 25862155_0–2 | 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | | | 01:14 | | | pending | |
-| 25862221_0–2 | **S1c-D grid** | 8, 9, 10 | | | 01:15 | | | pending | |
+| 25862155_0–2 | Helios 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | — | — | 01:14 | never | 18:16 | cancelled, never started (decision 6) | — |
+| 25862221_0–2 | Helios **S1c-D grid** | 8, 9, 10 | — | — | 01:15 | never | 18:16 | cancelled, never started (decision 6) | — |
+| 6274930_0–2 | LEM 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | | r16-4, r16-5, r16-7 | 18:21 | 18:22 | | running | |
 
 ## Decisions
 
@@ -200,10 +233,34 @@ Results: pending.
 
    These forecasts assume every running job uses its full time limit and no
    higher-priority job arrives, so they are rough in both directions.
+6. **Both stages moved to LEM at 18:16, at Maciej's instruction.** Helios goes down for
+   maintenance on 2026-11-09, with its GPUs off until the end of the month, and no Helios
+   job had started (16 h 40 min in the queue, decision 5). The plan's fallback says: "Run
+   both stages on LEM, as this plan was first written: `gres: gpu:hopper:4`, with node
+   r16-11 excluded … Both stages stay on one cluster".
+   - All four Helios jobs were cancelled at 18:16:24: 25862155, 25862201, 25862221 and
+     25862255, all mine and all still pending.
+   - Both configs were moved to LEM in `acb68ff5`. The recipe is unchanged. Each run still
+     uses 4 GPUs, so the data order is the same.
+   - The plan's cost estimates were made for LEM (entropy's speed × LEM's 1.10–1.14), so
+     they apply as they stand.
+   - LEM's grant had 28,271 of 100,000 GPU-h used at 18:15. Both stages need about 320.
+   - Helios's FineWeb refresh jobs (25843287 and later, pending on `BeginTime`) belong to
+     the `$SCRATCH` copy, not to these stages, and were left alone.
+7. **The worktree moved to a new branch, `stage1c2c_lem`, rather than to `ame_main`'s
+   head.** The branch is `683c316b` plus the cherry-picked config commit (`a8553b7e`).
+   Since `683c316b`, `ame_main` has changed `src/core/ame.py` and `src/core/attention.py`
+   (bank-gates work by another session), so its head would put different AME code under
+   these runs than was pre-flighted. The branch `stage1c2c_helios` stays at `683c316b`.
+   No experiment run had started from it, so every Stage 1c–2c run uses one version of the
+   code.
+8. **On LEM the smoke runs go first, and the real runs follow once they pass**, in the
+   plan's order ("Before the grid"). Decision 3 sent smokes and real runs together on
+   Helios only because of its queue. On LEM, 4-GPU nodes were free at 18:15 (5 idle and 5
+   powered down), and the dense smoke runs started within a minute. A smoke run takes about
+   half an hour.
 
 ## For Maciej
 
-- **The Helios queue may cost about two days before the first run starts.** At 11:30 on
-  2026-11-08, Slurm forecast the smoke runs for Tuesday 05:05 and gave no forecast for the
-  24 h runs (decision 5). The plan allows LEM only if compile fails, so the runs stay on
-  Helios. Moving them to LEM (`gres: gpu:hopper:4`, r16-11 excluded) is your call.
+Nothing open. The Helios queue question was settled at 18:16, when you moved the runs to
+LEM (decision 6).
