@@ -3,8 +3,9 @@
 **Status: in progress (started 2026-11-08 00:40). S2c-PS at n = 9 is queued on Helios as
 job 25862255 (submitted 01:15), behind its 4-GPU smoke run (25862201). At 09:30 both were
 still pending, behind higher-priority jobs, after 8 h 15 min; they stay queued on Helios
-([stage_1c_report.md](stage_1c_report.md), decision 5). The other two runs wait for Stage
-1c's best n.**
+([stage_1c_report.md](stage_1c_report.md), decision 5). At 11:30 Slurm forecast the smoke
+run's start for Tuesday 2026-11-10 at 05:17, and none for the real run. The other two runs
+wait for Stage 1c's best n.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are

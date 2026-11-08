@@ -3,7 +3,9 @@
 **Status: in progress (started 2026-11-08 00:40). The Helios compile fix works (job
 25860605). The S1c-D grid, n ∈ {8, 9, 10}, is queued on Helios as job 25862221 (submitted
 01:15), behind its 4-GPU smoke runs (25862155). At 09:30 every job was still pending, behind
-higher-priority jobs, after 8 h 15 min in the queue (decision 5).**
+higher-priority jobs, after 8 h 15 min in the queue (decision 5). At 11:30 Slurm first
+forecast a start for the smoke runs, Tuesday 2026-11-10 at 05:05, and none for the real
+runs.**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first". This file is its record:
@@ -191,6 +193,17 @@ Results: pending.
    case where compile still fails, and keeps both stages on one cluster. So nothing is
    moved or resubmitted; the jobs keep aging in the queue.
 
+   At 11:30 the backfill scheduler gave its first forecasts:
+   - the dense smoke runs (25862155) at 2026-11-10 05:05;
+   - the AME smoke run (25862201) at 05:17;
+   - none for the 24 h runs.
+
+   These forecasts assume every running job uses its full time limit and no
+   higher-priority job arrives, so they are rough in both directions.
+
 ## For Maciej
 
-Nothing yet.
+- **The Helios queue may cost about two days before the first run starts.** At 11:30 on
+  2026-11-08, Slurm forecast the smoke runs for Tuesday 05:05 and gave no forecast for the
+  24 h runs (decision 5). The plan allows LEM only if compile fails, so the runs stay on
+  Helios. Moving them to LEM (`gres: gpu:hopper:4`, r16-11 excluded) is your call.
