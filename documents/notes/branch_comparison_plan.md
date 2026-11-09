@@ -303,8 +303,9 @@ its checkpoint. That is all the comparison needs, so it is all that gets built n
 
 - [x] **Load path:** train the tiny model and save it, then run eval-only on it. Its
       `final_ce` matches the training run's. (2026-11-06, CPU: 8.451300859451294 in
-      both, `configs/tiny_local_eval.yaml`.)
+      both, `configs/tiny_local_eval.yaml`. Re-run 2026-11-09: same value.)
 - [x] **Scoring:** piqa and hellaswag with `limit: 20` log `eval/<task>/<metric>`.
+      (Re-run 2026-11-09.)
 - [x] **Guard:** a generative task with `world_size > 1` fails at startup with a
       clear message. (`WORLD_SIZE=2`, tasks `[piqa, gsm8k]`: names gsm8k only.)
 - [ ] **GPU path, on entropy:** the laptop has no CUDA, so the FSDP2 sharded load,
@@ -315,6 +316,57 @@ its checkpoint. That is all the comparison needs, so it is all that gets built n
       itself. Required if absolute scores are ever quoted: `NanoLM` tokenizes
       context and continuation separately, while the HF backend tokenizes the joined
       string and splits it.
+
+### Scoring step 1's checkpoint (94vzm552)
+
+Checked 2026-11-09.
+
+- **ctx_scl side is in W&B.** oswoqjtk and e9i2mveg (`ideas_cv/llm-random-test`, same
+  config, identical code snapshots) each log all nine tasks at step 29999, as
+  `steps/eval/<task>/<metric>` (and `tokens/...`). They log acc and acc_stderr for
+  every task; arc, hellaswag, piqa, openbookqa and sciq also log acc_norm, and
+  lambada logs perplexity. The run used `limit: null`, `max_length: 1024`,
+  `max_gen_toks: 8` and `batch_size: 32`, which is our `joint.yaml`. Scoring took
+  ~4 min on 4× H100.
+- **Same harness on both sides:** both locks pin lm-eval 0.4.11 and datasets 3.1.0.
+  The runs' `eval.py`, `joint.yaml`, `trainer.py` and `main.py` equal
+  `jm_ctx_scl_branch_compare`'s.
+- **Source:** 94vzm552 (same project, slurm 32931, `final_ce` 2.677734375). Its
+  checkpoint is `/storage_nvme_4/nano/pretraining/j321m/checkpoints/32931/0/step_29999`;
+  the `/0` is the array task id. `configs/jm/h16_chinchilla_eval.yaml` composes to
+  94vzm552's logged config on every model, trainer, data and `common` key, and
+  `src/` hasn't changed since its snapshot.
+- **Launch:** `run_exp.py --config-path configs/jm --config-name h16_chinchilla_eval`.
+  It passes when `final_ce` ≈ 2.6777 and all nine tasks log, in a new W&B run
+  `h16_chinchilla_eval`.
+
+The two ctx_scl runs differ by up to 3 pt (openbookqa acc_norm) and 1.8 pt
+(lambada acc) with the same config: that's the run-to-run noise floor, in line with
+the table below.
+
+| Task | Metric | oswoqjtk | e9i2mveg | 94vzm552 |
+|---|---|---:|---:|---:|
+| arc_easy | acc | 58.8 | 59.0 | |
+| arc_easy | acc_norm | 51.9 | 53.4 | |
+| arc_challenge | acc | 24.8 | 24.9 | |
+| arc_challenge | acc_norm | 28.5 | 27.4 | |
+| hellaswag | acc | 32.3 | 32.2 | |
+| hellaswag | acc_norm | 38.0 | 37.8 | |
+| piqa | acc | 65.6 | 66.8 | |
+| piqa | acc_norm | 64.3 | 65.5 | |
+| winogrande | acc | 50.0 | 50.4 | |
+| openbookqa | acc | 21.8 | 21.2 | |
+| openbookqa | acc_norm | 34.0 | 31.0 | |
+| sciq | acc | 82.0 | 80.0 | |
+| sciq | acc_norm | 71.0 | 71.2 | |
+| social_iqa | acc | 38.2 | 37.4 | |
+| lambada_standard | acc | 20.4 | 22.2 | |
+| lambada_standard | perplexity | 208.2 | 165.7 | |
+
+**Eval loss isn't comparable as logged.** Mean train loss over the last 100 steps is
+equal (2.831 and 2.841 on ctx_scl, 2.831 here), but periodic eval loss is 2.875 on
+ctx_scl and 2.672 here. The eval sets differ (see step 2), and that gap is bigger
+than anything the comparison is looking for.
 
 ### Later: not needed for this comparison
 
