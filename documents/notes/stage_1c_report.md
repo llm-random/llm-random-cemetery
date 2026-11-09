@@ -1,23 +1,12 @@
 # Stage 1c — dense h20 at 16B tokens, on 4 GPUs: report
 
-**Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM at 18:16 on
-2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its GPUs off
-until the end of the month (decision 6). No Helios job had started. On LEM the dense smoke
-runs passed every check (18:22–18:31). The S1c-D grid, n ∈ {8, 9, 10}, was submitted at
-18:34 as job 6275160. All three run, each started well before Slurm's forecast: n = 8 and
-n = 9 since 18:50 and 18:51, n = 10 since 20:18. By 20:20 n = 8 was stuck at a loss of
-about 5.2, 2.1 nats behind n = 9 at step 2,000. So it cannot be the best n, and the grid
-needs no n = 7; it runs to the end for its `final_ce` (decision 10). At 22:30 n = 10 led
-n = 9 at matched steps, but by less each window (0.023 at steps 2,600–2,799), so n = 11
-was not started then (decision 11). By 00:30 the lead had stopped shrinking. It had held at
-about 0.012 for 2,000 steps, so n = 11 was submitted at 00:34 on 2026-11-09 as job 6281083
-(decision 12). n = 8 and n = 9 finished at 05:58 and 06:02 on 2026-11-09, with `final_ce`
-2.8252 and 2.5059. As the LR decayed, n = 10's lead over n = 9 vanished: from 0.010 at 57%
-of its run to nothing at 83%, and at 86–87% n = 9 led by a hair (Progress, 06:05). So
-n = 9 may end best. n = 10's `final_ce`, due at about 07:25, decides it. If n = 9 is
-best, n = 11 is cancelled while still pending (decision 13). Stage 2c's n = 9 and n = 10
-run, and its n = 11 and n = 8 wait in the queue
-([stage_2c_report.md](stage_2c_report.md), decisions 4, 6 and 7).**
+**Status: complete (2026-11-09 07:29). Dense h20's best learning rate is n_d\* = 9, inside
+the grid: `final_ce` 2.5059, against 2.5098 at n = 10 and 2.8252 at n = 8
+([Result](#result)). So Stage 2c trains n = 8, 9 and 10. The runs moved from Helios to LEM
+at 18:16 on 2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its
+GPUs off until the end of the month (decision 6). No Helios job had started. The grid ran
+on LEM from 18:50 on 2026-11-08 to 07:24 on 2026-11-09. n = 11, started early while n = 10
+led (decision 12), was cancelled at 07:29, before it started (decision 14).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -29,7 +18,89 @@ serve both stages, and are recorded here only.
 
 ## Result
 
-Pending.
+| | S1c-D, dense h20 with RoPE |
+|---|---|
+| Learning rates trained | n = 8, 9, 10 |
+| `final_ce` | 2.8252 / **2.5059** / 2.5098 |
+| Best by the plan's rule (lowest `final_ce`) | **n = 9**, inside the grid |
+| **n_d\***, which sets Stage 2c's grid | **9**, so Stage 2c trains n = 8, 9 and 10 |
+| n = 9's margin over n = 10 | 0.0039 in `final_ce`; 0.0031 in paired train loss over the last 500 steps |
+
+- **n = 9 won in the last sixth of the run.** n = 10 led by 0.010–0.014 from 24% to 57% of
+  the run. As the LR decayed, n = 9 gained steadily: level at 83%, and ahead by 0.003 at
+  the end ([Progress](#progress)).
+- **The margin is small, and both measures agree on it.** `final_ce` averages per-batch
+  losses that are each rounded to bf16, in steps of 0.0156 near 2.5, so each run's value
+  can be off by up to ±0.008. The finer measure is the paired train-loss gap: both runs
+  see the same batches in the same order, and over 500 steps the rounding averages out.
+  It puts n = 9 ahead by 0.0031.
+- **The curve is lopsided.** One step up in LR, n = 8, costs 0.319: it stalled at a loss of
+  about 5.2 for its first 2,000 steps, then recovered (decision 10). One step down, n = 10,
+  costs 0.004.
+- **No n = 11 was needed.** It had been started early while n = 10 led (decision 12), was
+  still pending, and was cancelled at 07:29 (decision 14).
+
+**Against Stages 1 and 1b**, dense with RoPE:
+
+| | Stage 1: h12, 4B | Stage 1b: h16, 8B | Stage 1c: h20, 16B |
+|---|---:|---:|---:|
+| Best n | 8, inside the grid | 9, at the grid's high-LR edge | 9, inside the grid |
+| `final_ce` at the best n | 2.9824 | 2.7441 | **2.5059** |
+| `final_ce` at n = 9 | 3.0244 | 2.7441 | **2.5059** |
+| Change at n = 9, from the scale before | | −0.280 | −0.238 |
+| Change best against best, from the scale before | | −0.238 | −0.238 |
+| Tokens per dense parameter | 21.8 | 22.6 | 25.8 |
+| GPUs per run; precision | 1; autocast bf16 | 1; autocast bf16 | 4; FSDP2 mixed precision |
+
+- **Each scale step lowers the best loss by 0.238 nats**, from h12 to h16 and from h16 to
+  h20. At a fixed n = 9 the steps are 0.280 and 0.238, because h12's n = 9 sat one step
+  past its best.
+- **h16's best is at its grid's edge**, so its true optimum may be lower than 2.7441
+  ([stage_1b_report.md](stage_1b_report.md)). Then the first step is larger than 0.238 and
+  the second smaller.
+- **The best learning rate falls with scale**: n = 8 at h12, and n = 9 at h20, with n = 10
+  almost as good. h16 did not try n = 8.
+- **What the comparison compounds.** As the plan notes, model size, tokens and tokens per
+  dense parameter change together, and at h20 the GPU count and the precision path change
+  too. So these are scaling results, not the effect of any one change.
+
+![Stage 1c learning-rate sweep](stage_figures/stage_1c_lr_sweep.png)
+
+![Stage 1c eval loss](stage_figures/stage_1c_eval_loss.png)
+
+*Top: `final_ce` against n; the ring marks the lowest point, and the dashed line is
+n_d\* = 9. Bottom: eval loss on 10 batches by step, from step 300, with the y-axis cut at
+6: n = 9's spike reached 7.03 at step 300. n = 9 and n = 10 both read 2.500 at the last
+eval. Both were made with [documents/scripts/stage_results.py](../scripts/stage_results.py)
+(`sweep`, `curves`).*
+
+**The runs.** Each has seed 123, 16.00B tokens in 15,259 steps, 620.35M parameters,
+3.9646 GFLOP/token and 4 H100 on LEM. All three are one array job from commit `a8553b7e`,
+cemetery snapshot `86a2168`, config
+[configs/stage_1c/dense_h20_lr_grid.yaml](../../configs/stage_1c/dense_h20_lr_grid.yaml).
+
+| n | LR | `final_ce` | Last 10-batch eval | Loss spikes (train) | s/step | MFU | Peak GiB | Wall time | Job | W&B run |
+|---:|---:|---:|---:|---|---:|---:|---:|---:|---|---|
+| 8 | 3.91e-3 | 2.8252 | 2.8125 | steps 86–97 → 8.00 | 2.476 | 42.4% | 44.57 | 11 h 08 m | 6275160_0 | `abtjvllm` |
+| 9 | 1.95e-3 | **2.5059** | 2.5000 | steps 264–290 → 9.44 | 2.484 | 42.3% | 44.57 | 11 h 11 m | 6275160_1 | `1x82rzby` |
+| 10 | 9.77e-4 | 2.5098 | 2.5000 | steps 140–165 → 8.62; 452–458 → 5.50 | 2.468 | 42.6% | 44.57 | 11 h 07 m | 6275160_2 | `mona5up0` |
+
+- **s/step is the median over steps ≥ 100**, as in the earlier reports, so it leaves out
+  the steps that carry an eval. With them, the mean is 2.61–2.63 s, 40.0–40.3% MFU. MFU is
+  computed offline against 4 × 989 TFLOP/s.
+- **A spike** is a step whose train loss exceeds the median of the previous 50 by more
+  than 0.5. Each cell gives the steps and the peak.
+- **Every run exited with code 0**, logged `final_ce` over 8192 × 2048 held-out tokens,
+  and wrote its final checkpoint, FSDP2 shards of 7.0 GB. The checkpoints are kept in the
+  grid's clone on LEM,
+  `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/s1c_d_h20_lrNone_2026-11-08_18-33-47/checkpoint/`:
+  `6275472/0`, `6275495/1` and `6275160/2` for n = 8, 9 and 10, each under
+  `step_15258`.
+
+**Cost.** The grid used 133.8 GPU-h on LEM: 44.5–44.8 per run, in 11.1–11.2 h. The plan
+estimated about 145, at 48 per run and about 12 h. The smoke runs used 1.8 GPU-h. On
+Helios, the compile proof used about 0.35 GH200 GPU-h, and no other job started. n = 11
+never started.
 
 ## Setup
 
@@ -227,8 +298,8 @@ passes there too.
 | 6274930_0–2 | LEM 4-GPU smoke: the S1c-D grid file, 60 steps | 8, 9, 10 | `mo7jtzjt`, `iuroj05q`, `s6qlhzjb` | r16-4, r16-5, r16-7 | 18:21 | 18:22 | 18:31 | completed | 7.3164, 7.2988, 7.0703 (60 steps) |
 | 6275160_0 | **S1c-D** | 8 | `abtjvllm` | r18-12 | 18:34 | 18:49:55 | 11-09 05:58:16 | completed | 2.8252 |
 | 6275160_1 | **S1c-D** | 9 | `1x82rzby` | r10-11 | 18:34 | 18:50:57 | 11-09 06:02:20 | completed | **2.5059** |
-| 6275160_2 | **S1c-D** | 10 | `mona5up0` | r18-8 | 18:34 | 20:17:55 | | running | |
-| 6281083_0 | **S1c-D** | 11 | | | 11-09 00:34 | | | pending | |
+| 6275160_2 | **S1c-D** | 10 | `mona5up0` | r18-8 | 18:34 | 20:17:55 | 11-09 07:24:37 | completed | 2.5098 |
+| 6281083 | **S1c-D** | 11 | — | — | 11-09 00:34 | never | 11-09 07:29 | cancelled, never started (decision 14) | — |
 
 ## Progress
 
@@ -350,14 +421,16 @@ decays.**
 
 | n | LR | `final_ce` | Last 10-batch eval | Loss spikes (train) | s/step | MFU | Peak GiB | Job | W&B run |
 |---:|---:|---:|---:|---|---:|---:|---:|---|---|
-| 8 | 3.91e-3 | 2.8252 | 2.8125 | steps 86–97 → 8.00 | 2.615 | 40.2% | 44.57 | 6275160_0 | `abtjvllm` |
-| 9 | 1.95e-3 | **2.5059** | 2.5000 | steps 264–290 → 9.44 | 2.627 | 40.0% | 44.57 | 6275160_1 | `1x82rzby` |
+| 8 | 3.91e-3 | 2.8252 | 2.8125 | steps 86–97 → 8.00 | 2.476 | 42.4% | 44.57 | 6275160_0 | `abtjvllm` |
+| 9 | 1.95e-3 | **2.5059** | 2.5000 | steps 264–290 → 9.44 | 2.484 | 42.3% | 44.57 | 6275160_1 | `1x82rzby` |
 
 - **Both completed with exit code 0**, in 11 h 08 m and 11 h 11 m, and wrote their final
   checkpoints.
-- **s/step is the mean over steps ≥ 15, eval steps included**, as in the earlier reports.
-  Between evals it is 2.476 and 2.484 s, 42.4% and 42.3% MFU; each eval adds about 13 s.
-  MFU is computed offline against 4 × 989 TFLOP/s, at 3.9646 GFLOP/token.
+- **s/step is the median over steps ≥ 100**, as in the earlier reports
+  ([documents/scripts/stage_results.py](../scripts/stage_results.py)), so it leaves out
+  the steps that carry an eval. With them, the mean is 2.615 and 2.627 s, 40.2% and 40.0%
+  MFU; each eval adds about 13 s. MFU is computed offline against 4 × 989 TFLOP/s, at
+  3.9646 GFLOP/token. *(Corrected at 07:45: this block first gave the mean as s/step.)*
 - **n = 8 recovered far more than the h12 precedent did.** It ended 0.319 behind n = 9.
   Stage 1's n = 7 at h12 ended 1.291 behind that grid's best.
 - **No spikes after the early ones**, in either run.
@@ -384,6 +457,23 @@ Train-loss means over 200-step windows at matched steps, n = 9 against n = 10:
 - **The evals no longer separate the two.** Both read 2.5312 at steps 12,900–13,300 and
   2.5156 at 13,400.
 - **n = 10 is at step 13,440 and should finish at about 07:25.**
+
+**07:24: n = 10 has finished, 0.004 behind n = 9.** It completed with exit code 0 in
+11 h 07 m: `final_ce` 2.5098, last eval 2.5000, 2.468 s/step (42.6% MFU), and no spike
+after step 458. Train-loss means at matched steps:
+
+| Steps | n = 8 | n = 9 | n = 10 | n = 10 − n = 9 |
+|---|---:|---:|---:|---:|
+| 13,400–13,999 | 3.0249 | 2.6745 | 2.6758 | +0.0013 |
+| 14,000–14,599 | 3.0111 | 2.6686 | 2.6712 | +0.0026 |
+| 14,600–15,258 | 2.9983 | 2.6626 | 2.6657 | +0.0031 |
+| 14,759–15,258, the last 500 | 2.9965 | 2.6616 | 2.6647 | +0.0031 |
+
+- **n = 9 kept gaining on n = 10 to the end.**
+- **The paired train-loss gap is the finer measure here.** `final_ce` averages per-batch
+  losses that are each rounded to bf16, so it can be off by up to ±0.008 per run. The
+  train-loss gap averages 500 paired steps, whose rounding errors are independent. Both put
+  n = 9 ahead: by 0.0039 in `final_ce` and 0.0031 in train loss.
 
 ## Decisions
 
@@ -547,7 +637,24 @@ Train-loss means over 200-step windows at matched steps, n = 9 against n = 10:
       users rank above it.
     - **If n = 10 is lower, n = 11 runs**, as decision 12 intended.
 
+14. **n_d\* = 9, and the grid is done (07:29 on 2026-11-09).** n = 10 finished at 07:24 with
+    `final_ce` 2.5098, above n = 9's 2.5059.
+    - **By the plan's rule, the lowest `final_ce`, the best n is 9.** It lies inside the
+      grid, between n = 8 (2.8252) and n = 10, so the edge rule asks for no more runs. The
+      paired train loss over the last 500 steps agrees: n = 9 by 0.0031.
+    - **n = 11, job 6281083, was cancelled at 07:29, before it started.** By then it had
+      reached the head of the partition's queue, with its start forecast at 09:49: the
+      tasks ahead of it at 06:05 had started or left. Its clone stays in the cemetery,
+      unused.
+    - **Stage 2c's grid is n = 8, 9 and 10.** Its n = 11 was cancelled at the same time,
+      and its n = 8, queued at 06:06, stays ([stage_2c_report.md](stage_2c_report.md),
+      decision 8).
+
 ## For Maciej
 
 - **n = 8 got stuck early and ran to the end (decision 10)**, because the plan's record
   asks for its `final_ce`. It recovered: 2.8252 at 05:58, 0.319 behind n = 9.
+- **n_d\* = 9 is a close call:** 0.004 in `final_ce` and 0.003 in paired train loss over
+  n = 10. The plan's rule picks n = 9, and the finer measure agrees, but the two are nearly
+  equal, and the optimum lies between them. Stage 2c's grid, n = 8 to 10, covers both
+  sides.

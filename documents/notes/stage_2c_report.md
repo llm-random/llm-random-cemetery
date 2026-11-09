@@ -3,12 +3,10 @@
 **Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM with Stage 1c
 at 18:16, at Maciej's instruction; no Helios job had started
 ([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
-every check (18:23–18:34). S2c-PS at n = 9 has run since 02:43 on 2026-11-09, at
-2.97–2.98 s/step, and n = 10 since 06:02 (decision 4). The third run is n = 11 if Stage 1c's
-best n is 10, and n = 8 if it is 9. n = 11 was queued at 02:50, while Stage 1c's n = 10 led
-(decision 6). By 06:05 that lead had vanished, so n = 8 was queued too, at 06:06 (decision
-7). Stage 1c's n = 10 finishes at about 07:25. If its `final_ce` is above n = 9's, n = 11
-is cancelled while still pending.**
+every check (18:23–18:34). Stage 1c finished at 07:24 on 2026-11-09 with n_d\* = 9, so this
+stage's grid is n = 8, 9 and 10 (decision 8). n = 9 has run since 02:43 and n = 10 since
+06:02. n = 8, submitted at 06:06, waits in the queue. n = 11, queued at 02:50 while Stage
+1c's n = 10 led, was cancelled at 07:29, before it started.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -30,7 +28,7 @@ Pending.
 | Code and configs | Commit **`a8553b7e`** on branch `stage1c2c_lem`, the same as Stage 1c: `683c316b`'s code plus the config commit that moves both stages to LEM (`ame_main`'s `acb68ff5`, cherry-picked), submitted from `~/code/nano-stage1c2c` ([stage_1c_report.md](stage_1c_report.md), decision 7). Since Stage 2b's `89975bbf`, AME gained the bank-gates option (`157c3122`), off by default: with `bank_gate: none` the layer computes what it did in Stage 2b (only the q/k reshape moved after the gather) and draws nothing more from the RNG. The trainer gained readouts only (`train/clip_factor`, `train/grad_norm/banks`) and opt-in token counts, which are off; the clip itself is unchanged |
 | Config | [configs/stage_2c/ame_h20_pe_shift.yaml](../../configs/stage_2c/ame_h20_pe_shift.yaml), `learning_rate: null`, set per run as `trainer.learning_rate=<n>`. One submit is one run |
 | Cluster, recipe | Stage 1c's: LEM since 18:16 on 2026-11-08, one node of 4 H100 per run with r16-11 excluded, FSDP2 with `reshard_after_forward: false`, bf16 from FSDP2's mixed precision, micro-batch 16 × 8 per GPU, 15,259 steps = 16.00B tokens, warmup 152, seed 123, 24 h limit. The banks are column-sharded over the 4 GPUs (`mem_parallel_size: 4`) |
-| Learning rate | n = 9 alongside Stage 1c; then n_d\* − 1, n_d\* and n_d\* + 1 around Stage 1c's best n, extended past an edge if needed |
+| Learning rate | n = 9 alongside Stage 1c; then n_d\* − 1, n_d\* and n_d\* + 1 around Stage 1c's best n, extended past an edge if needed. Stage 1c gave n_d\* = 9, so n = 8, 9 and 10 |
 | W&B | `ideas_cv/nano-ame`, runs `s2c_ps_h20_lr<n>.0`, tag `stage_2c` |
 
 **Model**, built on the meta device ([stage_1c_report.md](stage_1c_report.md), pre-flight):
@@ -66,7 +64,7 @@ attention entropy and top-8 mass are left out, as the plan says.
 | 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | `yss8c50l` | r16-15 | 18:23 | 18:23 | 18:34 | completed | 7.3535 (60 steps) |
 | 6275194 | **S2c-PS** | 9 | `g3gw9wru` | r18-9 | 18:35 | 11-09 02:43:01 | | running | |
 | 6277615 | **S2c-PS** | 10 | `5xclzzfy` | r10-11 | 20:23 | 11-09 06:02:52 | | running | |
-| 6282280 | **S2c-PS** | 11 | | | 11-09 02:50 | | | pending | |
+| 6282280 | **S2c-PS** | 11 | — | — | 11-09 02:50 | never | 11-09 07:29 | cancelled, never started (decision 8) | — |
 | 6284092 | **S2c-PS** | 8 | | | 11-09 06:06 | | | pending | |
 
 ## Smoke run
@@ -200,6 +198,18 @@ r16-15 (W&B `yss8c50l`):
      snapshot `8c39f4e`. Its `src` and `configs` trees are `a8553b7e`'s, its config differs
      from n = 10's only in `learning_rate`, its `exp.job` not at all, and its snapshot
      holds only `config_0.yaml`.
+8. **The grid is n = 8, 9 and 10 (07:29 on 2026-11-09).** Stage 1c's n = 10 finished at
+   07:24 with `final_ce` 2.5098, above n = 9's 2.5059, so n_d\* = 9
+   ([stage_1c_report.md](stage_1c_report.md), decision 14).
+   - **n = 11, job 6282280, was cancelled at 07:29, before it started**, as decision 7 set
+     out. It is outside the grid, and would be needed only if AME's best landed on n = 10,
+     the grid's edge.
+   - **n = 8, job 6284092, stays queued**, since it is now in the grid. Slurm forecasts its
+     start at 13:15.
+   - **All three runs use the same code**, from the worktree at `a8553b7e` (decisions 4, 6
+     and 7).
+   - **Next: the edge rule.** If n = 10 ends best, n = 11 is added; if n = 8 does, n = 7.
+     As in Stage 1c, each extension starts early, once the edge leads mid-run.
 
 ## For Maciej
 
