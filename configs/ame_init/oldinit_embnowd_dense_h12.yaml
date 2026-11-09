@@ -1,0 +1,89 @@
+# AME init follow-up (documents/notes/ame_init_embed_ablation.md), step 1's extra
+# arm, run oldinit_embnowd_dense_h12: S1-D, the dense h12 baseline (GQA with RoPE,
+# no KV shift), 4B tokens, n = 8, under the OLD init everywhere (stage 1-2's) with
+# one change from the reference x0xlqroj: the embedding is not decayed. On this
+# branch that is the default (TransformerEmbedding.no_weight_decay_parameters); on
+# ame_main, where x0xlqroj ran, the embedding was decayed at 0.1.
+#
+# A copy of oldemb_dense_h12.yaml (dense_h12.yaml with the old embedding draw) with
+# the old init also restored for the Linears and the head (the model: block below),
+# and the names changed. Reference: x0xlqroj (old init, embedding decayed, n = 8),
+# final_ce 2.9824. Node r16-11 is excluded at submit with
+# +infrastructure.slurm.exclude=r16-11.
+defaults:
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128; kept equal to the AME arms
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # The arm: dense attention with RoPE (base 10000), the h_balanced default.
+  attention:
+    type: gqa
+
+model:
+  # The old init, as ame_main's configs/_model/h_balanced/base.yaml, restored key by
+  # key over this branch's defaults. Only the embedding's decay differs from it.
+  embedding:
+    init_fn: # N(0, 1), cut at +-2 (std 0.88)
+      _target_: src.core.model.trunc_normal_
+      _partial_: true
+  encoder:
+    block_fn:
+      attention_fn:
+        init_scale: 1 # std 1 / sqrt(fan_in), cut at +-2 std
+      ff_layer_fn:
+        ff_pre_act_fn: # gate_fn interpolates this one, so it follows
+          partial_init_fn:
+            scale: 1
+        ff_post_act_fn:
+          partial_init_fn:
+            scale: 1
+  head:
+    linear_fn:
+      partial_init_fn:
+        _target_: src.core.model.llm_random_weight_init
+        _partial_: true
+        scale: 1
+
+compile_blocks_full: true
+
+trainer:
+  # As S1-D: micro-batch 32 x 16, FSDP2 off, autocast bf16.
+  gradient_accumulation_steps: 16 # micro-batch 32
+  mem_parallel_size: null # dense attention has no banks
+  distributed: null
+  autocast_bf16: true # bf16 now comes from autocast instead of FSDP2
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (on this branch, not on the token embedding);
+  #   - cosine schedule, warmup 1% = 38 steps, final LR 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 8 # n = 8, LR = 2^-8, as x0xlqroj
+  checkpoint:
+    save:
+      # Only the final checkpoint is written (interval -1). It lands in the
+      # job's cemetery clone, under checkpoint/<job id>/0/, at ~2 GB.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: ame_init_oldinit_embnowd_dense_h12
+    time: "0-05:00:00"
+  metric_logger:
+    project_name: nano-ame
+    name: ame_init_oldinit_embnowd_dense_h12
+    tags:
+      - dense
+      - h12
+      - ame_init
+      - ame_init_oldinit_embnowd
+      - ame_init_oldinit_embnowd_dense_h12
