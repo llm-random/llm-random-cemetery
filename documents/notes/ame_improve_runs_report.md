@@ -11,6 +11,37 @@ the KV shift). The point of the test is `trainer.bank_lr_ratio: 4.0`, which trai
 banks at 4× the learning rate for the whole schedule. Each run is compared with the same
 recipe at ratio 1. Maciej set the task by `/goal` on 2026-11-07. Times are CET.
 
+## All runs
+
+This task submitted two runs, and both completed on the first try. Nothing else went to a
+cluster: there was no smoke run, rerun or dense run. The first h12 submit (23:07) failed on
+the laptop before anything was pushed or queued (decision 1). The only other thing run was
+the local pytest of that fix. W&B project: `ideas_cv/nano-ame`.
+
+**Submitted in this task** (LEM, 1 H100 each):
+
+| Run | W&B | Job, node | Config | Size, tokens, steps | LR | Ran | `final_ce` | Δ vs ratio 1 | Paired gap, last 500 steps |
+|---|---|---|---|---|---|---|---:|---:|---:|
+| `ai_h12_ps_bank4_lr8` | [`y5ogvt3k`](https://wandb.ai/ideas_cv/nano-ame/runs/y5ogvt3k) | 6264870, r12-11 | [ame_h12_ps_bank4.yaml](../../configs/ame_improve/ame_h12_ps_bank4.yaml) | h12, 4B, 3,812 | n = 8, banks 2⁻⁶ | 11-07 23:11 to 11-08 03:23 (4 h 12 min) | 3.0938 | −0.031 | −0.034 |
+| `ai_h16_ps_bank4_lr8` | [`hn1qal9z`](https://wandb.ai/ideas_cv/nano-ame/runs/hn1qal9z) | 6264872, r16-3 | [ame_h16_ps_bank4.yaml](../../configs/ame_improve/ame_h16_ps_bank4.yaml) | h16, 8B, 7,625 | n = 8, banks 2⁻⁶ | 11-07 23:11 to 11-08 14:10 (14 h 59 min) | 2.8311 | −0.028 | −0.033 |
+
+**Compared with (existing runs, not run in this task):**
+
+| Role | Run | W&B | Job | Size, tokens, steps | LR | `final_ce` | Source |
+|---|---|---|---|---|---|---:|---|
+| h12, ratio 1 | `s2_ps_h12_lr8.0` | [`doi36p8k`](https://wandb.ai/ideas_cv/nano-ame/runs/doi36p8k) | 6256577 | h12, 4B, 3,815 | n = 8, banks 2⁻⁸ | 3.1250 | Stage 2, S2-PS |
+| h16, ratio 1 | `s2b_ps_h16_lr8.0` | [`hjw7znbz`](https://wandb.ai/ideas_cv/nano-ame/runs/hjw7znbz) | 6260570 | h16, 8B, 7,630 | n = 8, banks 2⁻⁸ | 2.8594 | Stage 2b, S2b-PS |
+| h12, dense | `s1_d_h12_lr8` | [`x0xlqroj`](https://wandb.ai/ideas_cv/nano-ame/runs/x0xlqroj) | 6252398_0 | h12, 4B, 3,815 | n = 8, the best of n = 7–9 | 2.9824 | [Stage 1](stage_1_report.md), S1-D |
+| h16, dense | `s1b_d_h16_lr9` | [`eh2sjsh7`](https://wandb.ai/ideas_cv/nano-ame/runs/eh2sjsh7) | 6253313_0 | h16, 8B, 7,630 | n = 9, the best of n = 9–11; n = 8 not run | 2.7441 | [Stage 1b](stage_1b_report.md), S1b-D |
+
+- **One recipe for all four AME runs**: ALiBi, the KV shift and seed 123.
+- **Bank init**: every AME run uses the code default, N(0, 1) per element (`bank_init_std`
+  1.0). No config sets it, so the σ = 0.01 init from the bank-gates study was not used.
+- **What differs from the ratio-1 runs**: `bank_lr_ratio` (the baselines predate the key, so
+  they run at 1) and 3 and 5 fewer steps.
+- **No dense rerun**: `bank_lr_ratio` acts only on AME's banks, and a dense model has none,
+  so a dense rerun would repeat the existing run.
+
 ## Setup
 
 | | |
