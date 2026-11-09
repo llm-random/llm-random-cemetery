@@ -157,8 +157,14 @@ change; two run configs:
 
 ### Runs
 
+Step 1 was submitted from `~/code/nano-ame-init` at `7a060dd1` (configs plus this
+doc), with the plan's command, one `run_exp.py` after the other. Each clone is under
+`/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
+
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
+| `oldemb_ame_h12` | 6287404 | `ame_init_oldemb_ame_h12_2026-11-09_12-14-39` | | | 11-09 12:14 | | PENDING |
+| `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | | | 11-09 12:15 | | PENDING |
 
 ### Checks
 
