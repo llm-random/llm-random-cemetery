@@ -414,6 +414,30 @@ tie, on the behind side: final_ce 3.1504 against 3.1250.**
     update of 34, 14:1. The reference has 10.7 against 4.1.
   - The stream into block 11 is now smaller than the reference's: 242 against 315.
 
+**`dense_h16`, mid-run check, 11-09 02:18 (step 3,805 of 7,630). Recovering, far
+faster than `dense_h12`, but still +0.25.**
+
+| Steps | 0-499 | 500-999 | 1,000-1,499 | 1,500-1,999 | 2,000-2,499 | 2,500-2,999 | 3,000-3,499 | 3,500-3,808 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Paired gap | +1.46 | +1.17 | +0.67 | +0.46 | +0.36 | +0.30 | +0.27 | +0.25 |
+
+- The gap has shrunk in every window since its +1.69 peak at step 300. The
+  shrinking slows: by 0.49 from the 500-999 window to the next, and now by 0.03
+  per 500 steps. The last 500 logged steps average +0.252. Eval loss at step 3,800
+  is 3.109 against 2.875 (+0.234).
+- **`dense_h12` at the same steps (3,500-3,814) was still +1.26.** Its LR was
+  twice this run's (n = 8 against 9), a plausible reason, but these two runs can't
+  separate LR from model size.
+- **Health:** no NaN, and no spike after step 100 in either run.
+  - Grad-norm max after step 100: 1.42 at step 488 (reference 0.89 at step 102).
+  - 5.960 s/step against 5.964.
+- **Block norms:**
+  - The stream shrinks toward the reference's. Into block 11 it is 2,411 at step
+    500, 1,460 at step 1,000, 560 at step 2,000 and 221 at step 3,800, against 191,
+    175, 151 and 120.
+  - Block 0 still drowns the embedding at step 3,800: 2.05 against an attention
+    update of 73.5, 36:1. The reference has 15.1 against 0.97.
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
