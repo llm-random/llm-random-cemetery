@@ -4,9 +4,11 @@
 at 18:16, at Maciej's instruction; no Helios job had started
 ([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
 every check (18:23–18:34). Stage 1c finished at 07:24 on 2026-11-09 with n_d\* = 9, so this
-stage's grid is n = 8, 9 and 10 (decision 8). n = 9 has run since 02:43 and n = 10 since
-06:02. n = 8, submitted at 06:06, waits in the queue. n = 11, queued at 02:50 while Stage
-1c's n = 10 led, was cancelled at 07:29, before it started.**
+stage's grid is n = 8, 9 and 10 (decision 8). All three are training: n = 9 since 02:43,
+n = 10 since 06:02 and n = 8 since 08:37. n = 7, the extension if n = 8 ends best, has
+waited in the queue since 08:50; it starts only if n = 8 keeps pace with n = 9
+(decision 9). n = 11, queued at 02:50 while Stage 1c's n = 10 led, was cancelled at 07:29,
+before it started.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -65,7 +67,8 @@ attention entropy and top-8 mass are left out, as the plan says.
 | 6275194 | **S2c-PS** | 9 | `g3gw9wru` | r18-9 | 18:35 | 11-09 02:43:01 | | running | |
 | 6277615 | **S2c-PS** | 10 | `5xclzzfy` | r10-11 | 20:23 | 11-09 06:02:52 | | running | |
 | 6282280 | **S2c-PS** | 11 | — | — | 11-09 02:50 | never | 11-09 07:29 | cancelled, never started (decision 8) | — |
-| 6284092 | **S2c-PS** | 8 | | | 11-09 06:06 | | | pending | |
+| 6284092 | **S2c-PS** | 8 | `tg4h4g66` | r14-12 | 11-09 06:06 | 11-09 08:36:55 | | running | |
+| 6285238 | **S2c-PS** | 7 | | | 11-09 08:50 | | | pending (decision 9) | |
 
 ## Smoke run
 
@@ -102,6 +105,38 @@ r16-15 (W&B `yss8c50l`):
   - 152 evals × about 18 s = 0.75 h;
   - about 6 min to start, then `final_ce` and the checkpoint.
 - The checkpoint was deleted at 18:35:05.
+
+## Progress
+
+**08:50: n = 8 has started, and n = 10 trails n = 9 by 0.063 at 19% of the run.** The table
+shows train-loss means over 200-step windows at matched steps. All the runs see the same
+data in the same order, so the gaps are paired.
+
+| Steps | n = 9 | n = 10 | n = 10 − n = 9 |
+|---|---:|---:|---:|
+| 200–399 | 4.7528 | 5.3213 | +0.5685 |
+| 1,000–1,199 | 3.5035 | 3.6130 | +0.1095 |
+| 1,400–1,599 | 3.3592 | 3.4480 | +0.0888 |
+| 1,800–1,999 | 3.2679 | 3.3456 | +0.0777 |
+| 2,200–2,399 | 3.2052 | 3.2777 | +0.0725 |
+| 2,600–2,799 | 3.1580 | 3.2231 | +0.0651 |
+| 2,800–2,999 | 3.1384 | 3.2017 | +0.0633 |
+
+- **n = 10 trails in every window**, by less each time, but more slowly: the gap fell by
+  0.014 over the last 1,000 steps. Its 10-batch eval loss at step 3,000 is 3.0156,
+  against n = 9's 2.9531.
+- **h16 says the gap will not close.** There S2b-PS's n = 10 trailed n = 9 by 0.070 at 19%
+  of the run and by 0.065–0.068 at 42–68%, and ended 0.072 behind (`final_ce` 2.9688
+  against 2.8965). So n = 10 should not end best, and n = 11 is not queued.
+- **n = 10 spiked once, in warmup**: steps 130–157, to 8.69 from a running median of 5.62.
+  n = 9 has no spike in 6,900 steps.
+- **n = 8 started at 08:36:55 on r14-12** (W&B `tg4h4g66`) and trains at 2.99 s/step, as
+  the other two do.
+  - It has no spike through step 175, past the 152-step warmup. Stage 1c's dense n = 8
+    spiked inside its warmup and then stalled.
+  - Its 50-step means, 7.66 and 6.42 over steps 0–99, sit with n = 9's 7.73 and 6.35.
+- **Expected ends**, at the 3.14 s/step mean the runs show with evals: n = 9 at about
+  16:10, n = 10 at about 19:30 and n = 8 at about 22:05.
 
 ## Decisions
 
@@ -210,6 +245,35 @@ r16-15 (W&B `yss8c50l`):
      and 7).
    - **Next: the edge rule.** If n = 10 ends best, n = 11 is added; if n = 8 does, n = 7.
      As in Stage 1c, each extension starts early, once the edge leads mid-run.
+9. **S2c-PS at n = 7 was queued at 08:50 on 2026-11-09, as job 6285238, ahead of the
+   evidence.**
+   - **n = 8, the grid's lower edge, may well end best.** S2-PS and S2b-PS were both best at
+     n = 8, at h12 and h16. At h16 n = 8 beat n = 9 by 0.037. If n = 8 ends best here, the
+     plan adds n = 7.
+   - **The evidence comes late.** At h16, n = 8 trailed n = 9 by 0.035 at steps 800–999,
+     11–13% of the run. It drew level by steps 1,400–1,599, 18–21% (+0.001), and led from
+     steps 2,000–2,199, 26%, by more each window, to 0.037 at the end. A higher learning
+     rate gains as the LR decays, as in Stage 1c. Here 26% is step 3,970, about 12:10.
+   - **Queuing now is free and keeps its place**, as in decisions 6 and 7. A pending job is
+     cancelled at no cost, and the wait is long: n = 8 waited 2.5 h for a node, and Stage
+     1c's n = 11, queued at 00:34, reached the head of the queue only by 07:28.
+   - **Holding it would not keep its place.** LEM sets no `ACCRUE_ALWAYS` priority flag, so
+     a held job stops gaining age priority.
+   - **The rule.** n = 8 and n = 9 are compared at matched steps when n = 7 starts, and at
+     each check after.
+     - n = 7 runs, the plan's early start for an edge, if n = 8 leads n = 9. It also runs
+       if n = 8 is level with n = 9, within 0.01 and closing, as at h16 at 19%.
+     - Otherwise n = 7 is cancelled at once. If it is still pending, that costs nothing;
+       if it has just started, it costs under 1 GPU-h. It is resubmitted once n = 8 leads.
+     - n = 7 is also cancelled if n = 8 stalls, as Stage 1c's dense n = 8 did. The same
+       holds if, past 20% of its run, n = 8 trails n = 9 by more than 0.04 and the gap is
+       not closing. 0.04 is h16's late swing.
+   - **It runs on the same code.** Its clone is `s2c_ps_h20_lr7.0_2026-11-09_08-50-16`,
+     snapshot `a7774a4`. Its `src` and `configs` trees are `a8553b7e`'s, its config
+     differs from n = 8's only in `learning_rate`, its `exp.job` not at all, and its
+     snapshot holds only `config_0.yaml`.
+   - **Cost if it runs:** about 58 GPU-h, the plan's estimate for an extension. LEM's grant
+     has used 28,481 of its 100,000 GPU-h.
 
 ## For Maciej
 
