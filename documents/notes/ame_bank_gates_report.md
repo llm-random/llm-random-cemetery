@@ -17,6 +17,34 @@ running.**
 The plan is [ame_bank_gates_plan.md](ame_bank_gates_plan.md). This file is its record:
 every job, check, result and decision, each with its reason. Times are CET.
 
+## All runs, stages 1 and 2
+
+Twelve runs, all in the W&B project **`ideas_cv/nano-ame`**, all on LEM with one H100
+each, and all finished.
+- Score is the common evaluator's `ame_ref32` on the held-out set; lower is better.
+- σ is the banks' starting spread. Production uses σ = 1.
+- The references are production runs, not part of this task: `doi36p8k` for h12
+  (3.125227) and `hjw7znbz` for h16 (2.860982).
+- The local CPU smoke runs logged to stdout, and the scoring jobs do not log to W&B.
+
+| Stage | W&B name | ID | Setup | Slurm job | Runtime (W&B) | `ame_ref32` | vs reference |
+|---|---|---|---|---|---:|---:|---:|
+| 1, h12 (4B tokens) | `bank_gates_b1` | `621sjn71` | B1 confidence gate, σ = 0.01 | 6264723_0 | 4.35 h | 3.141958 | +0.0167 |
+| | `bank_gates_b2` | `kgk0prvf` | B2 context gate, σ = 0.01 | 6264725_0 | 4.30 h | 3.035505 | −0.0897 |
+| | `bank_gates_b3` | `5w6p64bv` | B3 backoff gate, σ = 0.01 | 6264726_0 | 4.23 h | 3.035837 | −0.0894 |
+| | `bank_gates_stem` | `l54pyyqp` | ST stem gate, σ = 0.01 | 6264733_0 | 4.35 h | 3.019112 | −0.1061 |
+| 1, h16 (8B tokens) | `bank_gates_h16_b1` | `h85djd57` | B1, σ = 0.01 | 6264776_0 | 15.48 h | 2.845979 | −0.0150 |
+| | `bank_gates_h16_b2` | `jwirkswo` | B2, σ = 0.01 | 6264777_0 | 15.17 h | 2.818295 | −0.0427 |
+| | `bank_gates_h16_b3` | `3yc7haqu` | B3, σ = 0.01 | 6264778_0 | 15.04 h | 2.811172 | −0.0498 |
+| | `bank_gates_h16_stem` | `ug8g2i2x` | ST, σ = 0.01 | 6264779_0 | 15.57 h | 2.753039 | −0.1079 |
+| 2, h12 (4B tokens) | `bank_gates_stage2_none_std001` | `kf4q4t4s` | no gate, σ = 0.01 | 6272065_0 | 4.28 h | **3.035771** | −0.0895 |
+| | `bank_gates_stage2_b1_std1` | `1dmp8l8w` | B1, σ = 1 | 6272075_0 | 4.43 h | 3.211324 | +0.0861 |
+| | `bank_gates_stage2_b3_std1` | `5hzd2fte` | B3, σ = 1 | 6272076_0 | 4.30 h | 3.117312 | −0.0079 |
+| | `bank_gates_stage2_b1open_std001` | `jc9flzsz` | B1 with trust starting at 0.95, σ = 0.01 | 6272078_0 | 4.40 h | 3.107609 | −0.0176 |
+
+Each run's cemetery clone is `<W&B name>_<timestamp>`. Stage 2's record is
+[ame_bank_gates_stage2_report.md](ame_bank_gates_stage2_report.md).
+
 ## Setup
 
 | | |

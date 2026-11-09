@@ -14,7 +14,9 @@
 
 The plan is [ame_bank_gates_stage2_plan.md](ame_bank_gates_stage2_plan.md). This file is
 its record: every job, check, result and decision, each with its reason. Times are CET.
-Stage 1: [plan](ame_bank_gates_plan.md), [report](ame_bank_gates_report.md).
+Stage 1: [plan](ame_bank_gates_plan.md), [report](ame_bank_gates_report.md). All twelve
+W&B runs of both stages are listed in
+[stage 1's report](ame_bank_gates_report.md#all-runs-stages-1-and-2).
 
 ## Setup
 
