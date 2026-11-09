@@ -438,6 +438,43 @@ faster than `dense_h12`, but still +0.25.**
   - Block 0 still drowns the embedding at step 3,800: 2.05 against an attention
     update of 73.5, 36:1. The reference has 15.1 against 0.97.
 
+**`ame_h16`, mid-run check, 11-09 03:11 (step 3,815 of 7,630). A loss spike at steps
+788-834 that the reference never had; recovered, now +0.039.**
+
+| Steps | 0-99 | 100-499 | 500-699 | 700-787 | 788-834 | 835-999 | 1,000-1,499 | 1,500-1,999 | 2,000-2,499 | 2,500-2,999 | 3,000-3,499 | 3,500-3,815 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| Paired gap | +0.052 | −0.106 | +0.048 | +0.046 | +1.786 | +0.542 | +0.176 | +0.119 | +0.083 | +0.060 | +0.047 | +0.039 |
+
+- **The spike:** from 3.84 at step 785, the loss climbs to 9.69 at step 815
+  (21:18), near ln V. All 44 spike steps fall in 788-834. The grad norm goes from
+  about 0.1 to 3.04 at step 807, and the reference's stays at 0.06-0.13 over the
+  same steps.
+  - It fell between the step-500 check and this one. The watchers stop only on NaN,
+    so nothing flagged it at the time; no action would have followed anyway, since
+    the run recovered on its own.
+- **Recovery:** 5.75 at step 830 and 4.19 at step 900. The paired gap returns to
+  its pre-spike level (+0.046 over steps 700-787) from step 3,231 on. So the spike
+  cost the run about 2,400 steps, and it now sits where it was before.
+- **What blew up, from the block norms** (logged every 100 steps):
+
+  | | Step 700 | Step 800 | Step 900 | Step 3,800 | Reference, step 3,800 |
+  |---|---:|---:|---:|---:|---:|
+  | Embedding (block 0's residual) | 1.27 | 1.35 | 1.85 | 2.75 | 8.49 |
+  | Block 0 attention update | 278 | 306 | 4,273 | 73 | 4.6 |
+  | Stream into block 15 | 1,662 | 1,891 | 7,159 | | |
+  | Stream into block 11 | 1,079 | 1,250 | 5,193 | 354 | 438 |
+
+  - Before the spike the stream was already growing, with the embedding drowned
+    about 230:1. Over steps 800-900 block 0's attention update grows 14-fold and
+    the whole stream about 4-fold.
+  - This is the instability the plan watched for: a small embedding (Takase et al.).
+    `ame_h12` and both dense runs had none like it.
+  - By step 3,800 the stream into block 11 is smaller than the reference's (354
+    against 438). Block 0 still drowns the embedding 26:1, against 0.5:1 in the
+    reference.
+- **Other health:** no NaN, and no spike outside 788-834. 6.792 s/step against
+  6.810. Eval loss at step 3,800 is 3.094 against 3.031 (+0.063).
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
