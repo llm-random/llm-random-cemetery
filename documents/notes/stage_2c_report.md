@@ -3,12 +3,12 @@
 **Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM with Stage 1c
 at 18:16, at Maciej's instruction; no Helios job had started
 ([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
-every check (18:23–18:34). S2c-PS at n = 9 was submitted at 18:35 as job 6275194 and has
-run since 02:43 on 2026-11-09, at 2.97–2.98 s/step. n = 10 was submitted at 20:23 as job
-6277615 (decision 4) and is first in the partition's queue. The third run is n = 11 if
-Stage 1c's best n is 10, and n = 8 if it is 9. At 02:50 Stage 1c's n = 10 still led n = 9,
-by 0.010 at 58% of its run, so n = 11 was queued then, as job 6282280. If Stage 1c's n = 9
-ends best instead, n = 11 is cancelled and n = 8 submitted (decision 6).**
+every check (18:23–18:34). S2c-PS at n = 9 has run since 02:43 on 2026-11-09, at
+2.97–2.98 s/step, and n = 10 since 06:02 (decision 4). The third run is n = 11 if Stage 1c's
+best n is 10, and n = 8 if it is 9. n = 11 was queued at 02:50, while Stage 1c's n = 10 led
+(decision 6). By 06:05 that lead had vanished, so n = 8 was queued too, at 06:06 (decision
+7). Stage 1c's n = 10 finishes at about 07:25. If its `final_ce` is above n = 9's, n = 11
+is cancelled while still pending.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -65,8 +65,9 @@ attention entropy and top-8 mass are left out, as the plan says.
 | 25862255 | Helios **S2c-PS** | 9 | — | — | 01:15 | never | 18:16 | cancelled, never started | — |
 | 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | `yss8c50l` | r16-15 | 18:23 | 18:23 | 18:34 | completed | 7.3535 (60 steps) |
 | 6275194 | **S2c-PS** | 9 | `g3gw9wru` | r18-9 | 18:35 | 11-09 02:43:01 | | running | |
-| 6277615 | **S2c-PS** | 10 | | | 20:23 | | | pending | |
+| 6277615 | **S2c-PS** | 10 | `5xclzzfy` | r10-11 | 20:23 | 11-09 06:02:52 | | running | |
 | 6282280 | **S2c-PS** | 11 | | | 11-09 02:50 | | | pending | |
+| 6284092 | **S2c-PS** | 8 | | | 11-09 06:06 | | | pending | |
 
 ## Smoke run
 
@@ -179,6 +180,26 @@ r16-15 (W&B `yss8c50l`):
        all;
      - its snapshot holds only `config_0.yaml`, since the submit now clears the directory
        first.
+7. **S2c-PS at n = 8 was queued at 06:06 on 2026-11-09, as job 6284092.**
+   - **Stage 1c's n = 10 lost its lead as the LR decayed.** It fell from 0.010 at 57% of
+     its run to nothing at 83%, and at 86–87% n = 9 led by 0.0002–0.0004
+     ([stage_1c_report.md](stage_1c_report.md), Progress, 06:05). So n = 9 may end best,
+     and then this stage's grid is 8, 9 and 10.
+   - **n = 8 is likely needed either way.** If Stage 1c's n = 10 ends best, n = 8 is the
+     edge extension should AME's best land on n = 9. At h16, AME's best n was one below
+     dense's ([stage_2b_report.md](stage_2b_report.md)).
+   - **Queuing now is free and keeps its place**, as in decision 6. It ranks behind Stage
+     1c's n = 11, this stage's n = 11 and about 150 tasks of other users.
+   - **At Stage 1c's n = 10 finish, about 07:25:**
+     - if n = 9 has the lower `final_ce`, n = 11 (6282280) is cancelled while pending and
+       n = 8 stays;
+     - if n = 10 has, n = 11 stays. n = 8 then stays queued while AME's n = 9 leads its
+       n = 10 mid-run, the plan's early start for an edge, and is cancelled while pending
+       once AME's n = 10 leads clearly.
+   - **It runs on the same code.** Its clone is `s2c_ps_h20_lr8.0_2026-11-09_06-05-44`,
+     snapshot `8c39f4e`. Its `src` and `configs` trees are `a8553b7e`'s, its config differs
+     from n = 10's only in `learning_rate`, its `exp.job` not at all, and its snapshot
+     holds only `config_0.yaml`.
 
 ## For Maciej
 
