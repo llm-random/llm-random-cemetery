@@ -227,6 +227,27 @@ same way at `e5fe9561`. Each clone is under
       10-17);
     - against the Xavier-embedding run `355fr6rn`: 0.28 ahead by step 25. That run
       sits near 7.7 from step 15, while this one keeps falling.
+- **`oldemb_dense_h12`, step 500, 11-09 17:45:**
+  - **Health:** no NaN and no spikes; the reference spiked over steps 194-203. The
+    grad-norm max after step 100 is 0.77, at step 197 (the reference's: 2.58).
+    3.278 s/step.
+  - **Paired gap against the reference: +0.79** over steps 4-503. It widens from
+    +0.46 (steps 0-99) to +0.91-0.96 (steps 300-512). Eval loss at step 500: 5.06
+    against 4.13 (+0.94).
+  - **Against the Xavier-embedding run `355fr6rn`: −0.64** over steps 10-509.
+  - **Block 0's attention output against the embedding:**
+
+    | Run | Step 100 | Step 500 |
+    |---|---:|---:|
+    | `oldemb_dense_h12` | 8.7× | 3.2× |
+    | `x0xlqroj`, the reference | 0.25× | 0.29× |
+    | `355fr6rn`, Xavier embedding | 1,750× | 1,220× |
+
+    The old draw relieves most of the drowning, not all of it. The residual stream
+    entering block 5 is 14× the reference's at step 100 (25,900 against 1,820).
+  - **Provisional read:** for dense, the old embedding is far better than Xavier,
+    but at step 500 it is not the whole problem. The verdict waits for the end:
+    `355fr6rn`'s gap narrowed from +2.13 to +1.26 over its run.
 
 ### Results
 
