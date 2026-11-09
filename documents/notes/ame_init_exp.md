@@ -222,7 +222,7 @@ so the final checkpoints (about 23 GB for `ame_h16`) fit.
 | `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | `ycwqa7k9` | r14-9 | 18:56 | 11-09 00:06 | COMPLETED, exit 0, 4 h 14 min |
 | `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | `3lgj6lxg` | r18-6 | 18:51 | | RUNNING since 19:38:43 |
 | `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | `355fr6rn` | r16-1 | 18:57 | 22:40 | COMPLETED, exit 0, 3 h 42 min |
-| `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | `3vpbp9oj` | r18-13 | 18:52 | | RUNNING since 19:40:45 |
+| `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | `3vpbp9oj` | r18-13 | 18:52 | 11-09 08:56 | COMPLETED, exit 0, 13 h 15 min |
 
 ### Checks
 
@@ -475,6 +475,25 @@ faster than `dense_h12`, but still +0.25.**
 - **Other health:** no NaN, and no spike outside 788-834. 6.792 s/step against
   6.810. Eval loss at step 3,800 is 3.094 against 3.031 (+0.063).
 
+**`dense_h16`, end of run, 11-09 08:56 (COMPLETED, exit 0, 13 h 15 min on r18-13).
+Recovers from its stall but levels off 0.21 behind: final_ce 2.9365 against 2.7441.**
+
+| Steps | 0-999 | 1,000-1,999 | 2,000-2,999 | 3,000-3,999 | 4,000-4,999 | 5,000-5,999 | 6,000-6,999 | 7,000-7,629 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Paired gap | +1.31 | +0.57 | +0.33 | +0.26 | +0.23 | +0.22 | +0.21 | +0.21 |
+
+- The gap stops closing at about step 5,000: from there it changes by less than
+  0.004 per 1,000 steps. The last 500 steps average +0.213. Eval loss at step
+  7,600 is 2.938 against 2.734 (+0.203).
+- **Health:** no NaN, and no spike after step 100 in either run.
+  - Grad-norm max after step 100: 1.42 at step 488 (reference 0.89 at step 102).
+  - 5.966 s/step against 5.964. Peak memory 37.75 GiB, the same as the reference.
+- **Checkpoint:** the step-7,629 model and training state, 4.0 GB, in the clone's
+  `checkpoint/6275560/0/step_7629/`.
+- **Block norms, step 7,600:** the stream into block 11 is 109 against 80. Block 0
+  still drowns the embedding: 2.1 against an attention update of 30, 15:1. The
+  reference has 12.2 against 0.75.
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
@@ -482,7 +501,7 @@ faster than `dense_h12`, but still +0.25.**
 | `ame_h12` | 3.1504 | 3.1250 | +0.025 | +0.014 | **Tie** (inside ±0.022), on the behind side. Behind in every 500-step window; the gap narrows to about +0.013 by step 2,500 and holds there. |
 | `ame_h16` | | 2.8594 | | | |
 | `dense_h12` | 4.2188 | 2.9824 | +1.236 | +1.271 | **Much worse.** It stalls from the start; the gap peaks at +2.13 over steps 500-999 and is still +1.26 at the end. |
-| `dense_h16` | | 2.7441 | | | |
+| `dense_h16` | 2.9365 | 2.7441 | +0.192 | +0.213 | **Worse.** It stalls early like `dense_h12` (+1.69 at step 300), recovers far faster, then levels off at +0.21 from step 5,000. |
 
 AME − dense gap: h12 old 0.143, new −1.068 (3.1504 − 4.2188); h16 old 0.115, new —.
 
