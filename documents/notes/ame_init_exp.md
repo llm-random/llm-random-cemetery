@@ -1,7 +1,9 @@
 # AME init experiment: Xavier embedding, head and banks, pkmf's Linear init (plan and log)
 
 **Status:** DONE, 2026-11-09. All four runs finished; the answer is no (see Log,
-Analysis). Planned 2026-11-08 (Maciej).
+Analysis). Planned 2026-11-08 (Maciej). Follow-up, planned:
+[ame_init_embed_ablation.md](ame_init_embed_ablation.md), the new init with the old
+embedding at h12, then n ± 1.
 Background: [pkmf_init_comparison.md](pkmf_init_comparison.md) and
 [ame_implementation.md](ame_implementation.md) (weight initialization).
 
