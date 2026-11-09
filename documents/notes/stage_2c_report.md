@@ -3,14 +3,12 @@
 **Status: in progress (started 2026-11-08 00:40). Moved from Helios to LEM with Stage 1c
 at 18:16, at Maciej's instruction; no Helios job had started
 ([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
-every check (18:23–18:34). S2c-PS at n = 9 was submitted at 18:35 as job 6275194, and at
-n = 10 at 20:23 as job 6277615 (decision 4). n = 10 is in the grid whichever of 9, 10 or 11
-Stage 1c picks, now that Stage 1c's n = 8 cannot win. Both are pending. At 20:30 they were
-the only jobs in LEM's partition waiting for nodes rather than on a dependency. Slurm
-forecasts them at 2026-11-10 04:11 and 2026-11-09 18:50, assuming every running job uses
-its full time limit. The third run, n = 8 or n = 11, waits for Stage 1c's n = 9 against
-n = 10. At 00:30 on 2026-11-09, n = 10 led there by only 0.012, so it still waits
-(decision 5).**
+every check (18:23–18:34). S2c-PS at n = 9 was submitted at 18:35 as job 6275194 and has
+run since 02:43 on 2026-11-09, at 2.97–2.98 s/step. n = 10 was submitted at 20:23 as job
+6277615 (decision 4) and is first in the partition's queue. The third run is n = 11 if
+Stage 1c's best n is 10, and n = 8 if it is 9. At 02:50 Stage 1c's n = 10 still led n = 9,
+by 0.010 at 58% of its run, so n = 11 was queued then, as job 6282280. If Stage 1c's n = 9
+ends best instead, n = 11 is cancelled and n = 8 submitted (decision 6).**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -66,8 +64,9 @@ attention entropy and top-8 mass are left out, as the plan says.
 | 25862201 | Helios 4-GPU smoke: the S2c-PS file, 60 steps | 9 | — | — | 01:14 | never | 18:16 | cancelled, never started | — |
 | 25862255 | Helios **S2c-PS** | 9 | — | — | 01:15 | never | 18:16 | cancelled, never started | — |
 | 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | `yss8c50l` | r16-15 | 18:23 | 18:23 | 18:34 | completed | 7.3535 (60 steps) |
-| 6275194 | **S2c-PS** | 9 | | | 18:35 | | | pending | |
+| 6275194 | **S2c-PS** | 9 | `g3gw9wru` | r18-9 | 18:35 | 11-09 02:43:01 | | running | |
 | 6277615 | **S2c-PS** | 10 | | | 20:23 | | | pending | |
+| 6282280 | **S2c-PS** | 11 | | | 11-09 02:50 | | | pending | |
 
 ## Smoke run
 
@@ -150,6 +149,36 @@ r16-15 (W&B `yss8c50l`):
      and n = 10 finish, at about 06:00 and 07:30.
    - **The snapshots of n = 9 and 10 carry two stale grid configs**, which are never
      read ([stage_1c_report.md](stage_1c_report.md), decision 12).
+6. **S2c-PS at n = 11 was queued at 02:50 on 2026-11-09, as job 6282280, before Stage 1c's
+   best n is certain.**
+   - **Stage 1c's n = 10 is likely to end best.** At 58% of its run it leads n = 9 by
+     0.010, and it has led in every 200-step window since step 200. The lead narrows by
+     about 0.0005 per 1,000 steps, so at that pace n = 10 ends about 0.007 ahead
+     ([stage_1c_report.md](stage_1c_report.md), Progress, 02:50).
+   - **It is not certain.** At h16, late in the run, the higher-LR run of a neighbouring
+     pair gained up to 0.012 on the lower one. Here the higher-LR run is n = 9, 0.010
+     behind.
+   - **Queue position matters more than decision 5 assumed.** It expected the run to queue
+     only behind our own older jobs. In fact 146 tasks of other users, 197 GPUs in all,
+     wait between our n = 10 (priority 895) and Stage 1c's n = 11 (646). A job queued now
+     starts at 515 and gains about 59 an hour. So each hour of waiting lets the jobs
+     others queue in that hour go ahead of it.
+   - **A pending job can be cancelled at no cost.** n = 11 queues behind all of those, so
+     it should still be pending when Stage 1c's n = 9 and n = 10 finish, at about 06:05
+     and 07:25.
+   - **If Stage 1c's n = 9 ends best, n = 11 is cancelled and n = 8 submitted.** The grid
+     is then 8, 9 and 10, and n = 11 would be needed only if AME's best landed on n = 10,
+     that grid's edge. At h16, AME's best n was one below dense's
+     ([stage_2b_report.md](stage_2b_report.md)).
+   - **n = 8 may be needed even if Stage 1c's n = 10 ends best**, as the edge extension,
+     if AME's best lands on n = 9. Stage 2c's own results decide that, one run at a time.
+   - **It runs on the same code.** Its clone is `s2c_ps_h20_lr11.0_2026-11-09_02-49-43`,
+     snapshot `499879a`:
+     - its `src` and `configs` trees are those of `a8553b7e` and of n = 10's clone;
+     - its config differs from n = 10's only in `learning_rate`, and its `exp.job` not at
+       all;
+     - its snapshot holds only `config_0.yaml`, since the submit now clears the directory
+       first.
 
 ## For Maciej
 

@@ -11,8 +11,10 @@ needs no n = 7; it runs to the end for its `final_ce` (decision 10). At 22:30 n 
 n = 9 at matched steps, but by less each window (0.023 at steps 2,600–2,799), so n = 11
 was not started then (decision 11). By 00:30 the lead had stopped shrinking. It had held at
 about 0.012 for 2,000 steps, so n = 11 was submitted at 00:34 on 2026-11-09 as job 6281083
-(decision 12). Stage 2c's n = 10 run was queued at 20:23
-([stage_2c_report.md](stage_2c_report.md), decision 4).**
+(decision 12). At 02:50, at 58% of its run, n = 10 still led in every window, by 0.010; the
+lead narrows by about 0.0005 per 1,000 steps (Progress). Stage 2c's n = 9 has run since
+02:43, and its n = 10 and n = 11 wait in the queue
+([stage_2c_report.md](stage_2c_report.md), decisions 4 and 6).**
 
 The plan is [ame_experiments.md, "Stage 1c — dense h20 at 16B tokens, on 4 GPUs"](ame_experiments.md#stage-1c--dense-h20-at-16b-tokens-on-4-gpus),
 with its section "Helios — what Stages 1c and 2c need first", whose fallback, LEM, the
@@ -312,6 +314,34 @@ over 200-step windows at matched steps.
 
 - n = 8's train loss keeps falling: 4.06 at steps 5,400–5,599.
 
+**02:50: n = 10 still leads n = 9 in every window, by 0.010 at 58% of its run.** The table
+shows train-loss means over 200-step windows at matched steps.
+
+| Steps | n = 8 | n = 9 | n = 10 | n = 10 − n = 9 |
+|---|---:|---:|---:|---:|
+| 5,400–5,599 | 4.0561 | 2.9043 | 2.8926 | −0.0117 |
+| 6,000–6,199 | 3.8748 | 2.8790 | 2.8675 | −0.0115 |
+| 6,600–6,799 | 3.6848 | 2.8556 | 2.8436 | −0.0120 |
+| 7,200–7,399 | 3.5177 | 2.8354 | 2.8237 | −0.0117 |
+| 7,800–7,999 | 3.4083 | 2.8159 | 2.8057 | −0.0102 |
+| 8,200–8,399 | 3.3546 | 2.8015 | 2.7912 | −0.0103 |
+| 8,600–8,799 | 3.3112 | 2.7913 | 2.7812 | −0.0101 |
+
+- **The lead narrows slowly.** Its mean is 0.0127 over the ten windows at steps
+  3,600–5,599, 0.0117 at 5,600–7,599 and 0.0109 at 7,600–8,799. A line fitted to the 26
+  windows since step 3,600 loses 0.0005 per 1,000 steps and ends at 0.007.
+- **That is not yet certain.** The LR is still decaying, to 10% of its peak at the end, and
+  the pace may change with it. At h16, between 63% and 97% of the run, the higher-LR run of
+  each neighbouring pair gained 0.002 and 0.012 on the lower one (the 00:30 table). The
+  higher-LR run here is n = 9, 0.010 behind.
+- **The evals agree, at their resolution.** At steps 8,600–8,800 n = 10 reads 2.6094 and
+  n = 9 2.6250, one bf16 step apart; at 8,300–8,500 both read 2.6250.
+- **No new spikes.** The last in any of the three runs is n = 10's, at steps 452–458.
+- **n = 8 keeps learning:** 3.31 at steps 8,600–8,799, 0.52 behind n = 9, and 3.11 at the
+  step-8,800 eval.
+- **Expected finishes**, at each run's pace so far of about 2.62 s/step with evals: n = 8
+  and n = 9 at about 06:00–06:05, n = 10 at about 07:25.
+
 ## Decisions
 
 1. **Stage 0's faster code is not used.** The plan says Stage 0's later code (about 12%
@@ -467,5 +497,4 @@ over 200-step windows at matched steps.
 
 - **n = 8 got stuck and runs to the end (decision 10)**, because the plan's record asks
   for its `final_ce`. It has been learning again since step ~2,000 and should finish at
-  about 06:00. If you would rather have its node now, cancelling job 6275160_0 would
-  probably start Stage 2c's n = 9 sooner. Tell me and I will cancel it.
+  about 06:00. Stage 2c's n = 9 started at 02:43 without waiting for its node.
