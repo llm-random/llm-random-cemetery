@@ -302,6 +302,9 @@ data in the same order, so the gaps are paired.
     - **It is not yet a lead**, so the rule is checked again at each later window, as
       decision 9 says. n = 7 is cancelled if n = 8 stalls, or if from 20% of its run,
       step 3,052 and about 11:20, n = 8 trails n = 9 by more than 0.04 without closing.
+    - **The next check is at 16:30, not 11:20**, at Maciej's instruction (10:33): the runs
+      look stable, so polling is less frequent. By 16:30 n = 8 is about 49% through, and
+      n = 9 has finished.
     - **n = 7's own result does not stop it.** If it spikes or stalls, as Stage 1c's dense
       n = 8 did, it still runs to the end. The record needs its `final_ce`, and a worse one
       at n = 7 is what brackets n = 8. Stage 1c kept its stalled n = 8 on the first ground
