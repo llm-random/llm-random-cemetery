@@ -125,6 +125,36 @@ As in ame_init_exp.md, *Checks*:
 
 ### Implementation
 
+2026-11-09, on branch `ame_initialization` (worktree `~/code/nano-ame-init`). No code
+change; two run configs:
+[oldemb_ame_h12.yaml](../../configs/ame_init/oldemb_ame_h12.yaml) and
+[oldemb_dense_h12.yaml](../../configs/ame_init/oldemb_dense_h12.yaml).
+- **Each is its `ame_init` h12 config plus the plan's `model.embedding.init_fn`
+  block,** with the names and tags changed (W&B tag `ame_init_oldemb` on both).
+- **Composed as `run_exp.py` does** (grid point, `check_point`), each differs from its
+  `ame_init` original in exactly four keys:
+  - `model.embedding.init_fn._target_`, from `torch.nn.init.xavier_normal_` to
+    `src.core.model.trunc_normal_`;
+  - the W&B name, the tags and the Slurm job name.
+
+  No missing keys.
+- **Built on CPU with the real init** (seed 123):
+
+  | | `oldemb_dense_h12` | `oldemb_ame_h12` | Target |
+  |---|---:|---:|---:|
+  | Parameters | 183,454,464 | 1,103,599,056 | as the `ame_init` runs |
+  | Embedding std, max \|w\| | 0.8798, 2.000 | 0.8798, 2.000 | 0.8796, cut at ±2 |
+  | Head std | 0.00626 | 0.00626 | Xavier 0.00626 |
+  | `q_bank`, `k_bank` std | — | 0.00626, 0.00626 | Xavier 0.00626 |
+  | Attention and FF-in `Linear` std | 0.0100 | 0.0100 | 0.0100 |
+  | FF-out std | 0.00502 | 0.00502 | 0.00502 |
+  | Weight decay 0.1 / 0 (numel) | 144,820,992 / 38,633,472 | 137,743,104 / 965,855,952 | as the `ame_init` runs; the embedding is in the 0 group |
+  | Logits std at init | 0.173 | 0.173 | |
+  | CE against random targets | 10.840 | 10.831 | ln V = 10.826 |
+
+- **No test run:** nothing in `src/` changed. The init itself is covered by
+  `tests/test_init_defaults.py`, and the old embedding draw is `ame_main`'s.
+
 ### Runs
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
