@@ -4,11 +4,12 @@
 at 18:16, at Maciej's instruction; no Helios job had started
 ([stage_1c_report.md](stage_1c_report.md), decision 6). On LEM the AME smoke run passed
 every check (18:23–18:34). Stage 1c finished at 07:24 on 2026-11-09 with n_d\* = 9, so this
-stage's grid is n = 8, 9 and 10 (decision 8). All three are training: n = 9 since 02:43,
-n = 10 since 06:02 and n = 8 since 08:37. n = 7, the extension if n = 8 ends best, has
-trained since 10:24, started early because n = 8 has kept pace with n = 9 (decisions 9
-and 10). n = 11, queued at 02:50 while Stage 1c's n = 10 led, was cancelled at 07:29,
-before it started.**
+stage's grid is n = 8, 9 and 10 (decision 8). n = 9 finished at 16:09 with `final_ce`
+2.5762, 0.070 above dense's 2.5059 at the same n. n = 10 has trained since 06:02 and n = 8
+since 08:37. n = 7, the extension if n = 8 ends best, has trained since 10:24. It started
+early because n = 8 kept pace with n = 9 (decisions 9 and 10), and it runs to its end
+(decision 11). The last run should end at about 23:55. n = 11, queued at 02:50 while
+Stage 1c's n = 10 led, was cancelled at 07:29, before it started.**
 
 The plan is [ame_experiments.md, "Stage 2c — the best AME variant at h20"](ame_experiments.md#stage-2c--the-best-ame-variant-at-h20).
 This file is its record: every job, result and decision, each with its reason. Times are
@@ -64,7 +65,7 @@ attention entropy and top-8 mass are left out, as the plan says.
 | 25862201 | Helios 4-GPU smoke: the S2c-PS file, 60 steps | 9 | — | — | 01:14 | never | 18:16 | cancelled, never started | — |
 | 25862255 | Helios **S2c-PS** | 9 | — | — | 01:15 | never | 18:16 | cancelled, never started | — |
 | 6274942 | LEM 4-GPU smoke: the S2c-PS file, 60 steps | 9 | `yss8c50l` | r16-15 | 18:23 | 18:23 | 18:34 | completed | 7.3535 (60 steps) |
-| 6275194 | **S2c-PS** | 9 | `g3gw9wru` | r18-9 | 18:35 | 11-09 02:43:01 | | running | |
+| 6275194 | **S2c-PS** | 9 | `g3gw9wru` | r18-9 | 18:35 | 11-09 02:43:01 | 11-09 16:09:00 | completed | 2.5762 |
 | 6277615 | **S2c-PS** | 10 | `5xclzzfy` | r10-11 | 20:23 | 11-09 06:02:52 | | running | |
 | 6282280 | **S2c-PS** | 11 | — | — | 11-09 02:50 | never | 11-09 07:29 | cancelled, never started (decision 8) | — |
 | 6284092 | **S2c-PS** | 8 | `tg4h4g66` | r14-12 | 11-09 06:06 | 11-09 08:36:55 | | running | |
@@ -159,6 +160,42 @@ data in the same order, so the gaps are paired.
 - **The 10-batch eval losses are equal** at steps 1,400–1,700 and 1,900. At step 1,800, n = 8
   is two bf16 steps behind: 3.1406 against 3.1094.
 - **n = 8 has no spike** in its 1,992 steps.
+
+**16:30: n = 9 finished at 2.5762, and n = 8 trails it by 0.009 at 57% of the run.** The
+table shows train-loss means over 200-step windows at matched steps, which are paired. The
+percentage is each window's midpoint as a share of the run's 15,259 steps.
+
+| Steps | % | n = 7 | n = 8 | n = 9 | n = 10 | n = 8 − n = 9 | n = 10 − n = 9 |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| 1,600–1,799 | 11 | 3.3818 | 3.3113 | 3.3101 | 3.3937 | +0.0012 | +0.0836 |
+| 3,000–3,199 | 20 | 3.2094 | 3.1292 | 3.1217 | 3.1831 | +0.0075 | +0.0614 |
+| 4,800–4,999 | 32 | 3.0983 | 3.0200 | 3.0066 | 3.0558 | +0.0134 | +0.0492 |
+| 6,600–6,799 | 44 | 3.0197 | 2.9435 | 2.9303 | 2.9753 | +0.0132 | +0.0450 |
+| 7,800–7,999 | 52 | — | 2.9016 | 2.8920 | 2.9337 | +0.0096 | +0.0417 |
+| 8,600–8,799 | 57 | — | 2.8745 | 2.8654 | 2.9079 | +0.0091 | +0.0425 |
+| 11,600–11,799 | 77 | — | — | 2.7858 | 2.8358 | — | +0.0500 |
+
+- **n = 9 completed at 16:09:00, exit code 0.**
+  - `final_ce` 2.5762; its last 10-batch eval, at step 15,200, was 2.5625.
+  - No spike in 15,259 steps.
+  - 2.990 s/step, 33.4% MFU, peak 64.74 GiB.
+  - 13.42 h of W&B runtime, 13 h 26 min in the job.
+  - Against dense at the same n, 2.5059, the gap is **+0.070**. It was +0.152 at h16 and
+    +0.162 at h12. Best against best waits for the other runs.
+- **n = 8 has not overtaken n = 9, as it did at h16.**
+  - The gap opened from +0.001 at 11% of the run to +0.013–0.014 at 32–44%. It has
+    narrowed since, to +0.009 at 57%.
+  - Their 10-batch evals are equal at steps 8,600 and 8,900, at 2.7031 and 2.6875.
+  - In Stage 1c the higher LR gained 0.014 on its neighbour from 45% of the run to the end.
+    A late gain like that would leave n = 8 and n = 9 level, within `final_ce`'s ±0.008
+    precision. So n = 8 may still end best.
+- **n = 7 trails n = 9 by 0.089, and n = 8 by 0.076**, at 44% of the run. It has no spike
+  in 6,899 steps, and it will not end best.
+- **n = 10 trails n = 9 by 0.042–0.045 from 40% to 60% of the run**, and by more as the LR
+  decays: 0.050 at 77%. It will not end best.
+- **n = 8 has no spike** in 8,936 steps. n = 10's warmup spike, steps 130–157, is still its
+  only one.
+- **Expected ends:** n = 10 at about 19:30, n = 8 at about 22:05, and n = 7 at about 23:55.
 
 ## Decisions
 
@@ -305,6 +342,18 @@ data in the same order, so the gaps are paired.
     - **The next check is at 16:30, not 11:20**, at Maciej's instruction (10:33): the runs
       look stable, so polling is less frequent. By 16:30 n = 8 is about 58% through, and
       n = 9 has finished.
+11. **n = 7 runs to its end, whatever n = 8's final (16:30 on 2026-11-09).**
+    - **n = 8 may still end best.** It trails n = 9 by 0.009 at 57% of the run and is
+      closing, well inside decision 9's 0.04. A late gain like Stage 1c's would leave the
+      two level (Progress, 16:30). Then n = 7 is what brackets n = 8.
+    - **If n = 9 ends best instead**, n = 7 is not needed for the bracket. But it will be
+      87% done when n = 8 finishes, at about 22:05. Finishing costs about 7 GPU-h and gives
+      the curve a fourth `final_ce`.
+    - **n = 11 is not needed.** n = 10 trails n = 9 by 0.042–0.050 from 40% of its run, and
+      by more as the LR decays.
+    - **The next check is a single one, at about 00:05**, after n = 7's expected end, since
+      Maciej asked for less frequent polling. No decision falls before then: n = 10's and
+      n = 8's finals change nothing that is running.
     - **n = 7's own result does not stop it.** If it spikes or stalls, as Stage 1c's dense
       n = 8 did, it still runs to the end. The record needs its `final_ce`, and a worse one
       at n = 7 is what brackets n = 8. Stage 1c kept its stalled n = 8 on the first ground
