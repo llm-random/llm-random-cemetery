@@ -1,6 +1,7 @@
 # AME init follow-up: the new init with the old embedding, then n ± 1 (plan and log)
 
-**Status:** PLAN, 2026-11-09 (Maciej). Not started; it starts on Maciej's /goal.
+**Status:** RUNNING, 2026-11-09: step 1 and its extra arm are on LEM; step 2 waits
+on step 1.
 Background: [ame_init_exp.md](ame_init_exp.md), its Results and Analysis.
 
 **Question:** is the Xavier embedding the whole problem with the new init? If the new
@@ -69,6 +70,33 @@ best learning rate?
 reference is below +0.022: a tie or a win. The threshold is AME's tie floor; dense has
 no replicate floor of its own and borrows it.
 
+### Step 1's extra arm: the old init without the embedding's decay
+
+Added 2026-11-09 on Maciej's call: the decay may be the embedding's problem. In the
+old-init references, the decay alone shrinks the embedding from norm 24.35 to about
+10.8 over the run (*Decisions and issues*).
+
+| Run | Model | Config | n | Reference, final_ce |
+|---|---|---|---|---|
+| `oldinit_embnowd_ame_h12` | AME with KV shift and ALiBi (S2-PS) | [configs/ame_init/oldinit_embnowd_ame_h12.yaml](../../configs/ame_init/oldinit_embnowd_ame_h12.yaml) | 8 | `doi36p8k`, 3.1250 |
+| `oldinit_embnowd_dense_h12` | Dense GQA with RoPE (S1-D) | [configs/ame_init/oldinit_embnowd_dense_h12.yaml](../../configs/ame_init/oldinit_embnowd_dense_h12.yaml) | 8 | `x0xlqroj`, 2.9824 |
+
+- **One change from the reference:** the embedding is not decayed, which is this
+  branch's default. Everything else is the old init, restored in the config:
+  - the embedding draw;
+  - scale 1 for the attention and FF `Linear`s;
+  - the head's `llm_random_weight_init` at scale 1;
+  - AME's `bank_init_std: 1.0`.
+- **Two paired comparisons per run,** both same-seed:
+  - **against the reference:** the decay alone, on the tuned old init;
+  - **against `oldemb_<model>_h12`:** the rest of the new init (the head, banks and
+    `Linear`s), with both embeddings the old draw, undecayed.
+- **Outside the plan's rules:** the arm decides neither survival nor step 2. The
+  plan's rule still judges `oldemb_<model>_h12` against the reference. If the arm
+  clearly beats the reference (a gap below −0.022), the decay hurt the old embedding,
+  and the survival gap carries that gain; the Analysis then says so.
+- **Submitting:** as step 1, beside the pending pair.
+
 ## Step 2: n ± 1 for what survives
 
 - **Grid:** for each surviving model, two runs at n = 7 and n = 9. Each is its step-1
@@ -118,6 +146,10 @@ As in ame_init_exp.md, *Checks*:
   - near −0.09: the head, `Linear`s and undecayed embedding add nothing;
   - well above it: they cost;
   - well below it: they gain.
+- **The extra arm:** its gap against the reference is the decay's effect. Below
+  −0.022, the decay hurt; inside ±0.022, it made no difference. Its gap against
+  `oldemb_<model>_h12` prices the rest of the new init with neither embedding
+  decayed.
 - **Step 2:** the best n for each surviving model, its gap against the reference
   (n = 8), and whether the new init, at its best n, beats the old.
 
@@ -155,6 +187,20 @@ change; two run configs:
 - **No test run:** nothing in `src/` changed. The init itself is covered by
   `tests/test_init_defaults.py`, and the old embedding draw is `ame_main`'s.
 
+**The extra arm, 2026-11-09:**
+[oldinit_embnowd_ame_h12.yaml](../../configs/ame_init/oldinit_embnowd_ame_h12.yaml)
+and [oldinit_embnowd_dense_h12.yaml](../../configs/ame_init/oldinit_embnowd_dense_h12.yaml).
+Each is its `oldemb_` config with the old init also restored for the `Linear`s, the
+head and AME's banks. Checked against the reference's own composition on `ame_main`:
+`configs/bank_gates/base.yaml`, which composes `doi36p8k`, and
+`configs/stage_1/dense_h12_lr_grid.yaml` set to n = 8 (its grid now lists 10-13; the
+init doesn't read n).
+- **Composed config:** identical except the names and tags. AME's `bank_init_std` is
+  set explicitly to 1.0, the default it had on `ame_main`.
+- **Init, built on CPU with seed 123:** every parameter is bit-identical to the
+  reference's (dense 111 of 111, AME 171 of 171).
+- **Optimizer groups:** the only difference is `embedding.weight`, decay 0.1 → 0.
+
 ### Runs
 
 Step 1 was submitted from `~/code/nano-ame-init` at `7a060dd1` (configs plus this
@@ -176,6 +222,13 @@ doc), with the plan's command, one `run_exp.py` after the other. Each clone is u
 |---|---:|---:|---:|---:|---:|---|---|
 | `oldemb_ame_h12` | | 3.1250 | | | (vs `ycwqa7k9`) | | |
 | `oldemb_dense_h12` | | 2.9824 | | | (vs `355fr6rn`) | | |
+
+**Step 1, extra arm:**
+
+| Run | final_ce | Reference | Δ final_ce | Paired gap vs reference, last 500 | Paired gap vs `oldemb_<model>_h12`, last 500 | Verdict |
+|---|---:|---:|---:|---:|---:|---|
+| `oldinit_embnowd_ame_h12` | | 3.1250 | | | | |
+| `oldinit_embnowd_dense_h12` | | 2.9824 | | | | |
 
 **Step 2:**
 
@@ -210,4 +263,9 @@ Best n per surviving model: —.
     embedding exactly. Step 2 would then tune, per model, whichever variant has the
     lower gap, if it survives. It needs a flag on `TransformerEmbedding`: the
     exemption is a class attribute (`src/core/model.py`), with no config knob.
-    Awaiting Maciej's call.
+    Not run: Maciej chose the arm in the next entry.
+- **Maciej's call, 2026-11-09:** "run also old embedding without weight decay, the
+  weight decay might be the problem for the embedding". The step-1 runs already are
+  the old draw without decay, on the new init. So the new arm is the old init with
+  only the embedding's decay removed: a one-change test of the decay on the tuned
+  reference. It is *Step 1's extra arm*, above.
