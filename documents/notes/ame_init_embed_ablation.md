@@ -185,3 +185,29 @@ doc), with the plan's command, one `run_exp.py` after the other. Each clone is u
 Best n per surviving model: —.
 
 ### Decisions and issues
+
+- **The embedding's weight decay, 2026-11-09 (raised by Maciej).** Step 1 restores
+  only the draw; the embedding stays undecayed. The old-init references decayed it at
+  0.1, and that decay sets its size. Block 0's input norm (the embedding rows looked
+  up), with the old draw's norm shrunk by the decay alone, 24.35 × ∏(1 − lr_t · 0.1):
+
+  | Step | 0 | 1,000 | 2,000 | 3,800 |
+  |---|---:|---:|---:|---:|
+  | `x0xlqroj`, dense, old init | 24.35 | 17.08 | 13.00 | 10.86 |
+  | `doi36p8k`, AME, old init | 24.35 | 16.83 | 12.82 | 10.72 |
+  | The decay alone | 24.35 | 16.87 | 12.83 | 10.74 |
+  | `355fr6rn`, dense, new init (undecayed) | 0.17 | 3.97 | 4.25 | 4.27 |
+  | `ycwqa7k9`, AME, new init (undecayed) | 0.17 | 1.61 | 2.17 | 2.39 |
+
+  - The old embedding's norm follows the decay to within 1%. Undecayed, the step-1
+    embedding should stay near 24 all run, 2.2× the references' at the end. Its size
+    against block 0's output is the mechanism ame_init_exp.md diagnosed.
+  - So the comparison against the `ame_init` run still isolates the draw (both
+    undecayed). The one against the old-init reference carries the decay along with
+    the head, banks and `Linear`s, and so does the AME check against bank-gates'
+    −0.0895: those runs decayed the embedding.
+  - **Proposed:** a third arm per model, the old draw plus decay 0.1, i.e. the old
+    embedding exactly. Step 2 would then tune, per model, whichever variant has the
+    lower gap, if it survives. It needs a flag on `TransformerEmbedding`: the
+    exemption is a class attribute (`src/core/model.py`), with no config knob.
+    Awaiting Maciej's call.
