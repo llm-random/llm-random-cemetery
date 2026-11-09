@@ -1,6 +1,7 @@
 # AME init experiment: Xavier embedding, head and banks, pkmf's Linear init (plan and log)
 
-**Status:** PLAN, 2026-11-08 (Maciej). Not started; it starts on Maciej's /goal.
+**Status:** DONE, 2026-11-09. All four runs finished; the answer is no (see Log,
+Analysis). Planned 2026-11-08 (Maciej).
 Background: [pkmf_init_comparison.md](pkmf_init_comparison.md) and
 [ame_implementation.md](ame_implementation.md) (weight initialization).
 
@@ -220,7 +221,7 @@ so the final checkpoints (about 23 GB for `ame_h16`) fit.
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
 | `ame_h12` | 6275639 | `ame_init_ame_h12_2026-11-08_18-56-20` | `ycwqa7k9` | r14-9 | 18:56 | 11-09 00:06 | COMPLETED, exit 0, 4 h 14 min |
-| `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | `3lgj6lxg` | r18-6 | 18:51 | | RUNNING since 19:38:43 |
+| `ame_h16` | 6275518 | `ame_init_ame_h16_2026-11-08_18-51-20` | `3lgj6lxg` | r18-6 | 18:51 | 11-09 10:41 | COMPLETED, exit 0, 15 h 02 min |
 | `dense_h12` | 6275650 | `ame_init_dense_h12_2026-11-08_18-56-58` | `355fr6rn` | r16-1 | 18:57 | 22:40 | COMPLETED, exit 0, 3 h 42 min |
 | `dense_h16` | 6275560 | `ame_init_dense_h16_2026-11-08_18-52-04` | `3vpbp9oj` | r18-13 | 18:52 | 11-09 08:56 | COMPLETED, exit 0, 13 h 15 min |
 
@@ -233,8 +234,9 @@ Gaps are paired: new − reference at the same step, as a mean over the window.
   11.1875: its old head gave logits of std ≈ 0.88.
 - 3.269 s/step against the reference's 3.274.
 - No NaN. The grad norm is 2.95 at step 0 and 5.40 at step 1, against 2.38 and 2.92.
-- **Early on, the new init is behind:** it stays at the unigram level (7.6-7.7) from
-  step 10 to step 47, while the reference has reached 6.81 by step 47.
+- **Early on, the new init is behind:** it plateaus at 7.6-7.7 (plausibly the
+  unigram level; not measured) from step 10 to step 47, while the reference has
+  reached 6.81 by step 47.
   - Paired gap: +0.48 over steps 1-9, +0.52 over steps 10-49.
   - A small init has to grow its weights first. The step-500 check shows whether the
     gap closes.
@@ -494,16 +496,85 @@ Recovers from its stall but levels off 0.21 behind: final_ce 2.9365 against 2.74
   still drowns the embedding: 2.1 against an attention update of 30, 15:1. The
   reference has 12.2 against 0.75.
 
+**`ame_h16`, end of run, 11-09 10:41 (COMPLETED, exit 0, 15 h 02 min on r18-6).
+Slightly worse: final_ce 2.9004 against 2.8594.**
+
+| Steps | 0-999 | 1,000-1,999 | 2,000-2,999 | 3,000-3,999 | 4,000-4,999 | 5,000-5,999 | 6,000-6,999 | 7,000-7,629 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|
+| Paired gap | +0.150 | +0.148 | +0.072 | +0.042 | +0.030 | +0.028 | +0.030 | +0.032 |
+
+- The gap stops closing at about step 4,000. The last 500 steps average +0.0316,
+  outside AME's ±0.022. Eval loss at step 7,600 is 2.891 against 2.859 (+0.031).
+- **The spike at steps 788-834 stays the only one:** 44 spike steps, none after
+  step 834.
+  - One run can't tell whether the spike caused the final deficit. Before it the
+    gap was +0.046 (steps 700-787), and `ame_h12`, with no spike, closed from +0.08
+    to +0.014.
+- **Health:**
+  - Grad-norm max after step 100: 3.04 at step 807, in the spike (reference 0.71
+    at step 121).
+  - 6.793 s/step against 6.810. Peak memory 72.17 GiB, the same as the reference.
+- **Checkpoint:** in the clone's `checkpoint/6275518/0/step_7629/`, 23 GB: the model,
+  the training state, the memory-parallel bank state and `token_counts.pt`.
+- **Block norms, step 7,600:** the stream into block 11 is 174 against 253. Block 0
+  still drowns the embedding: 3.2 against an attention update of 23, 7:1. The
+  reference has 6.0 against 3.0.
+
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired train-loss gap, last 500 steps | Verdict |
 |---|---:|---:|---:|---:|---|
 | `ame_h12` | 3.1504 | 3.1250 | +0.025 | +0.014 | **Tie** (inside ±0.022), on the behind side. Behind in every 500-step window; the gap narrows to about +0.013 by step 2,500 and holds there. |
-| `ame_h16` | | 2.8594 | | | |
+| `ame_h16` | 2.9004 | 2.8594 | +0.041 | +0.032 | **Slightly worse** (outside ±0.022). One loss spike at steps 788-834, up to 9.69; the gap levels off at +0.03 from step 4,000. |
 | `dense_h12` | 4.2188 | 2.9824 | +1.236 | +1.271 | **Much worse.** It stalls from the start; the gap peaks at +2.13 over steps 500-999 and is still +1.26 at the end. |
 | `dense_h16` | 2.9365 | 2.7441 | +0.192 | +0.213 | **Worse.** It stalls early like `dense_h12` (+1.69 at step 300), recovers far faster, then levels off at +0.21 from step 5,000. |
 
-AME − dense gap: h12 old 0.143, new −1.068 (3.1504 − 4.2188); h16 old 0.115, new —.
+AME − dense gap: h12 old 0.143, new −1.068 (3.1504 − 4.2188); h16 old 0.115, new
+−0.036 (2.9004 − 2.9365).
+
+### Analysis
+
+**Answer: no.** At the references' learning rates, the new init lowers final CE in
+none of the four runs. AME is unchanged at h12 (a tie) and slightly worse at h16.
+Dense is much worse at h12 and worse at h16. The AME − dense gap turns negative only
+because dense loses more, not because AME gains.
+
+- **The embedding is the likely cause.**
+  - Xavier gives each token a vector of norm 0.17, against 24 before. That is 140×
+    smaller, 18× below pkmf's own embedding (std 0.11; pkmf uses Xavier only for its
+    memory tables), and 3× below the std of 0.02 that spiked for Takase et al.
+  - In every run, block 0's attention output dwarfs it. At h12 the ratio is 1,800:1
+    (dense) and 2,000:1 (AME) by step 100, against 0.3:1 in the references.
+  - At the end the ratio is still 7:1 to 111:1, against 0.06:1 to 0.5:1. Every later
+    layer sees the current token only as a small part of the stream.
+- **Dense stalls; AME doesn't** (h12 block 0 metrics).
+  - Dense block 0's attention output becomes nearly the same size for every token,
+    as a context average would be: a per-token std/mean of 0.10-0.22, against about
+    1.0 in its reference.
+  - Its loss sits at 7.6-7.7 over steps 10-47 and at 6.3-6.5 until step 500.
+  - AME's output keeps its reference's spread: 0.21-0.32 against 0.28-0.43.
+  - **Two candidate reasons**, which these runs can't separate:
+    - AME's Q/K come from id-indexed banks, so every layer's attention sees the
+      token ids.
+    - ALiBi makes attention local from step 0, so block 0 mixes the last few tokens,
+      the current one included. Dense RoPE attention starts near-uniform under small
+      Q/K weights, so it averages the context.
+- **The LR confounds the comparison.**
+  - The references' LRs were tuned for the old init. At n = 8, Adam's per-step move
+    as a fraction of the init std is:
+    - 0.62 for the embedding and the head (0.004 and 0.12 before);
+    - 0.39 for the attention `Linear`s (0.12);
+    - 0.78 for the FF output (0.25).
+  - So the first few steps at peak LR overwrite the init.
+  - `dense_h16`, at half the LR (n = 9), recovered far faster than `dense_h12`: +0.25
+    against +1.26 over steps 3,500-3,808. The size differs too.
+- **The four changes were tested together,** so these runs can't apportion the
+  effect. The embedding is the prime suspect: the failure sits where the embedding
+  meets block 0.
+- **Not run; possible follow-ups:**
+  - At dense h12, which fails loudest (about 3.7 h on one GPU): the new init with the
+    old embedding; Xavier × √d (Scaled Embed); the new init at n = 9 and 10.
+  - A dense ALiBi run under the new init, to test why AME is immune.
 
 ### Decisions and issues
 
@@ -532,3 +603,8 @@ AME − dense gap: h12 old 0.143, new −1.068 (3.1504 − 4.2188); h16 old 0.11
     LRs".
   - **Revise first:** cancel the three pending runs, change the embedding init (a √d
     multiplier, i.e. Scaled Embed, or back to std ≈ 1), and resubmit.
+- **No answer came,** so all four ran to the end as planned. The results measure
+  the new init at the references' LRs.
+- **11-09 09:33:** the `ame_h16` end watcher died on a DNS failure during its W&B
+  login; the job was not affected. Restarted with W&B errors tolerated. The session
+  restarted before the job ended, so its end was read at 10:52.
