@@ -211,11 +211,22 @@ same way at `e5fe9561`. Each clone is under
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
 | `oldemb_ame_h12` | 6287404 | `ame_init_oldemb_ame_h12_2026-11-09_12-14-39` | | | 11-09 12:14 | | PENDING |
-| `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | | | 11-09 12:15 | | PENDING |
+| `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | | RUNNING since 17:07 |
 | `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | | | 11-09 14:18 | | PENDING |
 | `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | | | 11-09 14:19 | | PENDING |
 
 ### Checks
+
+- **`oldemb_dense_h12`, start, 11-09 17:15-17:20:** running on r14-7 since 17:07,
+  W&B `l0vosr68`.
+  - **First loss:** 10.8125, against ln V = 10.83. The reference `x0xlqroj` started
+    at 11.19, from its larger head.
+  - **Speed:** 3.265 s/step over steps 5-21, against the reference's 3.269.
+  - **Early losses:**
+    - against the reference: within ±0.2 over steps 10-21 (mean +0.016 over steps
+      10-17);
+    - against the Xavier-embedding run `355fr6rn`: 0.28 ahead by step 25. That run
+      sits near 7.7 from step 15, while this one keeps falling.
 
 ### Results
 
