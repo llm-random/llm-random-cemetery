@@ -1,10 +1,11 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 17:15): the first entropy runs (W&B `28sjg3ii`, `ts67c0g3`) died
-at their first eval, step 100: the compiled no_grad forward did not lower. Fixed in
-`doc_mask` 3974addd and checked end to end on entropy (Log 16:27-17:10). Resubmitted
-from the fix: AME job 37694 starts when a GPU frees (about 17:20), dense job 37695 at
-the next one (about 19:50).** The configs and the code are on branch `doc_mask`, not on
+**Status (2026-11-10 17:25): the AME run trains on entropy since 17:12 (job 37694, W&B
+`j6wxx6h2`) and is past its first eval; expected end about 21:15. The dense run (job
+37695) waits for the next free GPU, about 19:50. Both from `doc_mask` 3974addd. The first
+entropy pair (W&B `28sjg3ii`, `ts67c0g3`) died at its first eval, step 100, because the
+compiled no_grad forward did not lower; fixed in 3974addd and checked end to end
+(Log 16:27-17:12).** The configs and the code are on branch `doc_mask`, not on
 `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
@@ -185,3 +186,4 @@ packed held-out rows.
 | 17:08-17:10 | Resubmitted from 3974addd, AME first, as before (two halves, key on stdin; clones checked, fix present): AME job 37694 (clone `dm_ame_h12_ps_lr8_2026-11-10_17-07-17`), dense job 37695 (`dm_dense_h12_lr8_2026-11-10_17-07-54`). One h100a GPU is free for us at a time: AME starts when test job 37693 ends; dense waits for the next GPU (our pkmflin_dense job 37650 should end about 19:50) |
 | 17:06-17:12 | **The new test has teeth** (entropy job 37693). On the unfixed tree, `test_on_cuda_compile_blocks_full_trains_then_evaluates` fails with the runs' error on the `[4, 2048]` int32 document-id buffer, and the dense run config dies at its first eval (step 10) with the runs' error on the `[32, 2048]` buffer. On the fixed tree all 13 document-mask GPU tests pass. CPU suite on the fixed tree: 451 passed, none failed or skipped; black clean |
 | 17:12 | AME job 37694 starts on h100a; dense job 37695 waits for a GPU (Resources) |
+| 17:21-17:24 | **AME (W&B [`j6wxx6h2`](https://wandb.ai/ideas_cv/nano-ame/runs/j6wxx6h2)) is past its first eval**: eval/loss 5.9375 at step 100, equal to the baseline's. Start check passed: `document_mask: True`, 3.746 s/step (baseline 3.746), no NaN or inf, the step-11 warmup bump (9.5625) identical to the first attempt's. Paired train-loss gap +0.008 over steps 0-118, -0.005 over the last 100. Expected end about 21:15 |
