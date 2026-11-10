@@ -226,7 +226,8 @@ doc), with the plan's command, one `run_exp.py` after the other; the extra arm t
 same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
 Step 2 was moved to entropy at `0325e7dc` (*Decisions and issues*); its clones there
-are under `/home/mstefaniak/llmrandom_cemetery/`.
+are under `/home/mstefaniak/llmrandom_cemetery/`. Its edge run, n = 6, went to
+entropy at `10737ba1`.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
@@ -238,6 +239,7 @@ are under `/home/mstefaniak/llmrandom_cemetery/`.
 | `oldemb_ame_h12_n9`, LEM | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
 | `oldemb_ame_h12_n7`, entropy | 37646 | `ame_init_oldemb_ame_h12_n7_2026-11-10_12-23-57` | `sho4z0q5` | h100a | 11-10 12:24 | 11-10 16:19 | COMPLETED, exit 0, 3 h 55 min |
 | `oldemb_ame_h12_n9`, entropy | 37648 | `ame_init_oldemb_ame_h12_n9_2026-11-10_12-24-27` | `s7r0rfv4` | h100a | 11-10 12:24 | 11-10 16:19 | COMPLETED, exit 0, 3 h 54 min |
+| `oldemb_ame_h12_n6`, entropy | 37684 | `ame_init_oldemb_ame_h12_n6_2026-11-10_16-40-05` | `ht7uhbe1` | h100a | 11-10 16:40 | | RUNNING since 16:41 |
 
 ### Checks
 
@@ -343,6 +345,16 @@ are under `/home/mstefaniak/llmrandom_cemetery/`.
 
   Entropy runs come out level with LEM's or slightly behind, never ahead. A gain
   measured on entropy against a LEM run is therefore no cluster artifact.
+- **`oldemb_ame_h12_n6`, start, 11-10 16:47:** running on h100a since 16:41, W&B
+  `ht7uhbe1`.
+  - Step 0 equals n = 7's exactly: loss 10.8125, grad norm 0.439.
+  - 3.390 s/step, as n = 7.
+  - **A warmup blip at the higher LR:** loss 14.6 at step 5 (n = 7: 8.3), with grad
+    norm 4.57. It had recovered by step 10 (+0.59 against n = 7), and by step 41 it
+    was −0.16 against n = 8. It falls before step 100, where the spike rule starts.
+- **Next check: the end of training,** of n = 6 and `pkmflin_dense_h12` together
+  (about 20:45). One watcher polls every 10 min. A NaN, or a job that leaves the
+  queue before step 3,814, ends it at once.
 
 ### Results
 

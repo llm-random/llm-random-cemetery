@@ -202,7 +202,9 @@ Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
   - **Early paired gap against `x0xlqroj`, not a verdict:** +0.37 over steps 0-99 and
     +0.74 over steps 200-329. `oldemb_dense_h12` stood at +0.79 at step 500 and ended
     at +0.27.
-  - Next check: its end, about 19:40.
+  - Next check: the end of training, about 19:40. One watcher covers it and
+    ame_init_embed_ablation.md's n = 6 (ending about 20:45) and wakes when both have
+    ended, or at once on a NaN or a job that leaves the queue before step 3,814.
 
 ### Results
 
