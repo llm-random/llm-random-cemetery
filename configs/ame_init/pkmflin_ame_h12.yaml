@@ -11,12 +11,13 @@
 #
 # A copy of configs/bank_gates/base.yaml with stage2_none_std001.yaml's two
 # attention options, the model block below and the names changed. Reference:
-# kf4q4t4s, in-training final_ce 3.0352. Node r16-11 is excluded at submit with
-# +infrastructure.slurm.exclude=r16-11.
+# kf4q4t4s, in-training final_ce 3.0352.
+# Runs on entropy (h100a, one H100), moved from LEM on 2026-11-10 at Maciej's
+# request: entropy's FineWeb copy is LEM's (ame_efficiency_parity_report.md, item 6).
 defaults:
   - /base_schema
   - ../_misc@_here_: default
-  - ../_cluster@_here_: lem
+  - ../_cluster@_here_: entropy
   - ../_model/h_balanced@_here_: h12
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -87,7 +88,7 @@ trainer:
 
 infrastructure:
   slurm:
-    gres: gpu:hopper:1
+    gres: gpu:h100:1
     job-name: ame_init_pkmflin_ame_h12
     time: "0-07:00:00"
   metric_logger:

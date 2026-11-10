@@ -10,11 +10,12 @@
 #
 # A copy of oldinit_embnowd_dense_h12.yaml (the old init everywhere) with the model
 # block below and the names changed. Reference: x0xlqroj (old init, n = 8),
-# final_ce 2.9824. Node r16-11 is excluded at submit with
-# +infrastructure.slurm.exclude=r16-11.
+# final_ce 2.9824.
+# Runs on entropy (h100a, one H100), moved from LEM on 2026-11-10 at Maciej's
+# request: entropy's FineWeb copy is LEM's (ame_efficiency_parity_report.md, item 6).
 defaults:
   - ../_misc@_here_: default
-  - ../_cluster@_here_: lem
+  - ../_cluster@_here_: entropy
   - ../_model/h_balanced@_here_: h12
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -77,7 +78,7 @@ trainer:
 
 infrastructure:
   slurm:
-    gres: gpu:hopper:1
+    gres: gpu:h100:1
     job-name: ame_init_pkmflin_dense_h12
     time: "0-05:00:00"
   metric_logger:

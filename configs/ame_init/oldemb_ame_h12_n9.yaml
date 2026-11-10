@@ -7,11 +7,12 @@
 # of branch ame_initialization except the embedding: the old embedding draw, a cut
 # N(0, 1), undecayed; Xavier head and banks; pkmf's sqrt(0.1 / fan_in) Linears.
 # Reference: doi36p8k (old init, n = 8), final_ce 3.1250.
-# Node r16-11 is excluded at submit with +infrastructure.slurm.exclude=r16-11.
+# Runs on entropy (h100a, one H100), moved from LEM on 2026-11-10 at Maciej's
+# request: entropy's FineWeb copy is LEM's (ame_efficiency_parity_report.md, item 6).
 defaults:
   - /base_schema
   - ../_misc@_here_: default
-  - ../_cluster@_here_: lem
+  - ../_cluster@_here_: entropy
   - ../_model/h_balanced@_here_: h12
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -66,7 +67,7 @@ trainer:
 
 infrastructure:
   slurm:
-    gres: gpu:hopper:1
+    gres: gpu:h100:1
     job-name: ame_init_oldemb_ame_h12_n9
     time: "0-07:00:00"
   metric_logger:
