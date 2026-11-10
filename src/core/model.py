@@ -49,13 +49,27 @@ class TransformerEmbedding(nn.Embedding):
     # toward zero. The default init is already small: Xavier normal,
     # sqrt(2 / (V + d)) = 0.0063 (base.yaml), the range where Takase et al.
     # (Spike No More, 2023) tie small embeddings to loss spikes.
+    # `weight_decay: true` opts back in, as stage 1-2 ran.
     no_weight_decay_parameters = ("weight",)
 
     def __init__(
-        self, vocab_size: int, dmodel: int, init_fn: Optional[Callable], **kwargs
+        self,
+        vocab_size: int,
+        dmodel: int,
+        init_fn: Optional[Callable],
+        weight_decay: bool = False,
+        **kwargs,
     ):
+        if not isinstance(weight_decay, bool):
+            raise TypeError(
+                f"embedding weight_decay is a switch (true: decay the embedding at "
+                f"the optimizer's rate, as stage 1-2 did), got {weight_decay!r}"
+            )
         self.init_fn = init_fn
         super().__init__(vocab_size, dmodel, **kwargs)
+        if weight_decay:
+            # An instance attribute shadows the class's exemption.
+            self.no_weight_decay_parameters = ()
 
     def reset_parameters(self):
         if hasattr(self, "init_fn") and self.init_fn is not None:
@@ -670,7 +684,8 @@ def parameter_groups(model, weight_decay, exclude=None):
     returns a single group holding exactly `model.parameters()`.** Since branch
     ame_initialization every LLM declares one, its token embedding
     (TransformerEmbedding), so every config gets two groups and a dense run's
-    embedding is no longer decayed; only a bare layer still gets one group.
+    embedding is no longer decayed; only a bare layer, or a dense LLM whose
+    embedding sets `weight_decay: true`, still gets one group.
 
     `exclude` drops parameters from the optimizer entirely -- not from decay,
     from the optimizer. The memory-parallel bank controller

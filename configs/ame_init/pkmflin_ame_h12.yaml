@@ -1,0 +1,101 @@
+# AME init follow-up (documents/notes/ame_init_pkmf_linears.md), run pkmflin_ame_h12:
+# S2-PS, AME with the KV shift and ALiBi, h12, 4B tokens, n = 8. W&B kf4q4t4s
+# (bank_gates_stage2_none_std001: banks at sigma = 0.01, no gate) with one change:
+# the Linears and the head start at pkmf's scale, std sqrt(0.1 / fan_in) cut at
+# +-2 std, instead of 1 / sqrt(fan_in) cut at +-2 std. Every init is written out
+# below, so this branch's defaults do not reach the run:
+#   - embedding: N(0, 1) cut at +-2 (std 0.88), decayed at 0.1, as kf4q4t4s;
+#   - banks: N(0, 0.01^2), not decayed, as kf4q4t4s;
+#   - attention V and O (AME's Q and K are the banks), the three FF Linears and
+#     the head: sqrt(0.1 / fan_in), cut at +-2 std.
+#
+# A copy of configs/bank_gates/base.yaml with stage2_none_std001.yaml's two
+# attention options, the model block below and the names changed. Reference:
+# kf4q4t4s, in-training final_ce 3.0352. Node r16-11 is excluded at submit with
+# +infrastructure.slurm.exclude=r16-11.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # S2-PS: the implemented ALiBi ladder and the KV shift, with kf4q4t4s's banks.
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: 0.01 # N(0, 0.01^2), as kf4q4t4s; this branch's default is Xavier
+      bank_gate: none # as kf4q4t4s, which set it explicitly
+
+model:
+  embedding:
+    init_fn: # N(0, 1), cut at +-2 (std 0.88), as kf4q4t4s
+      _target_: src.core.model.trunc_normal_
+      _partial_: true
+    weight_decay: true # decayed at 0.1, as kf4q4t4s; this branch's default exempts it
+  encoder:
+    block_fn:
+      attention_fn:
+        init_scale: ${eval:'0.1 ** 0.5'} # V and O: std sqrt(0.1 / fan_in), cut at +-2 std
+      ff_layer_fn:
+        ff_pre_act_fn: # gate_fn interpolates this one, so it follows
+          partial_init_fn:
+            scale: ${eval:'0.1 ** 0.5'}
+        ff_post_act_fn:
+          partial_init_fn:
+            scale: ${eval:'0.1 ** 0.5'}
+  head:
+    linear_fn:
+      partial_init_fn: # std sqrt(0.1 / 768) = 0.0114, cut at +-2 std
+        _target_: src.core.model.llm_random_weight_init
+        _partial_: true
+        scale: ${eval:'0.1 ** 0.5'}
+
+compile_blocks_full: true
+
+trainer:
+  # As S2-PS: micro-batch 32 x 16, Tier 2 banks (fp32 master, bf16 forward copy),
+  # no FSDP2 so AME's readouts are logged, autocast bf16.
+  gradient_accumulation_steps: 16
+  mem_parallel_size: 1
+  distributed: null
+  autocast_bf16: true
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks and scalars are exempt; the token
+  #     embedding is decayed, model.embedding.weight_decay above);
+  #   - cosine schedule to 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 8 # n = 8, LR = 2^-8, as kf4q4t4s
+  scheduler:
+    warmup_steps: 38
+  count_token_updates: true
+  checkpoint:
+    save:
+      # Only the final checkpoint (interval -1), in the job's cemetery clone under
+      # checkpoint/<job id>/0/step_3814/, with token_counts.pt beside it.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: ame_init_pkmflin_ame_h12
+    time: "0-07:00:00"
+  metric_logger:
+    project_name: nano-ame
+    name: ame_init_pkmflin_ame_h12
+    tags:
+      - ame
+      - h12
+      - ame_init
+      - ame_init_pkmflin
+      - ame_init_pkmflin_ame_h12

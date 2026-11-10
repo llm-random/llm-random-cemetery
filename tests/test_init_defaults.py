@@ -5,7 +5,8 @@ tests compose tiny dense and AME models from it and check:
   - the token embedding, head and AME banks: Xavier normal, sqrt(2 / (V + d)),
     not cut;
   - the attention and FF Linears: sqrt(0.1 / fan_in), cut at +-2 std;
-  - weight decay 0 on the embedding and the banks, 0.1 on the head and Linears;
+  - weight decay 0 on the embedding and the banks, 0.1 on the head and Linears,
+    and `model.embedding.weight_decay: true` decays the embedding again;
   - the memory-parallel fp32 masters hold the banks' Xavier draw.
 """
 
@@ -20,7 +21,7 @@ from hydra.utils import instantiate
 import resolver  # noqa: F401  (registers the eval resolver the configs use)
 from src.core.ame import AMEAttention
 from src.core.memory_parallel import MemoryParallelController
-from src.core.model import Linear, parameter_groups
+from src.core.model import Linear, TransformerEmbedding, parameter_groups
 
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -130,6 +131,28 @@ def test_weight_decay_spares_the_embedding_and_banks_only(model):
         if isinstance(module, Linear):
             assert id(module.weight) in decayed
     assert len(decayed) + len(undecayed) == len(list(model.parameters()))
+
+
+def test_the_embedding_can_opt_back_into_weight_decay():
+    """Stage 1-2's decay (`model.embedding.weight_decay: true`). A dense model,
+    where nothing else opts out, is back to the single group holding exactly
+    `model.parameters()` that stage 1-2's dense runs had."""
+    dense = _h4("gqa", ["+model.embedding.weight_decay=true"])
+    (group,) = parameter_groups(dense, 0.1)
+    assert group["weight_decay"] == 0.1
+    assert [id(p) for p in group["params"]] == [id(p) for p in dense.parameters()]
+
+    ame = _h4("ame", ["+model.embedding.weight_decay=true"])
+    decayed, undecayed = parameter_groups(ame, 0.1)
+    assert id(ame.embedding.weight) in {id(p) for p in decayed["params"]}
+    undecayed = {id(p) for p in undecayed["params"]}
+    for bank in _banks(ame):
+        assert id(bank) in undecayed
+
+
+def test_a_non_bool_embedding_weight_decay_is_refused():
+    with pytest.raises(TypeError, match="weight_decay"):
+        TransformerEmbedding(96, 16, None, weight_decay=0.1)
 
 
 def test_an_explicit_bank_init_std_still_draws_n_0_std():
