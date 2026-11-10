@@ -280,6 +280,15 @@ same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
     - Just before it, the gap was +0.38 to +0.45. Over the last two quarters it is
       +0.32 and +0.28, so the step-1 verdict doesn't hinge on the spike.
     - The reference itself spiked at steps 194-203.
+- **LEM's Slurm controller went unreachable, 11-10 from about 11:09.**
+  - `squeue` reports "Unable to contact slurm controller", and `sacct` times out on
+    `slurm-db`. Both step-2 jobs were PENDING (Priority) at 11:08:41.
+  - Both step-2 watchers then exited with "left the queue". That was a watcher bug:
+    it took any reply carrying an `rc=` line as an answer, so a failed query read
+    as every job gone.
+  - Fixed: it now queries by user and accepts only rc=0, so an unreachable
+    controller reads as unknown.
+  - The jobs' state is unknown until the controller answers; a poll waits for it.
 
 ### Results
 

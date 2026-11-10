@@ -153,6 +153,12 @@ one after the other. Each clone is under
 - **Submit, 11-10 10:15:** both PENDING (Priority) behind our four other LEM jobs: the
   ame_init step-2 pair and the doc-mask pair. The worktree was clean after each
   `run_exp.py`.
+- **LEM's Slurm controller went unreachable, 11-10 from about 11:09.**
+  - Both jobs were PENDING at 11:07. Both watchers then exited with "left the
+    queue": a watcher bug that read a failed `squeue` as every job gone.
+  - Fixed: the watcher accepts only rc=0 (details in ame_init_embed_ablation.md,
+    *Checks*).
+  - The jobs' state is unknown until the controller answers; a poll waits for it.
 
 ### Results
 
