@@ -241,13 +241,13 @@ def test_ame_flex_matches_the_reference(sink):
 # A whole model
 
 
-def _h4_model(overrides, seq_len=SEQ):
+def _h4_model(overrides, seq_len=SEQ, config_name="h4"):
     with initialize_config_dir(
         version_base=None,
         config_dir=os.path.join(REPO_ROOT, "configs", "_model", "h_balanced"),
     ):
         cfg = compose(
-            config_name="h4",
+            config_name=config_name,
             overrides=[f"common.sequence_length={seq_len}", *overrides],
         )
     torch.manual_seed(0)
@@ -466,3 +466,58 @@ def test_on_cuda_bf16_autocast_matches_fp32_within_bf16_resolution(attention):
         bf16 = torch.compile(layer)(x, ids).float()
     relative = ((fp32 - bf16).abs().max() / fp32.abs().max()).item()
     assert relative < 0.05, f"bf16 diverges from fp32 by {relative:.2e}"
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize("config_name", ["h4", "h12"])
+@pytest.mark.parametrize("attention", ["gqa", "ame"])
+def test_on_cuda_compile_blocks_full_trains_then_evaluates(attention, config_name):
+    """The trainer's own sequence under compile_blocks_full, at the runs' row
+    length: whole blocks compiled as main.py compiles them, a training step,
+    then the eval forward under model.eval(), torch.no_grad() and bf16 autocast
+    (Trainer.eval, final_eval). Its logits must match the uncompiled model's.
+
+    The tests above compile with gradients on. There the forward keeps the
+    document ids for the backward, which fixes their buffer's layout. Under
+    no_grad nothing did: inductor wrote the ids to a buffer with a flexible
+    layout, and torch 2.7.1 cannot lower the score_mod's index into one. Both
+    h12 runs (W&B 28sjg3ii, ts67c0g3) died at their first eval, step 100:
+    "LoweringException: AssertionError: convert FlexibleLayout to FixedLayout
+    first". A single layer compiled at 256 tokens did not reproduce it, so this
+    builds the production unit and length."""
+    torch._dynamo.reset()  # a fresh cache: recompile limits must not drop to eager
+    seq = 2048
+    model = _h4_model(
+        [
+            f"common.attention.type={attention}",
+            "+common.attention.document_mask=true",
+        ],
+        seq_len=seq + 1,  # as the runs: rows of 2049, the model sees 2048
+        config_name=config_name,
+    ).cuda()
+    generator = torch.Generator().manual_seed(2)
+    ids = torch.randint(1, 50000, (4, seq + 1), generator=generator)
+    ids[torch.rand(ids.shape, generator=generator) < 1 / 300] = EOS
+    ids = ids.cuda()
+    inputs, targets = ids[:, :-1], ids[:, 1:]
+
+    model.eval()
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        reference = model(inputs).float()  # uncompiled
+
+    for block in model.encoder.blocks:
+        block.compile()
+    model.train()
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        logits = model(inputs)
+    loss = torch.nn.functional.cross_entropy(
+        logits.flatten(0, 1).float(), targets.flatten()
+    )
+    loss.backward()
+    assert torch.isfinite(loss)
+
+    model.eval()
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        evaluated = model(inputs).float()
+    relative = ((evaluated - reference).abs().max() / reference.abs().max()).item()
+    assert relative < 0.05, f"compiled eval diverges from eager by {relative:.2e}"

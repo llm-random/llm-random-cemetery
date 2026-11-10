@@ -34,9 +34,29 @@ def document_ids(token_ids, eos_token_id):
 
     Counts the EOS tokens strictly before each position, so an EOS belongs to
     the document it ends and the position after it starts a new one.
+
+    A custom op, so that inside a compiled graph the ids land in a buffer with a
+    fixed layout. The flex kernel's score_mod indexes them (`doc[b, q_idx]`),
+    and torch 2.7.1's inductor cannot lower an index into a buffer whose layout
+    is still flexible ("convert FlexibleLayout to FixedLayout first"). With
+    gradients on, the forward keeps the ids for the backward, which fixes their
+    layout anyway; under no_grad (eval, final_ce) nothing else did, and both h12
+    runs died at their first eval. Inductor does not fuse a custom op: it
+    allocates the output from the op's fake (contiguous int32) and calls it,
+    which fixes the layout in every compile mode, with or without gradients.
     """
+    return _document_ids(token_ids, int(eos_token_id))
+
+
+@torch.library.custom_op("nano::document_ids", mutates_args=())
+def _document_ids(token_ids: torch.Tensor, eos_token_id: int) -> torch.Tensor:
     is_eos = (token_ids == eos_token_id).to(torch.int32)
     return torch.cumsum(is_eos, dim=1, dtype=torch.int32) - is_eos
+
+
+@_document_ids.register_fake
+def _document_ids_fake(token_ids, eos_token_id):
+    return torch.empty(token_ids.shape, dtype=torch.int32, device=token_ids.device)
 
 
 def continues_document(doc):
