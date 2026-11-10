@@ -1,11 +1,11 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 16:30): implemented and tested on CPU (447 passed) and on GPU
-(the compiled flex kernel matches the reference, forward and backward). Both runs train
-on entropy since 16:19 (dense job 37660, W&B `28sjg3ii`; AME job 37661, W&B `ts67c0g3`);
-the start check passed. Expected end about 20:00 (dense) and 20:25 (AME). The LEM
-fallback pair was cancelled before it started.** The configs and the code are on branch
-`doc_mask`, not on `ame_main`.
+**Status (2026-11-10 17:15): the first entropy runs (W&B `28sjg3ii`, `ts67c0g3`) died
+at their first eval, step 100: the compiled no_grad forward did not lower. Fixed in
+`doc_mask` 3974addd and checked end to end on entropy (Log 16:27-17:10). Resubmitted
+from the fix: AME job 37694 starts when a GPU frees (about 17:20), dense job 37695 at
+the next one (about 19:50).** The configs and the code are on branch `doc_mask`, not on
+`ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
 from `ame_main` in its own worktree, test it on CPU, then run dense h12 and AME
@@ -85,6 +85,15 @@ builds the model under a CUDA default device ("Expected a 'cuda' device type for
 generator but found 'cpu'"). This branch does not touch that code, and no run here uses
 a bank gate ("For Maciej").
 
+**The eval path was not covered, and the first runs died of it.** Every GPU test above
+compiles with gradients on. The trainer's eval and final_ce compile a second graph,
+under no_grad, and with the mask that graph did not lower (Log 16:27-16:28). Since
+3974addd the document ids come from a custom op, and two checks cover the path: the
+GPU test `test_on_cuda_compile_blocks_full_trains_then_evaluates` (whole h4 and h12
+models, every block compiled, rows of 2049, a training step, then the eval forward
+under no_grad and bf16 autocast, against the uncompiled model) and a smoke run of both
+run configs on entropy (Log 16:45-17:07).
+
 ## Runs
 
 | Run | Config | Baseline (same seed, data order, steps, schedule) | Baseline `final_ce` | Baseline s/step |
@@ -97,13 +106,12 @@ a bank gate ("For Maciej").
   autocast bf16; `compile_blocks_full`; final checkpoint only; 7 h limit. AME: Tier 2
   banks (`mem_parallel_size: 1`), bank init N(0, 1), banks at the backbone's LR, as the
   baseline. W&B project `ideas_cv/nano-ame`.
-- **Jobs (entropy):** dense 37660 (W&B
-  [`28sjg3ii`](https://wandb.ai/ideas_cv/nano-ame/runs/28sjg3ii)), AME 37661 (W&B
-  [`ts67c0g3`](https://wandb.ai/ideas_cv/nano-ame/runs/ts67c0g3)), from `doc_mask`
-  da59f08d. Clones in `~/llmrandom_cemetery/`, named like their cemetery branches:
-  `dm_dense_h12_lr8_2026-11-10_13-20-55` and `dm_ame_h12_ps_lr8_2026-11-10_13-21-28`.
-  The LEM pair 6294854/6294855 (from 56866314) was cancelled at 16:29, before it
-  started; it has no W&B runs.
+- **Jobs (entropy), from `doc_mask` 3974addd:** AME 37694, dense 37695. Clones in
+  `~/llmrandom_cemetery/`, named like their cemetery branches:
+  `dm_ame_h12_ps_lr8_2026-11-10_17-07-17` and `dm_dense_h12_lr8_2026-11-10_17-07-54`.
+- **Ignore:** dense 37660 (W&B `28sjg3ii`) and AME 37661 (W&B `ts67c0g3`), from
+  da59f08d, which died at step 100 (Log 16:27); the LEM pair 6294854/6294855 (from
+  56866314), cancelled at 16:29 before it started, with no W&B runs.
 - **The only difference from each baseline is `document_mask: true`**, and the
   cluster: the baselines ran on LEM. Entropy's FineWeb copy is LEM's
   ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md), item 6), so the
@@ -172,3 +180,6 @@ packed held-out rows.
 | 16:19 | Both start on h100a (H100 80GB HBM3), W&B dense `28sjg3ii`, AME `ts67c0g3`. FineWeb opens took about 40 s each; the dataset log has the same 1,279,107,432 rows and the same held-out cut as LEM's runs. Step 0 at about 16:21:30 |
 | 16:24-16:29 | **Start check passed.** Both configs have `document_mask: True`; no NaN or inf. s/step from W&B: dense 3.36 (LEM baseline 3.272), AME 3.77 (3.746). Step 0's loss equals the baseline's in both pairs (AME 11.25, dense 11.1875), and AME's steps 1, 3 and 4 too: same initial weights and same batches on entropy. The script flags AME step 11 (9.56, grad norm 16.3) as a spike: it is the warmup transient both baselines have at step 10 (8.25, grad norm 46.5 AME / 15.9 dense), one step later, and the loss is level again at step 12. Paired gap so far: dense +0.051 (steps 0-55), AME -0.003 (steps 0-48), at 0.03 bf16 loss resolution |
 | 16:29 | LEM fallback pair cancelled (6294854 `dm_dense`, 6294855 `dm_ame`, both still pending, checked by name, user and state first) |
+| 16:27-16:28 | **Both runs died at their first eval, step 100** (found 16:44): dense at 16:27:16, AME at 16:28:19, exit 1, `InductorError: LoweringException: AssertionError: convert FlexibleLayout to FixedLayout first` in `flex_attention`, compiling the blocks' no_grad forward (`Trainer.eval`). The score_mod's captured buffer (`args[7]`) is the document ids, `[32, 2048]` int32, written by inductor to a buffer whose layout was still flexible; torch 2.7.1 cannot lower the score_mod's index into it. Training compiles with gradients, where the forward keeps the ids for the backward and that fixes their layout. Every GPU test compiled that way, so none reached this graph. So the start check passed, and the LEM pair was cancelled a minute after the failure. W&B `28sjg3ii`, `ts67c0g3`: **ignore** |
+| 16:45-17:07 | **Fix, 3974addd:** `document_ids` became a `torch.library` custom op, `nano::document_ids`. Inductor does not fuse it; it allocates the output from the op's fake (contiguous int32), a fixed layout in every compile mode. On CPU the same no_grad compile failed before ("No choices to select") and matches eager to 8e-7 after. Entropy job 37688 on the fixed tree: AME's GPU tests 27 of 28 pass (the 28th is the stem-gate failure that predates this branch), and both run configs pass a smoke run: 100 steps at batch 64 (micro-batch 32 × 2), eval every 10 steps, final_ce on 256 samples. Dense: eval 8.375 → 6.906, final_ce 6.875, peak 46.8 GiB. AME: eval 8.375 → 6.8125, final_ce 6.781, peak 70.6 GiB. The first regression test (one layer compiled under no_grad at 256 tokens) passed on the unfixed tree too, so it was replaced with a production-shaped one: whole h4 and h12 models, every block compiled, rows of 2049, a training step, then the eval forward. Job 37693 checks that it fails unfixed and passes fixed |
+| 17:08-17:10 | Resubmitted from 3974addd, AME first, as before (two halves, key on stdin; clones checked, fix present): AME job 37694 (clone `dm_ame_h12_ps_lr8_2026-11-10_17-07-17`), dense job 37695 (`dm_dense_h12_lr8_2026-11-10_17-07-54`). One h100a GPU is free for us at a time: AME starts when test job 37693 ends; dense waits for the next GPU (our pkmflin_dense job 37650 should end about 19:50) |
