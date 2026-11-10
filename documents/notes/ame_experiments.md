@@ -4,12 +4,17 @@
 Stages 1c and 2c on 2026-11-07.**
 - Stage 0 has been paused since 2026-11-06 07:18
   ([ame_optimization_report.md](ame_optimization_report.md) §7.11).
-- **Stages 1, 2, 1b and 2b are complete.** Their reports are the record:
+- **Stages 1, 2, 1b, 2b, 1c and 2c are complete.** Their reports are the record:
   [stage_1_report.md](stage_1_report.md), [stage_2_report.md](stage_2_report.md),
-  [stage_1b_report.md](stage_1b_report.md), [stage_2b_report.md](stage_2b_report.md).
-  - At both scales, the best AME variant is ALiBi with the KV shift, at n = 8.
-  - Its `final_ce` is 3.1250 at h12 and 2.8594 at h16. Dense's best is 2.9824 at h12 and
-    2.7441 at h16.
+  [stage_1b_report.md](stage_1b_report.md), [stage_2b_report.md](stage_2b_report.md),
+  [stage_1c_report.md](stage_1c_report.md), [stage_2c_report.md](stage_2c_report.md).
+  [stage_runs.md](stage_runs.md) lists every run of the six stages, with its result,
+  config, commit and W&B run.
+  - At h12 and h16, the best AME variant is ALiBi with the KV shift, at n = 8. At h20,
+    the only variant trained, it is again best at n = 8.
+  - Its `final_ce` is 3.1250 at h12, 2.8594 at h16 and 2.5596 at h20. Dense's best is
+    2.9824 at h12 (n = 8), 2.7441 at h16 (n = 9) and 2.5059 at h20 (n = 9).
+  - So the gap, best against best, is +0.143 at h12, +0.115 at h16 and +0.054 at h20.
 - **Every Stage 1–2 run is on LEM.** All six configs were switched from entropy on
   2026-11-05, before the first submit, so that every run shares one hardware. The s/step
   figures in this plan are entropy's; the LEM smoke runs set LEM's baseline, which
@@ -47,8 +52,8 @@ It is there for reference only; nothing in it is scheduled.
 | **2** | AME with positional encoding, with the shift, and with both; which is best | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2_report.md` |
 | **1b** | Stage 1 at h16 and 8B tokens: a dense h16 baseline and the simplest AME h16, with a learning-rate grid for both | Done, 2026-11-06 | `ame_main` · `~/code/nano` | `stage_1b_report.md` |
 | **2b** | Stage 2 at h16 and 8B tokens | Done, 2026-11-07 | `ame_main` · `~/code/nano` | `stage_2b_report.md` |
-| **1c** | Dense h20 at 16B tokens on 4 GPUs, with a learning-rate grid. No AME arm | **Running** on LEM (moved from Helios on 2026-11-08), from 2026-11-08 | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
-| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | After Stage 1c; its n = 9 run goes alongside it, on LEM since 2026-11-08 | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
+| **1c** | Dense h20 at 16B tokens on 4 GPUs, with a learning-rate grid. No AME arm | Done, 2026-11-09, on LEM (moved from Helios on 2026-11-08) | `ame_main` · `~/code/nano` | `stage_1c_report.md` |
+| **2c** | The best AME variant (ALiBi with the KV shift) at h20 and 16B tokens, at dense's best n and n ± 1 | Done, 2026-11-10, on LEM | `ame_main` · `~/code/nano` | `stage_2c_report.md` |
 | **3** | Not written yet. It is decided from the results of Stages 1 and 2 | — | — | — |
 
 Rules for every stage:
@@ -679,8 +684,8 @@ S2c-PS is S2b-PS on Stage 1c's model, recipe and hardware:
 
   | Gap, PS − dense | h12, 4B | h16, 8B | h20, 16B |
   |---|---:|---:|---:|
-  | At n = 9 | +0.162 | +0.152 | ? |
-  | Best against best | +0.143, both at n = 8 | +0.115; dense's best was not bracketed | ? |
+  | At n = 9 | +0.162 | +0.152 | +0.070 |
+  | Best against best | +0.143, both at n = 8 | +0.115; dense's best was not bracketed | +0.054; AME at n = 8, dense at n = 9 ([stage_2c_report.md](stage_2c_report.md)) |
 
 - what the comparison does not match:
   - AME has 5.1× the parameters and does 0.95× the FLOPs per token;
