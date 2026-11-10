@@ -1,7 +1,8 @@
 # AME init follow-up: pkmf-scale `Linear`s and head under the old embedding (plan and log)
 
-**Status:** RUNNING, 2026-11-10: both runs submitted to LEM at 10:03-10:04 (jobs
-6295253 and 6295256) and pending. Maciej asked for them on 2026-11-10.
+**Status:** RUNNING, 2026-11-10: on entropy since 12:25 (moved from LEM; *Decisions*
+3). AME (job 37649) is done (*Results*, *Analysis*). Dense (37650) has run since 16:16
+and should end about 19:40. Maciej asked for them on 2026-11-10.
 Background:
 - [ame_init_embed_ablation.md](ame_init_embed_ablation.md), its *Analysis, step 1*;
 - [ame_bank_gates_stage2_report.md](ame_bank_gates_stage2_report.md).
@@ -146,8 +147,13 @@ one after the other. Each clone is under
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
-| `pkmflin_ame_h12` | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | | PENDING |
-| `pkmflin_dense_h12` | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | | PENDING |
+| `pkmflin_ame_h12`, LEM | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
+| `pkmflin_dense_h12`, LEM | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | 11-10 12:58 | CANCELLED while pending: moved to entropy |
+| `pkmflin_ame_h12`, entropy | 37649 | `ame_init_pkmflin_ame_h12_2026-11-10_12-24-57` | `x7tg7dpf` | h100a | 11-10 12:25 | 11-10 16:16 | COMPLETED, exit 0, 3 h 51 min |
+| `pkmflin_dense_h12`, entropy | 37650 | `ame_init_pkmflin_dense_h12_2026-11-10_12-25-28` | `6k0wn5s6` | h100a | 11-10 12:25 | | RUNNING since 16:16 |
+
+Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
+`/home/mstefaniak/llmrandom_cemetery/`.
 
 ### Checks
 
@@ -161,15 +167,73 @@ one after the other. Each clone is under
     *Checks*).
   - **Back at 11:24, after about 15 min.** Both jobs survived, still PENDING
     (Priority). The watchers were re-armed with the fix at 11:25.
+- **`pkmflin_ame_h12` on entropy, start, 11-10 12:33:** running on h100a since 12:25.
+  - Step 0 loss 10.875, about ln V (10.83), against `kf4q4t4s`'s 11.25. The old head's
+    larger logits start above ln V; the pkmf-scale head starts at it.
+  - Step-0 grad norm 0.446, against 2.223.
+  - s/step 3.348 (entropy's expected 3.36-3.38). No NaN and no spike; the grad-norm
+    max after step 100 is 0.36.
+  - **Early paired gap against `kf4q4t4s`, not a verdict:** +0.44 over steps 1-9,
+    +0.35 over 10-49, +0.72 over 50-99 and +0.80 over 100-108. The step-500 check
+    shows whether it closes.
+  - The LEM copy, 6295253, was cancelled at 12:35. The dense LEM copy, 6295256, stays
+    queued until 37650 starts on entropy.
+- **Next check: the end of training (Maciej, 11-10 12:40):** "check them at the end
+  of their training, there is no need for you to wake up more frequently".
+  - The step-500 check is dropped. One watcher waits for the end of all three entropy
+    AME jobs, `pkmflin_ame_h12` included, and another for dense (37650). Only a NaN
+    ends either earlier.
+  - So as not to wake at dense's start, its LEM copy 6295256 is cancelled now instead
+    of when 37650 starts. LEM's login node hung at 12:45-12:48, so a detached retry
+    cancels it once LEM answers. It checks that the job is still exactly
+    `ame_init_pkmflin_dense_h12` and PENDING.
+- **The dense LEM copy, 6295256, was cancelled at 12:58,** on the retry's second
+  attempt, with its name and PENDING state as expected.
+- **`pkmflin_ame_h12`, end, 11-10 16:31-16:45:** COMPLETED with exit 0 at 16:16. The
+  slurm log has final_ce and no error; the clone has the step-3814 checkpoint (13 GB).
+  - No spike. The grad-norm max after step 100 is 0.74, at step 119 (`kf4q4t4s`:
+    0.45, at step 142).
+  - 3.352 s/step; peak memory 70.6 GiB (`kf4q4t4s`: 70.4).
+- **`pkmflin_dense_h12`, start, 11-10 16:35:** running on h100a since 16:16, when
+  `pkmflin_ame_h12`'s GPU came free; W&B `6k0wn5s6`.
+  - Step 0 loss 10.875, against `x0xlqroj`'s 11.19; grad norm 0.449, against 2.378.
+  - 2.954 s/step (entropy's expected 2.95-2.97). No NaN and no spike; the grad-norm
+    max after step 100 is 0.62.
+  - **Early paired gap against `x0xlqroj`, not a verdict:** +0.37 over steps 0-99 and
+    +0.74 over steps 200-329. `oldemb_dense_h12` stood at +0.79 at step 500 and ended
+    at +0.27.
+  - Next check: its end, about 19:40.
 
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired gap, last 500 | Verdict |
 |---|---:|---|---:|---:|---|
-| `pkmflin_ame_h12` | | `kf4q4t4s` 3.0352 | | | |
-| `pkmflin_dense_h12` | | `x0xlqroj` 2.9824 | | | |
+| `pkmflin_ame_h12` (`x7tg7dpf`) | 3.1270 | `kf4q4t4s` 3.0352 | +0.0918 | +0.0988 | **Much worse.** Per quarter: +0.438, +0.177, +0.116, +0.100 |
+| `pkmflin_dense_h12` (`6k0wn5s6`) | | `x0xlqroj` 2.9824 | | | running |
 
 ### Analysis
+
+**AME: pkmf-scale `Linear`s and head cost +0.099, given σ = 0.01 banks.** That is
+the plan's "near +0.10" case. It confirms ame_init_embed_ablation.md's inference: the
+new head and `Linear`s cost about +0.10, cancelling the banks' gain (−0.105 in paired
+train loss).
+- **The gap closes, then levels off:** +0.54 over the first 100 steps, +0.116 in the
+  third quarter, +0.100 in the fourth and +0.099 over the last 500 steps.
+- **The cost is not the embedding's.** Both runs decay the old embedding, which
+  shrinks alike, from 23.6 to 10.9 (`kf4q4t4s`: 10.6).
+- **Block 0's attention output against the embedding** is about twice
+  `kf4q4t4s`'s all run:
+
+  | Run | Step 100 | Step 500 | Step 1,000 | Step 2,000 | Step 3,800 |
+  |---|---:|---:|---:|---:|---:|
+  | `pkmflin_ame_h12` | 1.0× | 1.2× | 1.3× | 1.4× | 1.3× |
+  | `kf4q4t4s` | 0.65× | 0.85× | 0.83× | 0.78× | 0.69× |
+
+- **Caveat: one learning rate.** The pair runs at n = 8, as asked. In
+  ame_init_embed_ablation.md's step 2, a model with the same pkmf-scale `Linear`s
+  (Xavier head and banks, old embedding undecayed) did best at n = 7, by −0.040
+  against its own n = 8. Part of this +0.099 may therefore be the learning rate, not
+  the init.
 
 ### Decisions and issues
 

@@ -1,8 +1,9 @@
 # AME init follow-up: the new init with the old embedding, then n ± 1 (plan and log)
 
 **Status:** RUNNING, 2026-11-10: step 1 and its extra arm are done (*Results*,
-*Analysis*). AME survived and dense did not, so step 2 is AME at n = 7 and 9, on
-entropy (moved from LEM at Maciej's request; *Decisions and issues*).
+*Analysis*). AME survived and dense did not, so step 2 is AME only, on entropy (moved
+from LEM at Maciej's request; *Decisions and issues*). Its n = 7 and 9 are done. n = 7
+is the best of 7-9, an edge, so the edge rule's n = 6 runs now.
 Background: [ame_init_exp.md](ame_init_exp.md), its Results and Analysis.
 
 **Question:** is the Xavier embedding the whole problem with the new init? If the new
@@ -212,12 +213,20 @@ from it only in:
 
 No missing keys; `check_point` passes.
 
+**Step 2's edge run, 2026-11-10:**
+[oldemb_ame_h12_n6.yaml](../../configs/ame_init/oldemb_ame_h12_n6.yaml), a copy of
+`oldemb_ame_h12_n7.yaml`, so on entropy too. Composed, it differs from n = 7 only in
+`trainer.learning_rate` (7 → 6), the W&B name, the Slurm job name and the run's own
+tag. No missing keys; `check_point` passes.
+
 ### Runs
 
 Step 1 was submitted from `~/code/nano-ame-init` at `7a060dd1` (configs plus this
 doc), with the plan's command, one `run_exp.py` after the other; the extra arm the
 same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
+Step 2 was moved to entropy at `0325e7dc` (*Decisions and issues*); its clones there
+are under `/home/mstefaniak/llmrandom_cemetery/`.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
@@ -225,8 +234,10 @@ same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 | `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | 11-09 20:54 | COMPLETED, exit 0, 3 h 47 min |
 | `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | `4d5yuylb` | r10-7 | 11-09 14:18 | 11-10 01:55 | COMPLETED, exit 0, 4 h 17 min |
 | `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | `4oj9ysgv` | r14-4 | 11-09 14:19 | 11-10 01:21 | COMPLETED, exit 0, 3 h 43 min |
-| `oldemb_ame_h12_n7` | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | | PENDING |
-| `oldemb_ame_h12_n9` | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | | PENDING |
+| `oldemb_ame_h12_n7`, LEM | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
+| `oldemb_ame_h12_n9`, LEM | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
+| `oldemb_ame_h12_n7`, entropy | 37646 | `ame_init_oldemb_ame_h12_n7_2026-11-10_12-23-57` | `sho4z0q5` | h100a | 11-10 12:24 | 11-10 16:19 | COMPLETED, exit 0, 3 h 55 min |
+| `oldemb_ame_h12_n9`, entropy | 37648 | `ame_init_oldemb_ame_h12_n9_2026-11-10_12-24-27` | `s7r0rfv4` | h100a | 11-10 12:24 | 11-10 16:19 | COMPLETED, exit 0, 3 h 54 min |
 
 ### Checks
 
@@ -291,6 +302,47 @@ same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
     controller reads as unknown.
   - **Back at 11:24, after about 15 min.** Both step-2 jobs survived, still PENDING
     (Priority). The watchers were re-armed with the fix at 11:25.
+- **Step 2 on entropy, start, 11-10 12:32-12:34:** both running on h100a since 12:24
+  (they moved from LEM: *Decisions and issues*).
+  - **Same init and data across the clusters:** both match `wbq7g4i8` (n = 8, LEM)
+    at step 0, before any update. Loss 10.8125 and grad norm 0.439, both identical.
+  - s/step 3.400 (n = 7) and 3.389 (n = 9), as expected on entropy (3.36-3.38).
+    LEM's n = 8 ran at 3.775.
+  - No NaN and no spike. The grad-norm max after step 100 is 0.59 (n = 7) and 0.76
+    (n = 9).
+  - Early paired gaps against n = 8, not a verdict:
+    - n = 7: −0.06 over steps 100-128.
+    - n = 9: −0.14 over steps 100-113, after starting +0.63 behind over steps 1-9
+      (its lower LR).
+  - Peak memory is logged only at the end of training, so it is checked then.
+  - The LEM copies, 6294683 and 6294685, were cancelled at 12:35 after checking their
+    names.
+- **Next check: the end of training (Maciej, 11-10 12:40):** "check them at the end
+  of their training, there is no need for you to wake up more frequently". The plan's
+  step-500 and mid-run checks are dropped. One watcher waits until all three entropy
+  AME jobs have left the queue (step 2's pair and `pkmflin_ame_h12`), polling every
+  10 min. Only a NaN ends it earlier; spikes are read at the end.
+- **Step 2, end, 11-10 16:31-16:45:** both COMPLETED with exit 0 at 16:19. Each
+  slurm log has final_ce and no error, and each clone has the step-3814 checkpoint
+  (13 GB).
+
+  | Run | Spikes | Grad-norm max after step 100 | s/step (LEM reference) | Peak memory |
+  |---|---|---|---|---|
+  | `oldemb_ame_h12_n7` | none | 0.59, step 109 | 3.400 (3.746) | 70.4 GiB |
+  | `oldemb_ame_h12_n9` | none | 0.76, step 105 | 3.390 (3.746) | 70.6 GiB |
+
+- **The cluster doesn't flatter entropy runs.** The three same-seed entropy runs of
+  `doi36p8k`'s config (*Decisions and issues*, the move) were paired against it over
+  the last 500 steps (W&B project `nano-ame-parity`):
+
+  | Run | Paired gap vs `doi36p8k`, last 500 |
+  |---|---:|
+  | `u1zpx7lt` | +0.0157 |
+  | `s65ebe41` | +0.0002 |
+  | `w4hmw00o` | +0.0053 |
+
+  Entropy runs come out level with LEM's or slightly behind, never ahead. A gain
+  measured on entropy against a LEM run is therefore no cluster artifact.
 
 ### Results
 
@@ -308,12 +360,29 @@ same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 | `oldinit_embnowd_ame_h12` (`4d5yuylb`) | 3.1377 | 3.1250 | +0.0127 | +0.0117 | +0.0001 | **Tie**, on the behind side (+0.010 to +0.038 per quarter): removing the decay gains nothing |
 | `oldinit_embnowd_dense_h12` (`4oj9ysgv`) | 3.0186 | 2.9824 | +0.0361 | +0.0392 | −0.2325 | **Slightly worse** (outside ±0.022): removing the decay costs dense +0.04 |
 
-**Step 2:**
+**Step 2 (AME):** n = 8 is step 1's run, on LEM; the others ran on entropy. The
+reference is `doi36p8k`, final_ce 3.1250.
 
-| Run | n | final_ce | Paired gap vs reference, last 500 | Verdict |
-|---|---:|---:|---:|---|
+| Run | n | final_ce | Paired gap vs reference, last 500 | Paired gap vs n = 8, last 500 | Verdict |
+|---|---:|---:|---:|---:|---|
+| `oldemb_ame_h12_n7` (`sho4z0q5`) | 7 | 3.1084 | −0.0285 | −0.0401 | **Win** (beyond −0.022). Per quarter: −0.056, +0.013, −0.013, −0.027 |
+| `oldemb_ame_h12` (`wbq7g4i8`) | 8 | 3.1465 | +0.0116 | — | Tie (step 1) |
+| `oldemb_ame_h12_n9` (`s7r0rfv4`) | 9 | 3.1348 | −0.0055 | −0.0171 | **Tie.** Per quarter: −0.100, −0.033, −0.025, −0.009 |
+| `oldemb_ame_h12_n6` | 6 | | | | running |
 
-Best n per surviving model: —.
+Block 0's attention output against the embedding:
+
+| Run | Step 100 | Step 500 | Step 1,000 | Step 3,800 |
+|---|---:|---:|---:|---:|
+| n = 7 | 2.1× | 1.1× | 1.1× | 0.83× |
+| n = 8 | 1.2× | 0.94× | 1.0× | 0.83× |
+| n = 9 | 0.25× | 0.42× | 0.45× | 0.42× |
+| `doi36p8k`, reference | 0.29× | 0.48× | 0.44× | 0.39× |
+
+No n drowns the embedding, which stays at 24-25 undecayed.
+
+Best n per surviving model: AME, n = 7 of 7-9. That is an edge, so n = 6 runs
+(*Decisions and issues*), and the best n waits for it.
 
 ### Analysis, step 1
 
@@ -429,3 +498,8 @@ chain.
   - Entropy's `/home` has a 120 GB quota shared by every job, with 17 GB in use. The
     final checkpoints add about 13 GB per AME run and 2 GB per dense run.
   - The LEM jobs are cancelled once their entropy copies have started.
+- **Step 2's edge run, 2026-11-10, by the plan's rule:** the best of n = 7, 8 and 9
+  is n = 7, an edge, so one more run goes a step further, to n = 6.
+  - It runs on entropy, as n = 7 and 9 did, so the call between 6 and 7 stays on one
+    cluster.
+  - The plan allows one edge run per model, so step 2 ends with it, whichever n wins.
