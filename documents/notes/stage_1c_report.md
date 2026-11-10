@@ -2,7 +2,8 @@
 
 **Status: complete (2026-11-09 07:29). Dense h20's best learning rate is n_d\* = 9, inside
 the grid: `final_ce` 2.5059, against 2.5098 at n = 10 and 2.8252 at n = 8
-([Result](#result)). So Stage 2c trains n = 8, 9 and 10. The runs moved from Helios to LEM
+([Result](#result)). So Stage 2c trains n = 8, 9 and 10, plus n = 7 once AME's best
+landed on n = 8 ([stage_2c_report.md](stage_2c_report.md)). The runs moved from Helios to LEM
 at 18:16 on 2026-11-08, at Maciej's instruction: Helios goes down for maintenance, with its
 GPUs off until the end of the month (decision 6). No Helios job had started. The grid ran
 on LEM from 18:50 on 2026-11-08 to 07:24 on 2026-11-09. n = 11, started early while n = 10
@@ -23,7 +24,7 @@ serve both stages, and are recorded here only.
 | Learning rates trained | n = 8, 9, 10 |
 | `final_ce` | 2.8252 / **2.5059** / 2.5098 |
 | Best by the plan's rule (lowest `final_ce`) | **n = 9**, inside the grid |
-| **n_d\***, which sets Stage 2c's grid | **9**, so Stage 2c trains n = 8, 9 and 10 |
+| **n_d\***, which sets Stage 2c's grid | **9**, so Stage 2c trains n = 8, 9 and 10, and n = 7 past the edge ([stage_2c_report.md](stage_2c_report.md)) |
 | n = 9's margin over n = 10 | 0.0039 in `final_ce`; 0.0031 in paired train loss over the last 500 steps |
 
 - **n = 9 won in the last sixth of the run.** n = 10 led by 0.010–0.014 from 24% to 57% of
