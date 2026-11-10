@@ -215,7 +215,7 @@ No missing keys; `check_point` passes.
 
 Step 1 was submitted from `~/code/nano-ame-init` at `7a060dd1` (configs plus this
 doc), with the plan's command, one `run_exp.py` after the other; the extra arm the
-same way at `e5fe9561`. Each clone is under
+same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
@@ -224,6 +224,8 @@ same way at `e5fe9561`. Each clone is under
 | `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | 11-09 20:54 | COMPLETED, exit 0, 3 h 47 min |
 | `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | `4d5yuylb` | r10-7 | 11-09 14:18 | 11-10 01:55 | COMPLETED, exit 0, 4 h 17 min |
 | `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | `4oj9ysgv` | r14-4 | 11-09 14:19 | 11-10 01:21 | COMPLETED, exit 0, 3 h 43 min |
+| `oldemb_ame_h12_n7` | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | | PENDING |
+| `oldemb_ame_h12_n9` | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | | PENDING |
 
 ### Checks
 
@@ -262,7 +264,7 @@ same way at `e5fe9561`. Each clone is under
   it, before the dense run's spike at about 18:40. The other three runs started
   (19:41, 21:38, 21:38) and finished unwatched. All four completed, so the checks
   below were done after the fact.
-- **End checks, all four runs, 11-10 08:20-08:40:** each slurm log has final_ce and
+- **End checks, all four runs, 11-10 08:17-08:24:** each slurm log has final_ce and
   the step-3814 checkpoint (13 GB for AME, 2.1 GB for dense), with no errors.
 
   | Run | Spikes | Grad-norm max after step 100 | s/step (reference) | Peak memory |
@@ -394,3 +396,8 @@ chain.
   because it didn't survive: its n = 8 gap is twelve times the threshold. The extra
   arm decides nothing here, as the plan says. It didn't beat the reference, so the
   AME survival gap carries no decay gain.
+- **A separate pair, 2026-11-10, Maciej's request:** pkmf-scale `Linear`s and head
+  on top of `kf4q4t4s` (AME, σ = 0.01 banks) and of `x0xlqroj` (dense), with the old
+  embedding decayed. It tests this doc's inference that the new head and `Linear`s
+  cost about +0.10 in AME. It is outside this plan and decides nothing here. Plan
+  and log: [ame_init_pkmf_linears.md](ame_init_pkmf_linears.md).
