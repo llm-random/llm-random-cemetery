@@ -1,7 +1,7 @@
 # AME init follow-up: the new init with the old embedding, then n ± 1 (plan and log)
 
-**Status:** RUNNING, 2026-11-09: step 1 and its extra arm are on LEM; step 2 waits
-on step 1.
+**Status:** RUNNING, 2026-11-10: step 1 and its extra arm are done (*Results*,
+*Analysis*). AME survived and dense did not, so step 2 is AME at n = 7 and 9, on LEM.
 Background: [ame_init_exp.md](ame_init_exp.md), its Results and Analysis.
 
 **Question:** is the Xavier embedding the whole problem with the new init? If the new
@@ -201,6 +201,16 @@ init doesn't read n).
   reference's (dense 111 of 111, AME 171 of 171).
 - **Optimizer groups:** the only difference is `embedding.weight`, decay 0.1 → 0.
 
+**Step 2, 2026-11-10:**
+[oldemb_ame_h12_n7.yaml](../../configs/ame_init/oldemb_ame_h12_n7.yaml) and
+[oldemb_ame_h12_n9.yaml](../../configs/ame_init/oldemb_ame_h12_n9.yaml). Each is
+`oldemb_ame_h12.yaml` with a new header. Composed as `run_exp.py` does, each differs
+from it only in:
+- `trainer.learning_rate`: 8 → 7, and 8 → 9;
+- the W&B name, the Slurm job name and the tags (step-2 tag `ame_init_oldemb_step2`).
+
+No missing keys; `check_point` passes.
+
 ### Runs
 
 Step 1 was submitted from `~/code/nano-ame-init` at `7a060dd1` (configs plus this
@@ -210,10 +220,10 @@ same way at `e5fe9561`. Each clone is under
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
-| `oldemb_ame_h12` | 6287404 | `ame_init_oldemb_ame_h12_2026-11-09_12-14-39` | | | 11-09 12:14 | | PENDING |
-| `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | | RUNNING since 17:07 |
-| `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | | | 11-09 14:18 | | PENDING |
-| `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | | | 11-09 14:19 | | PENDING |
+| `oldemb_ame_h12` | 6287404 | `ame_init_oldemb_ame_h12_2026-11-09_12-14-39` | `wbq7g4i8` | r18-7 | 11-09 12:14 | 11-09 23:57 | COMPLETED, exit 0, 4 h 15 min |
+| `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | 11-09 20:54 | COMPLETED, exit 0, 3 h 47 min |
+| `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | `4d5yuylb` | r10-7 | 11-09 14:18 | 11-10 01:55 | COMPLETED, exit 0, 4 h 17 min |
+| `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | `4oj9ysgv` | r14-4 | 11-09 14:19 | 11-10 01:21 | COMPLETED, exit 0, 3 h 43 min |
 
 ### Checks
 
@@ -248,6 +258,26 @@ same way at `e5fe9561`. Each clone is under
   - **Provisional read:** for dense, the old embedding is far better than Xavier,
     but at step 500 it is not the whole problem. The verdict waits for the end:
     `355fr6rn`'s gap narrowed from +2.13 to +1.26 over its run.
+- **Unwatched from the evening of 11-09:** the session ended, and its watchers with
+  it, before the dense run's spike at about 18:40. The other three runs started
+  (19:41, 21:38, 21:38) and finished unwatched. All four completed, so the checks
+  below were done after the fact.
+- **End checks, all four runs, 11-10 08:20-08:40:** each slurm log has final_ce and
+  the step-3814 checkpoint (13 GB for AME, 2.1 GB for dense), with no errors.
+
+  | Run | Spikes | Grad-norm max after step 100 | s/step (reference) | Peak memory |
+  |---|---|---|---|---|
+  | `oldemb_ame_h12` | none | 0.96, step 103 | 3.768 (3.746) | 70.6 GiB |
+  | `oldemb_dense_h12` | 35 steps, 1,562-1,597 | 3.54, step 1,573 | 3.277 (3.272) | 47.0 GiB |
+  | `oldinit_embnowd_ame_h12` | none | 0.45, step 159 | 3.781 (3.746) | 70.4 GiB |
+  | `oldinit_embnowd_dense_h12` | none | 0.56, step 131 | 3.255 (3.272) | 47.0 GiB |
+
+  - **The dense spike:**
+    - The loss rose from 3.84 at step 1,560 to 6.38 at step 1,580; the gap to
+      `x0xlqroj` peaked at +2.98. It was back to +0.64 by step 1,660.
+    - Just before it, the gap was +0.38 to +0.45. Over the last two quarters it is
+      +0.32 and +0.28, so the step-1 verdict doesn't hinge on the spike.
+    - The reference itself spiked at steps 194-203.
 
 ### Results
 
@@ -255,15 +285,15 @@ same way at `e5fe9561`. Each clone is under
 
 | Run | final_ce | Reference | Δ final_ce | Paired gap vs reference, last 500 | Paired gap vs the `ame_init` run, last 500 | Verdict | Survives |
 |---|---:|---:|---:|---:|---:|---|---|
-| `oldemb_ame_h12` | | 3.1250 | | | (vs `ycwqa7k9`) | | |
-| `oldemb_dense_h12` | | 2.9824 | | | (vs `355fr6rn`) | | |
+| `oldemb_ame_h12` (`wbq7g4i8`) | 3.1465 | 3.1250 | +0.0215 | +0.0116 | −0.0027 (vs `ycwqa7k9`) | **Tie** (inside ±0.022), on the behind side: +0.007 to +0.029 per quarter | **Yes** |
+| `oldemb_dense_h12` (`l0vosr68`) | 3.2324 | 2.9824 | +0.2500 | +0.2717 | −0.9992 (vs `355fr6rn`) | **Much worse.** The gap narrows from +0.81 (first quarter) to +0.28 (last); one spike at steps 1,562-1,597 | **No** |
 
 **Step 1, extra arm:**
 
 | Run | final_ce | Reference | Δ final_ce | Paired gap vs reference, last 500 | Paired gap vs `oldemb_<model>_h12`, last 500 | Verdict |
 |---|---:|---:|---:|---:|---:|---|
-| `oldinit_embnowd_ame_h12` | | 3.1250 | | | | |
-| `oldinit_embnowd_dense_h12` | | 2.9824 | | | | |
+| `oldinit_embnowd_ame_h12` (`4d5yuylb`) | 3.1377 | 3.1250 | +0.0127 | +0.0117 | +0.0001 | **Tie**, on the behind side (+0.010 to +0.038 per quarter): removing the decay gains nothing |
+| `oldinit_embnowd_dense_h12` (`4oj9ysgv`) | 3.0186 | 2.9824 | +0.0361 | +0.0392 | −0.2325 | **Slightly worse** (outside ±0.022): removing the decay costs dense +0.04 |
 
 **Step 2:**
 
@@ -271,6 +301,58 @@ same way at `e5fe9561`. Each clone is under
 |---|---:|---:|---:|---|
 
 Best n per surviving model: —.
+
+### Analysis, step 1
+
+**The bundle, decomposed.** Each link is a same-seed pair that changes one thing.
+The values are last-500 paired train-loss gaps, which add up exactly along the
+chain.
+
+| Link | What changes | Dense | AME |
+|---|---|---:|---:|
+| reference → `oldinit_embnowd` | the embedding's decay, 0.1 → 0 | +0.0392 | +0.0117 |
+| `oldinit_embnowd` → `oldemb` | the head, `Linear`s and AME's banks, old → new init | +0.2325 | −0.0001 |
+| `oldemb` → the `ame_init` run | the embedding draw, old → Xavier | +0.9992 | +0.0027 |
+| **reference → the `ame_init` run** | **the whole bundle** | **+1.2709** | **+0.0143** |
+
+- **Dense, step 1 verdict:** still clearly worse, so the embedding is not the whole
+  problem. Of the bundle's +1.271:
+  - the Xavier draw is +0.999;
+  - the new head and `Linear`s are +0.233;
+  - removing the decay is +0.039.
+- **AME, step 1 verdict:** a tie. The embedding draw never mattered for AME
+  (+0.003), and the head, `Linear`s and banks are neutral together (−0.000). The
+  bundle's whole +0.014 is the removed decay (+0.012), itself inside the tie floor.
+- **The decay hypothesis (Maciej's) is not supported:**
+  - Removing the embedding's decay costs dense +0.039 (outside ±0.022) and AME +0.012
+    (a tie).
+  - The decay shrinks the old embedding to 45% of its initial norm over the run. That
+    helps a little or not at all; it never hurts.
+- **AME against bank-gates.** σ = 0.01 banks alone beat `doi36p8k` by −0.105 in paired
+  train loss over steps 3,434-3,814 (−0.0895 in final CE). Here, the new head,
+  `Linear`s and Xavier banks together come to −0.000 against the old ones, with
+  neither embedding decayed.
+  - If the banks' gain carries over, the new head and `Linear`s cost about +0.10 and
+    cancel it: by the plan's rule, "well above −0.09: they cost".
+  - This is an inference: no run isolates the head and `Linear`s.
+- **Block 0's attention output against the embedding:**
+
+  | Run | Step 100 | Step 500 | Step 1,000 | Step 3,800 |
+  |---|---:|---:|---:|---:|
+  | `x0xlqroj`, dense reference | 0.25× | 0.29× | 0.24× | 0.15× |
+  | `oldinit_embnowd_dense_h12` | 0.78× | 0.27× | 0.22× | 0.13× |
+  | `oldemb_dense_h12` | 8.7× | 3.2× | 0.85× | 0.32× |
+  | `355fr6rn`, Xavier embedding | 1,750× | 1,220× | 970× | 108× |
+  | `doi36p8k`, AME reference | 0.29× | 0.48× | 0.44× | 0.39× |
+  | `oldinit_embnowd_ame_h12` | 0.27× | 0.44× | 0.41× | 0.33× |
+  | `oldemb_ame_h12` | 1.2× | 0.94× | 1.0× | 0.83× |
+  | `ycwqa7k9`, Xavier embedding | 1,915× | 295× | 93× | 14× |
+
+  - With the old init and no decay, both models track their references. So the
+    excess in the `oldemb` runs comes from the new head and `Linear`s.
+  - The excess is large early in dense (8.7× at step 100) and fades by step 1,000,
+    yet dense keeps a +0.27 gap. In AME it is mild (about 1×).
+  - The undecayed embeddings stay near 24 all run; the references' fall to 10.7-10.9.
 
 ### Decisions and issues
 
@@ -304,3 +386,11 @@ Best n per surviving model: —.
   the old draw without decay, on the new init. So the new arm is the old init with
   only the embedding's decay removed: a one-change test of the decay on the tuned
   reference. It is *Step 1's extra arm*, above.
+- **Survival, 2026-11-10, by the plan's rule** (last-500 paired gap against the
+  reference below +0.022):
+  - `oldemb_ame_h12`: +0.0116, so it **survives**;
+  - `oldemb_dense_h12`: +0.2717, so it **does not**.
+- **Step 2 runs AME only,** at n = 7 and n = 9. There is no step 2 for dense
+  because it didn't survive: its n = 8 gap is twelve times the threshold. The extra
+  arm decides nothing here, as the plan says. It didn't beat the reference, so the
+  AME survival gap carries no decay gain.
