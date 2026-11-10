@@ -6,7 +6,10 @@
 # A copy of configs/stage_2/ame_h12_pe_shift.yaml. Only these differ:
 #   - common.attention.document_mask: true (src/core/document_mask.py);
 #   - trainer.learning_rate: 8, S2-PS's best n (stage_2_report.md);
-#   - the 7 h limit and the r16-11 exclusion every LEM run now gets;
+#   - entropy's h100a, 1 GPU, 7 h limit: moved from LEM on 2026-11-10, where
+#     370 jobs ranked ahead. The baseline ran on LEM; entropy's FineWeb copy
+#     is LEM's (ame_efficiency_parity_report.md, item 6), so the data order
+#     is the same;
 #   - the run name (no dot, so run_exp.py's tmux step works) and tags.
 # Banks at the code defaults, as the baseline: N(0, 1) init, the backbone's
 # LR (ame_main has no bank_lr_ratio).
@@ -16,7 +19,7 @@
 defaults:
   - /base_schema
   - ../_misc@_here_: default
-  - ../_cluster@_here_: lem
+  - ../_cluster@_here_: entropy
   - ../_model/h_balanced@_here_: h12
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -57,10 +60,9 @@ trainer:
 
 infrastructure:
   slurm:
-    gres: gpu:hopper:1
+    gres: gpu:h100:1
     job-name: dm_ame
-    time: "0-07:00:00" # S2-PS trained in 4 h; the mask adds a where per score
-    exclude: r16-11 # bad GPU (2026-11-06)
+    time: "0-07:00:00" # S2-PS trained in 4 h on LEM; the mask adds a where per score
   metric_logger:
     project_name: nano-ame
     name: dm_ame_h12_ps_lr8

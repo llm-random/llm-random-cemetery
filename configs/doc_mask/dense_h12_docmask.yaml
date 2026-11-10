@@ -8,7 +8,10 @@
 #     (stage_1_report.md);
 #   - /base_schema in the defaults, as every single-run config has (the grid
 #     file left it out only because the schema rejects a ^ key);
-#   - the 7 h limit and the r16-11 exclusion every LEM run now gets;
+#   - entropy's h100a, 1 GPU, 7 h limit: moved from LEM on 2026-11-10, where
+#     370 jobs ranked ahead. The baseline ran on LEM; entropy's FineWeb copy
+#     is LEM's (ame_efficiency_parity_report.md, item 6), so the data order
+#     is the same;
 #   - the run name and tags.
 # Baseline: S1-D at n = 8, W&B x0xlqroj (job 6252398_0), final_ce 2.9824: the
 # same seed, data order, steps and schedule, so the two pair step by step.
@@ -16,7 +19,7 @@
 defaults:
   - /base_schema
   - ../_misc@_here_: default
-  - ../_cluster@_here_: lem
+  - ../_cluster@_here_: entropy
   - ../_model/h_balanced@_here_: h12
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -54,10 +57,9 @@ trainer:
 
 infrastructure:
   slurm:
-    gres: gpu:hopper:1
+    gres: gpu:h100:1
     job-name: dm_dense
-    time: "0-07:00:00" # S1-D trained in 3.5 h; flex replaces flash here, unmeasured
-    exclude: r16-11 # bad GPU (2026-11-06)
+    time: "0-07:00:00" # S1-D trained in 3.5 h on LEM; flex replaces flash here, unmeasured
   metric_logger:
     project_name: nano-ame
     name: dm_dense_h12_lr8
