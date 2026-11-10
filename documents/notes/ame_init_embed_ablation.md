@@ -227,10 +227,10 @@ are under `/home/mstefaniak/llmrandom_cemetery/`.
 | `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | 11-09 20:54 | COMPLETED, exit 0, 3 h 47 min |
 | `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | `4d5yuylb` | r10-7 | 11-09 14:18 | 11-10 01:55 | COMPLETED, exit 0, 4 h 17 min |
 | `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | `4oj9ysgv` | r14-4 | 11-09 14:19 | 11-10 01:21 | COMPLETED, exit 0, 3 h 43 min |
-| `oldemb_ame_h12_n7`, LEM | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | | PENDING; moved to entropy, to be cancelled |
-| `oldemb_ame_h12_n9`, LEM | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | | PENDING; moved to entropy, to be cancelled |
-| `oldemb_ame_h12_n7`, entropy | 37646 | `ame_init_oldemb_ame_h12_n7_2026-11-10_12-23-57` | | h100a | 11-10 12:24 | | RUNNING since 12:24 |
-| `oldemb_ame_h12_n9`, entropy | 37648 | `ame_init_oldemb_ame_h12_n9_2026-11-10_12-24-27` | | h100a | 11-10 12:24 | | RUNNING since 12:24 |
+| `oldemb_ame_h12_n7`, LEM | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
+| `oldemb_ame_h12_n9`, LEM | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
+| `oldemb_ame_h12_n7`, entropy | 37646 | `ame_init_oldemb_ame_h12_n7_2026-11-10_12-23-57` | `sho4z0q5` | h100a | 11-10 12:24 | | RUNNING since 12:24 |
+| `oldemb_ame_h12_n9`, entropy | 37648 | `ame_init_oldemb_ame_h12_n9_2026-11-10_12-24-27` | `s7r0rfv4` | h100a | 11-10 12:24 | | RUNNING since 12:24 |
 
 ### Checks
 
@@ -295,6 +295,21 @@ are under `/home/mstefaniak/llmrandom_cemetery/`.
     controller reads as unknown.
   - **Back at 11:24, after about 15 min.** Both step-2 jobs survived, still PENDING
     (Priority). The watchers were re-armed with the fix at 11:25.
+- **Step 2 on entropy, start, 11-10 12:32-12:34:** both running on h100a since 12:24
+  (they moved from LEM: *Decisions and issues*).
+  - **Same init and data across the clusters:** both match `wbq7g4i8` (n = 8, LEM)
+    at step 0, before any update. Loss 10.8125 and grad norm 0.439, both identical.
+  - s/step 3.400 (n = 7) and 3.389 (n = 9), as expected on entropy (3.36-3.38).
+    LEM's n = 8 ran at 3.775.
+  - No NaN and no spike. The grad-norm max after step 100 is 0.59 (n = 7) and 0.76
+    (n = 9).
+  - Early paired gaps against n = 8, not a verdict:
+    - n = 7: −0.06 over steps 100-128.
+    - n = 9: −0.14 over steps 100-113, after starting +0.63 behind over steps 1-9
+      (its lower LR).
+  - Peak memory is logged only at the end of training, so it is checked then.
+  - The LEM copies, 6294683 and 6294685, were cancelled at 12:35 after checking their
+    names.
 
 ### Results
 

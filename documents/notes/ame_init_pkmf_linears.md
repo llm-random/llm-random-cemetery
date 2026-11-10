@@ -147,9 +147,9 @@ one after the other. Each clone is under
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
-| `pkmflin_ame_h12`, LEM | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | | PENDING; moved to entropy, to be cancelled |
+| `pkmflin_ame_h12`, LEM | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
 | `pkmflin_dense_h12`, LEM | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | | PENDING; moved to entropy, to be cancelled |
-| `pkmflin_ame_h12`, entropy | 37649 | `ame_init_pkmflin_ame_h12_2026-11-10_12-24-57` | | h100a | 11-10 12:25 | | RUNNING since 12:25 |
+| `pkmflin_ame_h12`, entropy | 37649 | `ame_init_pkmflin_ame_h12_2026-11-10_12-24-57` | `x7tg7dpf` | h100a | 11-10 12:25 | | RUNNING since 12:25 |
 | `pkmflin_dense_h12`, entropy | 37650 | `ame_init_pkmflin_dense_h12_2026-11-10_12-25-28` | | | 11-10 12:25 | | PENDING (Resources): all 8 GPUs busy |
 
 Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
@@ -167,6 +167,17 @@ Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
     *Checks*).
   - **Back at 11:24, after about 15 min.** Both jobs survived, still PENDING
     (Priority). The watchers were re-armed with the fix at 11:25.
+- **`pkmflin_ame_h12` on entropy, start, 11-10 12:33:** running on h100a since 12:25.
+  - Step 0 loss 10.875, about ln V (10.83), against `kf4q4t4s`'s 11.25. The old head's
+    larger logits start above ln V; the pkmf-scale head starts at it.
+  - Step-0 grad norm 0.446, against 2.223.
+  - s/step 3.348 (entropy's expected 3.36-3.38). No NaN and no spike; the grad-norm
+    max after step 100 is 0.36.
+  - **Early paired gap against `kf4q4t4s`, not a verdict:** +0.44 over steps 1-9,
+    +0.35 over 10-49, +0.72 over 50-99 and +0.80 over 100-108. The step-500 check
+    shows whether it closes.
+  - The LEM copy, 6295253, was cancelled at 12:35. The dense LEM copy, 6295256, stays
+    queued until 37650 starts on entropy.
 
 ### Results
 
