@@ -158,7 +158,8 @@ one after the other. Each clone is under
     queue": a watcher bug that read a failed `squeue` as every job gone.
   - Fixed: the watcher accepts only rc=0 (details in ame_init_embed_ablation.md,
     *Checks*).
-  - The jobs' state is unknown until the controller answers; a poll waits for it.
+  - **Back at 11:24, after about 15 min.** Both jobs survived, still PENDING
+    (Priority). The watchers were re-armed with the fix at 11:25.
 
 ### Results
 

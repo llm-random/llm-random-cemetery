@@ -288,7 +288,8 @@ same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
     as every job gone.
   - Fixed: it now queries by user and accepts only rc=0, so an unreachable
     controller reads as unknown.
-  - The jobs' state is unknown until the controller answers; a poll waits for it.
+  - **Back at 11:24, after about 15 min.** Both step-2 jobs survived, still PENDING
+    (Priority). The watchers were re-armed with the fix at 11:25.
 
 ### Results
 
