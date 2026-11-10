@@ -1,0 +1,81 @@
+# AME init follow-up (documents/notes/ame_init_embed_ablation.md), step 2, run
+# oldemb_ame_h12_n9: oldemb_ame_h12.yaml (step 1, n = 8; it survived step 1 with a
+# last-500 paired gap of +0.0116 against doi36p8k) at n = 9. Only the learning rate
+# and the names differ from it; the seed is the same (123).
+#
+# S2-PS, AME with the KV shift and ALiBi, h12, 4B tokens, under the new init defaults
+# of branch ame_initialization except the embedding: the old embedding draw, a cut
+# N(0, 1), undecayed; Xavier head and banks; pkmf's sqrt(0.1 / fan_in) Linears.
+# Reference: doi36p8k (old init, n = 8), final_ce 3.1250.
+# Node r16-11 is excluded at submit with +infrastructure.slurm.exclude=r16-11.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # S2-PS: the implemented ALiBi ladder and the KV shift.
+  attention:
+    type: ame
+    ame:
+      shift: true
+
+model:
+  embedding:
+    # The one change from ame_h12.yaml: the old embedding draw, N(0, 1) cut at
+    # +-2 (std 0.88), as ame_main's base.yaml. The head, banks and Linears keep the
+    # new init, and the embedding stays undecayed: on this branch that exemption is a
+    # code attribute (TransformerEmbedding.no_weight_decay_parameters), not an init.
+    init_fn:
+      _target_: src.core.model.trunc_normal_
+      _partial_: true
+
+compile_blocks_full: true
+
+trainer:
+  # As S2-PS: micro-batch 32 x 16, Tier 2 banks (fp32 master, bf16 forward copy),
+  # no FSDP2 so AME's readouts are logged, autocast bf16.
+  gradient_accumulation_steps: 16
+  mem_parallel_size: 1
+  distributed: null
+  autocast_bf16: true
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks and scalars and, on this branch,
+  #     the token embedding are exempt);
+  #   - cosine schedule to 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 9 # n = 9, LR = 2^-9; step 2's grid point (step 1 ran n = 8)
+  scheduler:
+    warmup_steps: 38
+  count_token_updates: true
+  checkpoint:
+    save:
+      # Only the final checkpoint (interval -1), in the job's cemetery clone under
+      # checkpoint/<job id>/0/step_3814/, with token_counts.pt beside it.
+      path: checkpoint
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: ame_init_oldemb_ame_h12_n9
+    time: "0-07:00:00"
+  metric_logger:
+    project_name: nano-ame
+    name: ame_init_oldemb_ame_h12_n9
+    tags:
+      - ame
+      - h12
+      - ame_init
+      - ame_init_oldemb
+      - ame_init_oldemb_step2
+      - ame_init_oldemb_ame_h12_n9
