@@ -1,10 +1,11 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 21:40): AME done: the mask lowers `final_ce` by 0.017 (3.1084 against
-3.1250) and the paired train loss by 0.016, a steady gain but inside the 0.022 tie band
-(Results). Dense (job 37695, W&B `k3xx6w71`) trains since 19:38, expected end about
-23:20. Both from `doc_mask` 3974addd; the first entropy pair died at its first eval and
-was fixed (Log 16:27-17:12).** The configs and the code are on branch `doc_mask`, not on
+**Status (2026-11-10 23:35): done. Document masking helps both methods by about 0.02
+nats at h12 and 4B tokens: AME `final_ce` −0.017 (3.1084 against 3.1250), dense −0.019
+(2.9639 against 2.9824); paired train loss −0.016 and −0.020. Each gain is under its tie
+threshold, and the AME − dense gap is unchanged (+0.143 without, +0.145 with), so the
+unmasked comparison stands (Results). Runs from `doc_mask` 3974addd, after a fix to the
+compiled eval path (Log 16:27-17:12).** The configs and the code are on branch `doc_mask`, not on
 `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
@@ -126,7 +127,16 @@ Numbers from `documents/scripts/doc_mask_results.py <run> <baseline>`.
 | Arm | Masked run | `final_ce` masked / baseline | Δ `final_ce` | Paired gap, last 500 steps | Paired gap by part | s/step masked / baseline |
 |---|---|---:|---:|---:|---|---:|
 | AME (S2-PS) | [`j6wxx6h2`](https://wandb.ai/ideas_cv/nano-ame/runs/j6wxx6h2) vs `doi36p8k` | 3.1084 / 3.1250 | **−0.0166** | **−0.0163** | −0.014 / −0.040 / −0.025 / −0.018 / −0.016 | 3.746 / 3.746 |
-| Dense (S1-D) | [`k3xx6w71`](https://wandb.ai/ideas_cv/nano-ame/runs/k3xx6w71) vs `x0xlqroj` | running, end about 23:20 | | | | 3.322 / 3.272 |
+| Dense (S1-D) | [`k3xx6w71`](https://wandb.ai/ideas_cv/nano-ame/runs/k3xx6w71) vs `x0xlqroj` | 2.9639 / 2.9824 | **−0.0186** | **−0.0203** | +0.012 / −0.092 / −0.045 / −0.026 / −0.021 | 3.320 / 3.272 |
+
+**The mask helps both methods by about the same small amount, so it leaves the
+comparison between them where it was.** The AME − dense `final_ce` gap is +0.1426
+without the mask and +0.1445 with it; in paired train loss AME gains 0.016, dense 0.020.
+Packing without a mask was a deliberate choice: both methods saw the same cross-document
+context ([ame_implementation.md](ame_implementation.md), "Repo-specific findings").
+These runs show it cost each method about 0.02 nats at h12 and 4B tokens, and did not
+favour either one. Both gains are under the tie thresholds, so neither is established
+alone; that the two agree in sign and size is the stronger evidence.
 
 **AME: a small, steady gain, inside the tie band.** −0.017 in `final_ce` and −0.016 in
 the paired gap, which stays under the 0.022 threshold, so by this report's rule it is a
@@ -141,6 +151,15 @@ the same. Attention is more concentrated with the mask: entropy 3.31 / 3.43 nats
 normalized 0.506 / 0.523, top-8 mass 0.593 / 0.572. Part of that is mechanical, because a
 masked query has fewer keys to spread over (only its own document's). The learned
 temperature and the shift's use did not change.
+
+**Dense: the same small gain, less certain.** −0.019 in `final_ce` and −0.020 in the
+paired gap, which is negative from step 250 on and flat at −0.020 to −0.021 over the last
+1000 steps. Eval gaps are −0.0156 from step 3100 on (−0.0312 at 3800). The early
+−0.092 (10-25 %) is partly the baseline's own trouble: it spiked at steps 196-198 (train
+loss 6.19 and 6.5), while the masked run had no spike. Dense runs spread 6-24× more than
+AME's, so this gain is less certain than AME's. The mask's flex path costs dense 1.5%
+(3.320 against SDPA's 3.272 s/step, across two clusters, which AME's identical s/step
+suggests run at the same speed).
 
 ## How the verdict is made
 
@@ -173,7 +192,7 @@ packed held-out rows.
    the model is built under `torch.device("cuda")`. Only a run that builds an ST-gated AME
    model directly on CUDA would hit it.
 2. **Branch `doc_mask` is local.** The only pushes were the snapshot branches that each
-   submission pushes to the cemetery repo, one per job (two for LEM, two for entropy),
+   submission pushes to the cemetery repo, one per job (two for LEM, four for entropy),
    named like the clones. Pushing `doc_mask` to origin waits for your OK.
 3. **The LEM cluster env has no pytest.** For GPU tests there, `pytest` and its pure-Python
    dependencies go on `PYTHONPATH` from a copy, as in the log (09:16). Adding pytest to the
@@ -214,3 +233,4 @@ packed held-out rows.
 | ~19:38 | Dense job 37695 starts (W&B [`k3xx6w71`](https://wandb.ai/ideas_cv/nano-ame/runs/k3xx6w71)); the watcher saw it at 20:15 |
 | 20:15-20:20 | **Mid-run check.** AME at step 2780: 3.746 s/step, no NaN; paired gap (masked - baseline) by part of training -0.014 / -0.040 / -0.025 / -0.018 (0-10 / 10-25 / 25-50 / 50-75 %, the last part still running), last 500 steps -0.017; eval gaps -0.016 at every eval from 2000 to 2700. Dense at step 605, past its first eval: `document_mask: True`, 3.322 s/step (baseline 3.272), no NaN and no spikes. Its gap is -0.053 over the last 500 steps, but in part that is the baseline's instability: the baseline spiked at steps 196-198 (eval gap -0.44 at step 200) |
 | 21:26-21:40 | **AME done** (job 37694 COMPLETED at 21:26, 4 h 14 min; final checkpoint saved). `final_ce` 3.1084 against the baseline's 3.1250: -0.0166. Paired gap -0.014 / -0.040 / -0.025 / -0.018 / -0.016 by part, last 500 steps -0.0163, negative in every 250-step window. Readouts in Results. Dense at about step 2000 |
+| 23:23-23:35 | **Dense done** (job 37695 COMPLETED at 23:23, 3 h 45 min; final checkpoint saved). `final_ce` 2.9639 against the baseline's 2.9824: -0.0186. Paired gap +0.012 / -0.092 / -0.045 / -0.026 / -0.021 by part, last 500 steps -0.0203. AME - dense gap +0.1445 masked, +0.1426 unmasked. Results written |
