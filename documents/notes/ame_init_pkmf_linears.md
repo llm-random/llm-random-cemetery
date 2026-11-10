@@ -1,7 +1,7 @@
 # AME init follow-up: pkmf-scale `Linear`s and head under the old embedding (plan and log)
 
-**Status:** RUNNING, 2026-11-10: both runs are configured and verified, and are being
-submitted to LEM. Maciej asked for them on 2026-11-10.
+**Status:** RUNNING, 2026-11-10: both runs submitted to LEM at 10:03-10:04 (jobs
+6295253 and 6295256) and pending. Maciej asked for them on 2026-11-10.
 Background:
 - [ame_init_embed_ablation.md](ame_init_embed_ablation.md), its *Analysis, step 1*;
 - [ame_bank_gates_stage2_report.md](ame_bank_gates_stage2_report.md).
@@ -138,14 +138,21 @@ head's init.
 
 ### Runs
 
-Submitted from `~/code/nano-ame-init` with each config's `run_exp.py` command plus
-`+infrastructure.slurm.exclude=r16-11`, one after the other. Each clone is under
+Submitted from `~/code/nano-ame-init` at `3c55ed99` (code, configs and this doc),
+with each config's `run_exp.py` command plus `+infrastructure.slurm.exclude=r16-11`,
+one after the other. Each clone is under
 `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
+| `pkmflin_ame_h12` | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | | PENDING |
+| `pkmflin_dense_h12` | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | | PENDING |
 
 ### Checks
+
+- **Submit, 11-10 10:15:** both PENDING (Priority) behind our four other LEM jobs: the
+  ame_init step-2 pair and the doc-mask pair. The worktree was clean after each
+  `run_exp.py`.
 
 ### Results
 
