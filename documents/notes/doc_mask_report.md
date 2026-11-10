@@ -1,10 +1,11 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 12:15): implemented and tested on CPU (447 passed) and on GPU
-(the compiled flex kernel matches the reference, forward and backward). The dense run
-6294854 and the AME run 6294855 are still pending in a busy LEM queue: 370 of the
-partition's 382 pending jobs rank above them, and Slurm forecasts a start on
-11-13 05:23.** The configs and the code are on branch `doc_mask`, not on `ame_main`.
+**Status (2026-11-10 13:25): implemented and tested on CPU (447 passed) and on GPU
+(the compiled flex kernel matches the reference, forward and backward). Both runs moved
+from LEM to entropy at 13:23 (dense job 37660, AME job 37661) and are pending behind our
+other jobs on h100a; expected start about 16:30. The LEM pair 6294854/6294855 stays
+queued until the entropy runs train, then is cancelled.** The configs and the code are
+on branch `doc_mask`, not on `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
 from `ame_main` in its own worktree, test it on CPU, then run dense h12 and AME
@@ -91,12 +92,20 @@ a bank gate ("For Maciej").
 | `dm_dense_h12_lr8` | [dense_h12_docmask.yaml](../../configs/doc_mask/dense_h12_docmask.yaml) | S1-D n = 8, [`x0xlqroj`](https://wandb.ai/ideas_cv/nano-ame/runs/x0xlqroj), job 6252398_0 | 2.9824 | 3.272 |
 | `dm_ame_h12_ps_lr8` | [ame_h12_ps_docmask.yaml](../../configs/doc_mask/ame_h12_ps_docmask.yaml) | S2-PS n = 8, [`doi36p8k`](https://wandb.ai/ideas_cv/nano-ame/runs/doi36p8k), job 6256577 | 3.1250 | 3.746 |
 
-- **Recipe**, both: LEM, 1 H100, r16-11 excluded; h12; 3,815 steps of 512 × 2049
-  tokens (4B); LR 2⁻⁸; seed 123; micro-batch 32; no FSDP2; autocast bf16;
-  `compile_blocks_full`; final checkpoint only; 7 h limit. AME: Tier 2 banks
-  (`mem_parallel_size: 1`), bank init N(0, 1), banks at the backbone's LR, as the
+- **Recipe**, both: entropy's h100a, 1 H100 (moved from LEM, Log 13:15-13:24); h12;
+  3,815 steps of 512 × 2049 tokens (4B); LR 2⁻⁸; seed 123; micro-batch 32; no FSDP2;
+  autocast bf16; `compile_blocks_full`; final checkpoint only; 7 h limit. AME: Tier 2
+  banks (`mem_parallel_size: 1`), bank init N(0, 1), banks at the backbone's LR, as the
   baseline. W&B project `ideas_cv/nano-ame`.
-- **The only difference from each baseline is `document_mask: true`.**
+- **Jobs (entropy):** dense 37660, AME 37661, from `doc_mask` da59f08d. Clones in
+  `~/llmrandom_cemetery/`, named like their cemetery branches:
+  `dm_dense_h12_lr8_2026-11-10_13-20-55` and `dm_ame_h12_ps_lr8_2026-11-10_13-21-28`.
+  The LEM pair 6294854/6294855 (from 56866314) stays queued as a fallback until these
+  train.
+- **The only difference from each baseline is `document_mask: true`**, and the
+  cluster: the baselines ran on LEM. Entropy's FineWeb copy is LEM's
+  ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md), item 6), so the
+  batches are the same.
 
 ## How the verdict is made
 
@@ -113,6 +122,11 @@ step. Two measures:
 AME's same-seed spread at h12 4B is sd 0.0072, so a difference under 0.022 is a tie.
 Dense runs spread 6–24× more, so a dense difference is less certain than an AME one.
 
+The pairs span two clusters (masked runs on entropy, baselines on LEM). The batches
+are the same; what can differ is floating point (kernel choices, non-deterministic
+sums), which non-determinism already varies between same-seed reruns on one cluster.
+The tie threshold is kept, with that caveat. s/step across clusters is only indicative.
+
 Both runs are evaluated as trained: the masked model with the mask, on the same
 packed held-out rows.
 
@@ -123,9 +137,9 @@ packed held-out rows.
    The ST gate's init draws from `_private_generator()`, a CPU generator, which fails when
    the model is built under `torch.device("cuda")`. Only a run that builds an ST-gated AME
    model directly on CUDA would hit it.
-2. **Branch `doc_mask` is local.** The only pushes were the two snapshot branches that the
-   submission pushes to the cemetery repo, one per job, named like the clones. Pushing
-   `doc_mask` to origin waits for your OK.
+2. **Branch `doc_mask` is local.** The only pushes were the snapshot branches that each
+   submission pushes to the cemetery repo, one per job (two for LEM, two for entropy),
+   named like the clones. Pushing `doc_mask` to origin waits for your OK.
 3. **The LEM cluster env has no pytest.** For GPU tests there, `pytest` and its pure-Python
    dependencies go on `PYTHONPATH` from a copy, as in the log (09:16). Adding pytest to the
    env built by `update_pixi.py` would remove the step.
@@ -152,3 +166,4 @@ packed held-out rows.
 | 09:20 | Batch GPU-test job 6294848 cancelled before it started: it lacked the pytest path, and the interactive node made it redundant |
 | 09:22-09:24 | GPU tests pass (job 6295055 on r18-15): all 9 document-mask tests, 12 of AME's 13; the one failure predates this branch (see Verification) |
 | 12:15 | Both still pending (Priority). Each job's priority is 673: age 195 (grows with waiting), fair-share 300, job size 79, partition 100. 370 of the partition's 382 pending jobs rank above them, about 90 of those waiting on dependencies. 30 jobs running; 31 nodes are partly used and planned by the backfill scheduler for other jobs; 20 idle nodes are powered down. Forecast start now 11-13 05:23 (11-12 12:14 at submission). A shorter time limit would not help: `sbatch --test-only` gives a new job of this shape the same start (11-16 18:46) at a 4, 5, 6 or 7 h limit. Watcher re-armed (every 20 min, up to 5 days); it also catches a job that starts and leaves the queue between checks |
+| 13:15-13:24 | **Moved to entropy**, Maciej: "move them if they are still pending to entropy, there will be a chance to run sooner". The LEM pair was still pending. h100a was full: three AME jobs of ours from other sessions (since about 12:25), wmasarczyk's 4-GPU and wojszalek's 1-GPU jobs (up to 2 days). Our QOS preempts only lukaskoz's jobs, and none were running. Configs switched (da59f08d: cluster, gres `gpu:h100:1`, no exclusion) and checked again against the baselines' logged configs: besides the mask keys and schema defaults, only cluster settings and dataset paths differ. Submitted in two halves, the W&B key on stdin, after checking both clones: dense job 37660, AME job 37661. Both pending (Priority) behind our pkmflin_dense job 37650. Expected start when the three AME jobs finish, about 16:30 (Slurm's forecast assumes full time limits: 11-11 00:24). One watcher covers all four jobs every 10 min |
