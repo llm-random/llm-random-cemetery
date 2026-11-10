@@ -396,3 +396,8 @@ chain.
   because it didn't survive: its n = 8 gap is twelve times the threshold. The extra
   arm decides nothing here, as the plan says. It didn't beat the reference, so the
   AME survival gap carries no decay gain.
+- **A separate pair, 2026-11-10, Maciej's request:** pkmf-scale `Linear`s and head
+  on top of `kf4q4t4s` (AME, σ = 0.01 banks) and of `x0xlqroj` (dense), with the old
+  embedding decayed. It tests this doc's inference that the new head and `Linear`s
+  cost about +0.10 in AME. It is outside this plan and decides nothing here. Plan
+  and log: [ame_init_pkmf_linears.md](ame_init_pkmf_linears.md).
