@@ -1,8 +1,8 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 09:05): implemented and tested on CPU (447 passed). Submitted to
-LEM at 08:55 and pending in a busy queue: the GPU test job 6294848, the dense run
-6294854 and the AME run 6294855.** The configs and the code are on branch `doc_mask`,
+**Status (2026-11-10 09:30): implemented and tested on CPU (447 passed) and on GPU
+(the compiled flex kernel matches the reference, forward and backward). The dense run
+6294854 and the AME run 6294855 are pending in a busy LEM queue (forecast start 11-12).** The configs and the code are on branch `doc_mask`,
 not on `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
@@ -73,8 +73,15 @@ cross-document blocks are computed and masked rather than skipped.
 **GPU** (`pytest -m gpu`, LEM): the compiled flex kernel against the CPU reference,
 forward and backward, eager and inside `torch.compile`, at head width 64 with
 boundaries on and across flex's 128-wide blocks; bf16 autocast within bf16
-resolution; AME's existing GPU tests. Job 6294848 (`gputest.job`, the committed tree
-56866314 copied to `.../nano/plgmstefaniak/doc_mask_gputest_56866314/`). Result: pending.
+resolution; AME's existing GPU tests. **Passed: all 9 document-mask GPU tests**, on LEM's
+interactive node r18-15 (H100, torch 2.7.1+cu128), job 6295055, 09:22-09:24, from the
+committed tree 56866314 (`.../nano/plgmstefaniak/doc_mask_gputest_56866314/`, run with
+`gputest.job` under `srun --pty`). Of AME's 13 GPU tests, 12 passed. The one failure,
+`test_on_cuda_every_gate_trains_under_compile_blocks_full[stem]`, predates this branch:
+the ST gate's init draws from a CPU generator (`_private_generator`) while the test
+builds the model under a CUDA default device ("Expected a 'cuda' device type for
+generator but found 'cpu'"). This branch does not touch that code, and no run here uses
+a bank gate ("For Maciej").
 
 ## Runs
 
@@ -108,6 +115,20 @@ Dense runs spread 6–24× more, so a dense difference is less certain than an A
 Both runs are evaluated as trained: the masked model with the mask, on the same
 packed held-out rows.
 
+## For Maciej
+
+1. **A GPU test on `ame_main` fails, unrelated to this task:**
+   `test_on_cuda_every_gate_trains_under_compile_blocks_full[stem]` (`tests/test_ame.py`).
+   The ST gate's init draws from `_private_generator()`, a CPU generator, which fails when
+   the model is built under `torch.device("cuda")`. Only a run that builds an ST-gated AME
+   model directly on CUDA would hit it.
+2. **Branch `doc_mask` is local.** The only pushes were the two snapshot branches that the
+   submission pushes to the cemetery repo, one per job, named like the clones. Pushing
+   `doc_mask` to origin waits for your OK.
+3. **The LEM cluster env has no pytest.** For GPU tests there, `pytest` and its pure-Python
+   dependencies go on `PYTHONPATH` from a copy, as in the log (09:16). Adding pytest to the
+   env built by `update_pixi.py` would remove the step.
+
 ## Check procedure
 
 - **Start (about 2 min after training begins):** job running, first steps logged, the
@@ -125,3 +146,7 @@ packed held-out rows.
 | 08:45 | LEM busy: 21 nodes in maintenance, 12 allocated; the other session's two AME jobs pending on Priority since 08:23; `sbatch --test-only` forecasts a 1-GPU start on 11-14 (forecasts have been days off before) |
 | 08:51 | GPU test job 6294848 submitted (45 min limit), forecast start 10:30 |
 | 08:55 | Both runs submitted from 56866314, in two halves as in [stage_1c_report.md](stage_1c_report.md) ("Submission": the cemetery is world-readable, so the W&B key goes to `sbatch` on stdin, never into `exp.job`). Dense: job 6294854, clone `dm_dense_h12_lr8_2026-11-10_08-54-06`. AME: job 6294855, clone `dm_ame_h12_ps_lr8_2026-11-10_08-54-34`. Both clones checked first: `document_mask: true`, LR 8, 3,815 steps, the W&B export line commented out. Forecast start 11-12 12:14; the partition has 507 jobs pending (425 from one user) and 29 running |
+| 09:00-09:15 | LEM refused new connections (TCP timeouts on port 22) for about 17 min, after about ten fresh SSH connections in 20 min; a stale shared ControlMaster socket from 08:17 had been hanging every connection that reused it. Since then one multiplexed connection of this task's own is reused |
+| 09:16-09:21 | First GPU-test attempt on the interactive node: the cluster env has no pytest (and no pip). pytest 8.4.2 and its pure-Python dependencies copied from the local env into the test directory's `.pylib`, on `PYTHONPATH` for the test job only |
+| 09:20 | Batch GPU-test job 6294848 cancelled before it started: it lacked the pytest path, and the interactive node made it redundant |
+| 09:22-09:24 | GPU tests pass (job 6295055 on r18-15): all 9 document-mask tests, 12 of AME's 13; the one failure predates this branch (see Verification) |
