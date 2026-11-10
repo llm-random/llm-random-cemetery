@@ -178,6 +178,15 @@ Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
     shows whether it closes.
   - The LEM copy, 6295253, was cancelled at 12:35. The dense LEM copy, 6295256, stays
     queued until 37650 starts on entropy.
+- **Next check: the end of training (Maciej, 11-10 12:40):** "check them at the end
+  of their training, there is no need for you to wake up more frequently".
+  - The step-500 check is dropped. One watcher waits for the end of all three entropy
+    AME jobs, `pkmflin_ame_h12` included, and another for dense (37650). Only a NaN
+    ends either earlier.
+  - So as not to wake at dense's start, its LEM copy 6295256 is cancelled now instead
+    of when 37650 starts. LEM's login node hung at 12:45-12:48, so a detached retry
+    cancels it once LEM answers. It checks that the job is still exactly
+    `ame_init_pkmflin_dense_h12` and PENDING.
 
 ### Results
 

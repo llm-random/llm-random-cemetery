@@ -310,6 +310,11 @@ are under `/home/mstefaniak/llmrandom_cemetery/`.
   - Peak memory is logged only at the end of training, so it is checked then.
   - The LEM copies, 6294683 and 6294685, were cancelled at 12:35 after checking their
     names.
+- **Next check: the end of training (Maciej, 11-10 12:40):** "check them at the end
+  of their training, there is no need for you to wake up more frequently". The plan's
+  step-500 and mid-run checks are dropped. One watcher waits until all three entropy
+  AME jobs have left the queue (step 2's pair and `pkmflin_ame_h12`), polling every
+  10 min. Only a NaN ends it earlier; spikes are read at the end.
 
 ### Results
 
