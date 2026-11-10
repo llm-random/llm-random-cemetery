@@ -1,7 +1,8 @@
 # AME init follow-up: the new init with the old embedding, then n ± 1 (plan and log)
 
 **Status:** RUNNING, 2026-11-10: step 1 and its extra arm are done (*Results*,
-*Analysis*). AME survived and dense did not, so step 2 is AME at n = 7 and 9, on LEM.
+*Analysis*). AME survived and dense did not, so step 2 is AME at n = 7 and 9, on
+entropy (moved from LEM at Maciej's request; *Decisions and issues*).
 Background: [ame_init_exp.md](ame_init_exp.md), its Results and Analysis.
 
 **Question:** is the Xavier embedding the whole problem with the new init? If the new
@@ -411,3 +412,20 @@ chain.
   embedding decayed. It tests this doc's inference that the new head and `Linear`s
   cost about +0.10 in AME. It is outside this plan and decides nothing here. Plan
   and log: [ame_init_pkmf_linears.md](ame_init_pkmf_linears.md).
+- **Step 2 moves to entropy, 2026-11-10, Maciej's call:** "Move all pending jobs to
+  entropy, there they should start sooner because entropy is less occupied".
+  - LEM's H100 partition had 375 jobs pending and 31 running. 237 of the pending jobs
+    ranked above ours, and Slurm's start estimate was 11-13 05:23.
+  - Entropy's FineWeb copy is LEM's
+    ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md), item 6), and
+    its node is also an H100. Only the cluster changes in the configs
+    (`_cluster: entropy`, `gres: gpu:h100:1`). Composed, only cluster keys differ:
+    the data path, the server and the Slurm settings.
+  - **The cross-cluster caveat is inside the tie floor.** Three same-seed runs of
+    the production AME config on entropy ended at 3.1396, 3.1250 and 3.1328,
+    against `doi36p8k`'s 3.1250 on LEM. That spread, 0.015, is below the ±0.022
+    floor, so step 2's comparisons across clusters hold at the plan's resolution.
+  - Expected speed there: 3.36-3.38 s/step for AME (LEM: 3.746).
+  - Entropy's `/home` has a 120 GB quota shared by every job, with 17 GB in use. The
+    final checkpoints add about 13 GB per AME run and 2 GB per dense run.
+  - The LEM jobs are cancelled once their entropy copies have started.
