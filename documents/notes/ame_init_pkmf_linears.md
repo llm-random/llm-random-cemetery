@@ -1,8 +1,8 @@
 # AME init follow-up: pkmf-scale `Linear`s and head under the old embedding (plan and log)
 
-**Status:** RUNNING, 2026-11-10: on entropy since 12:25 (moved from LEM; *Decisions*
-3). AME (job 37649) is done (*Results*, *Analysis*). Dense (37650) has run since 16:16
-and should end about 19:40. Maciej asked for them on 2026-11-10.
+**Status:** DONE, 2026-11-10. Both runs ran on entropy (moved from LEM; *Decisions*
+3). pkmf-scale `Linear`s and head cost about +0.10 in both models (*Analysis*).
+Maciej asked for them on 2026-11-10.
 Background:
 - [ame_init_embed_ablation.md](ame_init_embed_ablation.md), its *Analysis, step 1*;
 - [ame_bank_gates_stage2_report.md](ame_bank_gates_stage2_report.md).
@@ -150,7 +150,7 @@ one after the other. Each clone is under
 | `pkmflin_ame_h12`, LEM | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
 | `pkmflin_dense_h12`, LEM | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | 11-10 12:58 | CANCELLED while pending: moved to entropy |
 | `pkmflin_ame_h12`, entropy | 37649 | `ame_init_pkmflin_ame_h12_2026-11-10_12-24-57` | `x7tg7dpf` | h100a | 11-10 12:25 | 11-10 16:16 | COMPLETED, exit 0, 3 h 51 min |
-| `pkmflin_dense_h12`, entropy | 37650 | `ame_init_pkmflin_dense_h12_2026-11-10_12-25-28` | `6k0wn5s6` | h100a | 11-10 12:25 | | RUNNING since 16:16 |
+| `pkmflin_dense_h12`, entropy | 37650 | `ame_init_pkmflin_dense_h12_2026-11-10_12-25-28` | `6k0wn5s6` | h100a | 11-10 12:25 | 11-10 19:38 | COMPLETED, exit 0, 3 h 22 min |
 
 Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
 `/home/mstefaniak/llmrandom_cemetery/`.
@@ -205,13 +205,32 @@ Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
   - Next check: the end of training, about 19:40. One watcher covers it and
     ame_init_embed_ablation.md's n = 6 (ending about 20:45) and wakes when both have
     ended, or at once on a NaN or a job that leaves the queue before step 3,814.
+- **`pkmflin_dense_h12`, end, 11-10 20:51-21:10:** COMPLETED with exit 0 at 19:38.
+  The slurm log has final_ce and no error; the clone has the step-3814 checkpoint
+  (2.1 GB).
+  - No spike. The grad-norm max after step 100 is 0.62, at step 265 (`x0xlqroj`:
+    2.58, in its spike at steps 194-203).
+  - 2.958 s/step; peak memory 47.0 GiB (47.0).
+  - **No early event** (*Decisions* 3). Its largest loss rise over steps 20-400,
+    against the minimum of the 30 steps before, is +0.19, at step 50 (grad norm 1.49).
+
+    | Run | Largest early rise | Grad-norm max, steps 20-400 |
+    |---|---|---|
+    | `pkmflin_dense_h12` | +0.19, step 50 | 1.49, step 50 |
+    | D-B2, the clean rerun (`0w2whzba`) | +0.25, step 113 | 1.21, step 29 |
+    | D-B3, early bump (`1uld8i4r`) | +0.69, step 83 | 2.75, step 82 |
+    | D-B1, spike (`r86x2cjb`) | +3.66, step 354 | 3.64, step 349 |
+    | `x0xlqroj`, the reference | +1.13, step 198 | 2.58, step 198 |
+
+    The three D-B runs are same-seed reruns of `x0xlqroj`'s config on entropy, in
+    W&B project `nano-ame-parity`.
 
 ### Results
 
 | Run | final_ce | Reference | Δ final_ce | Paired gap, last 500 | Verdict |
 |---|---:|---|---:|---:|---|
 | `pkmflin_ame_h12` (`x7tg7dpf`) | 3.1270 | `kf4q4t4s` 3.0352 | +0.0918 | +0.0988 | **Much worse.** Per quarter: +0.438, +0.177, +0.116, +0.100 |
-| `pkmflin_dense_h12` (`6k0wn5s6`) | | `x0xlqroj` 2.9824 | | | running |
+| `pkmflin_dense_h12` (`6k0wn5s6`) | 3.0732 | `x0xlqroj` 2.9824 | +0.0908 | +0.1013 | **Much worse.** Per quarter: +0.605, +0.209, +0.116, +0.102 |
 
 ### Analysis
 
@@ -236,6 +255,32 @@ train loss).
   (Xavier head and banks, old embedding undecayed) did best at n = 7, by −0.040
   against its own n = 8. Part of this +0.099 may therefore be the learning rate, not
   the init.
+
+**Dense: pkmf-scale `Linear`s and head cost +0.101, with the embedding decayed.**
+That is less than half of ame_init_embed_ablation.md's +0.2325, which came with a
+Xavier head (std 0.0063, against 0.0100 here) and an undecayed embedding.
+- **The gap counts.** Same-seed reruns of `x0xlqroj`'s config on entropy pair with it,
+  over the last 500 steps, at −0.015 for the clean one (D-B2). The two with early
+  events are at +0.066 (D-B1) and +0.283 (D-B3).
+  - This run has no early event (*Checks*).
+  - The reference's own spike, at steps 194-203, left no lasting deficit: the clean
+    rerun ties it.
+- **Block 0's attention output against the embedding** starts high and falls back
+  to the reference's by step 2,000. The embedding decays alike (10.97 at the end,
+  against 10.86).
+
+  | Run | Step 100 | Step 500 | Step 1,000 | Step 2,000 | Step 3,800 |
+  |---|---:|---:|---:|---:|---:|
+  | `pkmflin_dense_h12` | 3.5× | 0.90× | 0.34× | 0.21× | 0.17× |
+  | `x0xlqroj` | 0.25× | 0.29× | 0.24× | 0.19× | 0.15× |
+
+- The same one-learning-rate caveat applies: n = 8 only.
+
+**Both models pay the same, about +0.10:** +0.101 dense, +0.099 AME. Their gaps also
+close alike over the second half: +0.116 then +0.102 for dense, against +0.116 then
++0.100 for AME. At the references' n = 8, pkmf's √(0.1/fan_in) `Linear`s and head
+(cut at ±2σ) are worse than the old 1/√fan_in in both models. Whether a retuned
+learning rate wins it back is untested here.
 
 ### Decisions and issues
 

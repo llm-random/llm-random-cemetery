@@ -1,9 +1,12 @@
 # AME init follow-up: the new init with the old embedding, then n ± 1 (plan and log)
 
-**Status:** RUNNING, 2026-11-10: step 1 and its extra arm are done (*Results*,
-*Analysis*). AME survived and dense did not, so step 2 is AME only, on entropy (moved
-from LEM at Maciej's request; *Decisions and issues*). Its n = 7 and 9 are done. n = 7
-is the best of 7-9, an edge, so the edge rule's n = 6 runs now.
+**Status:** DONE, 2026-11-10.
+- **Step 1 and its extra arm:** AME survived and dense did not (*Results*, *Analysis,
+  step 1*).
+- **Step 2, AME only, on entropy** (moved from LEM at Maciej's request; *Decisions
+  and issues*): the best n is 7, at −0.0285 against the old init at its own best,
+  n = 8. That is a win just beyond the tie floor (*Analysis, step 2*).
+- No job from this plan is running.
 Background: [ame_init_exp.md](ame_init_exp.md), its Results and Analysis.
 
 **Question:** is the Xavier embedding the whole problem with the new init? If the new
@@ -239,7 +242,7 @@ entropy at `10737ba1`.
 | `oldemb_ame_h12_n9`, LEM | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | 11-10 12:35 | CANCELLED while pending: moved to entropy |
 | `oldemb_ame_h12_n7`, entropy | 37646 | `ame_init_oldemb_ame_h12_n7_2026-11-10_12-23-57` | `sho4z0q5` | h100a | 11-10 12:24 | 11-10 16:19 | COMPLETED, exit 0, 3 h 55 min |
 | `oldemb_ame_h12_n9`, entropy | 37648 | `ame_init_oldemb_ame_h12_n9_2026-11-10_12-24-27` | `s7r0rfv4` | h100a | 11-10 12:24 | 11-10 16:19 | COMPLETED, exit 0, 3 h 54 min |
-| `oldemb_ame_h12_n6`, entropy | 37684 | `ame_init_oldemb_ame_h12_n6_2026-11-10_16-40-05` | `ht7uhbe1` | h100a | 11-10 16:40 | | RUNNING since 16:41 |
+| `oldemb_ame_h12_n6`, entropy | 37684 | `ame_init_oldemb_ame_h12_n6_2026-11-10_16-40-05` | `ht7uhbe1` | h100a | 11-10 16:40 | 11-10 20:33 | COMPLETED, exit 0, 3 h 51 min |
 
 ### Checks
 
@@ -355,6 +358,13 @@ entropy at `10737ba1`.
 - **Next check: the end of training,** of n = 6 and `pkmflin_dense_h12` together
   (about 20:45). One watcher polls every 10 min. A NaN, or a job that leaves the
   queue before step 3,814, ends it at once.
+- **`oldemb_ame_h12_n6`, end, 11-10 20:51-21:10:** COMPLETED with exit 0 at 20:33.
+  The slurm log has final_ce and no error; the clone has the step-3814 checkpoint
+  (13 GB).
+  - **One spike, steps 746-770** (24 steps by the plan's rule). The loss rose from
+    3.89 at step 735 to 4.44 at step 760, 0.52 above n = 7, and the grad norm peaked
+    at 0.44 at step 755. It was back to +0.09 against n = 7 by step 790.
+  - 3.400 s/step; peak memory 70.6 GiB.
 
 ### Results
 
@@ -380,21 +390,22 @@ reference is `doi36p8k`, final_ce 3.1250.
 | `oldemb_ame_h12_n7` (`sho4z0q5`) | 7 | 3.1084 | −0.0285 | −0.0401 | **Win** (beyond −0.022). Per quarter: −0.056, +0.013, −0.013, −0.027 |
 | `oldemb_ame_h12` (`wbq7g4i8`) | 8 | 3.1465 | +0.0116 | — | Tie (step 1) |
 | `oldemb_ame_h12_n9` (`s7r0rfv4`) | 9 | 3.1348 | −0.0055 | −0.0171 | **Tie.** Per quarter: −0.100, −0.033, −0.025, −0.009 |
-| `oldemb_ame_h12_n6` | 6 | | | | running |
+| `oldemb_ame_h12_n6` (`ht7uhbe1`) | 6 | 3.1133 | −0.0173 | −0.0290 | **Tie.** Per quarter: +0.015, +0.066 (the spike at steps 746-770), +0.023, −0.011 |
 
 Block 0's attention output against the embedding:
 
 | Run | Step 100 | Step 500 | Step 1,000 | Step 3,800 |
 |---|---:|---:|---:|---:|
+| n = 6 | 1.6× | 1.2× | 1.2× | 0.96× |
 | n = 7 | 2.1× | 1.1× | 1.1× | 0.83× |
 | n = 8 | 1.2× | 0.94× | 1.0× | 0.83× |
 | n = 9 | 0.25× | 0.42× | 0.45× | 0.42× |
 | `doi36p8k`, reference | 0.29× | 0.48× | 0.44× | 0.39× |
 
-No n drowns the embedding, which stays at 24-25 undecayed.
+No n drowns the embedding, which stays at 24-27 undecayed.
 
-Best n per surviving model: AME, n = 7 of 7-9. That is an edge, so n = 6 runs
-(*Decisions and issues*), and the best n waits for it.
+Best n per surviving model: **AME, n = 7**, at −0.0285 against the reference
+(*Analysis, step 2*). Dense had no step 2.
 
 ### Analysis, step 1
 
@@ -447,6 +458,36 @@ chain.
   - The excess is large early in dense (8.7× at step 100) and fades by step 1,000,
     yet dense keeps a +0.27 gap. In AME it is mild (about 1×).
   - The undecayed embeddings stay near 24 all run; the references' fall to 10.7-10.9.
+
+### Analysis, step 2
+
+**AME's best n is 7, at −0.0285 against the old init at its own best n**
+(`doi36p8k`, n = 8). That clears the ±0.022 tie floor by 0.0065. So the new init
+with the old embedding, undecayed, at its best learning rate, edges out the old init
+at its best.
+
+| n | 6 | 7 | 8 | 9 |
+|---|---:|---:|---:|---:|
+| Paired gap vs `doi36p8k`, last 500 | −0.0173 | **−0.0285** | +0.0116 | −0.0055 |
+| final_ce | 3.1133 | 3.1084 | 3.1465 | 3.1348 |
+| Cluster | entropy | entropy | LEM | entropy |
+
+- **The optimum moved one step up, to n = 6-7.**
+  - n = 7 beats n = 8 by −0.040; n = 9 ties n = 8 (−0.017).
+  - n = 6 and 7 tie: +0.0112 for n = 6, on one cluster. n = 6 lost ground in its
+    spike at steps 746-770 and was still closing on n = 7 at the end: +0.036 in the
+    third quarter, +0.016 in the fourth.
+- **The cluster doesn't explain the win.** n = 7 ran on entropy and the reference on
+  LEM. Entropy replicates of the reference sit +0.000 to +0.016 behind it, never ahead
+  (*Checks*), so a cross-cluster gain is, if anything, understated.
+- **The margin is thin.** The new init with the old embedding is at least as good as
+  the old init at their best learning rates, probably slightly better. It is not a
+  large gain.
+- **The plan's question, answered:**
+  - **AME:** the Xavier embedding was the whole problem. Without it, the rest of the
+    bundle tied at n = 8 (step 1) and wins slightly at its own best n.
+  - **Dense:** it was not. The rest still cost +0.27 at n = 8 (step 1), so dense
+    had no step 2.
 
 ### Decisions and issues
 
