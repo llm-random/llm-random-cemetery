@@ -1,0 +1,68 @@
+# Document masking, dense arm: Stage 1's dense h12 baseline (S1-D: GQA with
+# RoPE, no KV shift) with attention kept inside each packed document.
+# One submit = 1 run.
+#
+# A copy of configs/stage_1/dense_h12_lr_grid.yaml. Only these differ:
+#   - common.attention.document_mask: true (src/core/document_mask.py);
+#   - trainer.learning_rate: 8, one value instead of the grid: S1-D's best n
+#     (stage_1_report.md);
+#   - /base_schema in the defaults, as every single-run config has (the grid
+#     file left it out only because the schema rejects a ^ key);
+#   - the 7 h limit and the r16-11 exclusion every LEM run now gets;
+#   - the run name and tags.
+# Baseline: S1-D at n = 8, W&B x0xlqroj (job 6252398_0), final_ce 2.9824: the
+# same seed, data order, steps and schedule, so the two pair step by step.
+# Record: documents/notes/doc_mask_report.md.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128; kept equal to the AME arms
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # The arm: dense attention with RoPE (base 10000), the h_balanced default,
+  # with each token attending only within its own document. The documents
+  # come from common.eos_token_id (GPT-NeoX <|endoftext|>, 0).
+  attention:
+    type: gqa
+    document_mask: true
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32
+  mem_parallel_size: null # dense attention has no banks
+  distributed: null
+  autocast_bf16: true
+
+  # The recipe, as S1-D. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1;
+  #   - cosine schedule, warmup 1% = 38 steps, final LR 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 8 # LR = 2^-8, S1-D's best n
+  checkpoint:
+    save:
+      path: checkpoint # final checkpoint only, ~2 GB
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: dm_dense
+    time: "0-07:00:00" # S1-D trained in 3.5 h; flex replaces flash here, unmeasured
+    exclude: r16-11 # bad GPU (2026-11-06)
+  metric_logger:
+    project_name: nano-ame
+    name: dm_dense_h12_lr8
+    tags:
+      - dense
+      - h12
+      - doc_mask
+      - s1_d
