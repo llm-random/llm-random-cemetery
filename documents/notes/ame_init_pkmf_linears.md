@@ -1,7 +1,7 @@
 # AME init follow-up: pkmf-scale `Linear`s and head under the old embedding (plan and log)
 
-**Status:** RUNNING, 2026-11-10: both runs are configured and verified, and are being
-submitted to LEM. Maciej asked for them on 2026-11-10.
+**Status:** RUNNING, 2026-11-10: both runs submitted to LEM at 10:03-10:04 (jobs
+6295253 and 6295256) and pending. Maciej asked for them on 2026-11-10.
 Background:
 - [ame_init_embed_ablation.md](ame_init_embed_ablation.md), its *Analysis, step 1*;
 - [ame_bank_gates_stage2_report.md](ame_bank_gates_stage2_report.md).
@@ -40,8 +40,9 @@ head's init.
 | Everything else | as the reference | |
 
 - **`pkmflin_ame_h12`.** S2-PS (AME with the KV shift and ALiBi), no gate, h12.
-  - Recipe: 3,815 steps = 4.0B tokens, n = 8 (LR 2⁻⁸), warmup 38, seed 123; one LEM
-    H100, micro-batch 32 × 16, Tier 2 banks, no FSDP2, autocast bf16,
+  - Recipe: 3,815 steps = 4.0B tokens, n = 8 (LR 2⁻⁸), warmup 38, seed 123; one H100
+    (entropy's, moved from LEM: *Decisions* 3), micro-batch 32 × 16, Tier 2 banks, no
+    FSDP2, autocast bf16,
     `compile_blocks_full`; 7 h limit.
   - Reference: `kf4q4t4s` (`bank_gates_stage2_none_std001`), in-training final_ce
     3.0352, 3.758 s/step, 70.40 GiB.
@@ -138,14 +139,28 @@ head's init.
 
 ### Runs
 
-Submitted from `~/code/nano-ame-init` with each config's `run_exp.py` command plus
-`+infrastructure.slurm.exclude=r16-11`, one after the other. Each clone is under
+Submitted from `~/code/nano-ame-init` at `3c55ed99` (code, configs and this doc),
+with each config's `run_exp.py` command plus `+infrastructure.slurm.exclude=r16-11`,
+one after the other. Each clone is under
 `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
+| `pkmflin_ame_h12` | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | | PENDING |
+| `pkmflin_dense_h12` | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | | PENDING |
 
 ### Checks
+
+- **Submit, 11-10 10:15:** both PENDING (Priority) behind our four other LEM jobs: the
+  ame_init step-2 pair and the doc-mask pair. The worktree was clean after each
+  `run_exp.py`.
+- **LEM's Slurm controller went unreachable, 11-10 from about 11:09.**
+  - Both jobs were PENDING at 11:07. Both watchers then exited with "left the
+    queue": a watcher bug that read a failed `squeue` as every job gone.
+  - Fixed: the watcher accepts only rc=0 (details in ame_init_embed_ablation.md,
+    *Checks*).
+  - **Back at 11:24, after about 15 min.** Both jobs survived, still PENDING
+    (Priority). The watchers were re-armed with the fix at 11:25.
 
 ### Results
 
@@ -163,3 +178,21 @@ Submitted from `~/code/nano-ame-init` with each config's `run_exp.py` command pl
 2. **The banks' σ = 0.01 is `kf4q4t4s`'s code path:** `bank_init_std: 0.01` draws
    `normal_(0, 0.01)` in both trees. The branch changed only the default (null, which
    means Xavier).
+3. **Moved to entropy, 2026-11-10, Maciej's call:** "Move all pending jobs to entropy,
+   there they should start sooner because entropy is less occupied". LEM had 237
+   higher-priority jobs pending ahead of ours.
+   - Entropy's FineWeb copy is LEM's
+     ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md), item 6), and
+     its node is also an H100. Only the cluster changes in the configs
+     (`_cluster: entropy`, `gres: gpu:h100:1`). Composed, only cluster keys differ.
+   - **AME's cross-cluster caveat is inside the tie floor.** Three same-seed runs of
+     the production AME config on entropy ended at 3.1396, 3.1250 and 3.1328, against
+     `doi36p8k`'s 3.1250 on LEM: a spread of 0.015.
+   - **Dense comparisons are noisy on any cluster.** Three same-seed runs of the
+     production dense config on entropy ended at 2.9688, 3.0439 and 3.2412, against
+     `x0xlqroj`'s 2.9824. The two high ones had early events: a spike at step 354, and
+     a bump at step 83 followed by slower training. A dense gap counts only if neither
+     run has an early event.
+   - Expected speed: 3.36-3.38 s/step for AME, 2.95-2.97 for dense (LEM: 3.758 and
+     3.272).
+   - The LEM jobs are cancelled once their entropy copies have started.
