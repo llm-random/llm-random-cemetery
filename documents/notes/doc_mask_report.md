@@ -1,12 +1,10 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 20:20): both runs train on entropy, from `doc_mask` 3974addd: AME
-since 17:12 (job 37694, W&B `j6wxx6h2`, expected end about 21:25), dense since about
-19:38 (job 37695, W&B `k3xx6w71`, expected end about 23:20). Mid-run, AME's paired gap is
--0.017 over its last 500 steps (masked better, inside the 0.022 tie band); Log 20:15. The first
-entropy pair (W&B `28sjg3ii`, `ts67c0g3`) died at its first eval, step 100, because the
-compiled no_grad forward did not lower; fixed in 3974addd and checked end to end
-(Log 16:27-17:12).** The configs and the code are on branch `doc_mask`, not on
+**Status (2026-11-10 21:40): AME done: the mask lowers `final_ce` by 0.017 (3.1084 against
+3.1250) and the paired train loss by 0.016, a steady gain but inside the 0.022 tie band
+(Results). Dense (job 37695, W&B `k3xx6w71`) trains since 19:38, expected end about
+23:20. Both from `doc_mask` 3974addd; the first entropy pair died at its first eval and
+was fixed (Log 16:27-17:12).** The configs and the code are on branch `doc_mask`, not on
 `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
@@ -119,6 +117,31 @@ run configs on entropy (Log 16:45-17:07).
   ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md), item 6), so the
   batches are the same.
 
+## Results
+
+Masked minus baseline; negative means the mask helps. Paired gaps are train-loss means
+at the same steps, per part of training (0-10 / 10-25 / 25-50 / 50-75 / 75-100 %).
+Numbers from `documents/scripts/doc_mask_results.py <run> <baseline>`.
+
+| Arm | Masked run | `final_ce` masked / baseline | Δ `final_ce` | Paired gap, last 500 steps | Paired gap by part | s/step masked / baseline |
+|---|---|---:|---:|---:|---|---:|
+| AME (S2-PS) | [`j6wxx6h2`](https://wandb.ai/ideas_cv/nano-ame/runs/j6wxx6h2) vs `doi36p8k` | 3.1084 / 3.1250 | **−0.0166** | **−0.0163** | −0.014 / −0.040 / −0.025 / −0.018 / −0.016 | 3.746 / 3.746 |
+| Dense (S1-D) | [`k3xx6w71`](https://wandb.ai/ideas_cv/nano-ame/runs/k3xx6w71) vs `x0xlqroj` | running, end about 23:20 | | | | 3.322 / 3.272 |
+
+**AME: a small, steady gain, inside the tie band.** −0.017 in `final_ce` and −0.016 in
+the paired gap, which stays under the 0.022 threshold, so by this report's rule it is a
+tie. The gap's sign never changed, though. It is negative in every 250-step window, peaks
+at −0.043 around step 500, and sits flat at −0.016 from step 3000 to the end. The eval
+gaps are −0.0156 (one bf16 step) at every eval from 2000 on. A same-seed rerun of
+either arm would say whether 0.016 is real. The mask costs AME nothing in speed.
+
+AME's readouts at the end (`stage_results.py readouts`, mean over the 12 layers, masked /
+baseline): τ 8.51 / 8.47; KV shift α₂ |mean| 0.49 / 0.50, β₂ 0.73 / 0.71; head horizons
+the same. Attention is more concentrated with the mask: entropy 3.31 / 3.43 nats,
+normalized 0.506 / 0.523, top-8 mass 0.593 / 0.572. Part of that is mechanical, because a
+masked query has fewer keys to spread over (only its own document's). The learned
+temperature and the shift's use did not change.
+
 ## How the verdict is made
 
 As in [ame_improve_runs_report.md](ame_improve_runs_report.md): each pair shares the
@@ -190,3 +213,4 @@ packed held-out rows.
 | 17:21-17:24 | **AME (W&B [`j6wxx6h2`](https://wandb.ai/ideas_cv/nano-ame/runs/j6wxx6h2)) is past its first eval**: eval/loss 5.9375 at step 100, equal to the baseline's. Start check passed: `document_mask: True`, 3.746 s/step (baseline 3.746), no NaN or inf, the step-11 warmup bump (9.5625) identical to the first attempt's. Paired train-loss gap +0.008 over steps 0-118, -0.005 over the last 100. Expected end about 21:15 |
 | ~19:38 | Dense job 37695 starts (W&B [`k3xx6w71`](https://wandb.ai/ideas_cv/nano-ame/runs/k3xx6w71)); the watcher saw it at 20:15 |
 | 20:15-20:20 | **Mid-run check.** AME at step 2780: 3.746 s/step, no NaN; paired gap (masked - baseline) by part of training -0.014 / -0.040 / -0.025 / -0.018 (0-10 / 10-25 / 25-50 / 50-75 %, the last part still running), last 500 steps -0.017; eval gaps -0.016 at every eval from 2000 to 2700. Dense at step 605, past its first eval: `document_mask: True`, 3.322 s/step (baseline 3.272), no NaN and no spikes. Its gap is -0.053 over the last 500 steps, but in part that is the baseline's instability: the baseline spiked at steps 196-198 (eval gap -0.44 at step 200) |
+| 21:26-21:40 | **AME done** (job 37694 COMPLETED at 21:26, 4 h 14 min; final checkpoint saved). `final_ce` 3.1084 against the baseline's 3.1250: -0.0166. Paired gap -0.014 / -0.040 / -0.025 / -0.018 / -0.016 by part, last 500 steps -0.0163, negative in every 250-step window. Readouts in Results. Dense at about step 2000 |
