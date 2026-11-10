@@ -1,11 +1,11 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 13:25): implemented and tested on CPU (447 passed) and on GPU
-(the compiled flex kernel matches the reference, forward and backward). Both runs moved
-from LEM to entropy at 13:23 (dense job 37660, AME job 37661) and are pending behind our
-other jobs on h100a; expected start about 16:30. The LEM pair 6294854/6294855 stays
-queued until the entropy runs train, then is cancelled.** The configs and the code are
-on branch `doc_mask`, not on `ame_main`.
+**Status (2026-11-10 16:30): implemented and tested on CPU (447 passed) and on GPU
+(the compiled flex kernel matches the reference, forward and backward). Both runs train
+on entropy since 16:19 (dense job 37660, W&B `28sjg3ii`; AME job 37661, W&B `ts67c0g3`);
+the start check passed. Expected end about 20:00 (dense) and 20:25 (AME). The LEM
+fallback pair was cancelled before it started.** The configs and the code are on branch
+`doc_mask`, not on `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
 from `ame_main` in its own worktree, test it on CPU, then run dense h12 and AME
@@ -97,11 +97,13 @@ a bank gate ("For Maciej").
   autocast bf16; `compile_blocks_full`; final checkpoint only; 7 h limit. AME: Tier 2
   banks (`mem_parallel_size: 1`), bank init N(0, 1), banks at the backbone's LR, as the
   baseline. W&B project `ideas_cv/nano-ame`.
-- **Jobs (entropy):** dense 37660, AME 37661, from `doc_mask` da59f08d. Clones in
-  `~/llmrandom_cemetery/`, named like their cemetery branches:
+- **Jobs (entropy):** dense 37660 (W&B
+  [`28sjg3ii`](https://wandb.ai/ideas_cv/nano-ame/runs/28sjg3ii)), AME 37661 (W&B
+  [`ts67c0g3`](https://wandb.ai/ideas_cv/nano-ame/runs/ts67c0g3)), from `doc_mask`
+  da59f08d. Clones in `~/llmrandom_cemetery/`, named like their cemetery branches:
   `dm_dense_h12_lr8_2026-11-10_13-20-55` and `dm_ame_h12_ps_lr8_2026-11-10_13-21-28`.
-  The LEM pair 6294854/6294855 (from 56866314) stays queued as a fallback until these
-  train.
+  The LEM pair 6294854/6294855 (from 56866314) was cancelled at 16:29, before it
+  started; it has no W&B runs.
 - **The only difference from each baseline is `document_mask: true`**, and the
   cluster: the baselines ran on LEM. Entropy's FineWeb copy is LEM's
   ([ame_efficiency_parity_report.md](ame_efficiency_parity_report.md), item 6), so the
@@ -167,3 +169,6 @@ packed held-out rows.
 | 09:22-09:24 | GPU tests pass (job 6295055 on r18-15): all 9 document-mask tests, 12 of AME's 13; the one failure predates this branch (see Verification) |
 | 12:15 | Both still pending (Priority). Each job's priority is 673: age 195 (grows with waiting), fair-share 300, job size 79, partition 100. 370 of the partition's 382 pending jobs rank above them, about 90 of those waiting on dependencies. 30 jobs running; 31 nodes are partly used and planned by the backfill scheduler for other jobs; 20 idle nodes are powered down. Forecast start now 11-13 05:23 (11-12 12:14 at submission). A shorter time limit would not help: `sbatch --test-only` gives a new job of this shape the same start (11-16 18:46) at a 4, 5, 6 or 7 h limit. Watcher re-armed (every 20 min, up to 5 days); it also catches a job that starts and leaves the queue between checks |
 | 13:15-13:24 | **Moved to entropy**, Maciej: "move them if they are still pending to entropy, there will be a chance to run sooner". The LEM pair was still pending. h100a was full: three AME jobs of ours from other sessions (since about 12:25), wmasarczyk's 4-GPU and wojszalek's 1-GPU jobs (up to 2 days). Our QOS preempts only lukaskoz's jobs, and none were running. Configs switched (da59f08d: cluster, gres `gpu:h100:1`, no exclusion) and checked again against the baselines' logged configs: besides the mask keys and schema defaults, only cluster settings and dataset paths differ. Submitted in two halves, the W&B key on stdin, after checking both clones: dense job 37660, AME job 37661. Both pending (Priority) behind our pkmflin_dense job 37650. Expected start when the three AME jobs finish, about 16:30 (Slurm's forecast assumes full time limits: 11-11 00:24). One watcher covers all four jobs every 10 min |
+| 16:19 | Both start on h100a (H100 80GB HBM3), W&B dense `28sjg3ii`, AME `ts67c0g3`. FineWeb opens took about 40 s each; the dataset log has the same 1,279,107,432 rows and the same held-out cut as LEM's runs. Step 0 at about 16:21:30 |
+| 16:24-16:29 | **Start check passed.** Both configs have `document_mask: True`; no NaN or inf. s/step from W&B: dense 3.36 (LEM baseline 3.272), AME 3.77 (3.746). Step 0's loss equals the baseline's in both pairs (AME 11.25, dense 11.1875), and AME's steps 1, 3 and 4 too: same initial weights and same batches on entropy. The script flags AME step 11 (9.56, grad norm 16.3) as a spike: it is the warmup transient both baselines have at step 10 (8.25, grad norm 46.5 AME / 15.9 dense), one step later, and the loss is level again at step 12. Paired gap so far: dense +0.051 (steps 0-55), AME -0.003 (steps 0-48), at 0.03 bf16 loss resolution |
+| 16:29 | LEM fallback pair cancelled (6294854 `dm_dense`, 6294855 `dm_ame`, both still pending, checked by name, user and state first) |
