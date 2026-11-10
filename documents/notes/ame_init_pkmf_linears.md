@@ -1,7 +1,8 @@
 # AME init follow-up: pkmf-scale `Linear`s and head under the old embedding (plan and log)
 
-**Status:** RUNNING, 2026-11-10: both runs submitted to LEM at 10:03-10:04 (jobs
-6295253 and 6295256) and pending. Maciej asked for them on 2026-11-10.
+**Status:** RUNNING, 2026-11-10: moved from LEM to entropy at 12:25 (*Decisions* 3).
+AME (job 37649) runs since 12:25; dense (37650) waits for a free GPU. Maciej asked for
+them on 2026-11-10.
 Background:
 - [ame_init_embed_ablation.md](ame_init_embed_ablation.md), its *Analysis, step 1*;
 - [ame_bank_gates_stage2_report.md](ame_bank_gates_stage2_report.md).
@@ -146,8 +147,13 @@ one after the other. Each clone is under
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
-| `pkmflin_ame_h12` | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | | PENDING |
-| `pkmflin_dense_h12` | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | | PENDING |
+| `pkmflin_ame_h12`, LEM | 6295253 | `ame_init_pkmflin_ame_h12_2026-11-10_10-03-09` | | | 11-10 10:03 | | PENDING; moved to entropy, to be cancelled |
+| `pkmflin_dense_h12`, LEM | 6295256 | `ame_init_pkmflin_dense_h12_2026-11-10_10-03-56` | | | 11-10 10:04 | | PENDING; moved to entropy, to be cancelled |
+| `pkmflin_ame_h12`, entropy | 37649 | `ame_init_pkmflin_ame_h12_2026-11-10_12-24-57` | | h100a | 11-10 12:25 | | RUNNING since 12:25 |
+| `pkmflin_dense_h12`, entropy | 37650 | `ame_init_pkmflin_dense_h12_2026-11-10_12-25-28` | | | 11-10 12:25 | | PENDING (Resources): all 8 GPUs busy |
+
+Moved to entropy at `0325e7dc` (*Decisions* 3); the entropy clones are under
+`/home/mstefaniak/llmrandom_cemetery/`.
 
 ### Checks
 

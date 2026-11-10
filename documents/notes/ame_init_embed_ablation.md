@@ -218,6 +218,8 @@ Step 1 was submitted from `~/code/nano-ame-init` at `7a060dd1` (configs plus thi
 doc), with the plan's command, one `run_exp.py` after the other; the extra arm the
 same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/llmrandom_cemetery/`.
+Step 2 was moved to entropy at `0325e7dc` (*Decisions and issues*); its clones there
+are under `/home/mstefaniak/llmrandom_cemetery/`.
 
 | Run | Job | Clone | W&B | Node | Submitted | Finished | State |
 |---|---|---|---|---|---|---|---|
@@ -225,8 +227,10 @@ same way at `e5fe9561`, and step 2 at `8461a1da`. Each clone is under
 | `oldemb_dense_h12` | 6287406 | `ame_init_oldemb_dense_h12_2026-11-09_12-15-01` | `l0vosr68` | r14-7 | 11-09 12:15 | 11-09 20:54 | COMPLETED, exit 0, 3 h 47 min |
 | `oldinit_embnowd_ame_h12` | 6288694 | `ame_init_oldinit_embnowd_ame_h12_2026-11-09_14-18-37` | `4d5yuylb` | r10-7 | 11-09 14:18 | 11-10 01:55 | COMPLETED, exit 0, 4 h 17 min |
 | `oldinit_embnowd_dense_h12` | 6288695 | `ame_init_oldinit_embnowd_dense_h12_2026-11-09_14-19-04` | `4oj9ysgv` | r14-4 | 11-09 14:19 | 11-10 01:21 | COMPLETED, exit 0, 3 h 43 min |
-| `oldemb_ame_h12_n7` | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | | PENDING |
-| `oldemb_ame_h12_n9` | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | | PENDING |
+| `oldemb_ame_h12_n7`, LEM | 6294683 | `ame_init_oldemb_ame_h12_n7_2026-11-10_08-23-49` | | | 11-10 08:23 | | PENDING; moved to entropy, to be cancelled |
+| `oldemb_ame_h12_n9`, LEM | 6294685 | `ame_init_oldemb_ame_h12_n9_2026-11-10_08-24-23` | | | 11-10 08:24 | | PENDING; moved to entropy, to be cancelled |
+| `oldemb_ame_h12_n7`, entropy | 37646 | `ame_init_oldemb_ame_h12_n7_2026-11-10_12-23-57` | | h100a | 11-10 12:24 | | RUNNING since 12:24 |
+| `oldemb_ame_h12_n9`, entropy | 37648 | `ame_init_oldemb_ame_h12_n9_2026-11-10_12-24-27` | | h100a | 11-10 12:24 | | RUNNING since 12:24 |
 
 ### Checks
 
