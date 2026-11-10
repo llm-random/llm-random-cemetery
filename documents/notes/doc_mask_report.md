@@ -1,9 +1,10 @@
 # Document masking for packed rows — implementation and h12 runs (plan and log)
 
-**Status (2026-11-10 09:30): implemented and tested on CPU (447 passed) and on GPU
+**Status (2026-11-10 12:15): implemented and tested on CPU (447 passed) and on GPU
 (the compiled flex kernel matches the reference, forward and backward). The dense run
-6294854 and the AME run 6294855 are pending in a busy LEM queue (forecast start 11-12).** The configs and the code are on branch `doc_mask`,
-not on `ame_main`.
+6294854 and the AME run 6294855 are still pending in a busy LEM queue: 370 of the
+partition's 382 pending jobs rank above them, and Slurm forecasts a start on
+11-13 05:23.** The configs and the code are on branch `doc_mask`, not on `ame_main`.
 
 Maciej set the task by `/goal` on 2026-11-10: implement document masking on a branch
 from `ame_main` in its own worktree, test it on CPU, then run dense h12 and AME
@@ -150,3 +151,4 @@ packed held-out rows.
 | 09:16-09:21 | First GPU-test attempt on the interactive node: the cluster env has no pytest (and no pip). pytest 8.4.2 and its pure-Python dependencies copied from the local env into the test directory's `.pylib`, on `PYTHONPATH` for the test job only |
 | 09:20 | Batch GPU-test job 6294848 cancelled before it started: it lacked the pytest path, and the interactive node made it redundant |
 | 09:22-09:24 | GPU tests pass (job 6295055 on r18-15): all 9 document-mask tests, 12 of AME's 13; the one failure predates this branch (see Verification) |
+| 12:15 | Both still pending (Priority). Each job's priority is 673: age 195 (grows with waiting), fair-share 300, job size 79, partition 100. 370 of the partition's 382 pending jobs rank above them, about 90 of those waiting on dependencies. 30 jobs running; 31 nodes are partly used and planned by the backfill scheduler for other jobs; 20 idle nodes are powered down. Forecast start now 11-13 05:23 (11-12 12:14 at submission). A shorter time limit would not help: `sbatch --test-only` gives a new job of this shape the same start (11-16 18:46) at a 4, 5, 6 or 7 h limit. Watcher re-armed (every 20 min, up to 5 days); it also catches a job that starts and leaves the queue between checks |
