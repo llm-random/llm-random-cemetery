@@ -46,6 +46,10 @@ class AttentionSchema:
     # duplicate. One field per type that has options.
     ame: Any = None
     gqa: Any = None  # {rope: false} is NoPE (_GQA_OPTIONS in src/core/attention.py)
+    # Attention stays inside each document of a packed row, in every layer of
+    # every type, and AME's KV shift stops at document boundaries
+    # (src/core/document_mask.py). Needs common.eos_token_id.
+    document_mask: bool = False
 
 
 @dataclass
@@ -65,6 +69,9 @@ class CommonSchema:
     sequence_length: int = MISSING
     batch_size: int = MISSING
     attention: AttentionSchema = field(default_factory=AttentionSchema)
+    # The tokenizer's EOS id, which ends every packed document. Optional: only
+    # attention.document_mask reads it (the h_balanced model config sets it).
+    eos_token_id: Optional[int] = None
 
 
 @dataclass
@@ -251,6 +258,16 @@ def validate(cfg) -> None:
             f"common.q_heads={c.q_heads} must be a multiple of common.kv_heads="
             f"{c.kv_heads} (grouped-query attention repeats kv heads an integer "
             "number of times)",
+        )
+    # getattr: validate is duck-typed, and the generated configs of runs from
+    # before these keys existed lack them.
+    attention = getattr(c, "attention", None)
+    if attention is not None and getattr(attention, "document_mask", False):
+        eos_token_id = getattr(c, "eos_token_id", None)
+        check(
+            eos_token_id is not None and eos_token_id >= 0,
+            "common.attention.document_mask needs common.eos_token_id, the "
+            f"tokenizer's EOS id, to find the documents; got {eos_token_id!r}",
         )
 
     t = cfg.trainer

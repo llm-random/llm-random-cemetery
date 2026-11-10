@@ -17,6 +17,9 @@ common:
   # GPT-NeoX tokenizer: len 50277 (max id 50276), padded to a multiple of 128.
   # The concept doc said 50257, which is GPT-2's count -- measured 2026-10-30.
   vocab_size: 50304
+  # The same tokenizer's <|endoftext|>, which the packer appends to every
+  # document (src/core/datasets.py). Read only by attention.document_mask.
+  eos_token_id: 0
   sequence_length: ???
   # Which attention each layer runs (src/core/attention.py). "type" is the
   # registered type for the whole stack; an optional "mix" swaps a subset:
@@ -25,6 +28,9 @@ common:
   # A type may also carry an options block named after it, applied wherever it
   # is built (base or mix) -- see _AME_OPTIONS in src/core/attention.py:
   #   attention: {type: ame, ame: {shift: true, pin_alpha: false, sink: true}}
+  # document_mask: true keeps attention inside each document of a packed row,
+  # in every layer, and stops AME's KV shift at document boundaries
+  # (src/core/document_mask.py). Default false: attention spans the whole row.
   attention:
     type: gqa
 
@@ -63,6 +69,8 @@ model:
         seq_len: ${common.sequence_length}
         # Only id-indexed types (ame) read this; the rest ignore it.
         vocab_size: ${common.vocab_size}
+        # Only attention.document_mask reads this.
+        eos_token_id: ${common.eos_token_id}
         # llm-random lineage: base 10000, no llama frequency scaling.
         rope_base: 10000
         rope_scale_freqs: false

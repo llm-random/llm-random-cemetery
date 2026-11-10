@@ -70,6 +70,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from src.core.document_mask import continues_document, document_ids, document_score_mod
 from src.core.model import Linear, llm_random_weight_init
 
 # The values `bank_gate` takes. One enum rather than a boolean per mechanism, so
@@ -339,12 +340,26 @@ class AMEAttention(nn.Module):
         slopes=None,
         learnable_slopes=False,
         backend="auto",
+        document_mask=False,
+        eos_token_id=None,
     ):
         super().__init__()
         if backend not in ("auto", "flex", "reference"):
             raise ValueError(
                 f"unknown ame backend {backend!r}; expected auto, flex or reference"
             )
+        if document_mask and eos_token_id is None:
+            raise ValueError(
+                "attention.document_mask needs the tokenizer's EOS id to find the "
+                "documents: pass eos_token_id (the model config does this via "
+                "`eos_token_id: ${common.eos_token_id}` under attention_fn)"
+            )
+        # document_mask: attention stays within each document of the packed row,
+        # and the KV shift does not reach across a document boundary
+        # (src.core.document_mask). It adds no parameter and draws nothing, so
+        # the state dict and the init are the same either way.
+        self.document_mask = document_mask
+        self.eos_token_id = eos_token_id
         if bank_gate not in BANK_GATES:
             raise ValueError(
                 f"unknown ame bank_gate {bank_gate!r}; expected one of "
@@ -642,11 +657,18 @@ class AMEAttention(nn.Module):
         gate = F.silu(self.gate(x))
         return gate.view(batch, seq_len, self.q_heads, self.dhead).to(q.dtype)
 
-    def _mixed_qkv(self, x, token_ids):
+    def _documents(self, token_ids):
+        """`[B, n]` document ids when document_mask is on, else None."""
+        if not self.document_mask:
+            return None
+        return document_ids(token_ids, self.eos_token_id)
+
+    def _mixed_qkv(self, x, token_ids, doc=None):
         """Everything up to the kernel: gather, normalize, mix, scale.
 
         Returns q, k, v as `[B, H, n, D]`, with the score scale already folded
-        into q so the kernel runs at scale 1.
+        into q so the kernel runs at scale 1. `doc` (document_mask's ids, see
+        `_documents`) stops the KV shift at document boundaries.
         """
         batch, seq_len = token_ids.shape
         heads, dhead = self.q_heads, self.dhead
@@ -698,10 +720,16 @@ class AMEAttention(nn.Module):
 
         alpha = self.alpha.to(k.dtype)
         beta = self.beta.to(v.dtype)
-        k = alpha[:, 0].view(1, 1, -1, 1) * k + alpha[:, 1].view(1, 1, -1, 1) * _shift1(
-            k
-        )
-        v = beta[:, 0].view(1, 1, -1, 1) * v + beta[:, 1].view(1, 1, -1, 1) * _shift1(v)
+        k_prev, v_prev = _shift1(k), _shift1(v)
+        if doc is not None:
+            # document_mask: the first position of a document gets a zero
+            # predecessor, as position 0 of the row does inside _shift1, instead
+            # of the previous document's EOS key and value.
+            keep = continues_document(doc).view(batch, seq_len, 1, 1)
+            k_prev = k_prev * keep.to(k_prev.dtype)
+            v_prev = v_prev * keep.to(v_prev.dtype)
+        k = alpha[:, 0].view(1, 1, -1, 1) * k + alpha[:, 1].view(1, 1, -1, 1) * k_prev
+        v = beta[:, 0].view(1, 1, -1, 1) * v + beta[:, 1].view(1, 1, -1, 1) * v_prev
 
         # tau folded into q: scaling one side is identical to scaling the score,
         # and it leaves the kernel's own scale at 1 for both backends.
@@ -739,7 +767,8 @@ class AMEAttention(nn.Module):
                 "input_ids through (see LLM.forward -> TransformerEncoder)."
             )
         batch, seq_len = token_ids.shape
-        q, k, v = self._mixed_qkv(x, token_ids)
+        doc = self._documents(token_ids)
+        q, k, v = self._mixed_qkv(x, token_ids, doc)
         # "auto" = flex on CUDA, reference on CPU. Not a preference: in torch
         # 2.9 a compiled flex_attention whose inputs require grad fails to lower
         # on CPU (it fails for a bare flex_attention call with no score_mod and
@@ -749,7 +778,7 @@ class AMEAttention(nn.Module):
         # affordable at a real context length.
         use_flex = q.is_cuda if self.backend == "auto" else self.backend == "flex"
         attend = self._attend_flex if use_flex else self._attend_reference
-        out = attend(q, k, v)
+        out = attend(q, k, v, doc=doc)
         out = out.transpose(1, 2).reshape(batch, seq_len, self.q_heads * self.dhead)
         return self.o_proj(out)
 
@@ -787,12 +816,27 @@ class AMEAttention(nn.Module):
             allowed[:, :, :offset] = True
         return bias.masked_fill(~allowed, float("-inf")).to(dtype)
 
-    def _attend_reference(self, q, k, v, return_scores=False):
+    @staticmethod
+    def _mask_documents(scores, doc, offset, rows=None):
+        """document_mask on materialized scores `[B, H, rows, offset + n]`: a
+        key in another document goes to -inf. The causal half is already in
+        score_bias, and the sink column (when present) stays visible to all.
+        `rows` picks the query rows `scores` holds; None means every row."""
+        doc_rows = doc if rows is None else doc[:, rows]
+        same = doc_rows[:, :, None] == doc[:, None, :]
+        if offset:
+            sink = torch.ones_like(same[:, :, :offset])
+            same = torch.cat([sink, same], dim=-1)
+        return scores.masked_fill(~same.unsqueeze(1), float("-inf"))
+
+    def _attend_reference(self, q, k, v, return_scores=False, doc=None):
         k, v, offset = self._with_sink(k, v)
         scores = torch.einsum("bhid,bhjd->bhij", q, k).float()
         scores = scores + self.score_bias(
             q.shape[2], q.device, torch.float32, offset
         ).unsqueeze(0)
+        if doc is not None:
+            scores = self._mask_documents(scores, doc, offset)
         weights = scores.softmax(dim=-1)
         out = torch.einsum("bhij,bhjd->bhid", weights.to(v.dtype), v)
         return (out, scores) if return_scores else out
@@ -840,8 +884,13 @@ class AMEAttention(nn.Module):
         self._block_mask_cache[key] = mask
         return mask
 
-    def _attend_flex(self, q, k, v):
+    def _attend_flex(self, q, k, v, doc=None):
         """Flex over the sequence, with the sink merged in afterwards.
+
+        `doc` (document_mask) masks cross-document scores inside the sequence
+        kernel. The merge below is unchanged by it: the sink is visible to every
+        query whatever its document, and `lse_seq` already covers only the
+        query's own document.
 
         **The sink used to be a kv column and it cost 876 ms per step.** Measured
         at the h20 shape (`scripts/bench_attention.py`, one H100, 20 layers x 8
@@ -873,9 +922,9 @@ class AMEAttention(nn.Module):
         into `q` by `_mixed_qkv`.
         """
         if not self.use_sink:
-            return self._attend_flex_sequence(q, k, v)
+            return self._attend_flex_sequence(q, k, v, doc=doc)
 
-        out_seq, lse_seq = self._attend_flex_sequence(q, k, v, return_lse=True)
+        out_seq, lse_seq = self._attend_flex_sequence(q, k, v, return_lse=True, doc=doc)
 
         # The sink's logit: one score per query, no bias, scale 1 (tau is in q).
         #
@@ -936,8 +985,9 @@ class AMEAttention(nn.Module):
         # mul, add -- into the kernel that produced `out_seq`.
         return out_seq + alpha.unsqueeze(-1) * (v_sink - out_seq)
 
-    def _attend_flex_sequence(self, q, k, v, return_lse=False):
-        """flex over the sequence alone: plain causal mask, ALiBi score_mod."""
+    def _attend_flex_sequence(self, q, k, v, return_lse=False, doc=None):
+        """flex over the sequence alone: plain causal mask, ALiBi score_mod,
+        and with `doc` (document_mask) cross-document scores at -inf."""
         offset = 0
         slopes = self.slopes.to(device=q.device, dtype=torch.float32)
 
@@ -950,6 +1000,9 @@ class AMEAttention(nn.Module):
             # already lives with.
             distance = (q_idx - kv_idx).to(torch.float32)
             return (score.to(torch.float32) - slopes[h] * distance).to(score.dtype)
+
+        if doc is not None:
+            score_mod = document_score_mod(doc, score_mod)
 
         # The block mask is built outside the kernel call and cached, so the
         # compiled path never traces create_block_mask. offset is 0 here, so
@@ -996,8 +1049,9 @@ class AMEAttention(nn.Module):
             device=token_ids.device,
             dtype=self.v_proj.weight.dtype,
         )
-        q, k, v = self._mixed_qkv(x, token_ids)
-        _, scores = self._attend_reference(q, k, v, return_scores=True)
+        doc = self._documents(token_ids)
+        q, k, v = self._mixed_qkv(x, token_ids, doc)
+        _, scores = self._attend_reference(q, k, v, return_scores=True, doc=doc)
         return scores
 
     @torch.no_grad()
@@ -1036,7 +1090,8 @@ class AMEAttention(nn.Module):
             device=ids.device,
             dtype=self.v_proj.weight.dtype,
         )
-        q, k, _ = self._mixed_qkv(x, ids)
+        doc = self._documents(ids)
+        q, k, _ = self._mixed_qkv(x, ids, doc)
         k, _, offset = self._with_sink(k, k)
 
         rows = _diagnostic_rows(seq_len, max_rows, ids.device)
@@ -1045,13 +1100,23 @@ class AMEAttention(nn.Module):
         scores = scores + self.score_bias(seq_len, ids.device, torch.float32, offset)[
             :, rows, :
         ].unsqueeze(0)
+        if doc is not None:
+            scores = self._mask_documents(scores, doc, offset, rows=rows)
         weights = scores.softmax(dim=-1)
 
         entropy = -(weights * weights.clamp_min(1e-12).log()).sum(-1)
         # Keys row i can actually see: itself, everything before it, and the
-        # sink column when there is one.
-        visible = (rows + 1 + offset).to(entropy.dtype)
-        ceiling = visible.log().clamp_min(1e-6).view(1, 1, -1)
+        # sink column when there is one. Under document_mask only the part of
+        # that prefix in row i's own document, so it varies along the batch too.
+        if doc is None:
+            visible = (rows + 1 + offset).to(entropy.dtype).view(1, 1, -1)
+        else:
+            keys = torch.arange(seq_len, device=ids.device)
+            own = (doc[:, rows, None] == doc[:, None, :]) & (
+                keys.view(1, 1, -1) <= rows.view(1, -1, 1)
+            )
+            visible = (own.sum(-1) + offset).to(entropy.dtype).unsqueeze(1)
+        ceiling = visible.log().clamp_min(1e-6)
         k_eff = min(top_k, weights.shape[-1])
 
         return {

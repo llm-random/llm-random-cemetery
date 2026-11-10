@@ -19,6 +19,11 @@ base.yaml); `build_attention` is the `attention_fn` the transformer block calls
 with its block id, which is what makes per-layer switching possible. A type may
 take its own options block there -- `attention: {type: ame, ame: {...}}` -- which
 applies wherever that type appears, base or mix.
+
+`attention.document_mask: true` keeps attention inside each document of a packed
+row, in every layer of every real type (src.core.document_mask). The documents are
+found from the tokenizer's EOS id, `eos_token_id` below, which the model config
+passes in. Off (the default), no layer changes.
 """
 
 from functools import partial
@@ -47,6 +52,8 @@ def _rope_attention(
     rope_scale_freqs,
     init_scale,
     rope=True,
+    document_mask=False,
+    eos_token_id=None,
 ):
     dhead = dmodel // q_heads
     return RoPEAttention(
@@ -61,6 +68,8 @@ def _rope_attention(
         rope_base=rope_base,
         rope_scale_freqs=rope_scale_freqs,
         rope=rope,
+        document_mask=document_mask,
+        eos_token_id=eos_token_id,
     )
 
 
@@ -74,14 +83,26 @@ def _rope_kwargs(kwargs):
     return {key: kwargs[key] for key in _ROPE_KEYS if key in kwargs}
 
 
+def _document_kwargs(kwargs):
+    """`document_mask` and `eos_token_id`, for the types that implement the mask."""
+    return {
+        "document_mask": bool(kwargs.get("document_mask", False)),
+        "eos_token_id": kwargs.get("eos_token_id"),
+    }
+
+
 def _build_mha(dmodel, q_heads, kv_heads, **kwargs):
     """Multi-head attention: every query head has its own kv head."""
-    return _rope_attention(dmodel, q_heads, q_heads, **_rope_kwargs(kwargs))
+    return _rope_attention(
+        dmodel, q_heads, q_heads, **_rope_kwargs(kwargs), **_document_kwargs(kwargs)
+    )
 
 
 def _build_mqa(dmodel, q_heads, kv_heads, **kwargs):
     """Multi-query attention: one kv head shared by every query head."""
-    return _rope_attention(dmodel, q_heads, 1, **_rope_kwargs(kwargs))
+    return _rope_attention(
+        dmodel, q_heads, 1, **_rope_kwargs(kwargs), **_document_kwargs(kwargs)
+    )
 
 
 def _build_gqa(dmodel, q_heads, kv_heads, *, options=None, **kwargs):
@@ -106,6 +127,7 @@ def _build_gqa(dmodel, q_heads, kv_heads, *, options=None, **kwargs):
         kv_heads,
         **_rope_kwargs(kwargs),
         rope=bool(options.get("rope", True)),
+        **_document_kwargs(kwargs),
     )
 
 
@@ -134,6 +156,7 @@ def _build_ame(dmodel, q_heads, kv_heads, *, vocab_size=None, options=None, **kw
         kv_heads,
         vocab_size=vocab_size,
         **_rope_kwargs(kwargs),
+        **_document_kwargs(kwargs),
         **dict(options or {}),
     )
 
@@ -185,6 +208,13 @@ class GatedDeltaNet(_PlannedAttention):
 
 def _planned(cls):
     def build(dmodel, q_heads, kv_heads, **kwargs):
+        if kwargs.get("document_mask"):
+            # Not dropped by the kwarg filter: a run that sets the mask believes
+            # every layer honors it.
+            raise ValueError(
+                f"attention.document_mask is not implemented for {cls.__name__}, "
+                "a planned type"
+            )
         return cls(dmodel, q_heads, kv_heads, **_rope_kwargs(kwargs))
 
     return build
@@ -297,23 +327,34 @@ def build_attention(
     rope_base=10000,
     rope_scale_freqs=False,
     init_scale=1,
+    eos_token_id=None,
 ):
     """The `attention_fn` a TransformerBlock calls with its block id.
 
     `attention` is the config mapping: {"type": <name>} for a uniform stack, plus
     an optional "mix" (see resolve_layer_types) to swap the type on some layers,
     plus an optional options block per registered type name -- `{"type": "ame",
-    "ame": {...}}` -- which applies wherever that type is built, base or mix.
+    "ame": {...}}` -- which applies wherever that type is built, base or mix,
+    plus the optional stack-wide "document_mask" (src.core.document_mask).
 
     `vocab_size` is only consumed by types whose parameters are indexed by token
-    id (ame); the projection-based types ignore it.
+    id (ame); the projection-based types ignore it. `eos_token_id` is only read
+    when document_mask is on, and is then required.
     """
-    unknown = set(attention) - {"type", "mix"} - set(_TYPE_OPTIONS)
+    unknown = set(attention) - {"type", "mix", "document_mask"} - set(_TYPE_OPTIONS)
     if unknown:
         raise ValueError(
             f"unknown attention config keys {sorted(unknown)}; expected type, mix, "
-            f"or an options block for a type that takes options "
+            f"document_mask, or an options block for a type that takes options "
             f"({sorted(_TYPE_OPTIONS)})"
+        )
+    document_mask = bool(attention.get("document_mask") or False)
+    if document_mask and eos_token_id is None:
+        raise ValueError(
+            "attention.document_mask needs the tokenizer's EOS id to find the "
+            "documents, and build_attention got eos_token_id=None. The model "
+            "config passes it under attention_fn: "
+            "`eos_token_id: ${common.eos_token_id}`."
         )
     if not 0 <= block_id < n_blocks:
         raise ValueError(f"block_id {block_id} outside 0..{n_blocks - 1}")
@@ -330,4 +371,6 @@ def build_attention(
         init_scale=init_scale,
         vocab_size=vocab_size,
         options=attention.get(name),
+        document_mask=document_mask,
+        eos_token_id=eos_token_id,
     )

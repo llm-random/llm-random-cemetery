@@ -247,6 +247,8 @@ class RoPEAttention(nn.Module):
         high_freq_factor=4,
         original_max_position_embeddings=8192,
         rope: bool = True,
+        document_mask: bool = False,
+        eos_token_id: Optional[int] = None,
     ):
         super().__init__()
         self.q_proj = q_proj_fn()
@@ -259,6 +261,22 @@ class RoPEAttention(nn.Module):
         self.kv_heads = kv_heads
         self.dhead = self.q_proj.weight.shape[0] // self.q_heads
         self.dmodel = dmodel
+
+        # document_mask: each token attends only within its own document of the
+        # packed row (src.core.document_mask). The documents are found from the
+        # EOS ids, so the layer then needs the token ids, which it asks for the
+        # way AME does: Residual reads `wants_token_ids` once, at construction.
+        # Off, the layer is exactly the plain one: no ids, the same SDPA call.
+        if document_mask and eos_token_id is None:
+            raise ValueError(
+                "attention.document_mask needs the tokenizer's EOS id to find the "
+                "documents: pass eos_token_id (the model config does this via "
+                "`eos_token_id: ${common.eos_token_id}` under attention_fn)"
+            )
+        self.document_mask = document_mask
+        self.eos_token_id = eos_token_id
+        self.wants_token_ids = document_mask
+        self._block_mask_cache = {}
 
         # rope=False is NoPE: no positional encoding at all, so the only positional
         # signal left is the causal mask (Haviv et al. 2022). RoPE holds no
@@ -279,7 +297,7 @@ class RoPEAttention(nn.Module):
             else None
         )
 
-    def forward(self, x):
+    def forward(self, x, token_ids=None):
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
@@ -299,13 +317,90 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
-        attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, causal=True
-        )
+        if self.document_mask:
+            attention_output = self._attend_documents(q, k, v, token_ids)
+        else:
+            attention_output = self.attention_mechanism(
+                query=q, key=k, value=v, causal=True
+            )
 
         output = self.o_proj(attention_output.transpose(1, 2).contiguous().flatten(-2))
 
         return output
+
+    # ---- document mask -------------------------------------------------------
+    #
+    # Two paths computing the same function, as in src.core.ame. `reference`
+    # hands SDPA the materialized [B, 1, n, n] mask and is the oracle the tests
+    # check `flex` against. `flex` keeps a cached causal block mask and masks the
+    # cross-document scores in a score_mod (src.core.document_mask). Flex on
+    # CUDA, reference on CPU, for AME's reason: a compiled flex whose inputs
+    # require grad does not lower on CPU. Flash, the plain path's kernel, takes
+    # no mask at all, and SDPA's masked kernels would materialize the mask in
+    # every layer and keep it for the backward.
+
+    def _attend_documents(self, q, k, v, token_ids):
+        if token_ids is None:
+            raise ValueError(
+                "attention.document_mask needs the token ids to find the "
+                "documents: the caller must thread input_ids through (see "
+                "LLM.forward -> TransformerEncoder -> Residual)"
+            )
+        from src.core.document_mask import document_ids
+
+        doc = document_ids(token_ids, self.eos_token_id)
+        if q.is_cuda:
+            return self._attend_documents_flex(q, k, v, doc)
+        return self._attend_documents_reference(q, k, v, doc)
+
+    def _attend_documents_reference(self, q, k, v, doc):
+        from src.core.document_mask import allowed_keys
+
+        return F.scaled_dot_product_attention(
+            query=q, key=k, value=v, attn_mask=allowed_keys(doc).unsqueeze(1)
+        )
+
+    def _attend_documents_flex(self, q, k, v, doc):
+        # Imported lazily: src.core.ame imports this module.
+        from src.core.ame import _flex_attention
+        from src.core.document_mask import document_score_mod
+
+        # One dtype for the kernel. The plain path's SDPA is an autocast op and
+        # casts for itself; flex is not, and rejects a mismatch. v is a
+        # projection's output, so it carries the autocast dtype. Under autocast
+        # q and k already have it (RoPE keeps its input's dtype): this is a no-op
+        # unless something upstream changes.
+        q, k = q.to(v.dtype), k.to(v.dtype)
+        # flex's default scale is 1/sqrt(dhead), SDPA's too.
+        return _flex_attention(
+            q,
+            k,
+            v,
+            score_mod=document_score_mod(doc),
+            block_mask=self._causal_block_mask(q.shape[2], q.device),
+        )
+
+    def _causal_block_mask(self, seq_len, device):
+        """The causal BlockMask, built once per (seq_len, device) and cached.
+
+        Built and cached the way src.core.ame's `_block_mask` is, inside the
+        compiled graph; its docstring records why it is not a graph input.
+        """
+        key = (seq_len, str(device))
+        cached = self._block_mask_cache.get(key)
+        if cached is not None:
+            return cached
+
+        from torch.nn.attention.flex_attention import create_block_mask
+
+        def causal(b, h, q_idx, kv_idx):
+            return kv_idx <= q_idx
+
+        mask = create_block_mask(
+            causal, B=None, H=None, Q_LEN=seq_len, KV_LEN=seq_len, device=device
+        )
+        self._block_mask_cache[key] = mask
+        return mask
 
     def attention_score_flops_per_token(self, seq_len):
         """QK^T and AV at 2*s*datt each per token forward, tripled for the
