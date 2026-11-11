@@ -1,11 +1,13 @@
 import itertools
 import os
+import random
 import time
 from contextlib import contextmanager, nullcontext
 from attr import define
+import numpy as np
 import torch
 import torch.nn.functional as F
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 from torch.utils.data import IterableDataset
 import torch.distributed as dist
 from torch.distributed.fsdp import FullyShardedDataParallel as FSDP
@@ -22,7 +24,77 @@ from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger
 from src.core.mfu import model_flops_per_token, peak_flops_bf16
 from src.core.utils import create_batch_fingerprint
 
+if TYPE_CHECKING:
+    # Type-only: importing lm_eval at module load would slow every training start.
+    from src.core.eval import Evaluator
+
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def preserved_rng_state(device: torch.device):
+    """Restores torch CPU and CUDA (`device` only), Python and numpy RNG state on exit."""
+    on_cuda = device.type == "cuda"
+    torch_state = torch.get_rng_state()
+    cuda_state = torch.cuda.get_rng_state(device) if on_cuda else None
+    python_state = random.getstate()
+    numpy_state = np.random.get_state()
+    yield
+    torch.set_rng_state(torch_state)
+    if on_cuda:
+        torch.cuda.set_rng_state(cuda_state, device)
+    random.setstate(python_state)
+    np.random.set_state(numpy_state)
+
+
+def _dbg_rng_fingerprint(device):  # DEBUG(inloop)
+    cuda = torch.cuda.get_rng_state(device) if device.type == "cuda" else None
+    return (
+        hash(torch.get_rng_state().numpy().tobytes()),
+        None if cuda is None else hash(cuda.numpy().tobytes()),
+        hash(random.getstate()),
+        hash(np.random.get_state()[1].tobytes()),
+    )
+
+
+def _dbg_graphs():  # DEBUG(inloop)
+    from torch._dynamo.utils import counters
+
+    return counters["stats"]["unique_graphs"]
+
+
+def _dbg_snapshot(trainer):  # DEBUG(inloop)
+    on_cuda = trainer.device.type == "cuda"
+    return {
+        "rng": _dbg_rng_fingerprint(trainer.device),
+        "mem": torch.cuda.memory_allocated(trainer.device) / 2**30 if on_cuda else 0,
+        "peak": (
+            torch.cuda.max_memory_allocated(trainer.device) / 2**30 if on_cuda else 0
+        ),
+        "acc": sum(
+            len(values)
+            for acc in trainer.metric_logger.accumulators.values()
+            for values in acc.acc_dict.values()
+        ),
+        "graphs": _dbg_graphs(),
+    }
+
+
+def _dbg_report(trainer, before, rng_mid, wall_time):  # DEBUG(inloop)
+    after = _dbg_snapshot(trainer)
+    names = ("torch_cpu", "cuda", "python", "numpy")
+    changed = [n for n, a, b in zip(names, before["rng"], rng_mid) if a != b]
+    unrestored = [n for n, a, b in zip(names, before["rng"], after["rng"]) if a != b]
+    logger.info(
+        f"DBG_INLOOP rank={os.environ.get('RANK', 0)} step={trainer.step} "
+        f"wall_s={wall_time:.1f} rng_changed_by_eval={changed} "
+        f"rng_not_restored={unrestored} training={trainer.model.training} "
+        f"mem_gib={before['mem']:.2f}->{after['mem']:.2f} "
+        f"peak_gib={before['peak']:.2f}->{after['peak']:.2f} "
+        f"heavy_acc={before['acc']}->{after['acc']} "
+        f"dynamo_graphs={before['graphs']}->{after['graphs']} "
+        f"prev_log_time={trainer._prev_log_time}"
+    )
 
 
 @define(frozen=True)
@@ -119,6 +191,8 @@ class Trainer:
     learning_rate: float
     weight_decay: float
     distributed: Optional[dict]
+    # lm-eval benchmarks on the evaluator's own cadence; None when the config has none.
+    downstream_evaluator: Optional["Evaluator"]
     # The nanoGPT-style single-GPU configuration: a plain (unwrapped) module
     # whose forward+loss run under torch.autocast(bf16) while params, grads
     # and optimizer state stay fp32. Off by default; meant for runs with
@@ -194,6 +268,7 @@ class Trainer:
         # resume. Do not add the skip back without first removing that restart.
         self.eval_iterator = None
         self.step = self.start_step - 1
+        self._last_downstream_eval_step = None
         # Disabled placeholder so calculate_loss (also called from eval) can
         # always reference it; train() swaps in the enabled instance.
         self._timers = LoopTimers(False)
@@ -227,6 +302,27 @@ class Trainer:
     @property
     def _should_log_eval_input(self) -> bool:
         return self.step % (self.eval_interval * 100) == 0
+
+    @property
+    def _downstream_interval_hit(self) -> bool:
+        if self.downstream_evaluator is None:
+            return False
+        interval = self.downstream_evaluator.eval_interval
+        return interval > 0 and self.step % interval == 0 and self.step != 0
+
+    @property
+    def _should_run_downstream_eval(self) -> bool:
+        # The last step's eval runs in train() after the final checkpoint.
+        return self._downstream_interval_hit and self.step < self.n_steps - 1
+
+    @property
+    def _should_run_final_downstream_eval(self) -> bool:
+        return (
+            self.downstream_evaluator is not None
+            and (self.downstream_evaluator.final_eval or self._downstream_interval_hit)
+            # Not twice at one step: the loop stops early when the data runs out.
+            and self._last_downstream_eval_step != self.step
+        )
 
     @property
     def _should_save_checkpoint(self) -> bool:
@@ -353,6 +449,14 @@ class Trainer:
             with self._timers.host("log"):
                 self.log_metrics(loss_metrics, grad_norm)
 
+            # DEBUG(inloop): rank-0 loss and compile count around every 100th step.
+            if step % 100 in (99, 0, 1, 2) and os.environ.get("RANK", "0") == "0":
+                logger.info(
+                    f"DBG_INLOOP_STEP step={step} "
+                    f"loss={loss_metrics.reported_loss.item()!r} "
+                    f"dynamo_graphs={_dbg_graphs()}"
+                )
+
             with self._timers.gpu("optim"):
                 self.optimizer.step()
                 self.optimizer.zero_grad()
@@ -387,6 +491,10 @@ class Trainer:
             if self._should_evaluate:
                 self.eval()
 
+            # After the save above, so a same-step lm-eval crash can't cost the checkpoint.
+            if self._should_run_downstream_eval:
+                self.downstream_eval()
+
             self.metric_logger.flush()
 
         if torch.cuda.is_available():
@@ -398,6 +506,28 @@ class Trainer:
 
         if self._should_save_final_checkpoint:
             self.save_final_checkpoint()
+
+        # Last, so an lm-eval crash can't cost the final checkpoint.
+        if self._should_run_final_downstream_eval:
+            self.downstream_eval()
+            self.metric_logger.flush()
+
+    def downstream_eval(self):
+        """Score the lm-eval benchmarks at the current step without disturbing training."""
+        dbg_before = _dbg_snapshot(self)  # DEBUG(inloop)
+        t0 = time.perf_counter()
+        # simple_evaluate reseeds every global RNG.
+        with preserved_rng_state(self.device):
+            self.downstream_evaluator.eval()
+            dbg_rng_mid = _dbg_rng_fingerprint(self.device)  # DEBUG(inloop)
+        wall_time = time.perf_counter() - t0
+        self.model.train()
+        # Otherwise the next step's step_time and MFU would include the eval.
+        self._prev_log_time = None
+        self._last_downstream_eval_step = self.step
+        logger.info(f"Downstream eval at step {self.step} took {wall_time:.1f} s")
+        self.metric_logger.log("eval/downstream_wall_time_s", wall_time)
+        _dbg_report(self, dbg_before, dbg_rng_mid, wall_time)  # DEBUG(inloop)
 
     def final_eval(self):
         """Score the held-out set once, after training, and log it as `final_ce`.

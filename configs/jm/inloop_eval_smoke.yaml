@@ -1,0 +1,33 @@
+# Temporary: 4-GPU smoke test of in-loop downstream eval on h16_chinchilla.
+# Array task 0 scores every 100 steps; tasks 1 and 2 are eval-off twins for the bit-identity check.
+defaults:
+  - h16_chinchilla
+  - ../_downstream_eval@_here_: joint
+  - _self_
+
+trainer:
+  n_steps: 301
+  checkpoint:
+    save:
+      # Lands on the eval steps, to check the save runs first; scratch, delete afterwards.
+      interval: 100
+      path: ${oc.env:PROJECT_HOME_PATH,/storage_nvme_4/nano/pretraining}/${oc.env:USER}/checkpoints/inloop_eval_smoke
+
+downstream_evaluator:
+  # All nine joint tasks, capped per task.
+  limit: 50
+  ^eval_interval: [100, 0, 0]
+  final_eval: true
+
+infrastructure:
+  metric_logger:
+    name: inloop_eval_smoke
+    tags:
+      - nano
+      - remote
+      - h16
+      - smoke
+      - inloop_eval
+
+  slurm:
+    time: "00:45:00"
