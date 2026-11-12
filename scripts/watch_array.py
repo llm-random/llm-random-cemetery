@@ -12,7 +12,9 @@ Exits, printing the reason on a line that starts with EXIT:
   - every task has ended (COMPLETED or not);
   - a task ended in any state but COMPLETED (failed, cancelled, timed out, ...);
   - a run's loss is NaN;
-  - MAX_MINUTES passed.
+  - MAX_MINUTES passed;
+  - with WATCH_START_STEP=N set: a task is running and every running task's W&B
+    run has reached step N (the start check).
 
 Task states come from sacct, which keeps a task after it leaves the queue, so an
 ended task is never confused with an unreachable controller: a query that does not
@@ -21,6 +23,7 @@ s): bursts of ssh connections trip entropy's fail2ban.
 """
 
 import math
+import os
 import subprocess
 import sys
 import time
@@ -28,6 +31,7 @@ import time
 import wandb
 
 PROJECT = "ideas_cv/nano-ame"
+START_STEP = int(os.environ["WATCH_START_STEP"]) if os.environ.get("WATCH_START_STEP") else None
 TERMINAL_BAD = ("FAILED", "CANCELLED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL",
                 "PREEMPTED", "BOOT_FAIL", "DEADLINE", "REVOKED")
 
@@ -80,6 +84,7 @@ def main():
             api, api_err = wandb.Api(timeout=60), None
         except Exception as exc:
             api, api_err = None, f"wandb unavailable: {type(exc).__name__}"
+        running_steps = []
         for i, name in enumerate(names):
             state = "?" if states is None else states[i]
             info, err = run_status(api, name) if api is not None else (None, api_err)
@@ -92,6 +97,13 @@ def main():
             if state.startswith(TERMINAL_BAD):
                 print(f"EXIT: {name} ({array_id}_{i}) ended {state}", flush=True)
                 return
+            if state == "RUNNING":
+                running_steps.append(step)
+        if START_STEP is not None and running_steps and all(
+                s is not None and s >= START_STEP for s in running_steps):
+            print(f"EXIT: {len(running_steps)} running task(s) at step >= {START_STEP}",
+                  flush=True)
+            return
         if states is not None and all(s == "COMPLETED" for s in states.values()):
             print(f"EXIT: every task of {array_id} COMPLETED", flush=True)
             return
