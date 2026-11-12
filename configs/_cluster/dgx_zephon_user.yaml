@@ -1,0 +1,55 @@
+# The DGX (ssh alias `vpn`, login node login01), with zephon: training data streamed from
+# the HF hub (configs/_dataset/fineweb_zephon.yaml), so no dataset copy is needed here.
+#
+# Slurm partition `batch`, two nodes: login01 (8x A100 80GB) and gpu01 (7x A100 80GB plus
+# 7 MIG 1g.10gb slices). gres asks for `ampere` so a job never lands on a MIG slice.
+# $HOME (/raid/NFS_SHARE/home/$USER) is shared by both nodes and has no quota, so the
+# environment, caches, checkpoints and the cemetery all live under it.
+#
+# The environment is the repo's pixi.toml plus zephon, in $HOME/pixi_zephon (the older
+# $HOME/pixi is left alone). Install on the login node:
+#   cp <repo>/pixi.toml <repo>/pixi.lock ~/pixi_zephon && cd ~/pixi_zephon \
+#     && pixi add --pypi "zephon[parquet]==0.2.1"
+# Shard indexes, once per hf_path in fineweb_zephon.yaml, inside that environment:
+#   python -m src.core.zephon_dataset build-index <hf_path> ~/zephon/index
+# HF token: ~/.cache/huggingface/token (Llama weights and tokenizer are gated).
+infrastructure:
+  server: vpn
+  max_concurrent_jobs: null
+
+  slurm:
+    cpus_per_gpu: 16
+    gres: "gpu:ampere:4"
+    job-name: test
+    mem_per_gpu: 120G
+    nodes: 1
+    partition: batch
+    time: "2-00:00:00"
+
+  script:
+    - '${export_env_variables_placeholders:}'
+    - 'SECRETS_DIR=$HOME/.config/bdd/secrets'
+    - 'if [ -z "$WANDB_API_KEY" ] && [ -s "$SECRETS_DIR/wandb_api_key" ]; then export WANDB_API_KEY="$(cat "$SECRETS_DIR/wandb_api_key")"; fi'
+    - 'if [ -z "$HF_TOKEN" ] && [ -s "$SECRETS_DIR/hf_token" ]; then export HF_TOKEN="$(cat "$SECRETS_DIR/hf_token")"; fi'
+    - 'export HYDRA_FULL_ERROR=1'
+
+    - 'export PIXI_HOME=$HOME/pixi_zephon'
+    - 'export PATH="$HOME/.pixi/bin:$PATH"'
+    - 'export XDG_DATA_HOME="$PIXI_HOME/data"'
+    - 'export XDG_CACHE_HOME="$PIXI_HOME/cache"'
+    - 'export XDG_STATE_HOME="$PIXI_HOME/state"'
+    - 'export RATTLER_CACHE_DIR="$XDG_CACHE_HOME/rattler"'
+    - 'export PIXI_CACHE_DIR="$XDG_CACHE_HOME/pixi"'
+    # XDG_CACHE_HOME moved, so point the HF cache back at ~/.cache/huggingface, where
+    # the token and the Llama-3.2-1B and Llama-3.1-8B downloads already are.
+    - 'export HF_HOME=$HOME/.cache/huggingface'
+
+    - 'cd "$PIXI_HOME"'
+    - 'eval "$(pixi shell-hook)"'
+    - 'cd -'
+
+
+cluster_switch:
+  nano_user_dir: "/raid/NFS_SHARE/home/${oc.env:USER}/nano_runs"
+  zephon_cache_dir: "/raid/NFS_SHARE/home/${oc.env:USER}/zephon/fineweb_edu"
+  zephon_index_dir: "/raid/NFS_SHARE/home/${oc.env:USER}/zephon/index"
