@@ -1,0 +1,52 @@
+# llama_1B_retrain (continued pretraining of Llama-3.2-1B from the HF weights) with
+# train and eval data streamed by zephon (_dataset/fineweb_zephon), on the DGX
+# (4x A100 80GB). Eval is one fineweb-edu dump and train the rest, so eval numbers do
+# not compare 1:1 with llama_1B_retrain runs on the on-disk fineweb holdout.
+#
+#   python run_exp.py --config-path configs/bdd --config-name llama_1B_retrain_zephon_dgx
+defaults:
+  - ../_cluster@_here_: dgx_zephon_user
+  - ../_model@_here_: llama_3_1
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb_zephon
+  - ../_checkpoints@_here_: none
+  - ../_misc@_here_: default
+  - _self_
+
+
+common:
+  sequence_length: 1024
+  # 512 x 1024 = 524,288 tokens per step.
+  batch_size: 512
+
+
+trainer:
+  # 2000 steps x 524,288 tokens = ~1.05B tokens.
+  n_steps: 2000
+  learning_rate: 0.00005
+  # Per-GPU micro-batch = 512 / (4 GPUs x 16) = 8 sequences: half of llama_1B_retrain's
+  # 16, which already needed most of a 93 GiB H100; an A100 has 80.
+  gradient_accumulation_steps: 16
+
+  checkpoint:
+    load:
+      type: huggingface
+      path: "meta-llama/Llama-3.2-1B"
+    save:
+      type: nano
+      interval: 500
+      path: "${cluster_switch.nano_user_dir}/checkpoints/bdd/llama_1B_retrain_zephon"
+
+
+infrastructure:
+  slurm:
+    job-name: bdd_llama1B_ze
+  metric_logger:
+    name: bdd_llama1B_retrain_zephon_dgx
+    tags:
+      - nano
+      - bdd
+      - llama_1
+      - retrain
+      - zephon
+      - dgx
