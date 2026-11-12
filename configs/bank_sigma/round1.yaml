@@ -1,0 +1,82 @@
+# AME bank-init sigma grid (documents/notes/ame_bank_sigma_grid.md), round 1 of 3:
+# one sbatch array of 4 runs, at most 2 running at once
+# (infrastructure.max_concurrent_jobs). Rounds 2 and 3 pick their sigmas from the
+# results, by the rules in the plan.
+#
+# The recipe is configs/bank_gates/stage2_none_std001.yaml, which W&B kf4q4t4s ran:
+# S2-PS (AME with the KV shift and ALiBi), h12, 4B tokens, n = 8, no gate,
+# sigma = 0.01. Three things differ:
+#   - sigma = common.attention.ame.bank_init_std is the grid's, set from
+#     sigma_m100 = -100 log10(sigma), so run names carry no '.';
+#   - entropy (h100a, one H100) instead of LEM;
+#   - no final checkpoint, and so no token_counts.pt: 12 AME checkpoints of 13 GB
+#     would overflow entropy's 120 GB /home quota.
+# Everything else is base.yaml's, written out here (a copy, not an inheritance).
+#
+# No /base_schema in the defaults list: the schema would reject the ^ grid key.
+# run_exp.py schema-checks every expanded grid point instead (check_point).
+defaults:
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # no checkpoint at all
+  - _self_
+
+# sigma = 10 ** (-sigma_m100 / 100): 100 -> 0.1, 200 -> 0.01, 300 -> 0.001,
+# 400 -> 1e-4. The plain value is the default a grid key needs beside it.
+# Round 1, one decade apart: 200 is sigma = 0.01 again, on entropy, so every
+# point of the grid is paired against a run of the same cluster. The array runs
+# the first two first.
+sigma_m100: 200
+^sigma_m100: [200, 400, 300, 100]
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # S2-PS: the implemented ALiBi ladder and the KV shift; the grid's bank init,
+  # no gate.
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: ${eval:'10 ** (-${sigma_m100} / 100)'}
+      bank_gate: none
+
+compile_blocks_full: true
+
+trainer:
+  # As S2-PS: micro-batch 32 x 16, Tier 2 banks (fp32 master, bf16 forward copy),
+  # no FSDP2 so AME's readouts are logged, autocast bf16.
+  gradient_accumulation_steps: 16
+  mem_parallel_size: 1
+  distributed: null
+  autocast_bf16: true
+
+  # The recipe. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks and scalars are exempt);
+  #   - gradient clipping at 1.0, on the joint norm, the banks included;
+  #   - cosine schedule to 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 8 # n = 8, LR = 2^-8: S2-PS's optimum, as doi36p8k and kf4q4t4s
+  scheduler:
+    warmup_steps: 38
+
+infrastructure:
+  max_concurrent_jobs: 2 # Maciej: at most 2 GPUs busy with these runs
+  slurm:
+    gres: gpu:h100:1
+    job-name: bank_sigma_r1
+    time: "0-07:00:00" # about 3.9 h on entropy
+  metric_logger:
+    project_name: nano-ame
+    name: bank_sigma_m${sigma_m100}
+    tags:
+      - ame
+      - h12
+      - bank_sigma
+      - bank_sigma_r1
+      - bank_sigma_m${sigma_m100}
