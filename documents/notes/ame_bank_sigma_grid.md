@@ -33,7 +33,10 @@ experiments and draw a chart of results".
   (worktree `~/code/nano-bank-sigma`). Tools on the branch:
   [scripts/grid_points.py](../../scripts/grid_points.py) (compose and check a grid as
   `run_exp.py` does), [scripts/paired_gap.py](../../scripts/paired_gap.py),
-  [scripts/watch_array.py](../../scripts/watch_array.py).
+  [scripts/watch_array.py](../../scripts/watch_array.py),
+  [scripts/bank_sigma_next.py](../../scripts/bank_sigma_next.py) (the next round's
+  picks), [scripts/bank_sigma_chart.py](../../scripts/bank_sigma_chart.py) (the chart
+  and the Results table).
 
 ## The measure
 
@@ -66,6 +69,13 @@ measured is skipped, and the next rule fills the slot.
      outermost point of the tie band (g ≤ g(x*) + 0.022) and the first point
      outside it;
   4. rule 3 of round 2.
+- **When the rules run short** (added 11-13, before any result): one step, then two,
+  beyond the end of the measured range with the lower g, the end nearer the optimum.
+  Round 2 can run short: 4 decades have only 3 interior half-decades, and x* ± 0.5
+  are two of them.
+- **[scripts/bank_sigma_next.py](../../scripts/bank_sigma_next.py) applies these
+  rules** to the measured g and prints the picks in task order, with the rule behind
+  each.
 - **The answer:** the best σ and the tie band, as σ ranges. The chart plots g and
   final_ce against σ on a log axis.
 
@@ -101,15 +111,48 @@ commit `kf4q4t4s` ran.
 
 ### Runs
 
+Round 1 was submitted from `~/code/nano-bank-sigma` at `3a2a83c0`: array 38422, clone
+`/home/mstefaniak/llmrandom_cemetery/bank_sigma_m200_2026-11-12_18-29-53`.
+
 | Round | σ | m | Job | W&B | Started | Finished | State |
 |---|---|---|---|---|---|---|---|
+| 1 | 0.01 | 200 | 38422_0 | | | | PENDING |
+| 1 | 1e-4 | 400 | 38422_1 | | | | PENDING |
+| 1 | 1e-3 | 300 | 38422_2 | | | | PENDING |
+| 1 | 0.1 | 100 | 38422_3 | | | | PENDING |
 
 ### Checks
 
+- **Round 1, submit, 11-12 18:30:** PENDING (Priority). No other job of Maciej's is
+  on entropy.
+  - h100a is full: j321m holds 4 GPUs (8 h limit), and mateuszwyszynski holds 4
+    single-GPU jobs (2-day limit, started 09:08).
+  - Nine pending jobs rank above ours, among them 1-GPU jobs of 1.4-2 days (hegel,
+    nauman ×3). Our priority, 2,891, is the queue's lowest: our fairshare has fallen
+    after this week's runs. Our QOS preempts only `lukaskoz_h100`, which has nothing
+    running. Slurm's start estimate is 11-21 08:00; such estimates assume full time
+    limits and have been days off.
+  - **The time limit went from 7 h to 5 h** (`scontrol update`, 18:33). A run takes
+    about 3.8 h here, and a shorter job backfills more easily.
+- **Next check: when round 1 starts.** One watcher polls every 10 min. It wakes at
+  step 20 of the first runs, or at once on a failed task or a NaN.
+- **11-13 01:20: still PENDING (Priority).** Age has lifted the priority to 3,453,
+  still the lowest on h100.
+  - All 8 GPUs are held by single-GPU jobs with 1.4-2-day limits. The first four end
+    by 11-14 09:10 at the latest (mateuszwyszynski's, started 11-12 09:08).
+  - Three jobs rank above ours: wmasarczyk (1.5 h), crewtool (2 GPUs, 1 day),
+    lukaskoz (8 h).
+  - Slurm's estimate is now 11-15 09:50.
+  - LEM still refuses the key (`Permission denied (publickey)`), so entropy stays
+    the only option.
+
 ### Results
 
-| σ | m | Round | g, last 500 | final_ce | Spikes | Verdict |
-|---|---|---|---:|---:|---|---|
+Bank share is the banks' median share of the gradient norm after step 100. Clipped
+is the fraction of steps whose norm was clipped.
+
+| σ | m | Round | g, last 500 | final_ce | Spikes | Bank share | Clipped | Verdict |
+|---|---|---|---:|---:|---:|---:|---:|---|
 
 ### Analysis
 
@@ -126,3 +169,14 @@ commit `kf4q4t4s` ran.
    one cluster. Against `kf4q4t4s` it also measures the cluster offset at σ = 0.01.
 4. **Scratch tools went into the repo:** the earlier session's scratchpad was wiped
    on 2026-11-11.
+5. **A fallback rule for picks** (11-13, while round 1 was still queued): the plan's
+   round-2 rules give only 3 points when x* is interior. The fallback is in "The
+   rounds".
+6. **The chart, ready before the results:** `scripts/bank_sigma_chart.py` plots g
+   and final_ce against σ on one log axis, with the tie band. The σ = 1 parity runs
+   and the two LEM runs are gray context. It was tested on `kf4q4t4s` and
+   `doi36p8k`. It also adds two columns to the Results table:
+   - the banks' median share of the gradient norm after step 100;
+   - the fraction of steps clipped.
+
+   The tiny-σ risk shows in these columns. `kf4q4t4s` reads 0.18 and 1%.
