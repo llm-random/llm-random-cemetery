@@ -3,21 +3,25 @@
 # (infrastructure.max_concurrent_jobs). Rounds 2 and 3 pick their sigmas from the
 # results, by the rules in the plan.
 #
-# The recipe is configs/bank_gates/stage2_none_std001.yaml, which W&B kf4q4t4s ran:
-# S2-PS (AME with the KV shift and ALiBi), h12, 4B tokens, n = 8, no gate,
-# sigma = 0.01. Three things differ:
+# The recipe is configs/bank_gates/stage2_none_std001.yaml, which W&B kf4q4t4s ran
+# on LEM: S2-PS (AME with the KV shift and ALiBi), h12, 4B tokens, n = 8, no gate,
+# sigma = 0.01. Two things differ:
 #   - sigma = common.attention.ame.bank_init_std is the grid's, set from
 #     sigma_m100 = -100 log10(sigma), so run names carry no '.';
-#   - entropy (h100a, one H100) instead of LEM;
-#   - no final checkpoint, and so no token_counts.pt: 12 AME checkpoints of 13 GB
-#     would overflow entropy's 120 GB /home quota.
+#   - no final checkpoint, and so no token_counts.pt (count_token_updates off):
+#     the grid needs only the curves and final_ce. Neither touches the training.
 # Everything else is base.yaml's, written out here (a copy, not an inheritance).
+#
+# On LEM since 2026-11-13 (Maciej: "move them to lem, they will start there
+# faster, dont run anything on entropy"). The entropy version of this file was
+# array 38422, cancelled before any task started (commit 3a2a83c0).
+# Node r16-11 is excluded, as in every LEM run since Stage 1 (a bad GPU, 11-06).
 #
 # No /base_schema in the defaults list: the schema would reject the ^ grid key.
 # run_exp.py schema-checks every expanded grid point instead (check_point).
 defaults:
   - ../_misc@_here_: default
-  - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: lem
   - ../_model/h_balanced@_here_: h12
   - ../_trainer@_here_: llama
   - ../_dataset@_here_: fineweb
@@ -26,9 +30,9 @@ defaults:
 
 # sigma = 10 ** (-sigma_m100 / 100): 100 -> 0.1, 200 -> 0.01, 300 -> 0.001,
 # 400 -> 1e-4. The plain value is the default a grid key needs beside it.
-# Round 1, one decade apart: 200 is sigma = 0.01 again, on entropy, so every
-# point of the grid is paired against a run of the same cluster. The array runs
-# the first two first.
+# Round 1, one decade apart: 200 is sigma = 0.01 again, the anchor every point is
+# paired against (and a same-cluster replicate of kf4q4t4s). The array runs the
+# first two first.
 sigma_m100: 200
 ^sigma_m100: [200, 400, 300, 100]
 
@@ -68,9 +72,10 @@ trainer:
 infrastructure:
   max_concurrent_jobs: 2 # Maciej: at most 2 GPUs busy with these runs
   slurm:
-    gres: gpu:h100:1
+    gres: gpu:hopper:1
+    exclude: r16-11
     job-name: bank_sigma_r1
-    time: "0-07:00:00" # about 3.9 h on entropy
+    time: "0-06:00:00" # kf4q4t4s ran 4.3 h on LEM; a FineWeb open can add 20 min
   metric_logger:
     project_name: nano-ame
     name: bank_sigma_m${sigma_m100}
