@@ -24,6 +24,7 @@ s): bursts of ssh connections trip entropy's fail2ban.
 
 import math
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -32,6 +33,7 @@ import wandb
 
 PROJECT = "ideas_cv/nano-ame"
 START_STEP = int(os.environ["WATCH_START_STEP"]) if os.environ.get("WATCH_START_STEP") else None
+WANDB_TIMEOUT = 120  # s for one W&B call; a hung call stalled a poll for 24+ min
 TERMINAL_BAD = ("FAILED", "CANCELLED", "TIMEOUT", "OUT_OF_MEMORY", "NODE_FAIL",
                 "PREEMPTED", "BOOT_FAIL", "DEADLINE", "REVOKED")
 
@@ -62,15 +64,39 @@ def task_states(host, array_id, n_tasks):
     return states
 
 
-def run_status(api, name):
+class Hung(BaseException):
+    """A W&B call ran past WANDB_TIMEOUT. A BaseException, so wandb's own retry
+    loops, which catch Exception, cannot swallow it."""
+
+
+def _alarm(signum, frame):
+    raise Hung()
+
+
+def bounded(fn):
+    """fn() or raise Hung after WANDB_TIMEOUT seconds."""
+    signal.signal(signal.SIGALRM, _alarm)
+    signal.alarm(WANDB_TIMEOUT)
     try:
+        return fn()
+    finally:
+        signal.alarm(0)
+
+
+def run_status(api, name):
+    def lookup():
         runs = list(api.runs(PROJECT, filters={"display_name": name}, order="-created_at"))
+        if not runs:
+            return None
+        run = runs[0]
+        return run.id, run.summary.get("step"), run.summary.get("steps/train/loss")
+    try:
+        info = bounded(lookup)
+    except Hung:
+        return None, "wandb timed out"
     except Exception as exc:
         return None, f"wandb error {type(exc).__name__}"
-    if not runs:
-        return None, "no W&B run yet"
-    run = runs[0]
-    return (run.id, run.summary.get("step"), run.summary.get("steps/train/loss")), None
+    return (info, None) if info else (None, "no W&B run yet")
 
 
 def main():
@@ -81,7 +107,9 @@ def main():
         stamp = time.strftime("%m-%d %H:%M:%S")
         states = task_states(host, array_id, len(names))
         try:
-            api, api_err = wandb.Api(timeout=60), None
+            api, api_err = bounded(lambda: wandb.Api(timeout=60)), None
+        except Hung:
+            api, api_err = None, "wandb unavailable: timed out"
         except Exception as exc:
             api, api_err = None, f"wandb unavailable: {type(exc).__name__}"
         running_steps = []
