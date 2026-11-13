@@ -1,7 +1,7 @@
 # AME bank-init σ grid at h12 (plan and log)
 
-**Status:** QUEUED on LEM, 2026-11-13: round 1 of 3 (moved from entropy, where it
-never started).
+**Status:** QUEUED on LEM, 2026-11-13 14:02: round 1 of 3, array 6312652 (moved
+from entropy, where it never started).
 
 **Question:** which bank init std σ is best for S2-PS at h12, 4B tokens? Bank-gates
 stage 2 showed σ = 0.01 beats σ = 1 (−0.0895 in final_ce,
@@ -122,7 +122,10 @@ commit `kf4q4t4s` ran.
   `/home/mstefaniak/llmrandom_cemetery/bank_sigma_m200_2026-11-12_18-29-53`). It sat
   PENDING from 11-12 18:30. It was cancelled on 11-13 at 13:30, before any task
   started: Maciej moved the grid to LEM (*Decisions* 7).
-- **Round 1 on LEM:** see the table.
+- **Round 1 on LEM:** array 6312652, submitted 11-13 14:02. It ran `sbatch` by
+  hand in the clone `.../llmrandom_cemetery/bank_sigma_m200_2026-11-13_13-45-51`
+  (cemetery commit `7aa630c4`, from `42c6779b`), because LEM's GitHub access was
+  down (*Checks*, 11-13 13:30-14:00).
 
 | Round | σ | m | Cluster | Job | W&B | Started | Finished | State |
 |---|---|---|---|---|---|---|---|---|
@@ -130,6 +133,10 @@ commit `kf4q4t4s` ran.
 | 1 | 1e-4 | 400 | entropy | 38422_1 | | | 11-13 13:30 | CANCELLED while pending |
 | 1 | 1e-3 | 300 | entropy | 38422_2 | | | 11-13 13:30 | CANCELLED while pending |
 | 1 | 0.1 | 100 | entropy | 38422_3 | | | 11-13 13:30 | CANCELLED while pending |
+| 1 | 0.01 | 200 | LEM | 6312652_0 | | | | PENDING |
+| 1 | 1e-4 | 400 | LEM | 6312652_1 | | | | PENDING |
+| 1 | 1e-3 | 300 | LEM | 6312652_2 | | | | PENDING |
+| 1 | 0.1 | 100 | LEM | 6312652_3 | | | | PENDING |
 
 ### Checks
 
@@ -162,6 +169,33 @@ commit `kf4q4t4s` ran.
     checkpoint path and `count_token_updates` still differ; neither touches the
     training.
   - LEM accepts the key again (it refused on 11-12 and 11-13 01:30).
+- **11-13 13:30-14:00: LEM outage; round 1 staged, waiting for Slurm.**
+  - `run_exp.py`, twice, from `42c6779b`: both times version_code pushed the
+    cemetery branch, then LEM's `git clone` from GitHub hung with nothing
+    downloaded.
+    - Tests from LEM: a clone over port 443 failed, and an HTTPS download got
+      nothing.
+    - LEM's Slurm controller dropped in and out: "Unable to contact slurm
+      controller" at 13:42 and 13:56; it answered at 13:27 and 13:45.
+    - Both clones were killed and their empty dirs removed.
+  - **Staged without GitHub:** the second attempt's cemetery commit `7aa630c4`
+    (parent `42c6779b`; it adds `exp.job` and `generated_configs/`) was copied to
+    LEM with `git archive` over ssh into
+    `.../llmrandom_cemetery/bank_sigma_m200_2026-11-13_13-45-51`.
+    - All 248 files arrived; a config's md5 matches.
+    - The training code never reads `.git`, so the missing history doesn't matter.
+    - The W&B and HF placeholders were filled from stdin, not argv, and `exp.job`
+      is now mode 600.
+  - **The `sbatch`:** a local loop ran `.submit_when_up.sh` in the clone every
+    5 min. The script submitted `exp.job` only once `squeue` answered and listed no
+    `bank_sigma_r1`, so the array couldn't go in twice.
+    - Slurm was still down at 13:57 and took the job at 14:02, as **6312652**.
+    - Exactly one array: `ArrayTaskThrottle=2`, 1 H100 each, r16-11 excluded,
+      6 h.
+    - The helper script was then deleted.
+- **Next check: when round 1 starts.** A watcher polls `sacct` and W&B every
+  10 min (deadline 6 days, since LEM's forecast before the outage was 11-16 21:55).
+  It wakes at step 20, or at once on a failed task or a NaN.
 
 ### Results
 
