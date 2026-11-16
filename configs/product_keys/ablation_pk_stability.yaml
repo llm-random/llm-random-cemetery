@@ -29,6 +29,8 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 4
   n_steps: 8001
+  # Plain keys = defaults the launcher needs to resolve the tags before expanding the ^ grid.
+  learning_rate: 5e-4
   ^learning_rate: [5e-4, 1e-3, 2e-3, 5e-3]
   scheduler:
     _partial_: true
@@ -160,6 +162,8 @@ model:
         rope_base: 500000
         rope_scale_freqs: true
         top_k: 16
+        qk_norm: true
+        learnable_temp: true
         ^qk_norm: [true, false]
         ^learnable_temp: [true, false]
         init_scale: ${common.init_scale}

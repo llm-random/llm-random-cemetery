@@ -28,6 +28,8 @@ trainer:
   unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
   gradient_accumulation_steps: 2
   n_steps: 8001
+  # Plain keys = defaults the launcher needs to resolve the tags before expanding the ^ grid.
+  learning_rate: 5e-4
   ^learning_rate: [5e-4, 1e-3, 2e-3, 5e-3]
   scheduler:
     _partial_: true
@@ -106,6 +108,7 @@ model:
 
       attention_fn:
         # RoPEAttentionQKNorm = QK-norm + learnable temperature; projected_compression RoPEAttention = neither
+        _target_: src.product_keys.model.RoPEAttentionQKNorm
         ^_target_: [src.product_keys.model.RoPEAttentionQKNorm, src.projected_compression.model.RoPEAttention]
         _partial_: true
         dmodel: ${common.dmodel}
