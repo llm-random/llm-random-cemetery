@@ -22,6 +22,7 @@ def attention_mechanism(
     value: torch.Tensor,
     causal: bool,
     scale: Optional[float] = None,
+    attn_mask: Optional[torch.Tensor] = None,
 ):
     # https://github.com/pytorch/pytorch/blob/ce503c1b40207dab770c28cbd4568cd9e105277b/aten/src/ATen/native/transformers/cuda/sdp_utils.cpp#L556
     with torch.nn.attention.sdpa_kernel(
@@ -31,7 +32,7 @@ def attention_mechanism(
             query=query,
             key=key,
             value=value,
-            attn_mask=None,
+            attn_mask=attn_mask,
             is_causal=causal,
             scale=scale,
         )
@@ -48,6 +49,7 @@ class AttentionMechanism(nn.Module):
         value: torch.Tensor,
         causal: bool,
         score_scale: Optional[float] = None,
+        attn_mask: Optional[torch.Tensor] = None,
     ):
         return attention_mechanism(
             query=query,
@@ -55,6 +57,7 @@ class AttentionMechanism(nn.Module):
             value=value,
             causal=causal,
             scale=score_scale,
+            attn_mask=attn_mask,
         )
 
 
@@ -160,7 +163,7 @@ class RoPEAttentionQKNorm(nn.Module):
 
         self.qk_norm = QKNorm(self.dhead, self.q_heads)
 
-    def forward(self, x):
+    def forward(self, x, attention_mask=None):
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
@@ -181,8 +184,15 @@ class RoPEAttentionQKNorm(nn.Module):
         q, k, attn_temp = self.qk_norm(q, k)
         q = q * attn_temp
 
+        # Padding mask (1 = real token, 0 = padding): padded keys are masked out.
+        # Without padding the call is exactly the one used in pre-training.
+        attn_mask = None
+        if attention_mask is not None and not bool(attention_mask.all()):
+            attn_mask = attention_mask.view(batch, 1, 1, seq_len).bool()
+
         attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, causal=self.causal, score_scale=1.0
+            query=q, key=k, value=v, causal=self.causal, score_scale=1.0,
+            attn_mask=attn_mask,
         )
 
         output = self.o_proj(attention_output.transpose(1, 2).contiguous().flatten(-2))
@@ -577,6 +587,8 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         rope_scale_freqs: bool,
         top_k: int,
         init_scale: float = 0.02,
+        qk_norm: bool = True,
+        learnable_temp: bool = True,
     ):
         super().__init__()
 
@@ -611,16 +623,21 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         self.l2 = nn.Parameter(torch.randn(self.q_heads, self.dhead_half) / math.sqrt(self.dhead_half))
 
         # Normalize the halves independently to balance Product Key retrieval
-        self.q_norm1 = nn.RMSNorm(self.dhead_half)
-        self.q_norm2 = nn.RMSNorm(self.dhead_half)
-        self.k_norm1 = nn.RMSNorm(self.dhead_half)
-        self.k_norm2 = nn.RMSNorm(self.dhead_half)
+        # Ablation qk_norm=False: queries and sub-keys are not normalised.
+        norm_fn = (lambda: nn.RMSNorm(self.dhead_half)) if qk_norm else nn.Identity
+        self.q_norm1 = norm_fn()
+        self.q_norm2 = norm_fn()
+        self.k_norm1 = norm_fn()
+        self.k_norm2 = norm_fn()
 
         # QKNorm learnable scaling parameter (one per head)
+        # Ablation learnable_temp=False: fixed 1/sqrt(d_head) as in standard attention.
         initial_temp = 1.0 / math.sqrt(self.dhead)
-        self.attn_temp = nn.Parameter(
-            torch.full((1, self.q_heads, 1, 1, 1), initial_temp)
-        )
+        temp = torch.full((1, self.q_heads, 1, 1, 1), initial_temp)
+        if learnable_temp:
+            self.attn_temp = nn.Parameter(temp)
+        else:
+            self.register_buffer("attn_temp", temp)
 
         # Learnable scaling parameter for the retrieval/routing step
         routing_initial_temp = 1.0 / math.sqrt(self.dhead_half)
