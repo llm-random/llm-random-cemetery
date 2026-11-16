@@ -721,7 +721,13 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
             res[f"head_{h}/v_indices"] = stacked_v[:, :, h].flatten()
         return res
 
-    def forward(self, x):
+    def forward(self, x, attention_mask=None):
+        # The encoder passes attention_mask to every attention layer. This
+        # implementation has no padding-mask support, so only accept "no mask".
+        if attention_mask is not None and not bool(attention_mask.all()):
+            raise NotImplementedError(
+                "RoPEProductKeysEncoderAttentionOptimized does not support padding masks"
+            )
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
