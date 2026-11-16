@@ -1,6 +1,6 @@
 defaults:
   # no /base_schema: `^` sweep keys under trainer are rejected by it (see src/definitions.py)
-  - ../_cluster@_here_: entropy
+  - ../_cluster@_here_: lem
   - ../_model/h_balanced@_here_: h12
   # WSD: warmup 120, stable to step 10799, linear decay to 0 over the last 1_200
   - ../_trainer@_here_: nano
@@ -19,7 +19,7 @@ trainer:
   gradient_accumulation_steps: 2
   # 3.15B tokens, 21.7 per active param; ~1.24 h at 35% MFU (mfu_calculator.ipynb)
   n_steps: 12_000
-  ^learning_rate: [8, 9, 10, 11]
+  learning_rate: 10
 
   checkpoint:
     save:
