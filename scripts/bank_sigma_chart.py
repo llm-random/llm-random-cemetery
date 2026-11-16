@@ -12,7 +12,7 @@ prints the doc's Results table.
   common.attention.ame.bank_init_std; a run older than that key used the code's
   default, 1.0.
 - g: the last-500 paired train-loss gap against --ref (default: the finished run
-  named bank_sigma_m200, sigma = 0.01 on entropy). Lower is better; within 0.022
+  named bank_sigma_m200, sigma = 0.01 on LEM). Lower is better; within 0.022
   of the best is a tie (AME's same-seed floor).
 - Context points, drawn but not used to pick: sigma = 1 on entropy (the three
   parity runs of doi36p8k's config, W&B nano-ame-parity) and the two LEM runs,
@@ -185,7 +185,8 @@ def plot(points, context, best, ref_name, out_png):
     g_ax.axhline(0.0, color=AXIS, lw=0.8, zorder=1)
     if best is not None:
         g_ax.axhspan(best["g"], best["g"] + TIE, color=BLUE, alpha=0.10, lw=0, zorder=1)
-        g_ax.annotate(f"best: σ = {fmt_sigma(best['sigma'])}, gap {best['g']:+.4f}",
+        g_ax.annotate(f"best: σ = {fmt_sigma(best['sigma'])}, gap "
+                      f"{best['g']:+.4f}".replace("-", "\u2212"),
                       (best["sigma"], best["g"]), xytext=(0, 11), textcoords="offset points",
                       ha="center", va="bottom", color=INK, fontsize=8.5, zorder=7,
                       bbox={"boxstyle": "round,pad=0.2", "fc": SURFACE, "ec": "none",
@@ -206,11 +207,11 @@ def plot(points, context, best, ref_name, out_png):
     ce_ax.set_xlabel("bank init std σ (log scale)")
     handles = [
         Line2D([], [], color=BLUE, lw=2, marker="o", ms=7.5, mfc=BLUE, mec=SURFACE, mew=1.6,
-               label="grid run, entropy"),
+               label="grid run, LEM"),
         Line2D([], [], color=MUTED, lw=0, marker="o", ms=7.5, mfc=SURFACE, mec=MUTED, mew=1.6,
                label="σ = 1, entropy: mean of 3 (bar: range)"),
         Line2D([], [], color=MUTED, lw=0, marker="D", ms=7.5, mfc="none", mec=MUTED, mew=1.4,
-               label="LEM: kf4q4t4s, doi36p8k"),
+               label="earlier LEM runs: kf4q4t4s, doi36p8k"),
     ]
     fig.suptitle("AME bank-init σ at h12, 4B tokens", x=0.075, y=0.99, ha="left",
                  fontsize=12, fontweight="semibold", color=INK)
