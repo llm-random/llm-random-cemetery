@@ -199,9 +199,10 @@ def plot(points, context, best, ref_name, out_png):
     ce_ax.set_xscale("log")
     ce_ax.set_xlim(lo, hi)
     decades = [10.0**k for k in range(math.floor(math.log10(lo)) + 1, math.ceil(math.log10(hi)))]
-    names = {0: "1", -1: "10⁻¹", -2: "10⁻²", -3: "10⁻³", -4: "10⁻⁴", -5: "10⁻⁵", -6: "10⁻⁶"}
+    superscript = str.maketrans("-0123456789", "⁻⁰¹²³⁴⁵⁶⁷⁸⁹")
     ce_ax.xaxis.set_major_locator(FixedLocator(decades))
-    ce_ax.set_xticklabels([names.get(round(math.log10(d)), f"1e{round(math.log10(d))}")
+    ce_ax.set_xticklabels(["1" if round(math.log10(d)) == 0
+                           else "10" + str(round(math.log10(d))).translate(superscript)
                            for d in decades])
     ce_ax.xaxis.set_minor_locator(NullLocator())
     ce_ax.set_xlabel("bank init std σ (log scale)")
