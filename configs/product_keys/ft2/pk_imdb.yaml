@@ -1,0 +1,41 @@
+# @package _global_
+# Corrected fine-tuning (2026-11): pk on imdb from the re-run checkpoint (job 6341320, step 80000).
+defaults:
+  - /_cluster/lem@_here_
+  - /_trainer/llama@_here_
+  - /_dataset/imdb@_here_
+  - /_checkpoints/none@_here_
+  - /_misc/default@_here_
+  - /product_keys/ft2/_model_pk@_here_
+  - /product_keys/ft2/_ft_common@_here_
+  - /product_keys/ft2/_task_imdb@_here_
+  - _self_
+
+trainer:
+  checkpoint:
+    load:
+      path: /lustre/pd03/plgrid/plgllmefficont3/pk_attention/model_checkpoints/6341320/0/step_80000
+
+model:
+  encoder:
+    block_fn:
+      attention_fn:
+        padding_mask_mode: post
+        ^padding_mask_mode: [post, pre]
+
+infrastructure:
+  metric_logger:
+    name: ft2_pk_imdb
+    tags:
+      - nano
+      - finetuning
+      - ft2
+      - 2026.11.17
+      - task=imdb
+      - model=pk
+      - ckpt_job=6341320
+      - lr=${trainer.learning_rate}
+      - seed=${trainer.train_dataloader.dataset.seed}
+      - padding_mask_mode=${model.encoder.block_fn.attention_fn.padding_mask_mode}
+  slurm:
+    time: "0-05:00:00"

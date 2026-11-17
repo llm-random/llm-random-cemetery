@@ -1,0 +1,29 @@
+# @package _global_
+# EUR-Lex (LexGLUE, 100 labels, multi-label). val = official validation (5,000), test = test (5,000).
+# Train 55,000. 5 epochs = 4,297 steps at batch 64. Metric: micro-F1. Length buckets + "_(all)".
+trainer:
+  _target_: src.product_keys.finetuning_trainer.FinetuningTrainerMultiLabel
+  n_steps: 4300
+  eval_interval: 200
+  eval_dataloader:
+    collate_fn:
+      _target_: src.product_keys.datasets.glue_split_collate_wrapper
+      _partial_: true
+    dataset:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      split_values: [256, 512]
+      path: ${cluster_switch.val_path_eurlex}
+      split: validation
+  extra_eval_datasets:
+    test:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      split_values: [256, 512]
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+      task_name: eurlex
+      path: ${cluster_switch.eval_path_eurlex}
+      split: test
+      seed: 123
+      shuffle: false

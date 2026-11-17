@@ -589,6 +589,7 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         init_scale: float = 0.02,
         qk_norm: bool = True,
         learnable_temp: bool = True,
+        padding_mask_mode: str = "post",
     ):
         super().__init__()
 
@@ -609,6 +610,15 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         self.seq_len = seq_len
 
         self.top_k = top_k
+
+        # How padding (attention_mask == 0) is handled. Only matters when the input has padding,
+        # i.e. in fine-tuning; pre-training batches are packed and this is a no-op.
+        #   "post": padded keys still enter the sub-key sums and the top-k; padded positions that get
+        #           retrieved are masked out of the softmax (same as RoPEProductKeysEncoderAttention).
+        #   "pre":  padded keys are zeroed before the sub-key sums, rows/columns/cells with no real
+        #           token are excluded from the top-k, then the "post" mask is applied as well.
+        assert padding_mask_mode in ("post", "pre"), padding_mask_mode
+        self.padding_mask_mode = padding_mask_mode
 
         # Assuming RoPE is imported/defined elsewhere in your codebase
         self.rope = RoPE(
@@ -678,8 +688,11 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         # Direct advanced indexing
         return source_flat[flat_indices]
 
-    def __get_topk_candidates(self, query, key):
+    def __get_topk_candidates(self, query, key, valid=None):
         scores = torch.matmul(query, key.transpose(-2, -1))
+        if valid is not None:
+            # valid: (B, m) bool, True for rows/columns that contain at least one real token
+            scores = scores.masked_fill(~valid[:, None, None, :], torch.finfo(scores.dtype).min)
 
         # [OPTIMIZATION 2] Capture topk_scores to avoid recalculating dot products later
         topk_scores, indices = torch.topk(scores, k=self.top_k, dim=-1)
@@ -739,12 +752,12 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         return res
 
     def forward(self, x, attention_mask=None):
-        # The encoder passes attention_mask to every attention layer. This
-        # implementation has no padding-mask support, so only accept "no mask".
+        # The encoder passes attention_mask to every attention layer. All-ones = no padding.
+        valid = None
         if attention_mask is not None and not bool(attention_mask.all()):
-            raise NotImplementedError(
-                "RoPEProductKeysEncoderAttentionOptimized does not support padding masks"
-            )
+            valid = attention_mask.reshape(x.shape[0], x.shape[1]).bool()  # (B, S), True = real token
+        pre = valid is not None and self.padding_mask_mode == "pre"
+
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
@@ -761,6 +774,10 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+
+        if pre:
+            # padded keys contribute nothing to the row/column sums
+            k = k * valid[:, None, :, None].to(k.dtype)
 
         # Split and aggregate keys (unnormalized)
         k = k.view(batch, self.q_heads, self.m, self.m, self.dhead)
@@ -801,8 +818,13 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
 
         # --- First Retrieval (get top-k AND scores) ---
         # [OPTIMIZATION 2] We retrieve the pre-computed scores to save FLOPs
-        k1_vecs, k1_idxs, scores_1 = self.__get_topk_candidates(q1, k1)
-        k2_vecs, k2_idxs, scores_2 = self.__get_topk_candidates(q2, k2)
+        row_valid = col_valid = None
+        if pre:
+            grid_valid = valid.view(batch, self.m, self.m)
+            row_valid = grid_valid.any(-1)  # (B, m)
+            col_valid = grid_valid.any(-2)  # (B, m)
+        k1_vecs, k1_idxs, scores_1 = self.__get_topk_candidates(q1, k1, row_valid)
+        k2_vecs, k2_idxs, scores_2 = self.__get_topk_candidates(q2, k2, col_valid)
 
         # Apply the learned per-head routing temperature
         # scores_1/2 shape: (B, H, S, K) -> routing_temp shape: (1, H, 1, 1) broadcasts perfectly
@@ -814,6 +836,14 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         # [OPTIMIZATION 2] Sum the pre-calculated scores directly.
         # scores_1 (..., K, 1) + scores_2 (..., 1, K) = (..., K, K)
         scores_final_grid = scores_1.unsqueeze(-1) + scores_2.unsqueeze(-2)
+        if pre:
+            # exclude candidate cells (row, col) that are padding
+            cell_pos = k1_idxs.unsqueeze(-1) * self.m + k2_idxs.unsqueeze(-2)  # (B, H, S, K, K)
+            b_idx = torch.arange(batch, device=x.device).view(batch, 1, 1, 1, 1)
+            cell_valid = valid[b_idx, cell_pos]
+            scores_final_grid = scores_final_grid.masked_fill(
+                ~cell_valid, torch.finfo(scores_final_grid.dtype).min
+            )
 
         # Select top K closest combinations
         scores_flat = scores_final_grid.flatten(-2, -1)  # (B, H, S, K*K)
@@ -868,6 +898,15 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
 
         # Multiply by the learnable QKNorm temperature
         attn_scores = attn_scores * self.attn_temp.to(attn_scores.dtype)
+
+        if valid is not None:
+            # Same as RoPEProductKeysEncoderAttention: mask retrieved padded keys for real queries.
+            # Padded queries keep their (unused) scores so their softmax never sees only -inf.
+            k_valid = torch.gather(
+                valid[:, None, None, :].expand(-1, self.q_heads, seq_len, -1), 3, v_indices
+            )  # (B, H, S, K)
+            pad_mask = (~k_valid).unsqueeze(-2) & valid[:, None, :, None, None]  # (B, H, S, 1, K)
+            attn_scores = attn_scores.masked_fill(pad_mask, torch.finfo(attn_scores.dtype).min)
 
         # # --- DIFFERENTIABLE ROUTING INJECTION ---
         # # topk_routing_scores is (B, H, S, K). Unsqueeze to (B, H, S, 1, K) to broadcast.

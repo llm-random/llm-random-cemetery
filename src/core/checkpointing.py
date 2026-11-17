@@ -90,6 +90,13 @@ def load_training_state(load_config):
         logger.info("No training_state_filename. Starting training from step 0.")
         return training_start_config
 
+    if load_config.get("only_weights", False):
+        # Weights-only load (e.g. fine-tuning from a pre-training checkpoint): start a fresh run at
+        # step 0 with a new tracker run. Reading the checkpoint's training state here would resume
+        # at the pre-training step (80001 > n_steps: no training) and log into the pre-training run.
+        logger.info("only_weights=True: ignoring the checkpoint's training state, starting at step 0.")
+        return training_start_config
+
     load_path = load_config.path
     if load_path is None:
         logger.warning(
@@ -119,6 +126,33 @@ def _find_latest_checkpoint(path: str) -> str:
     return max(files, key=os.path.getmtime)
 
 
+def check_checkpoint_model_keys(checkpoint_path, model):
+    """Raise if the model and the DCP checkpoint do not have exactly the same model keys.
+
+    dcp.load below uses allow_partial_load=True, which silently skips model weights that are
+    missing from the checkpoint and checkpoint weights the model does not have (this is how
+    a dense baseline was once fine-tuned without its QK-norm weights).
+    """
+    from torch.distributed.checkpoint.state_dict import get_model_state_dict
+
+    metadata = dcp.FileSystemReader(checkpoint_path).read_metadata()
+    prefix = "app.model."
+    ckpt_keys = {k[len(prefix):] for k in metadata.state_dict_metadata if k.startswith(prefix)}
+    model_keys = set(get_model_state_dict(model).keys())
+    missing = sorted(model_keys - ckpt_keys)
+    unexpected = sorted(ckpt_keys - model_keys)
+    logger.info(
+        f"Checkpoint key check: {len(model_keys)} model keys, {len(ckpt_keys)} checkpoint model keys, "
+        f"{len(missing)} missing, {len(unexpected)} unexpected"
+    )
+    if missing or unexpected:
+        raise RuntimeError(
+            f"Model and checkpoint '{checkpoint_path}' do not match.\n"
+            f"Missing from checkpoint ({len(missing)}): {missing[:20]}\n"
+            f"Not in model ({len(unexpected)}): {unexpected[:20]}"
+        )
+
+
 def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
     checkpoint_path = load_config.path
     if checkpoint_path is None:
@@ -130,6 +164,8 @@ def load_checkpoint_from_file(load_config, model, optimizer, scheduler):
             or model.__module__ == "torch.distributed.fsdp._fully_shard._fully_shard"
         ):
             # Sharded load
+            if load_config.get("strict_model_keys", False):
+                check_checkpoint_model_keys(checkpoint_path, model)
             state_dict = {"app": TrainingState(model, optimizer, scheduler)}
             # TODO: check
             dcp.load(

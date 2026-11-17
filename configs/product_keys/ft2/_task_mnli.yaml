@@ -1,0 +1,40 @@
+# @package _global_
+# MNLI. GLUE test labels are hidden, so: val = 5,000 examples held out from train (fixed split),
+# test_matched = validation_matched (9,815), test_mismatched = validation_mismatched (9,832).
+# Train = remaining 387,702. 2 epochs = 12,116 steps at batch 64. No segment embeddings (as in ch. 7).
+trainer:
+  n_steps: 12100
+  eval_interval: 500
+  train_dataloader:
+    dataset:
+      holdout_size: 5000
+      holdout_part: train
+  eval_dataloader:
+    dataset:
+      path: ${cluster_switch.train_path_mnli}
+      split: train
+      holdout_size: 5000
+      holdout_part: holdout
+  extra_eval_datasets:
+    test_matched:
+      _target_: src.product_keys.datasets.GlueDataset
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_2_sentences_tokenize_fn
+        seq_len: ${common.sequence_length}
+      task_name: mnli
+      path: ${cluster_switch.eval_path_mnli}
+      split: validation
+      seed: 123
+      shuffle: false
+    test_mismatched:
+      _target_: src.product_keys.datasets.GlueDataset
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_2_sentences_tokenize_fn
+        seq_len: ${common.sequence_length}
+      task_name: mnli
+      path: ${cluster_switch.eval_path_mnli_mismatched}
+      split: validation
+      seed: 123
+      shuffle: false

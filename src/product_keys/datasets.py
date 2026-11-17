@@ -29,7 +29,18 @@ class GlueDataset(AbstractDataset):
         shuffle: bool = True,
         world_size_independent: bool = False,
         task_name: Optional[str] = None,
+        holdout_size: Optional[int] = None,
+        holdout_part: Optional[str] = None,
+        holdout_seed: int = 0,
     ):
+        # Optional fixed random train/holdout split of a labelled split (used to carve a validation
+        # set out of `train`). holdout_part="train" keeps the rest, "holdout" keeps the holdout_size
+        # examples. The split depends only on holdout_seed, so it is identical in every run and rank.
+        assert holdout_part in (None, "train", "holdout"), holdout_part
+        assert (holdout_part is None) == (holdout_size is None), "set holdout_size and holdout_part together"
+        self.holdout_size = holdout_size
+        self.holdout_part = holdout_part
+        self.holdout_seed = holdout_seed
         super().__init__(
             sequence_length,
             tokenize_fn,
@@ -45,6 +56,7 @@ class GlueDataset(AbstractDataset):
 
     def _get_hf_dataset(self, path, split, seed, shuffle):
         if path is None:
+            assert self.holdout_part is None, "holdout split needs a local path"
             logger.debug(
                 f"Loading 'nyu-mll/glue' dataset task '{self.task_name}' from HuggingFace with split={split}"
             )
@@ -62,8 +74,13 @@ class GlueDataset(AbstractDataset):
             logger.info(f"Loading dataset from path '{path}'")
             logger.info(f"Split: {split}")
             hf_dataset = load_dataset(path, split=split)
+            if self.holdout_part is not None:
+                parts = hf_dataset.train_test_split(
+                    test_size=self.holdout_size, seed=self.holdout_seed, shuffle=True
+                )
+                hf_dataset = parts["train" if self.holdout_part == "train" else "test"]
             if hasattr(hf_dataset, "shape"):
-                logger.info(f"Dataset {self.task_name}, split: {split} shape: {hf_dataset.shape}")
+                logger.info(f"Dataset {self.task_name}, split: {split}, holdout_part: {self.holdout_part}, shape: {hf_dataset.shape}")
             
             if not hasattr(hf_dataset, "set_epoch"): # Check if it's already an IterableDataset
                 hf_dataset = hf_dataset.to_iterable_dataset(num_shards=self.NUM_SHARDS)
@@ -152,7 +169,8 @@ class GlueLengthSplitDataset(GlueDataset):
         shuffle: bool = True,
         world_size_independent: bool = False,
         task_name: Optional[str] = None,
-        split_values: Optional[List[int]] = None
+        split_values: Optional[List[int]] = None,
+        **kwargs,
     ):
         self.split_values = split_values
         super().__init__(
@@ -165,6 +183,7 @@ class GlueLengthSplitDataset(GlueDataset):
             shuffle,
             world_size_independent,
             task_name,
+            **kwargs,
         )
 
     def add_sequence_length_column(self, dataset):
@@ -325,19 +344,17 @@ def glue_split_collate_wrapper(examples):
     examples: list[list[tuple | None]] of shape [batch_size, n_splits]
     Returns:  list[batch_tensor | None]  of length n_splits
 
-    A split's batch is set to None if ANY item in the batch for that split is
-    None (i.e. the split ran out of data).  This avoids silently producing
-    variable-size batches that would cause shape mismatches under FSDP.
+    A split whose items are all None (the split ran out of data) gives None.
+    A split that ran out part-way through the batch gives a smaller batch of its
+    remaining items. FinetuningTrainer._pad_eval_batch pads it back to full size,
+    so every rank still runs the same number of forward passes under FSDP.
+    (Previously such partial batches were dropped, losing up to batch-1 examples
+    per bucket and rank.)
     """
     collated = []
     for example in zip(*examples):          # iterate over splits
-        if any(item is None for item in example):
-            collated.append(None)
-        else:
-            try:
-                collated.append(glue_collate_wrapper(list(example)))
-            except Exception as e:
-               collated.append(None)
+        items = [item for item in example if item is not None]
+        collated.append(glue_collate_wrapper(items) if items else None)
     return collated
 
 

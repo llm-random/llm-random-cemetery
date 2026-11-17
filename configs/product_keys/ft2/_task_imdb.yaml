@@ -1,0 +1,35 @@
+# @package _global_
+# IMDb. No validation split: val = 2,500 examples held out from train (fixed split), test = test (25,000).
+# Train = remaining 22,500. 12 epochs = 4,219 steps at batch 64. Length buckets 0-256, 256-512, >512 tokens
+# plus "_(all)".
+trainer:
+  n_steps: 4200
+  eval_interval: 200
+  train_dataloader:
+    dataset:
+      holdout_size: 2500
+      holdout_part: train
+  eval_dataloader:
+    collate_fn:
+      _target_: src.product_keys.datasets.glue_split_collate_wrapper
+      _partial_: true
+    dataset:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      split_values: [256, 512]
+      path: ${cluster_switch.train_path_imdb}
+      split: train
+      holdout_size: 2500
+      holdout_part: holdout
+  extra_eval_datasets:
+    test:
+      _target_: src.product_keys.datasets.GlueLengthSplitDataset
+      split_values: [256, 512]
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+      task_name: imdb
+      path: ${cluster_switch.eval_path_imdb}
+      split: test
+      seed: 123
+      shuffle: false

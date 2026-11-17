@@ -10,7 +10,13 @@ from src.product_keys.trainer import TrainerWithVocabSize
 from src.core.utils import create_batch_fingerprint
 from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger, WandbLogger
 from src.product_keys.model_sequence_classifiaction import ModelSequenceClassification
-from src.product_keys.datasets import GlueDataset, FullIterDataset, GlueLengthSplitDataset
+from src.product_keys.datasets import (
+    GlueDataset,
+    FullIterDataset,
+    GlueLengthSplitDataset,
+    glue_collate_wrapper,
+    glue_split_collate_wrapper,
+)
 import math
 
 
@@ -21,6 +27,7 @@ class LossResult(NamedTuple):
     tp: int = 0
     fp: int = 0
     fn: int = 0
+    loss_sum: float = 0.0  # sum of per-item losses over the valid (non-padding) items of this rank
 
 
 logger = logging.getLogger(__name__)
@@ -62,6 +69,13 @@ class FinetuningTrainer(TrainerWithVocabSize):
     d_model: int
     num_labels: int
     full_eval_rows: Optional[int] = None
+    # full_eval=True: every evaluation runs over the WHOLE eval dataset (and every dataset in
+    # extra_eval_datasets), with counts summed over all ranks. full_eval_rows (if set) caps the
+    # number of batches per rank, as before.
+    full_eval: bool = False
+    # Additional datasets evaluated at every evaluation, logged as steps/<name>/<metric>.
+    # The main eval_dataloader is logged as steps/eval/<metric> (use it as the validation set).
+    extra_eval_datasets: Optional[dict] = None
     freeze_backbone: bool = field(default=False)
     trainable_modules: list = field(factory=list)
     loss_fct = torch.nn.CrossEntropyLoss()
@@ -88,17 +102,18 @@ class FinetuningTrainer(TrainerWithVocabSize):
         eval_dataset = self.eval_dataloader.dataset
 
         is_length_split = isinstance(eval_dataset, GlueLengthSplitDataset)
-        assert not (is_length_split and self.full_eval_rows is None), "full_eval_rows is required for length split dataset in eval"
+        assert not (is_length_split and self.full_eval_rows is None and not self.full_eval), \
+            "full_eval_rows or full_eval is required for length split dataset in eval"
 
-        if self.full_eval_rows is not None:
-            self.eval_dataset = eval_dataset
-            self.eval_function = self.full_eval_length_split if is_length_split else self.full_eval
-        
-        if is_length_split:
-            self.split_values = eval_dataset.split_values + [float("inf")]
+        self.eval_dataset = eval_dataset
+        self.eval_sets = [("eval", eval_dataset)] + list((self.extra_eval_datasets or {}).items())
+        assert len(self.eval_sets) == 1 or self.full_eval or self.full_eval_rows is not None, \
+            "extra_eval_datasets needs full_eval"
+        if self.full_eval or self.full_eval_rows is not None:
+            self.eval_function = self.full_eval_all
 
         self.full_eval_batches = (
-            int(math.ceil(self.full_eval_rows / self.eval_dataloader.batch_size)) 
+            int(math.ceil(self.full_eval_rows / self.eval_dataloader.batch_size))
             if self.full_eval_rows is not None else None
         )
         
@@ -178,13 +193,23 @@ class FinetuningTrainer(TrainerWithVocabSize):
 
 
     def _pad_eval_batch(self, texts, labels, attention_masks):
-        """Optionally pad a batch to eval_dataloader.batch_size during eval.
+        """Pad a partial eval batch to eval_dataloader.batch_size.
 
-        The base class does not pad (single-label batches are always full-size).
-        Override in subclasses that need FSDP-safe uniform chunk counts.
+        Every rank must run the same number of equally sized forward chunks under FSDP, and
+        the last batch of a rank (or of a length bucket) is usually partial. Padded rows are
+        all-padding and are excluded from every metric via original_bsz.
         Returns (texts, labels, attention_masks, original_bsz, target_bsz).
         """
-        return texts, labels, attention_masks, texts.size(0), self.eval_dataloader.batch_size
+        original_bsz = texts.size(0)
+        target_bsz = self.eval_dataloader.batch_size
+        if not self.model.training and original_bsz < target_bsz:
+            pad = target_bsz - original_bsz
+            texts = torch.cat([texts, torch.zeros((pad, *texts.shape[1:]), dtype=texts.dtype)], dim=0)
+            labels = torch.cat([labels, torch.zeros((pad, *labels.shape[1:]), dtype=labels.dtype)], dim=0)
+            attention_masks = torch.cat(
+                [attention_masks, torch.zeros((pad, *attention_masks.shape[1:]), dtype=attention_masks.dtype)], dim=0
+            )
+        return texts, labels, attention_masks, original_bsz, target_bsz
 
     def _forward_chunk(self, texts_chunk, labels_chunk, attention_masks_chunk, valid_in_chunk):
         """Run one gradient-accumulation chunk and return (loss, chunk_correct, chunk_total, chunk_tp, chunk_fp, chunk_fn).
@@ -232,6 +257,7 @@ class FinetuningTrainer(TrainerWithVocabSize):
         tp = 0
         fp = 0
         fn = 0
+        loss_sum = 0.0
 
         texts_chunks = texts.chunk(self.gradient_accumulation_steps)
         labels_chunks = labels.chunk(self.gradient_accumulation_steps)
@@ -271,6 +297,8 @@ class FinetuningTrainer(TrainerWithVocabSize):
                 loss.backward()
 
             losses.append(loss.item())
+            # loss is the chunk mean / gradient_accumulation_steps; ct = number of items it averages over
+            loss_sum += loss.item() * self.gradient_accumulation_steps * ct
             correct += cc
             total += ct
             tp += ctp
@@ -289,10 +317,100 @@ class FinetuningTrainer(TrainerWithVocabSize):
             tp=tp,
             fp=fp,
             fn=fn,
+            loss_sum=loss_sum,
         )
 
     # -------------------------------------------------------------------------
-    # Full-dataset evaluation helpers
+    # Full-dataset evaluation over all ranks (full_eval / full_eval_rows)
+    # -------------------------------------------------------------------------
+
+    def full_eval_all(self):
+        for prefix, dataset in self.eval_sets:
+            self._full_eval_dataset(prefix, dataset)
+
+    def _full_eval_dataset(self, prefix, dataset):
+        """Evaluate on every example of `dataset` (or full_eval_batches per rank).
+
+        Each rank iterates its own shard. A rank that runs out keeps feeding dummy batches
+        (forward only, nothing counted) until ALL ranks are done, so no rank's tail is lost and
+        the collective calls stay in lockstep. Counts are summed over ranks before logging.
+        Length-split datasets are logged per bucket ("_(lo-hi)") and in total ("_(all)").
+        """
+        self.model.eval()
+        saved_step = self.step
+        self.metric_logger.set_step(None)  # disables heavy logging
+        is_split = isinstance(dataset, GlueLengthSplitDataset)
+        if is_split:
+            bounds = [0] + list(dataset.split_values) + [float("inf")]
+            suffixes = [f"_({lo}-{hi})" for lo, hi in zip(bounds[:-1], bounds[1:])]
+        else:
+            suffixes = [""]
+        n = len(suffixes)
+        # per bucket: loss_sum, correct, total, tp, fp, fn
+        acc = torch.zeros(n, 6, dtype=torch.float64, device=self.device)
+        loader = DataLoader(
+            FullIterDataset(dataset),
+            batch_size=self.eval_dataloader.batch_size,
+            collate_fn=glue_split_collate_wrapper if is_split else glue_collate_wrapper,
+            pin_memory=self.eval_dataloader.pin_memory,
+            num_workers=self.eval_dataloader.num_workers,
+        )
+        it = iter(loader)
+        dist = torch.distributed.is_initialized()
+        n_batches = 0
+        with torch.no_grad():
+            while True:
+                try:
+                    batch = next(it)
+                    if self.full_eval_batches is not None and n_batches >= self.full_eval_batches:
+                        raise StopIteration
+                    batch_list = batch if is_split else [batch]
+                    done = 0.0
+                except StopIteration:
+                    batch_list = [None] * n
+                    done = 1.0
+                n_batches += 1
+                flags = torch.tensor([done] + [float(b is not None) for b in batch_list], device=self.device)
+                if dist:
+                    all_done = flags[:1].clone()
+                    torch.distributed.all_reduce(all_done, op=torch.distributed.ReduceOp.MIN)
+                    has_data = flags[1:].clone()
+                    torch.distributed.all_reduce(has_data, op=torch.distributed.ReduceOp.MAX)
+                else:
+                    all_done, has_data = flags[:1], flags[1:]
+                if all_done.item() > 0.0:
+                    break
+                for i in range(n):
+                    if has_data[i].item() == 0.0:
+                        continue
+                    b = batch_list[i]
+                    is_dummy = b is None
+                    if is_dummy:
+                        b = self._make_dummy_batch(dataset)
+                    r = self.calculate_loss(b, is_dummy=is_dummy)
+                    if not is_dummy:
+                        acc[i] += torch.tensor(
+                            [r.loss_sum, r.correct, r.total, r.tp, r.fp, r.fn],
+                            dtype=torch.float64, device=self.device,
+                        )
+                self.metric_logger.flush_accumulated_metrics(self.step)
+        if dist:
+            torch.distributed.all_reduce(acc, op=torch.distributed.ReduceOp.SUM)
+        rows = list(zip(suffixes, acc))
+        if is_split:
+            rows.append(("_(all)", acc.sum(0)))
+        for suffix, (loss_sum, correct, total, tp, fp, fn) in rows:
+            if total.item() == 0:
+                continue
+            name = lambda metric: f"steps/{prefix}/{metric}{suffix}"
+            self.metric_logger.log(name("loss"), self.step, (loss_sum / total).item())
+            self.metric_logger.log(name("accuracy"), self.step, (correct / total).item())
+            self.metric_logger.log(name("n_items"), self.step, total.item())
+            self._log_extra_metrics({"tp": tp.item(), "fp": fp.item(), "fn": fn.item(), "name_suffix": suffix, "prefix": prefix})
+        self.step = saved_step
+
+    # -------------------------------------------------------------------------
+    # Full-dataset evaluation helpers (old, rank-0-only counts; kept for reference)
     # -------------------------------------------------------------------------
 
     def _get_full_eval_iterator(self):
@@ -305,8 +423,8 @@ class FinetuningTrainer(TrainerWithVocabSize):
         )
         return iter(full_eval_dataloader)
 
-    def _make_dummy_batch(self) -> tuple:
-        seq_len = self.eval_dataset.sequence_length
+    def _make_dummy_batch(self, dataset=None) -> tuple:
+        seq_len = (dataset or self.eval_dataset).sequence_length
         bsz = self.eval_dataloader.batch_size
         dummy_text = torch.zeros((bsz, seq_len), dtype=torch.long)
         dummy_labels = self._make_dummy_labels(bsz)
@@ -579,18 +697,6 @@ class FinetuningTrainerMultiLabel(FinetuningTrainer):
         return torch.zeros((bsz, self.num_labels), dtype=torch.float32)
 
     @override
-    def _pad_eval_batch(self, texts, labels, attention_masks):
-        """Pad to eval batch size so all ranks run equal forward-pass chunks (FSDP safety)."""
-        original_bsz = texts.size(0)
-        target_bsz = self.eval_dataloader.batch_size
-        if not self.model.training and original_bsz < target_bsz:
-            pad = target_bsz - original_bsz
-            texts = torch.cat([texts, torch.zeros((pad, texts.size(1)), dtype=texts.dtype, device=texts.device)], dim=0)
-            labels = torch.cat([labels, torch.zeros((pad, self.num_labels), dtype=labels.dtype, device=labels.device)], dim=0)
-            attention_masks = torch.cat([attention_masks, torch.zeros((pad, attention_masks.size(1)), dtype=attention_masks.dtype, device=attention_masks.device)], dim=0)
-        return texts, labels, attention_masks, original_bsz, target_bsz
-
-    @override
     def _forward_chunk(self, texts_chunk, labels_chunk, attention_masks_chunk, valid_in_chunk):
         logits = self.model(texts_chunk, attention_mask=attention_masks_chunk)
         loss = self.loss_fct(logits, labels_chunk)
@@ -610,10 +716,11 @@ class FinetuningTrainerMultiLabel(FinetuningTrainer):
         fp = result_totals["fp"]
         fn = result_totals["fn"]
         name_suffix = result_totals["name_suffix"]
+        prefix = result_totals.get("prefix", "eval")
         if tp + fp + fn > 0:
             precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
             recall = tp / (tp + fn) if (tp + fn) > 0 else 0.0
             micro_f1 = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
-            self.metric_logger.log(f"steps/eval/micro_f1{name_suffix}", self.step, micro_f1)
+            self.metric_logger.log(f"steps/{prefix}/micro_f1{name_suffix}", self.step, micro_f1)
             if not isinstance(self.metric_logger, WandbLogger):
-                self.metric_logger.log(f"tokens/eval/micro_f1{name_suffix}", self.processed_tokens, micro_f1)
+                self.metric_logger.log(f"tokens/{prefix}/micro_f1{name_suffix}", self.processed_tokens, micro_f1)

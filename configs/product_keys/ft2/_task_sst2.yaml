@@ -1,0 +1,28 @@
+# @package _global_
+# SST-2. GLUE test labels are hidden, so: val = 2,000 examples held out from train (fixed split),
+# test = GLUE validation (872). Train = remaining 65,349. 2 epochs = 2,042 steps at batch 64.
+trainer:
+  n_steps: 2050
+  eval_interval: 100
+  train_dataloader:
+    dataset:
+      holdout_size: 2000
+      holdout_part: train
+  eval_dataloader:
+    dataset:
+      path: ${cluster_switch.train_path_sst2}
+      split: train
+      holdout_size: 2000
+      holdout_part: holdout
+  extra_eval_datasets:
+    test:
+      _target_: src.product_keys.datasets.GlueDataset
+      sequence_length: ${common.sequence_length}
+      tokenize_fn:
+        _target_: src.product_keys.datasets.glue_tokenize_fn
+        seq_len: ${common.sequence_length}
+      task_name: sst2
+      path: ${cluster_switch.eval_path_sst2}
+      split: validation
+      seed: 123
+      shuffle: false

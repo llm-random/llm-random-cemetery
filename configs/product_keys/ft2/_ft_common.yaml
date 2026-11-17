@@ -1,0 +1,58 @@
+# @package _global_
+# Shared settings of the corrected fine-tuning (2026-11, "ft2"). See EXPERIMENTS.md in the thesis repo.
+#  - LR and step are chosen on a validation set (steps/eval/*), results are reported on test (steps/test*/*).
+#  - Every evaluation covers the whole val and test sets, counts summed over all ranks (full_eval).
+#  - Grid: 5 LRs x 3 seeds. The seed sets the data order and the classifier-head init.
+trainer:
+  _target_: src.product_keys.finetuning_trainer.FinetuningTrainer
+  gradient_accumulation_steps: 4
+  # Plain keys = defaults the launcher needs to resolve the tags before expanding the ^ grid.
+  learning_rate: 2e-5
+  ^learning_rate: [1e-5, 2e-5, 5e-5, 1e-4, 2e-4]
+  full_eval: true
+  full_eval_rows: null
+  freeze_backbone: false
+  trainable_modules: ["head"]
+  d_model: ${common.dmodel}
+  vocab_size: ${common.vocab_size}
+
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    warmup_steps: ${eval:'int(${trainer.n_steps} * 0.10)'}
+
+  train_dataloader:
+    dataset:
+      seed: 42
+      ^seed: [42, 123, 1000]
+      tokenize_fn:
+        seq_len: ${common.sequence_length}
+  eval_dataloader:
+    dataset:
+      shuffle: false
+      tokenize_fn:
+        seq_len: ${common.sequence_length}
+
+  checkpoint:
+    load:
+      type: nano
+      only_weights: true          # fresh optimiser, scheduler, step 0, new W&B run
+      strict_model_keys: true     # fail if any model weight is missing from the checkpoint (or vice versa)
+      model_checkpoint_filename: model_checkpoint.pt
+      training_state_filename: __training_state_filename.pt
+    save:
+      type: nano
+      interval: -1
+      path: null                  # fine-tuned weights are not kept
+
+infrastructure:
+  metric_logger:
+    type: wandb
+    wandb_entity: ideas_cv
+    project_name: tml-bgw
+    heavy_metrics_calculation_interval: 1000000   # no routing/weight histograms during fine-tuning
+    heavy_logging_layers: [0]
+  slurm:
+    gres: gpu:hopper:4
+    job-name: ${infrastructure.metric_logger.name}
