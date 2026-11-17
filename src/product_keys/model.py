@@ -537,7 +537,7 @@ class RoPEProductKeysEncoderAttention(nn.Module):
         attn_scores = torch.matmul(q_normed.unsqueeze(-2), final_k.transpose(-2, -1))
 
         # Multiply by the learnable QKNorm temperature
-        attn_scores = attn_scores * self.attn_temp
+        attn_scores = attn_scores * self.attn_temp.to(attn_scores.dtype)
 
         # ! no causal mask as we work in encoder-only setting
         # causal_mask = torch.triu(
@@ -867,7 +867,7 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         attn_scores = torch.matmul(q_normed.unsqueeze(-2), final_k.transpose(-2, -1))
 
         # Multiply by the learnable QKNorm temperature
-        attn_scores = attn_scores * self.attn_temp
+        attn_scores = attn_scores * self.attn_temp.to(attn_scores.dtype)
 
         # # --- DIFFERENTIABLE ROUTING INJECTION ---
         # # topk_routing_scores is (B, H, S, K). Unsqueeze to (B, H, S, 1, K) to broadcast.
