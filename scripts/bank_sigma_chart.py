@@ -43,6 +43,10 @@ from paired_gap import PROJECT, run_path, series, spikes, window_mean  # noqa: E
 
 TIE = 0.022
 LR = 2.0**-8
+# Each panel's y-axis stops here; a grid point beyond it is drawn as a marker on the
+# top edge with its value. sigma = 1e-10 (+0.44) would otherwise squash the plateau,
+# whose points differ by 0.02, into one line.
+CAPS = {"g": 0.15, "final_ce": 3.16}
 PARITY = ["nano-ame-parity/u1zpx7lt", "nano-ame-parity/s65ebe41", "nano-ame-parity/w4hmw00o"]
 LEM = ["kf4q4t4s", "doi36p8k"]
 GRAD_KEYS = ["steps/train/grad_norm", "steps/train/grad_norm/banks", "steps/train/clip_factor"]
@@ -179,6 +183,17 @@ def plot(points, context, best, ref_name, out_png):
         ax.plot(xs, ys, color=BLUE, lw=2, solid_capstyle="round", solid_joinstyle="round",
                 zorder=4)
         ax.plot(xs, ys, ls="none", marker="o", ms=7.5, mfc=BLUE, mec=SURFACE, mew=1.6, zorder=5)
+        cap = CAPS.get(key)
+        beyond = [(x, y) for x, y in zip(xs, ys) if cap is not None and y > cap]
+        if beyond:
+            ax.set_ylim(top=cap)
+            for x, y in beyond:
+                ax.plot([x], [cap], ls="none", marker="^", ms=8, mfc=BLUE, mec=SURFACE,
+                        mew=1.4, zorder=6, clip_on=False)
+                shown = f"{y:+.3f}" if key == "g" else f"{y:.3f}"
+                ax.annotate(f"{shown}, off scale".replace("-", "\u2212"), (x, cap),
+                            xytext=(7, -1), textcoords="offset points", ha="left",
+                            va="top", color=INK, fontsize=8)
         ax.set_title(title, pad=8)
         ax.set_ylabel(ylabel)
     g_ax, ce_ax = axes
@@ -191,8 +206,8 @@ def plot(points, context, best, ref_name, out_png):
                       ha="center", va="bottom", color=INK, fontsize=8.5, zorder=7,
                       bbox={"boxstyle": "round,pad=0.2", "fc": SURFACE, "ec": "none",
                             "alpha": 0.85})
-        g_ax.text(hi / 1.15, best["g"] + TIE, "tie band: within 0.022 of the best",
-                  ha="right", va="bottom", color=INK2, fontsize=7.5)
+        g_ax.text(lo * 1.3, best["g"] + TIE, "tie band: within 0.022 of the best",
+                  ha="left", va="bottom", color=INK2, fontsize=7.5)
     for ax in axes if lo < LR < hi else []:
         top = ax.get_ylim()[1]
         ax.text(LR * 1.1, top, "σ = LR = 2⁻⁸", ha="left", va="top", color=MUTED, fontsize=7.5)
