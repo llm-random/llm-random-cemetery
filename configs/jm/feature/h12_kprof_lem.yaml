@@ -1,0 +1,18 @@
+# h12_kprof on lem (QK-norm off); lem's fineweb is fineweb-edu, irrelevant for kernel times.
+defaults:
+  - h12_kprof@_global_
+  - override ../../_cluster@_here_: lem
+  - _self_
+
+infrastructure:
+  metric_logger:
+    name: h12_kprof_lem
+    tags:
+      - nano
+      - h12
+      - kprof
+      - lem
+
+  slurm:
+    gres: gpu:hopper:2
+    time: "00:15:00"

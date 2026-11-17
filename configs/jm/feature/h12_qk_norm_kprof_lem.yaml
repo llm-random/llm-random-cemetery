@@ -1,0 +1,21 @@
+# h12_kprof_lem with QK-norm: the lem half of the QK-norm kernel-profile pair.
+defaults:
+  - h12_kprof_lem@_global_
+  - _self_
+
+common:
+  attention:
+    qk_norm: true
+
+infrastructure:
+  metric_logger:
+    name: h12_qk_norm_kprof_lem
+    tags:
+      - nano
+      - h12
+      - kprof
+      - lem
+      - qk_norm
+
+  slurm:
+    time: "00:15:00"
