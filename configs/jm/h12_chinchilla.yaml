@@ -16,7 +16,7 @@ common:
 
 trainer:
   # micro 64 x 1024 per GPU, as h16_chinchilla on 4 GPUs; 128 per GPU likely OOMs
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 1
   # 3.51B tokens, 28.4 per active param; ~1.2 h at 35% MFU (config_summary.ipynb)
   # = 13_400 steps at batch 256; the ramp's 1_000 steps hold 400 of them
   n_steps: 14_000
