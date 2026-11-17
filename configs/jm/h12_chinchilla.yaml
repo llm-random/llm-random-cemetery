@@ -26,6 +26,7 @@ trainer:
     batch_sizes: [64, 128]
     steps: [400, 600]
     final_batch_size: 256
+    scale_lr: false
   scheduler:
     # warmup spans the ramp; decay = checkpoint interval, so the last stable step is saved
     warmup_steps: 1_000
