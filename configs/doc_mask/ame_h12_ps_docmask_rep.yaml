@@ -1,0 +1,69 @@
+# Document masking, AME arm, SAME-SEED REPLICATE on LEM
+# (documents/notes/settle_runs_report.md, run 4). One submit = 1 run.
+#
+# ame_h12_ps_docmask.yaml exactly as W&B j6wxx6h2 ran it (code 3974addd, the
+# no_grad lowering fix), except:
+#   - LEM instead of entropy's h100a: 1 GPU (gres gpu:hopper:1), the 7 h limit
+#     and the r16-11 exclusion every LEM run gets. FineWeb is LEM's copy, which
+#     entropy's mirrors, so the data order is the same;
+#   - the run name, job name and tags.
+# Compare against j6wxx6h2 (the masked run, entropy) and doi36p8k (unmasked,
+# LEM, final_ce 3.1250): same seed, data order, steps and schedule.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # The arm. shift: true learns (alpha_1, alpha_2) and (beta_1, beta_2) per
+  # head and layer; slopes unset, so AME uses its ALiBi ladder (horizons 16 to
+  # 8192). document_mask: each token attends only within its own document
+  # (the sink stays visible to all), and the shift does not cross a boundary.
+  attention:
+    type: ame
+    ame:
+      shift: true
+    document_mask: true
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32
+  mem_parallel_size: 1 # hand-managed bank path (Tier 2), banks unsharded
+  distributed: null # no FSDP2, so AME's readouts (tau, alpha/beta, entropy) are logged
+  autocast_bf16: true
+
+  # The recipe, as S2-PS. Everything not set here is a llama-trainer default:
+  #   - AdamW, weight decay 0.1 (the AME banks are exempt);
+  #   - cosine schedule, warmup 1% = 38 steps, final LR 10% of peak;
+  #   - eval every 100 steps on 10 batches;
+  #   - final_ce on the fixed held-out set: 8192 samples x 2048 tokens.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  learning_rate: 8 # LR = 2^-8, S2-PS's best n
+  checkpoint:
+    save:
+      path: checkpoint # final checkpoint only, ~15-20 GB with the banks
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: dm_ame_rep
+    time: "0-07:00:00" # S2-PS trained in 4 h on LEM; the mask adds a where per score
+    exclude: r16-11 # bad GPU (2026-11-06)
+  metric_logger:
+    project_name: nano-ame
+    name: dm_ame_h12_ps_lr8_rep
+    tags:
+      - ame
+      - h12
+      - doc_mask
+      - s2_ps
+      - replicate
+      - settle_runs
