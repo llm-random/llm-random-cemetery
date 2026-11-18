@@ -26,6 +26,8 @@ trainer:
     batch_sizes: [64, 128]
     steps: [100, 100]
     final_batch_size: 256
+    scale_lr: false
+    rescale_adam_v: false
   scheduler:
     warmup_steps: 200
 

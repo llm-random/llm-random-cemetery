@@ -128,6 +128,10 @@ class BatchSizeWarmupSchema:
     steps: List[int] = MISSING
     # The batch size after the last stage; must equal common.batch_size.
     final_batch_size: int = MISSING
+    # Scale each stage's LR by sqrt(stage batch / final batch_size), the square-root rule.
+    scale_lr: bool = MISSING
+    # At each switch multiply Adam's v by the batch ratio, so scale_lr's LR step doesn't jump lr/sqrt(v).
+    rescale_adam_v: bool = MISSING
 
 
 @dataclass
@@ -375,6 +379,11 @@ def validate(cfg) -> None:
         check(
             len(warmup.batch_sizes) == len(warmup.steps),
             "trainer.batch_size_warmup needs one steps entry per batch_sizes entry",
+        )
+        check(
+            warmup.scale_lr or not warmup.rescale_adam_v,
+            "trainer.batch_size_warmup.rescale_adam_v needs scale_lr: it offsets "
+            "scale_lr's LR step at each switch",
         )
         for size, steps in zip(warmup.batch_sizes, warmup.steps):
             # A stage cuts each loader batch of final_batch_size into `split` steps.

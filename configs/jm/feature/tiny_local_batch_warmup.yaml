@@ -14,6 +14,8 @@ trainer:
     batch_sizes: [2, 4]
     steps: [20, 20]
     final_batch_size: 8
+    scale_lr: false
+    rescale_adam_v: false
 
 infrastructure:
   metric_logger:

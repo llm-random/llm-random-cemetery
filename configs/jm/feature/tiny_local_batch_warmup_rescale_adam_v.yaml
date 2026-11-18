@@ -1,0 +1,8 @@
+# tiny_local_batch_warmup_lr_scale with Adam's v doubled at each switch, so lr/sqrt(v) doesn't jump. Run: pixi run python main.py --config-path configs/jm/feature --config-name tiny_local_batch_warmup_rescale_adam_v
+defaults:
+  - tiny_local_batch_warmup_lr_scale@_global_
+  - _self_
+
+trainer:
+  batch_size_warmup:
+    rescale_adam_v: true

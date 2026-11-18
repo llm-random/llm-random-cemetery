@@ -5,6 +5,7 @@ import torch.nn as nn
 from hydra.utils import instantiate
 
 from src.core.model import TransformerHead
+from src.core.schedulers import BatchWarmupLRScale
 
 # Order of the param groups; the role table in the plan.
 ROLES = ("vector", "embedding", "head", "hidden")
@@ -58,4 +59,7 @@ def build_optimizer_and_scheduler(cfg, model, learning_rate):
     scheduler = instantiate(cfg.trainer.scheduler)(
         optimizer=optimizer, n_steps=cfg.trainer.n_steps
     )
+    warmup = cfg.trainer.batch_size_warmup
+    if warmup is not None and warmup.scale_lr:
+        scheduler = BatchWarmupLRScale(scheduler, warmup)
     return optimizer, scheduler

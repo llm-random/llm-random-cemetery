@@ -1,0 +1,8 @@
+# tiny_local_batch_warmup with each stage's LR scaled by sqrt(stage batch / 8): 1/2 at batch 2, 1/sqrt(2) at 4. Run: pixi run python main.py --config-path configs/jm/feature --config-name tiny_local_batch_warmup_lr_scale
+defaults:
+  - tiny_local_batch_warmup@_global_
+  - _self_
+
+trainer:
+  batch_size_warmup:
+    scale_lr: true

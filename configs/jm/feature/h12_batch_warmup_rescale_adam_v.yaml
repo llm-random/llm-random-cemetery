@@ -1,0 +1,24 @@
+# h12_batch_warmup_lr_scale with Adam's v doubled at each switch: lr/sqrt(v) stays put, then rises as v relaxes (~1_000 steps).
+defaults:
+  - h12_batch_warmup_lr_scale@_global_
+  - _self_
+
+trainer:
+  # one LR, not the parent's sweep: 2^-8, where scale_lr alone blew up (3a4uljvf)
+  ^learning_rate: [8]
+  batch_size_warmup:
+    rescale_adam_v: true
+
+infrastructure:
+  metric_logger:
+    name: h12_batch_warmup_rescale_adam_v
+    tags:
+      - nano
+      - h12
+      - lr_tune
+      - chinchilla
+      - wsd
+      - qk_norm
+      - batch_warmup
+      - batch_warmup_lr_scale
+      - batch_warmup_rescale_adam_v
