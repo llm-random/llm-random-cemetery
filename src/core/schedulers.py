@@ -76,6 +76,54 @@ class WSDScheduler(SequentialLR):
             self.step()
 
 
+def warmup_split(warmup, step: int) -> int:
+    """How many steps share one loader batch at `step`: final/stage batch size, 1 after warmup."""
+    stage_end = 0
+    for batch_size, steps in zip(warmup.batch_sizes, warmup.steps):
+        stage_end += steps
+        if step < stage_end:
+            return warmup.final_batch_size // batch_size
+    return 1
+
+
+class BatchWarmupLRScale:
+    """`scheduler`'s LRs times sqrt(stage batch / final batch) during batch size warmup.
+
+    The torch schedulers derive each LR from the group's previous one, so the wrapped
+    scheduler always steps on its own unscaled LRs and the factor goes on after it.
+    """
+
+    def __init__(self, scheduler, warmup):
+        self.scheduler = scheduler
+        self.warmup = warmup
+        self._apply_scale()
+
+    def _apply_scale(self):
+        # last_epoch is the training step about to run: train() steps the scheduler after the optimizer.
+        scale = warmup_split(self.warmup, self.scheduler.last_epoch) ** -0.5
+        groups = self.scheduler.optimizer.param_groups
+        for group, lr in zip(groups, self.scheduler.get_last_lr()):
+            group["lr"] = lr * scale
+
+    def step(self):
+        for group, lr in zip(
+            self.scheduler.optimizer.param_groups, self.scheduler.get_last_lr()
+        ):
+            group["lr"] = lr
+        self.scheduler.step()
+        self._apply_scale()
+
+    def get_last_lr(self):
+        return [group["lr"] for group in self.scheduler.optimizer.param_groups]
+
+    def state_dict(self):
+        return self.scheduler.state_dict()
+
+    def load_state_dict(self, loaded_state):
+        self.scheduler.load_state_dict(loaded_state)
+        self._apply_scale()
+
+
 def get_cosine_scheduler_with_warmup(
     optimizer, warmup_steps: int, n_steps: int, final_lr_fraction: float
 ):

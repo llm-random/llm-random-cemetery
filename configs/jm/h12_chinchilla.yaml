@@ -1,6 +1,6 @@
 defaults:
   # no /base_schema: `^` sweep keys under trainer are rejected by it (see src/definitions.py)
-  - ../_cluster@_here_: lem
+  - ../_cluster@_here_: entropy
   - ../_model/h_balanced@_here_: h12
   # WSD: warmup 1_000 (the batch ramp), stable to step 12599, linear decay to 0 over the last 1_400
   - ../_trainer@_here_: nano
@@ -20,12 +20,14 @@ trainer:
   # 3.51B tokens, 28.4 per active param; ~1.2 h at 35% MFU (config_summary.ipynb)
   # = 13_400 steps at batch 256; the ramp's 1_000 steps hold 400 of them
   n_steps: 14_000
-  ^learning_rate: [8, 9, 10]
+  # ^learning_rate: [8, 9, 10]
+  learning_rate: 8
   # LR warmup's 105M tokens at batch 64 (26M), then 128 (79M): 4x, then 2x the updates
   batch_size_warmup:
     batch_sizes: [64, 128]
     steps: [400, 600]
     final_batch_size: 256
+    scale_lr: false
   scheduler:
     # warmup spans the ramp; decay = checkpoint interval, so the last stable step is saved
     warmup_steps: 1_000
@@ -60,5 +62,5 @@ infrastructure:
 
   slurm:
     time: "04:00:00"
-    gres: gpu:hopper:2
+    gres: gpu:2
     job-name: ${infrastructure.metric_logger.name}

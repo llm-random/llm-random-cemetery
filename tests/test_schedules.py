@@ -3,20 +3,26 @@
 import os
 import warnings
 
+import numpy as np
 import pytest
 import torch
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 
 import resolver  # noqa: F401  (registers the repo's custom OmegaConf resolvers)
-from src.core.schedulers import WSDScheduler
+from src.core.schedulers import BatchWarmupLRScale, WSDScheduler
 from src.core.trainer import Trainer
 from src.definitions import check_point
 
 ROOT = os.path.dirname(os.path.dirname(__file__))
 FEATURE_DIR = os.path.join(ROOT, "configs", "jm", "feature")
 # 8 steps at batch 2 and 4 at batch 4 (two loader batches of 8 each), then batch 8.
-WARMUP = {"batch_sizes": [2, 4], "steps": [8, 4], "final_batch_size": 8}
+WARMUP = {
+    "batch_sizes": [2, 4],
+    "steps": [8, 4],
+    "final_batch_size": 8,
+    "scale_lr": True,
+}
 
 
 def _compose(name, overrides=()):
@@ -86,8 +92,68 @@ def test_resumed_warmup_yields_the_uninterrupted_steps(start_step):
     assert all(torch.equal(a, b) for a, b in zip(full[start_step:], resumed))
 
 
-def test_shipped_warmup_config_passes_check_point():
-    check_point(_compose("tiny_local_batch_warmup"))
+def _scaled_wsd():
+    params = [torch.nn.Parameter(torch.zeros(1)) for _ in range(2)]
+    optimizer = torch.optim.SGD(
+        [{"params": [params[0]], "lr": 1.0}, {"params": [params[1]], "lr": 0.5}]
+    )
+    wsd = WSDScheduler(
+        optimizer, n_steps=20, warmup_steps=4, decay_steps=4, final_lr_fraction=0.0
+    )
+    return optimizer, BatchWarmupLRScale(wsd, OmegaConf.create(WARMUP))
+
+
+def _lrs_in_effect(optimizer, scheduler, n_steps):
+    lrs = []
+    for _ in range(n_steps):
+        lrs.append([group["lr"] for group in optimizer.param_groups])
+        optimizer.step()
+        scheduler.step()
+    return lrs
+
+
+def test_lr_scale_is_sqrt_of_stage_over_final_batch():
+    plain_opt = torch.optim.SGD(
+        [
+            {"params": [torch.nn.Parameter(torch.zeros(1))], "lr": 1.0},
+            {"params": [torch.nn.Parameter(torch.zeros(1))], "lr": 0.5},
+        ]
+    )
+    plain = WSDScheduler(
+        plain_opt, n_steps=20, warmup_steps=4, decay_steps=4, final_lr_fraction=0.0
+    )
+    optimizer, scaled = _scaled_wsd()
+    # Batch 2 for steps 0-7, 4 for 8-11, then 8.
+    scales = [0.5] * 8 + [2**-0.5] * 4 + [1.0] * 8
+    expected = [
+        [lr * s for lr in lrs]
+        for lrs, s in zip(_lrs_in_effect(plain_opt, plain, 20), scales)
+    ]
+    np.testing.assert_allclose(_lrs_in_effect(optimizer, scaled, 20), expected)
+
+
+@pytest.mark.parametrize("stop", [3, 8, 10, 12, 15])
+def test_resumed_lr_scale_gives_the_uninterrupted_lrs(stop):
+    optimizer, scheduler = _scaled_wsd()
+    full = _lrs_in_effect(optimizer, scheduler, 20)
+
+    optimizer, scheduler = _scaled_wsd()
+    _lrs_in_effect(optimizer, scheduler, stop)
+    saved_optim, saved_sched = optimizer.state_dict(), scheduler.state_dict()
+    optimizer, scheduler = _scaled_wsd()
+    # checkpointing.py's order: optimizer first, then scheduler.
+    optimizer.load_state_dict(saved_optim)
+    scheduler.load_state_dict(saved_sched)
+    np.testing.assert_allclose(
+        _lrs_in_effect(optimizer, scheduler, 20 - stop), full[stop:]
+    )
+
+
+@pytest.mark.parametrize(
+    "name", ["tiny_local_batch_warmup", "tiny_local_batch_warmup_lr_scale"]
+)
+def test_shipped_warmup_config_passes_check_point(name):
+    check_point(_compose(name))
 
 
 @pytest.mark.parametrize(
