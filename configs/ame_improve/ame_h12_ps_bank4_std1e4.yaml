@@ -1,0 +1,70 @@
+# ame_improve, h12: S2-PS (AME + ALiBi + KV shift) with BOTH bank levers, the
+# 4x bank learning rate and the small bank init sigma = 1e-4
+# (documents/notes/settle_runs_report.md, run 1: do the two levers stack?).
+# One submit = 1 run.
+#
+# A copy of ame_h12_ps_bank4.yaml (W&B y5ogvt3k). Only these differ:
+#   - common.attention.ame.bank_init_std: 1.0e-4, the sigma of the bank-sigma
+#     grid's bank_sigma_m400 (W&B 7te9jv9u, ratio 1);
+#   - trainer.n_steps: 3815 with n_tokens_b: null, the length of every run it
+#     pairs with (7te9jv9u, kf4q4t4s, doi36p8k); y5ogvt3k's n_tokens_b: 4
+#     gave 3,812;
+#   - the r16-11 exclusion every LEM run gets, and the run name and tags.
+# References: 7te9jv9u (sigma 1e-4, ratio 1) and kf4q4t4s (sigma 0.01, ratio 1,
+# no gate): the same seed, data order, steps and schedule.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: lem
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step
+  # shift: true learns (alpha_1, alpha_2) and (beta_1, beta_2) per head and
+  # layer. slopes is unset, so AME uses its ALiBi ladder (horizons 16 to 8192).
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: 1.0e-4 # N(0, sigma^2) bank rows; the code default is 1.0
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32
+  mem_parallel_size: 1 # hand-managed bank path (Tier 2), banks unsharded
+  distributed: null # no FSDP2, so AME's readouts (tau, alpha/beta, entropy) are logged
+  autocast_bf16: true
+
+  # Everything not set here is a llama-trainer default: AdamW, weight decay
+  # 0.1 (banks exempt), cosine schedule with 1% warmup to 10% of peak, eval
+  # every 100 steps, final_ce on the fixed 8192 x 2048 held-out set.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step, as the references
+  n_tokens_b: null
+  learning_rate: 8 # LR = 2^-8
+  bank_lr_ratio: 4.0 # banks at 4 x 2^-8 for the whole schedule
+  checkpoint:
+    save:
+      path: checkpoint # final checkpoint only
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:1
+    job-name: settle_bank4_s1e4
+    time: "0-07:00:00" # the run takes about 4.5 h; no mid-run checkpoints
+    exclude: r16-11 # bad GPU (2026-11-06)
+  metric_logger:
+    project_name: nano-ame
+    name: ai_h12_ps_bank4_std1e4_lr8
+    tags:
+      - ame
+      - h12
+      - ame_improve
+      - bank_lr4
+      - bank_std1e4
+      - settle_runs
