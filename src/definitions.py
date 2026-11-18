@@ -128,6 +128,8 @@ class BatchSizeWarmupSchema:
     steps: List[int] = MISSING
     # The batch size after the last stage; must equal common.batch_size.
     final_batch_size: int = MISSING
+    # Scale each stage's LR by sqrt(stage batch / final batch_size), the square-root rule.
+    scale_lr: bool = MISSING
 
 
 @dataclass

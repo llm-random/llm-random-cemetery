@@ -22,6 +22,7 @@ from src.core.checkpointing import (
 )
 from src.core.metric_loggers import AveDiffMetric, AveMetric, MetricLogger
 from src.core.mfu import model_flops_per_token, peak_flops_bf16
+from src.core.schedulers import warmup_split
 from src.core.utils import create_batch_fingerprint
 
 if TYPE_CHECKING:
@@ -323,13 +324,7 @@ class Trainer:
 
     def _warmup_split(self, step):
         """How many steps share one loader batch at `step`: final/stage batch size, 1 after warmup."""
-        warmup = self.batch_size_warmup
-        stage_end = 0
-        for batch_size, steps in zip(warmup.batch_sizes, warmup.steps):
-            stage_end += steps
-            if step < stage_end:
-                return warmup.final_batch_size // batch_size
-        return 1
+        return warmup_split(self.batch_size_warmup, step)
 
     def _warmup_batches(self):
         """Batches under batch size warmup, from start_step on.
