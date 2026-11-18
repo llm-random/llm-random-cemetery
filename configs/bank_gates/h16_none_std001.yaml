@@ -1,0 +1,18 @@
+# No gate at sigma = 0.01, at h16 on 8B tokens: the h16 baseline the bank-gates
+# h16 extension lacked (documents/notes/settle_runs_report.md, run 2). It
+# measures the small init's own gain at h16, and how much of ST's h16 lead
+# (ug8g2i2x) the init explains. Everything else is h16_base.yaml, so it pairs
+# with hjw7znbz (sigma 1, no gate) and with the h16 gate arms ug8g2i2x (ST) and
+# 3yc7haqu (B3), which all started from sigma = 0.01.
+# Node r16-11 is excluded at submit with +infrastructure.slurm.exclude=r16-11.
+defaults:
+  - h16_base
+  - _self_
+
+bank_gates_arm: none_std001
+
+common:
+  attention:
+    ame:
+      bank_init_std: 0.01
+      bank_gate: none
