@@ -46,7 +46,7 @@ LR = 2.0**-8
 # Each panel's y-axis stops here; a grid point beyond it is drawn as a marker on the
 # top edge with its value. sigma = 1e-10 (+0.44) would otherwise squash the plateau,
 # whose points differ by 0.02, into one line.
-CAPS = {"g": 0.15, "final_ce": 3.16}
+CAPS = {"g": 0.20, "final_ce": 3.24}
 PARITY = ["nano-ame-parity/u1zpx7lt", "nano-ame-parity/s65ebe41", "nano-ame-parity/w4hmw00o"]
 LEM = ["kf4q4t4s", "doi36p8k"]
 GRAD_KEYS = ["steps/train/grad_norm", "steps/train/grad_norm/banks", "steps/train/clip_factor"]
@@ -192,8 +192,10 @@ def plot(points, context, best, ref_name, out_png):
                         mew=1.4, zorder=6, clip_on=False)
                 shown = f"{y:+.3f}" if key == "g" else f"{y:.3f}"
                 ax.annotate(f"{shown}, off scale".replace("-", "\u2212"), (x, cap),
-                            xytext=(7, -1), textcoords="offset points", ha="left",
-                            va="top", color=INK, fontsize=8)
+                            xytext=(7, -3), textcoords="offset points", ha="left",
+                            va="top", color=INK, fontsize=8, zorder=7,
+                            bbox={"boxstyle": "round,pad=0.2", "fc": SURFACE,
+                                  "ec": "none", "alpha": 0.9})
         ax.set_title(title, pad=8)
         ax.set_ylabel(ylabel)
     g_ax, ce_ax = axes
