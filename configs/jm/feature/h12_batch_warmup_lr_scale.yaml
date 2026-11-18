@@ -1,0 +1,22 @@
+# h12_chinchilla with the ramp's LR scaled by sqrt(stage batch / 256): x1/2 at batch 64, x1/sqrt(2) at 128.
+# On the 1_000-step LR warmup that peaks at 0.2 of peak LR by step 399, 0.71 by step 999, then 1.
+defaults:
+  - ../h12_chinchilla@_global_
+  - _self_
+
+trainer:
+  batch_size_warmup:
+    scale_lr: true
+
+infrastructure:
+  metric_logger:
+    name: h12_batch_warmup_lr_scale
+    tags:
+      - nano
+      - h12
+      - lr_tune
+      - chinchilla
+      - wsd
+      - qk_norm
+      - batch_warmup
+      - batch_warmup_lr_scale
