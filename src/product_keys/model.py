@@ -215,6 +215,7 @@ class RoPETopKAttention(nn.Module):
         top_k: int,
         top_k_before_softmax: bool = True,
         causal: bool = True,
+        qk_norm: bool = False,
     ):
         super().__init__()
         self.q_proj = q_proj_fn()
@@ -239,6 +240,10 @@ class RoPETopKAttention(nn.Module):
             base=rope_base,
             apply_freq_scaling=rope_scale_freqs,
         )
+
+        # qk_norm=True: RMSNorm on q and k + learnable per-head temperature, exactly as in
+        # RoPEAttentionQKNorm and PK Attention. False keeps the old fixed 1/sqrt(d_head) scale.
+        self.qk_norm = QKNorm(self.dhead, self.q_heads) if qk_norm else None
 
     def __apply_topk_mask(self, x, fill_value: float):
         top_k_values, _ = torch.topk(x, self.top_k, dim=-1)
@@ -273,7 +278,11 @@ class RoPETopKAttention(nn.Module):
                 attention_output.transpose(1, 2).contiguous().flatten(-2)
             )
 
-        attention_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.dhead)
+        if self.qk_norm is not None:
+            q, k, attn_temp = self.qk_norm(q, k)
+            attention_scores = torch.matmul(q, k.transpose(-2, -1)) * attn_temp.to(q.dtype)
+        else:
+            attention_scores = torch.matmul(q, k.transpose(-2, -1)) / math.sqrt(self.dhead)
 
         if self.causal:
             causal_mask = torch.triu(

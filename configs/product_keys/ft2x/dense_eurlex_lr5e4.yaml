@@ -1,0 +1,24 @@
+# @package _global_
+# ft2 extension (2026-11-19): EUR-Lex best LR was the grid maximum (2e-4) with val still rising -> add 5e-4.
+# Same as ft2/dense_eurlex except the LR. Same W&B name and tags (+ ft2_lr_ext) so it joins the ft2 grid.
+defaults:
+  - /product_keys/ft2/dense_eurlex@_here_
+  - _self_
+
+trainer:
+  learning_rate: 5e-4
+  ^learning_rate: [5e-4]
+
+infrastructure:
+  metric_logger:
+    tags:
+      - nano
+      - finetuning
+      - ft2
+      - ft2_lr_ext
+      - 2026.11.19
+      - task=eurlex
+      - model=dense
+      - ckpt_job=6341322
+      - lr=${trainer.learning_rate}
+      - seed=${trainer.train_dataloader.dataset.seed}

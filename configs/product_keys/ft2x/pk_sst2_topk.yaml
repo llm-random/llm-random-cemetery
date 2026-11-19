@@ -1,0 +1,39 @@
+# @package _global_
+# ft2 extension (2026-11-19): does a larger retrieval budget at fine-tuning close the gap to dense?
+# PK checkpoint (pre-trained with k=16) fine-tuned with top_k in {24, 32} (m=32, so 32 = every row and column
+# in the first stage, exact top-32 cells). padding_mask_mode=pre, LR fixed at the ft2 selection for sst2 (5e-5),
+# 3 seeds. Compare with ft2_pk_sst2 (k=16, pre, same LR). top_k only changes the selection, no new weights.
+defaults:
+  - /product_keys/ft2/pk_sst2@_here_
+  - _self_
+
+trainer:
+  learning_rate: 5e-5
+  ^learning_rate: [5e-5]
+
+model:
+  encoder:
+    block_fn:
+      attention_fn:
+        padding_mask_mode: pre
+        ^padding_mask_mode: [pre]
+        top_k: 24
+        ^top_k: [24, 32]
+
+infrastructure:
+  metric_logger:
+    name: ft2_pk_sst2_topk
+    tags:
+      - nano
+      - finetuning
+      - ft2_topk
+      - 2026.11.19
+      - task=sst2
+      - model=pk
+      - ckpt_job=6341320
+      - lr=${trainer.learning_rate}
+      - seed=${trainer.train_dataloader.dataset.seed}
+      - padding_mask_mode=${model.encoder.block_fn.attention_fn.padding_mask_mode}
+      - top_k=${model.encoder.block_fn.attention_fn.top_k}
+  slurm:
+    time: "0-03:00:00"
