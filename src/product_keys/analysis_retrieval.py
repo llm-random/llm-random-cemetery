@@ -197,7 +197,10 @@ def main():
         model.load_state_dict(sd)
         unchanged = [k for k in sd if torch.equal(before[k], sd[k]) and "rope" not in k]
         print(f"loaded {len(sd)} tensors, unchanged after load: {unchanged}")
-        assert not unchanged, "some weights were not loaded"
+        # routing_temp only scales the scores used for top-k index selection (no gradient path:
+        # topk_routing_scores is unused), so it never trains and stays at its init value.
+        # A positive per-head scale does not change the selection either.
+        assert all(k.endswith("routing_temp") for k in unchanged), "some weights were not loaded"
     model.to(dev).eval()
 
     S = cfg.common.sequence_length
