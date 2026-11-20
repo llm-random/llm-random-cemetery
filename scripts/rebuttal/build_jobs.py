@@ -107,7 +107,7 @@ SHARDED = [
 
 
 def job(action, method, ratio, tokens, seed=123, clip=None, mask=False, save=None, tag=None,
-        n_steps=None, size="1b", env=None, clusters=("lem", "entropy")):
+        n_steps=None, size="1b", env=None, clusters=("lem", "entropy"), lr=None):
     """One training job. seed 123 is the Table 1 data order ("seed 0" in the plan).
     n_steps overrides the token budget (smoke runs); tokens then names the reference cell.
     env: extra `export K=V` lines for exp.job (E5's NANO_PEAK_MEMORY_EVERY)."""
@@ -116,7 +116,7 @@ def job(action, method, ratio, tokens, seed=123, clip=None, mask=False, save=Non
     name = f"rb_{action}_{size_label}{method}{ratio}_{tokens if n_steps is None else f'{n_steps}st'}_{seed_label}" + (f"_{tag}" if tag else "")
     return dict(action=action, method=method, ratio=ratio, tokens=tokens, seed=seed,
                 clip=clip, mask=mask, save=save, name=name, n_steps=n_steps, size=size,
-                env=env or {}, clusters=clusters)
+                env=env or {}, clusters=clusters, lr=lr)
 
 
 # ---- The job lists (plan §6.1). Order = lem priority order; entropy gets it reversed. ----
@@ -145,7 +145,12 @@ E5 = ([job("e5", m, 90, "1bt", n_steps=30, size="8b", env=E5_ENV, clusters=("lem
        for m in ("pcd", "hpd", "pc", "hp")]
       + [job("e5", m, 90, "1bt", n_steps=30, env=E5_ENV) for m in ("pcd", "hpd", "pc", "hp")])
 
-GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS, "e5": E5}
+# A10 fallback (plan §6.2): no Table 1-setup LR sweep exists for Llama 1B, so run the chosen
+# n +- 1 for PC (13) and HP (11) at 90% and 1B tokens, seed 0 (paired with Table 1 / replicas).
+A10 = [job("a10", "pc", 90, "1bt", lr=n, tag=f"lr{n}") for n in (12, 14)] + \
+      [job("a10", "hp", 90, "1bt", lr=n, tag=f"lr{n}") for n in (10, 12)]
+
+GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS, "e5": E5, "a10": A10}
 
 
 def time_limit(j):
@@ -189,7 +194,7 @@ def yaml_for(j, cluster):
     trainer = {
         "gradient_accumulation_steps": SIZE_8B["gacc"] if big else 8,
         "n_steps": STEPS[tokens] if j["n_steps"] is None else j["n_steps"],
-        "learning_rate": (SIZE_8B["lr"] if big else LR)[(m, ratio)],
+        "learning_rate": j["lr"] if j["lr"] is not None else (SIZE_8B["lr"] if big else LR)[(m, ratio)],
         "scheduler": {"warmup_steps": 40},
         # The Table 1 runs predate the fineweb holdout (e894422f); without this the
         # training stream, and so the seed-123 data order, would differ from theirs.
@@ -257,7 +262,8 @@ def yaml_for(j, cluster):
             "project_name": "pc_v2",
             "tags": ["rebuttal", j["action"], m, f"{ratio}p", tokens, f"seed{j['seed']}",
                      cluster] + (["masked"] if j["mask"] else [])
-                    + ([f"clip{j['clip']}"] if j["clip"] is not None else []),
+                    + ([f"clip{j['clip']}"] if j["clip"] is not None else [])
+                    + ([f"lr{j['lr']}"] if j["lr"] is not None else []),
         },
         "slurm": slurm,
     }
