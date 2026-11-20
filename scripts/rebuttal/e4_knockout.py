@@ -34,6 +34,7 @@ import torch.distributed.checkpoint as dcp  # noqa: E402
 import torch.nn.functional as F  # noqa: E402
 from hydra.utils import instantiate  # noqa: E402
 from omegaconf import OmegaConf  # noqa: E402
+from torch.distributed.fsdp import FSDPModule  # noqa: E402
 from torch.distributed.tensor import DTensor, distribute_tensor  # noqa: E402
 
 import resolver  # noqa: E402,F401
@@ -135,7 +136,20 @@ def heldout_ce(model, loader, n_batches, micro):
     if dist.is_initialized():
         dist.all_reduce(loss_sum)
         dist.all_reduce(n_tok)
+    # A forward without backward leaves the root FSDP unit unsharded (FSDP2 does not
+    # reshard the root after forward), so root-owned projections (head, embedding) would
+    # be plain tensors in the next prepare_compressed_weights() while the source weights
+    # they multiply are sharded DTensors ("got mixed torch.Tensor and DTensor"). Training
+    # never hits this because every W_c build there follows a backward. Found by the GPU
+    # smoke 2026-11-20.
+    _reshard(model)
     return (loss_sum / n_tok).item(), int(n_tok.item())
+
+
+def _reshard(model):
+    for m in model.modules():
+        if isinstance(m, FSDPModule):
+            m.reshard()
 
 
 def main():
