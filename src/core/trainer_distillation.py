@@ -160,6 +160,7 @@ class TrainerDistillation(Trainer):
 
     def log_metrics(self, loss_metrics: LossMetrics, grad_norm):
         """Override to add distillation-specific metrics"""
+        self._log_peak_memory()
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
         if grad_norm is not None:

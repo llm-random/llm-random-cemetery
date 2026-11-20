@@ -38,6 +38,21 @@ from main import dump_grid_configs  # noqa: E402
 RATIOS = {70: (960, 3840), 90: (448, 1728)}
 STEPS = {"1bt": 2048, "2bt": 4096}
 
+# Llama 3 8B (E5 peak memory only), from the logged configs of the 8B 90% Table 1 runs.
+SIZE_8B = {
+    "ratios": {90: (1056, 3168)},
+    "lr": {("pc", 90): 13, ("pcd", 90): 13, ("hp", 90): 9, ("hpd", 90): 9},
+    "seq": 2048, "gacc": 32, "hf": "meta-llama/Llama-3.1-8B",
+    "pc_model": "projected_mem_eff_8B", "hp_model": "llama_3_8",
+    "distil_trainer": "llama3_8B_distillation",
+    "assets": {"lem": (
+        "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/hf_to_nano_converted/llama8b_in_nano.pt",
+        "/lustre/pd01/plgrid/plgllmefficont2/projected_compression/importances/8b/minitron_dimensions_importances.pt",
+    )},
+    "reference": {("pc", 90): "v45fo4fk", ("hp", 90): "5dhq5nlz",
+                  ("pcd", 90): "m4aghdz0", ("hpd", 90): "y2vjj8y1"},
+}
+
 # Learning rates n (LR = 2^-n), from the logged configs of the Table 1 runs.
 LR = {
     ("pc", 70): 13, ("pc", 90): 13,
@@ -92,13 +107,16 @@ SHARDED = [
 
 
 def job(action, method, ratio, tokens, seed=123, clip=None, mask=False, save=None, tag=None,
-        n_steps=None):
+        n_steps=None, size="1b", env=None, clusters=("lem", "entropy")):
     """One training job. seed 123 is the Table 1 data order ("seed 0" in the plan).
-    n_steps overrides the token budget (smoke runs); tokens then names the reference cell."""
+    n_steps overrides the token budget (smoke runs); tokens then names the reference cell.
+    env: extra `export K=V` lines for exp.job (E5's NANO_PEAK_MEMORY_EVERY)."""
     seed_label = "s0" if seed == 123 else f"s{seed}"
-    name = f"rb_{action}_{method}{ratio}_{tokens if n_steps is None else f'{n_steps}st'}_{seed_label}" + (f"_{tag}" if tag else "")
+    size_label = "" if size == "1b" else f"{size}_"
+    name = f"rb_{action}_{size_label}{method}{ratio}_{tokens if n_steps is None else f'{n_steps}st'}_{seed_label}" + (f"_{tag}" if tag else "")
     return dict(action=action, method=method, ratio=ratio, tokens=tokens, seed=seed,
-                clip=clip, mask=mask, save=save, name=name, n_steps=n_steps)
+                clip=clip, mask=mask, save=save, name=name, n_steps=n_steps, size=size,
+                env=env or {}, clusters=clusters)
 
 
 # ---- The job lists (plan §6.1). Order = lem priority order; entropy gets it reversed. ----
@@ -120,21 +138,33 @@ REPLICAS = [job("rep", m, r, t, save=("final" if (m, r, t) == ("pcd", 90, "1bt")
                               ("pc", 70, "1bt"), ("hp", 70, "1bt"), ("pc", 90, "1bt"),
                               ("hp", 90, "1bt")]]
 
-GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS}
+# E5 peak memory: Table 1 configs, 30 steps, no save. The 8B assets are verified only on
+# lem (entropy's h100a had no free CPU for a check on 2026-11-20), so 8B runs on lem only.
+E5_ENV = {"NANO_PEAK_MEMORY_EVERY": "5"}
+E5 = ([job("e5", m, 90, "1bt", n_steps=30, size="8b", env=E5_ENV, clusters=("lem",))
+       for m in ("pcd", "hpd", "pc", "hp")]
+      + [job("e5", m, 90, "1bt", n_steps=30, env=E5_ENV) for m in ("pcd", "hpd", "pc", "hp")])
+
+GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS, "e5": E5}
 
 
 def time_limit(j):
     if j["n_steps"] is not None:
-        return "0-00:40:00"
+        return "0-01:30:00" if j["size"] == "8b" else "0-00:40:00"
     h = HOURS[(j["method"], j["ratio"], j["tokens"])]
     hours = int(h * 2.0 + 1.5)  # 2x the lem run plus startup margin
     return f"0-{hours:02d}:00:00"
 
 
 def yaml_for(j, cluster):
-    c = CLUSTERS[cluster]
+    c = dict(CLUSTERS[cluster])
     m, ratio, tokens = j["method"], j["ratio"], j["tokens"]
-    dmodel, dff = RATIOS[ratio]
+    big = j["size"] == "8b"
+    if big:
+        dmodel, dff = SIZE_8B["ratios"][ratio]
+        c["source"], c["importances"] = SIZE_8B["assets"][cluster]
+    else:
+        dmodel, dff = RATIOS[ratio]
     distil = m in ("pcd", "hpd")
     pc = m in ("pc", "pcd")
     run_name = f"{j['name']}_{'lem' if cluster == 'lem' else 'ent'}"
@@ -142,22 +172,24 @@ def yaml_for(j, cluster):
 
     defaults = [{"../_cluster@_here_": cluster}]
     if pc:
-        defaults.append({"../_model/llama@_here_": "projected_mem_eff_1B"})
+        defaults.append({"../_model/llama@_here_": SIZE_8B["pc_model"] if big else "projected_mem_eff_1B"})
     else:
-        defaults.append({"../_model@_here_": "llama_3_1"})
+        defaults.append({"../_model@_here_": SIZE_8B["hp_model"] if big else "llama_3_1"})
+    distil_trainer = SIZE_8B["distil_trainer"] if big else "llama3_1B_distillation"
     defaults += [
-        {"../_trainer@_here_": "llama3_1B_distillation" if distil else "llama"},
+        {"../_trainer@_here_": distil_trainer if distil else "llama"},
         {"../_dataset@_here_": "fineweb"},
         {"../_checkpoints@_here_": "none"},
         {"../_misc@_here_": "default"},
         "_self_",
     ]
 
-    common = {"sequence_length": 1024, "batch_size": 512}
+    hf = SIZE_8B["hf"] if big else "meta-llama/Llama-3.2-1B"
+    common = {"sequence_length": SIZE_8B["seq"] if big else 1024, "batch_size": 512}
     trainer = {
-        "gradient_accumulation_steps": 8,
+        "gradient_accumulation_steps": SIZE_8B["gacc"] if big else 8,
         "n_steps": STEPS[tokens] if j["n_steps"] is None else j["n_steps"],
-        "learning_rate": LR[(m, ratio)],
+        "learning_rate": (SIZE_8B["lr"] if big else LR)[(m, ratio)],
         "scheduler": {"warmup_steps": 40},
         # The Table 1 runs predate the fineweb holdout (e894422f); without this the
         # training stream, and so the seed-123 data order, would differ from theirs.
@@ -176,7 +208,7 @@ def yaml_for(j, cluster):
             "gradient_clipping": j["clip"] if j["clip"] is not None else 0.25,
             "only_compress_model_gradient_clipping": False,
             "only_target_model_gradient_clipping": 1.0,
-            "original_llama_path": "meta-llama/Llama-3.2-1B",
+            "original_llama_path": hf,
             "checkpoint": {"save": {
                 "interval": 0,
                 "path": ckpt_path,
@@ -200,12 +232,12 @@ def yaml_for(j, cluster):
     else:
         common.update({"target_dmodel": dmodel, "target_dff": dff})
         trainer["checkpoint"] = {
-            "load": {"type": "huggingface", "path": "meta-llama/Llama-3.2-1B"},
+            "load": {"type": "huggingface", "path": hf},
             "save": {"type": "huggingface", "path": ckpt_path},
         }
         if j["clip"] is not None:
             trainer["gradient_clipping"] = j["clip"]
-        if distil:
+        if distil or big:  # the 8B HP Table 1 run had no periodic eval either
             trainer.update({"eval_interval": 0, "eval_dataloader": None})
         cfg["apply_functions"] = [{
             "_target_": "src.projected_compression.pruning.prune",
@@ -234,6 +266,8 @@ def yaml_for(j, cluster):
 
 def build(j, cluster, out_root):
     run_name, cfg = yaml_for(j, cluster)
+    if j["size"] == "8b" and cluster not in SIZE_8B["assets"]:
+        raise ValueError(f"{run_name}: no verified 8B assets on {cluster}")
     cfg_dir = os.path.join(REPO, "configs", "rebuttal")
     os.makedirs(cfg_dir, exist_ok=True)
     with open(os.path.join(cfg_dir, f"{run_name}.yaml"), "w") as f:
@@ -261,6 +295,13 @@ def build(j, cluster, out_root):
         finally:
             os.chdir(cwd)
         shutil.move(os.path.join(tmp, "exp.job"), os.path.join(job_dir, "exp.job"))
+    if j["env"]:
+        exp_job = os.path.join(job_dir, "exp.job")
+        text = open(exp_job).read()
+        marker = "#---------- SCRIPT ----------\n"
+        assert marker in text, f"{run_name}: no script section in exp.job"
+        exports = "".join(f"export {k}={v}\n" for k, v in j["env"].items())
+        open(exp_job, "w").write(text.replace(marker, marker + exports, 1))
     return run_name, OmegaConf.to_container(composed, resolve=True)
 
 
@@ -279,7 +320,10 @@ IGNORE = ("infrastructure", "run_env", "checkpoint_config", "cluster_switch", "o
 
 
 def verify(j, resolved, ref_dir):
-    ref = REFERENCE_RUN[(j["method"], j["ratio"], j["tokens"])]
+    if j["size"] == "8b":
+        ref = SIZE_8B["reference"][(j["method"], j["ratio"])]
+    else:
+        ref = REFERENCE_RUN[(j["method"], j["ratio"], j["tokens"])]
     logged = json.load(open(os.path.join(ref_dir, f"{ref}.json")))["config"]
     a, b = flat(resolved), flat(logged)
     diffs = []
@@ -306,7 +350,7 @@ def main():
 
     for g in args.groups.split(","):
         for j in GROUPS[g]:
-            clusters = ["entropy"] if g == "rep" else ["lem", "entropy"]
+            clusters = ["entropy"] if g == "rep" else list(j["clusters"])
             for cluster in clusters:
                 run_name, resolved = build(j, cluster, args.out)
                 line = f"{run_name}: ok"

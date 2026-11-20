@@ -457,7 +457,59 @@ class Trainer:
     def _update_processed_tokens(self, batch):
         self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
 
+    def _log_peak_memory(self):
+        """Peak GPU memory and peak host RSS per rank, reduced over ranks.
+
+        Off unless the environment sets NANO_PEAK_MEMORY_EVERY=N (rebuttal E5), so other
+        runs pay nothing, not even the collective. Then every N steps and at the last
+        step it logs, max over ranks: torch.cuda.max_memory_allocated() and
+        max_memory_reserved(), and the process's peak RSS (ru_maxrss), plus the sum of
+        the peak RSS over ranks (the node's host footprint). Called from log_metrics,
+        which every rank reaches at every step, so the all_reduce cannot deadlock.
+
+        The step-0 numbers include model loading and come before the optimizer states
+        exist (AdamW allocates them in step 0's optimizer.step(), after this call). The
+        peak counters are reset right after step 0 is logged, so every later value is
+        the peak of training proper, optimizer states included.
+        """
+        every = int(os.environ.get("NANO_PEAK_MEMORY_EVERY", "0") or 0)
+        if every <= 0 or not torch.cuda.is_available():
+            return
+        if self.step % every != 0 and self.step != self.n_steps - 1:
+            return
+        import resource
+
+        gib = float(2**30)
+        rss_peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss * 1024 / gib
+        local = torch.tensor(
+            [
+                torch.cuda.max_memory_allocated() / gib,
+                torch.cuda.max_memory_reserved() / gib,
+                rss_peak,
+            ],
+            device=self.device,
+            dtype=torch.float64,
+        )
+        peak = local.clone()
+        rss_sum = local[2:3].clone()
+        if dist.is_initialized():
+            dist.all_reduce(peak, op=dist.ReduceOp.MAX)
+            dist.all_reduce(rss_sum, op=dist.ReduceOp.SUM)
+        tag = "init_and_step0" if self.step == 0 else "training"
+        values = {
+            f"memory/{tag}/peak_allocated_gib_max_rank": peak[0].item(),
+            f"memory/{tag}/peak_reserved_gib_max_rank": peak[1].item(),
+            f"memory/{tag}/peak_host_rss_gib_max_rank": peak[2].item(),
+            f"memory/{tag}/peak_host_rss_gib_sum_ranks": rss_sum[0].item(),
+        }
+        for name, value in values.items():
+            self.metric_logger.log(name, value)
+        logger.info(f"step {self.step} peak memory: {values}")
+        if self.step == 0:
+            torch.cuda.reset_peak_memory_stats()
+
     def log_metrics(self, loss_metrics: LossMetrics, grad_norm):
+        self._log_peak_memory()
         self.metric_logger.set_tokens(self.processed_tokens)
         self.metric_logger.log("train/loss", loss_metrics.reported_loss.item())
         if self._has_moe_modules:
