@@ -9,7 +9,13 @@ logger = logging.getLogger(__name__)
 def prune(model: nn.Module, dimensions_importances_path, target_dmodel, target_dff):
     device = get_device()
 
-    dimensions_importances = torch.load(dimensions_importances_path)
+    # map_location="cpu": the importances file was saved from a GPU, so a plain load puts it
+    # on cuda:0 in EVERY rank, and ranks > 0 then copy the top-k indices cuda:0 -> own GPU.
+    # Prune runs per rank before FSDP2 shards the model, so a bad copy gives each rank a
+    # different pruned model and FSDP2 stitches their shards together (2026-11-20: entropy
+    # a100a corrupts peer copies; CE 68 instead of 11.4 at step 0 on 2 GPUs). On CPU the
+    # selection is identical on every rank and needs no GPU peer access.
+    dimensions_importances = torch.load(dimensions_importances_path, map_location="cpu")
     dmodel_importances = dimensions_importances["dmodel_importances"]
     dff_importances = dimensions_importances["dff_importances"]
 
