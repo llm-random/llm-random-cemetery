@@ -33,6 +33,49 @@ RUNS = {  # smoke name: real job it is cut from
 }
 
 
+# Hard-pruning paths keep the REAL Llama-3.2-1B (loaded from Hugging Face, pruned with the
+# real 1B importances, HPD with the HF teacher, HF-format save, periodic + final eval).
+HP_RUNS = {
+    "s5_hpd": "rb_e1_hpd90_1bt_s1_ent",                     # E1 / replica HPD path
+    "s6_hp_clip025": "rb_e6_hp90_1bt_s0_clip025_ent",       # E6 / A10 / replica HP path
+}
+
+
+def hp_smoke(args, out):
+    for run, job in HP_RUNS.items():
+        cfg = OmegaConf.load(os.path.join(REPO, "rebuttal_jobs", job, "config_0.yaml"))
+        for k in ("_run_", "overrides"):
+            cfg.pop(k, None)
+        cfg.common.sequence_length = 64
+        cfg.common.batch_size = 16
+        cfg.trainer.n_steps = 12
+        cfg.trainer.gradient_accumulation_steps = 2
+        cfg.trainer.scheduler.warmup_steps = 2
+        cfg.trainer.train_dataloader.dataset.path = f"{args.root}/data"
+        if cfg.trainer.get("eval_dataloader") is not None:  # HP: periodic + final eval
+            cfg.trainer.eval_interval = 5
+            cfg.trainer.n_eval_steps = 2
+            cfg.trainer.eval_dataloader.dataset.path = f"{args.root}/data"
+            cfg.trainer.eval_dataloader.dataset.holdout_rows = 50
+            cfg.trainer.eval_dataloader.dataset.max_samples = 32
+            cfg.trainer.train_dataloader.dataset.holdout_rows = 50
+        cfg.trainer.checkpoint.save.path = f"{args.root}/ckpt/{run}"
+        cfg.apply_functions[0].dimensions_importances_path = f"{args.root}/assets/imp_1b.pt"
+        cfg.cluster_switch.train_path_fineweb = f"{args.root}/data"
+        cfg.cluster_switch.eval_path_fineweb = f"{args.root}/data"
+        cfg.infrastructure.metric_logger.type = "stdout"
+        cfg.infrastructure.metric_logger.name = f"smoke_{run}"
+        d = os.path.join(out, run)
+        dump_grid_configs([(OmegaConf.to_container(cfg, resolve=False), [])], d)
+        r = OmegaConf.to_container(OmegaConf.load(os.path.join(d, "config_0.yaml")), resolve=True)
+        print(run, "<-", job, "| trainer", r["trainer"]["_target_"].split(".")[-1],
+              "| clip", r["trainer"]["gradient_clipping"], "| lr", r["trainer"]["learning_rate"],
+              "| load", r["trainer"]["checkpoint"]["load"]["type"], r["trainer"]["checkpoint"]["load"]["path"],
+              "| save", r["trainer"]["checkpoint"]["save"]["type"],
+              "| distil", (r.get("distillation") or {}).get("load", {}).get("type"),
+              "| dims", r["common"]["target_dmodel"], r["common"]["target_dff"])
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="smoke root on the cluster")
@@ -52,6 +95,7 @@ def main():
                 "dff_importances": torch.rand(tc.n_blocks, tc.base_dff)},
                os.path.join(out, "assets", "tiny_imp.pt"))
 
+    hp_smoke(args, out)
     for run, job in RUNS.items():
         cfg = OmegaConf.load(os.path.join(REPO, "rebuttal_jobs", job, "config_0.yaml"))
         for k in ("_run_", "overrides"):
