@@ -91,22 +91,28 @@ SHARDED = [
 ]
 
 
-def job(action, method, ratio, tokens, seed=123, clip=None, mask=False, save=None, tag=None):
-    """One training job. seed 123 is the Table 1 data order ("seed 0" in the plan)."""
+def job(action, method, ratio, tokens, seed=123, clip=None, mask=False, save=None, tag=None,
+        n_steps=None):
+    """One training job. seed 123 is the Table 1 data order ("seed 0" in the plan).
+    n_steps overrides the token budget (smoke runs); tokens then names the reference cell."""
     seed_label = "s0" if seed == 123 else f"s{seed}"
-    name = f"rb_{action}_{method}{ratio}_{tokens}_{seed_label}" + (f"_{tag}" if tag else "")
+    name = f"rb_{action}_{method}{ratio}_{tokens if n_steps is None else f'{n_steps}st'}_{seed_label}" + (f"_{tag}" if tag else "")
     return dict(action=action, method=method, ratio=ratio, tokens=tokens, seed=seed,
-                clip=clip, mask=mask, save=save, name=name)
+                clip=clip, mask=mask, save=save, name=name, n_steps=n_steps)
 
 
 # ---- The job lists (plan §6.1). Order = lem priority order; entropy gets it reversed. ----
 E1 = [job("e1", m, 90, "1bt", seed=s, save="final") for m in ("pcd", "hpd") for s in (1, 2)]
 E6 = [job("e6", "pc", 90, "1bt", clip=1.0, tag="clip1"),
       job("e6", "hp", 90, "1bt", clip=0.25, tag="clip025")]
-E3 = [job("e3", "pcd", 70, "2bt", mask=True, tag="masked"),
-      job("e3", "pcd", 90, "2bt", mask=True, tag="masked"),
-      job("e3", "pc", 70, "1bt", mask=True, tag="masked"),
-      job("e3", "pc", 90, "1bt", mask=True, tag="masked")]
+E3 = [job("e3", "pcd", 70, "2bt", mask=True, tag="masked", save="final"),
+      job("e3", "pcd", 90, "2bt", mask=True, tag="masked", save="final"),
+      job("e3", "pc", 70, "1bt", mask=True, tag="masked", save="final"),
+      job("e3", "pc", 90, "1bt", mask=True, tag="masked", save="final")]
+# 50-step smokes of both mask modes (teacher-safe copies for PCD, in place for PC),
+# including the end-of-run save; run alongside E3, cancel E3 if they fail.
+E3_SMOKE = [job("e3smoke", "pcd", 90, "2bt", mask=True, tag="masked", save="final", n_steps=50),
+            job("e3smoke", "pc", 90, "1bt", mask=True, tag="masked", save="final", n_steps=50)]
 # Seed-0 replicas of every comparator, entropy only (same-cluster comparators).
 REPLICAS = [job("rep", m, r, t, save=("final" if (m, r, t) == ("pcd", 90, "1bt") else None))
             for (m, r, t) in [("pcd", 70, "2bt"), ("hpd", 70, "2bt"), ("pcd", 90, "2bt"),
@@ -114,10 +120,12 @@ REPLICAS = [job("rep", m, r, t, save=("final" if (m, r, t) == ("pcd", 90, "1bt")
                               ("pc", 70, "1bt"), ("hp", 70, "1bt"), ("pc", 90, "1bt"),
                               ("hp", 90, "1bt")]]
 
-GROUPS = {"e1": E1, "e6": E6, "e3": E3, "rep": REPLICAS}
+GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS}
 
 
 def time_limit(j):
+    if j["n_steps"] is not None:
+        return "0-00:40:00"
     h = HOURS[(j["method"], j["ratio"], j["tokens"])]
     hours = int(h * 2.0 + 1.5)  # 2x the lem run plus startup margin
     return f"0-{hours:02d}:00:00"
@@ -148,7 +156,7 @@ def yaml_for(j, cluster):
     common = {"sequence_length": 1024, "batch_size": 512}
     trainer = {
         "gradient_accumulation_steps": 8,
-        "n_steps": STEPS[tokens],
+        "n_steps": STEPS[tokens] if j["n_steps"] is None else j["n_steps"],
         "learning_rate": LR[(m, ratio)],
         "scheduler": {"warmup_steps": 40},
         # The Table 1 runs predate the fineweb holdout (e894422f); without this the

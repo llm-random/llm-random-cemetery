@@ -405,7 +405,154 @@ def create_model(cfg_model, cfg_projected_compression, source_model_for_distilla
             cfg_projected_compression.path_to_importances
         )
 
+    if cfg_projected_compression.get("mask_discarded_source", False):
+        if cpu_offload_projections:
+            raise NotImplementedError(
+                "mask_discarded_source is not wired into the cpu_offload_projections path."
+            )
+        apply_discarded_block_mask(
+            model, keep_source_unmasked=source_model_for_distillation
+        )
+
     return model
+
+
+def _selected(proj_weight, dim):
+    """Boolean vector over a base dimension: True where a one-hot projection selects.
+
+    projection_in_weight is (base_in, target_in): reduce over dim=1.
+    projection_out_weight is (target_out, base_out) and the embedding projection is
+    (target_dmodel, base_dmodel): reduce over dim=0.
+    """
+    full = proj_weight.full_tensor() if isinstance(proj_weight, DTensor) else proj_weight
+    return (full.detach() != 0).any(dim=dim)
+
+
+def _block_mask_like(weight, row_keep, col_keep):
+    """outer(row_keep, col_keep) as a 0/1 tensor laid out like `weight` (DTensor or not).
+
+    None for a side means that side is not compressed: keep every row (column).
+    """
+    local = weight.to_local() if isinstance(weight, DTensor) else weight
+    rows, cols = weight.shape
+    r = (
+        torch.ones(rows, device=local.device)
+        if row_keep is None
+        else row_keep.to(local.device, torch.float32)
+    )
+    c = (
+        torch.ones(cols, device=local.device)
+        if col_keep is None
+        else col_keep.to(local.device, torch.float32)
+    )
+    mask = torch.outer(r, c).to(weight.dtype)
+    if isinstance(weight, DTensor):
+        mask = distribute_tensor(mask, weight.device_mesh, weight.placements)
+    return mask
+
+
+def _max_abs(t):
+    t = t.full_tensor() if isinstance(t, DTensor) else t
+    return t.abs().max().item()
+
+
+def apply_discarded_block_mask(model, keep_source_unmasked):
+    """Discarded-block control (rebuttal E3): W' = P1^T P1 W P2 P2^T.
+
+    Each frozen source matrix W is reduced to its retained block, the rows and columns
+    that the one-hot projection init selects, with the pruned rows and columns set to
+    zero. The model then starts exactly like PC and HP (W_c at step 0 is unchanged, which
+    is checked below), but the projections receive exactly zero gradient on every entry
+    that would read a discarded channel. Those entries start at zero, so they stay zero
+    under AdamW and decoupled weight decay, and P can only mix retained channels: PC's
+    parameterisation without the discarded pretrained weights.
+
+    Must run right after the one-hot projection init, before any training step.
+
+    keep_source_unmasked: the source model is also the distillation teacher
+    (distillation.load.type: pc_memeff_base), so it must stay intact. The student then
+    reads masked copies through MemoryEfficientProjectedCompression._student_view, and
+    the looked-up embedding is masked in forward(). Otherwise W is masked in place.
+    """
+    source, proj = model.source_model, model.projections
+    student_source = {}
+    n_matrices, n_zeroed, n_total, worst_wc_diff = 0, 0, 0, 0.0
+
+    def mask_one(compressible, weight):
+        nonlocal n_matrices, n_zeroed, n_total, worst_wc_diff
+        col_keep = (
+            _selected(compressible.projection_in_weight, dim=1)
+            if hasattr(compressible, "projection_in_weight")
+            else None
+        )
+        row_keep = (
+            _selected(compressible.projection_out_weight, dim=0)
+            if hasattr(compressible, "projection_out_weight")
+            else None
+        )
+        mask = _block_mask_like(weight, row_keep, col_keep)
+        with torch.no_grad():
+            wc_before = compressible.get_projected_weight(weight.detach())
+            masked = weight.detach() * mask
+            wc_after = compressible.get_projected_weight(masked)
+            worst_wc_diff = max(worst_wc_diff, _max_abs(wc_after - wc_before))
+            if keep_source_unmasked:
+                student_source[id(weight)] = masked
+            else:
+                weight.mul_(mask)
+        n_matrices += 1
+        n_total += weight.numel()
+        n_zeroed += weight.numel() - int(
+            (row_keep.sum().item() if row_keep is not None else weight.shape[0])
+            * (col_keep.sum().item() if col_keep is not None else weight.shape[1])
+        )
+
+    for block_source, block_proj in zip(source.encoder.blocks, proj.blocks):
+        attention = block_source.attention_layer.layer
+        ff = block_source.ff_layer.layer
+        for compressible, weight in [
+            (block_proj.compressible_q, attention.q_proj.weight),
+            (block_proj.compressible_k, attention.k_proj.weight),
+            (block_proj.compressible_v, attention.v_proj.weight),
+            (block_proj.compressible_o, attention.o_proj.weight),
+            (block_proj.compressible_ff_pre, ff.ff_pre_act.weight),
+            (block_proj.compressible_ff_gate, ff.gate.weight),
+            (block_proj.compressible_ff_post, ff.ff_post_act.weight),
+        ]:
+            mask_one(compressible, weight)
+    mask_one(proj.head, source.head.linear.weight)
+
+    # Embedding: x = P_emb E[token]; zero E's pruned d_model columns.
+    embedding_keep = _selected(proj.embedding, dim=0)
+    embedding_weight = source.embedding.weight
+    if keep_source_unmasked:
+        local = (
+            embedding_weight.to_local()
+            if isinstance(embedding_weight, DTensor)
+            else embedding_weight
+        )
+        model._embedding_mask = embedding_keep.to(local.device, torch.float32)
+    else:
+        with torch.no_grad():
+            embedding_weight.mul_(_block_mask_like(embedding_weight, None, embedding_keep))
+    n_matrices += 1
+    n_total += embedding_weight.numel()
+    n_zeroed += embedding_weight.shape[0] * int((~embedding_keep).sum().item())
+
+    if keep_source_unmasked:
+        model._student_source = student_source
+
+    if worst_wc_diff != 0.0:
+        raise RuntimeError(
+            f"mask_discarded_source changed W_c at init (max |diff| {worst_wc_diff}); "
+            "the projections are not one-hot selections, so the control is invalid."
+        )
+    logger.info(
+        f"mask_discarded_source: {n_matrices} source matrices reduced to their retained "
+        f"blocks ({'masked student copies, teacher intact' if keep_source_unmasked else 'in place'}); "
+        f"{n_zeroed / n_total:.4f} of their entries zeroed; W_c at init unchanged "
+        f"(max |diff| = {worst_wc_diff})."
+    )
 
 
 def _init_projections_sharded_one_by_one(

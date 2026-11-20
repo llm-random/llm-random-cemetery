@@ -61,10 +61,34 @@ class MemoryEfficientProjectedCompression(nn.Module):
             path_to_importances=path_to_importances,
             cast_bfloat16=cast_bfloat16,
         )
+        # Discarded-block control (projected_compression.mask_discarded_source; see
+        # initialization.apply_discarded_block_mask). None means the control is off.
+        # _student_source maps id(source weight) -> that weight with its pruned rows and
+        # columns zeroed, used wherever the student reads a source weight, while the
+        # source model itself stays intact as the distillation teacher. _embedding_mask
+        # zeroes the pruned d_model channels of the looked-up embedding in that case.
+        self._student_source = None
+        self._embedding_mask = None
     # fmt: on
+
+    def _student_view(self, source_weight):
+        """The source weight as the student sees it: masked under the discarded-block
+        control when the source model is also the teacher, else the weight itself."""
+        if self._student_source is None:
+            return source_weight
+        try:
+            return self._student_source[id(source_weight)]
+        except KeyError:
+            raise RuntimeError(
+                "mask_discarded_source: no masked view of a source weight. The source "
+                "parameter object changed after masking, so the student would silently "
+                "train on the unmasked weight."
+            ) from None
 
     def forward(self, *args, **kwargs):
         x = self.source_model.embedding(*args, **kwargs)
+        if self._embedding_mask is not None:
+            x = x * self._embedding_mask.to(x.dtype)
         x = F.linear(x, self.projections.embedding, bias=None)
         x = x + self.projections.auxiliary_embedding_weights(*args)
         x = self.target_model.encoder(x)
@@ -87,6 +111,7 @@ class MemoryEfficientProjectedCompression(nn.Module):
         Otherwise (head/embedding — always GPU, or normal non-offload path):
           Plain-tensor result from non-FSDP2 proj is distribute_tensor'd into the
           DTensor target.  FSDP2-wrapped proj produces a DTensor result directly."""
+        source_weight = self._student_view(source_weight)
         if self.cpu_offload_projections and source_weight.device.type == "cpu":
             # CPU path: rank 0 computes, broadcasts to all ranks.
             rank = dist.get_rank() if dist.is_initialized() else 0
@@ -632,6 +657,7 @@ class MemoryEfficientProjectedCompression(nn.Module):
             _batch_gather_block_grads).  When provided, skips per-weight
             redistribute(Replicate) NCCL all_gather entirely.  When None,
             gathers from target_weight.grad as before."""
+        source_weight = self._student_view(source_weight)
         if (
             self.cpu_offload_projections
             and source_weight.device.type == "cpu"
