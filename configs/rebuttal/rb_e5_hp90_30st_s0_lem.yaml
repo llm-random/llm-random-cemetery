@@ -17,7 +17,7 @@ trainer:
   n_steps: 30
   learning_rate: 11
   scheduler:
-    warmup_steps: 40
+    warmup_steps: 5
   train_dataloader:
     dataset:
       seed: 123

@@ -24,6 +24,7 @@ def main():
     ap.add_argument("--tokenizer", default="meta-llama/Llama-3.2-1B")
     ap.add_argument("--batch-size", type=int, default=4)
     ap.add_argument("--limit", type=int, default=None)
+    ap.add_argument("--device", default="cuda")
     ap.add_argument("models", nargs="+", help="NAME=GLOB")
     args = ap.parse_args()
     from lm_eval import evaluator
@@ -45,7 +46,7 @@ def main():
             tasks=TASKS,
             limit=args.limit,
             num_fewshot=0,
-            device="cuda",
+            device=args.device,
             log_samples=False,
         )
         results["rebuttal_checkpoint_path"] = path

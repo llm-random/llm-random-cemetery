@@ -195,7 +195,9 @@ def yaml_for(j, cluster):
         "gradient_accumulation_steps": SIZE_8B["gacc"] if big else 8,
         "n_steps": STEPS[tokens] if j["n_steps"] is None else j["n_steps"],
         "learning_rate": j["lr"] if j["lr"] is not None else (SIZE_8B["lr"] if big else LR)[(m, ratio)],
-        "scheduler": {"warmup_steps": 40},
+        # 40 as in Table 1; short runs (E5's 30 steps) need warmup < n_steps - 1, or
+        # get_cosine_scheduler_with_warmup asserts at startup.
+        "scheduler": {"warmup_steps": 40 if (j["n_steps"] is None or j["n_steps"] > 45) else 5},
         # The Table 1 runs predate the fineweb holdout (e894422f); without this the
         # training stream, and so the seed-123 data order, would differ from theirs.
         "train_dataloader": {"dataset": {"seed": j["seed"], "holdout": None}},
@@ -344,11 +346,75 @@ def verify(j, resolved, ref_dir):
     return ref, diffs
 
 
+def check(j, cluster, resolved, run_name):
+    """Instantiate what can be instantiated locally, so a config that would crash at
+    startup on the cluster fails here instead. Raises on any problem."""
+    import inspect
+    import attr
+    import torch
+    from hydra.utils import get_class, instantiate
+    from omegaconf import OmegaConf as OC
+
+    cfg = OC.create(resolved)
+    # 1. scheduler with the job's own n_steps (catches warmup >= n_steps - 1)
+    opt = torch.optim.AdamW([torch.nn.Parameter(torch.zeros(1))], lr=1e-3)
+    instantiate(cfg.trainer.scheduler)(optimizer=opt, n_steps=cfg.trainer.n_steps)
+    # 2. every trainer key is a field of the trainer class (else TypeError at call time)
+    cls = get_class(cfg.trainer._target_)
+    fields = set(attr.fields_dict(cls))
+    passed_in_main = {"model", "optimizer", "scheduler", "training_state", "metric_logger",
+                      "teacher_model"}
+    unknown = set(cfg.trainer) - fields - {"_target_", "_partial_"}
+    assert not unknown, f"{run_name}: trainer keys not accepted by {cls.__name__}: {unknown}"
+    missing = {f for f, a in attr.fields_dict(cls).items()
+               if a.default is attr.NOTHING} - set(cfg.trainer) - passed_in_main
+    assert not missing, f"{run_name}: {cls.__name__} needs {missing}"
+    # 3. dataset keys match the dataset class signature
+    for dl in ("train_dataloader", "eval_dataloader"):
+        d = cfg.trainer.get(dl)
+        if d is None:
+            continue
+        ds = get_class(d.dataset._target_)
+        params = set(inspect.signature(ds.__init__).parameters) - {"self"}
+        bad = set(d.dataset) - params - {"_target_"}
+        assert not bad, f"{run_name}: {dl} dataset keys not accepted: {bad}"
+    # 4. PC model builds on the meta device (shape-correct random importances)
+    if "projected_compression" in cfg:
+        import tempfile
+        import torch._dynamo  # noqa: F401  (eager, see reference_run_exp_gotchas)
+        import src.projected_compression.model  # noqa: F401
+        import src.projected_compression.mem_eff  # noqa: F401
+        c = cfg.common
+        with tempfile.TemporaryDirectory() as tmp:
+            imp = os.path.join(tmp, "imp.pt")
+            torch.save({"dmodel_importances": torch.rand(c.base_dmodel),
+                        "dff_importances": torch.rand(c.n_blocks, c.base_dff)}, imp)
+            with torch.device("meta"):
+                m = instantiate(cfg.model, path_to_importances=imp, adjust_grad_norm=False,
+                                cpu_offload_projections=False, block_gpu_compute=True,
+                                _convert_="all")
+        assert m.projections.target_dmodel == c.dmodel and m.projections.target_dff == c.dff
+        assert cfg.projected_compression.mask_discarded_source == bool(j["mask"])
+        if j["mask"] and cfg.projected_compression.source_model_for_distillation:
+            assert cfg.distillation.load.type == "pc_memeff_base"
+    else:
+        assert cfg.apply_functions[0]._target_ == "src.projected_compression.pruning.prune"
+        assert (cfg.common.target_dmodel, cfg.common.target_dff) == tuple(
+            (SIZE_8B["ratios"] if j["size"] == "8b" else RATIOS)[j["ratio"]])
+    # 5. exp.job: env exports present when asked for, no secret placeholders filled
+    text = open(os.path.join(REPO, "rebuttal_jobs", run_name, "exp.job")).read()
+    for k, v in j["env"].items():
+        assert f"export {k}={v}" in text, f"{run_name}: missing export {k}"
+    assert "__WANDB_API_KEY_PLACEHOLDER__" in text and 'export WANDB_API_KEY="__' not in text.replace("# export", "")
+    return True
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--groups", default="e1,e6,rep,e3")
     ap.add_argument("--verify", default=None, help="dir with <wandb id>.json logged configs")
     ap.add_argument("--out", default=os.path.join(REPO, "rebuttal_jobs"))
+    ap.add_argument("--check", action="store_true", help="instantiate scheduler/model/keys")
     args = ap.parse_args()
     for var in ("WANDB_API_KEY", "HF_TOKEN"):
         if var in os.environ:
@@ -360,6 +426,9 @@ def main():
             for cluster in clusters:
                 run_name, resolved = build(j, cluster, args.out)
                 line = f"{run_name}: ok"
+                if args.check:
+                    check(j, cluster, resolved, run_name)
+                    line += " [check passed]"
                 if args.verify:
                     ref, diffs = verify(j, resolved, args.verify)
                     line += f"  vs {ref}: {len(diffs)} diffs"

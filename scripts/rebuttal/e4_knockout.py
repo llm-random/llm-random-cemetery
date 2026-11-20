@@ -146,6 +146,8 @@ def main():
     ap.add_argument("--n-samples", type=int, default=2048)
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--micro", type=int, default=16)
+    ap.add_argument("--holdout-rows", type=int, default=262144,
+                    help="rows reserved as the eval tail (fineweb.yaml's value; smaller for tests)")
     args = ap.parse_args()
 
     setup_enviroment()
@@ -162,7 +164,7 @@ def main():
     ds = OmegaConf.to_container(cfg.trainer.train_dataloader.dataset, resolve=True)
     ds.update(
         holdout="eval",
-        holdout_rows=262144,
+        holdout_rows=args.holdout_rows,
         max_samples=args.n_samples,
         world_size_independent=True,
         shuffle=True,
