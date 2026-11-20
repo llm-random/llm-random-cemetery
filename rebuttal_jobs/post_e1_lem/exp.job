@@ -1,0 +1,50 @@
+#!/bin/bash -l
+#SBATCH --job-name=post_e1_lem
+#SBATCH --nodes=1
+#SBATCH --time=0-04:00:00
+#SBATCH --output=rebuttal_jobs/post_e1_lem/slurm-%j.out
+#SBATCH --account=plgllmefficont3
+#SBATCH --partition=plgrid-lem-gpu-h100
+#SBATCH --gres=gpu:hopper:1
+#SBATCH --cpus-per-gpu=16
+#SBATCH --mem-per-gpu=220G
+#SBATCH --exclude=r16-11
+
+#---------- SCRIPT ----------
+# export WANDB_API_KEY="__WANDB_API_KEY_PLACEHOLDER__"  # Warning: WANDB_API_KEY not found in environment. This might lead to issues.
+# export HF_TOKEN="__HF_TOKEN_PLACEHOLDER__"  # Warning: HF_TOKEN not found in environment. This might lead to issues.
+export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano
+export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+export HYDRA_FULL_ERROR=1
+export USER_HOME_PATH=$PROJECT_HOME_PATH/$USER
+export HF_DATASETS_CACHE="$USER_HOME_PATH/hf_datasets"
+export HF_MODULES_CACHE="$USER_HOME_PATH/hf_modules"
+export HF_HUB_CACHE="$USER_HOME_PATH/hf_cache"
+export HF_DATASETS_TRUST_REMOTE_CODE=1
+export PIXI_HOME=$USER_HOME_PATH/pixi
+export PATH="$HOME/.pixi/bin:$PATH"
+export XDG_DATA_HOME="$USER_HOME_PATH/data"
+export XDG_CACHE_HOME="$USER_HOME_PATH/cache"
+export XDG_STATE_HOME="$USER_HOME_PATH/state"
+export RATTLER_CACHE_DIR="$XDG_CACHE_HOME/rattler"
+export PIXI_CACHE_DIR="$XDG_CACHE_HOME/pixi"
+cd "$PIXI_HOME"
+eval "$(pixi shell-hook)"
+cd -
+#-------- SCRIPT END --------
+
+export MASTER_ADDR=localhost
+export HF_DATASETS_TRUST_REMOTE_CODE=1  # social_iqa (not set by entropy.yaml)
+export MASTER_PORT=$((40000 + SLURM_JOB_ID % 10000))
+CK=/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/checkpoints/rebuttal
+OUT=/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/checkpoints/rebuttal/post_e1_lem
+mkdir -p "$OUT"
+set -x
+# E4 first: it is quick, and lm-eval runs longest.
+for J in rb_e1_pcd90_1bt_s1_lem rb_e1_pcd90_1bt_s2_lem; do
+  STEP=$(ls -d $CK/$J/*/0/step_2047 2>/dev/null | tail -1)
+  if [ -n "$STEP" ] && [ -d "$STEP/model" ]; then
+    torchrun --nnodes=1 --nproc-per-node=1 --master-port=$MASTER_PORT scripts/rebuttal/e4_knockout.py --job-config rebuttal_jobs/$J/config_0.yaml --ckpt "$STEP" --out "$OUT/e4_$J.json" || echo "E4 FAILED $J"
+  else echo "E4 SKIP $J: no checkpoint"; fi
+done
+python scripts/rebuttal/lmeval_ckpts.py --out-dir "$OUT/lmeval" e1_pcd90_1bt_s1_lem=$CK/rb_e1_pcd90_1bt_s1_lem/*/0/step_2047/hf e1_pcd90_1bt_s2_lem=$CK/rb_e1_pcd90_1bt_s2_lem/*/0/step_2047/hf e1_hpd90_1bt_s1_lem=$CK/rb_e1_hpd90_1bt_s1_lem/*/0 e1_hpd90_1bt_s2_lem=$CK/rb_e1_hpd90_1bt_s2_lem/*/0 || echo "LMEVAL had missing or failed models"
