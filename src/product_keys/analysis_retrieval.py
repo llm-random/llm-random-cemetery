@@ -59,8 +59,9 @@ def analyse_layer(mod: PKA, x, layer, stats: Stats):
     B, S, _ = x.shape
     H, d, dh, m, kk = mod.q_heads, mod.dhead, mod.dhead_half, mod.m, mod.top_k
     x = x.float()
-    q = mod.rope(mod.q_proj(x).view(B, S, H, -1).transpose(1, 2))
-    k = mod.rope(mod.k_proj(x).view(B, S, mod.kv_heads, -1).transpose(1, 2))
+    rot = getattr(mod, "rotate", mod.rope)  # RoPE + pairing permutation (rope_pairing)
+    q = rot(mod.q_proj(x).view(B, S, H, -1).transpose(1, 2))
+    k = rot(mod.k_proj(x).view(B, S, mod.kv_heads, -1).transpose(1, 2))
     k = k.repeat_interleave(H // mod.kv_heads, dim=1)  # same as repeat_kv
     q, k = q.float(), k.float()
 

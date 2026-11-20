@@ -599,6 +599,7 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         qk_norm: bool = True,
         learnable_temp: bool = True,
         padding_mask_mode: str = "post",
+        rope_pairing: str = "split",
     ):
         super().__init__()
 
@@ -636,6 +637,29 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
             base=rope_base,
             apply_freq_scaling=rope_scale_freqs,
         )
+
+        # Which RoPE pairs end up in which half of the head (thesis Sec. 4.5). RoPE rotates coordinate
+        # i together with i + dhead/2 (pair i, frequency decreasing with i).
+        #   "split":       as RoPE returns it, every pair is split across the two halves (default,
+        #                  all runs before 2026-11-20).
+        #   "consecutive": both coordinates of pairs 0..dhead/4-1 (fast) in the first half, the slow
+        #                  pairs in the second half. Equivalent to the consecutive pairing of RoFormer.
+        #   "alternating": even pairs in the first half, odd pairs in the second half.
+        # A fixed permutation of q and k coordinates after RoPE: dot products are unchanged, only the
+        # split into halves (and hence the row/column sub-key scores) changes.
+        assert rope_pairing in ("split", "consecutive", "alternating"), rope_pairing
+        self.rope_pairing = rope_pairing
+        P = self.dhead // 2  # number of rotated pairs
+        if rope_pairing == "split":
+            perm = None
+        else:
+            if rope_pairing == "consecutive":
+                first, second = list(range(P // 2)), list(range(P // 2, P))
+            else:
+                first, second = list(range(0, P, 2)), list(range(1, P, 2))
+            perm = [i for i in first] + [i + P for i in first] + [i for i in second] + [i + P for i in second]
+            perm = torch.tensor(perm, dtype=torch.long)
+        self.register_buffer("rope_perm", perm, persistent=False)
 
         # Learnable vectors for attention-like pooling of keys
         self.l1 = nn.Parameter(torch.randn(self.q_heads, self.dhead_half) / math.sqrt(self.dhead_half))
@@ -760,6 +784,13 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
             res[f"head_{h}/v_indices"] = stacked_v[:, :, h].flatten()
         return res
 
+    def rotate(self, x):
+        """RoPE, then the pairing permutation of `rope_pairing` (identity for "split")."""
+        x = self.rope(x)
+        if self.rope_perm is not None:
+            x = x.index_select(-1, self.rope_perm.to(x.device))
+        return x
+
     def forward(self, x, attention_mask=None):
         # The encoder passes attention_mask to every attention layer. All-ones = no padding.
         valid = None
@@ -773,9 +804,9 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
 
         batch, seq_len = x.shape[:-1]
         q = query_states.view(batch, seq_len, self.q_heads, -1).transpose(1, 2)
-        q = self.rope(q)
+        q = self.rotate(q)
         k = key_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
-        k = self.rope(k)
+        k = self.rotate(k)
 
         v = value_states.view(batch, seq_len, self.kv_heads, -1).transpose(1, 2)
 
