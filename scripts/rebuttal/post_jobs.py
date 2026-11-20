@@ -36,6 +36,7 @@ def write(name, cluster, time, body):
     lines += [f"#SBATCH {s}" for s in c["slurm"]]
     lines += ["", env_section(c["env_from"]), "",
               "export MASTER_ADDR=localhost",
+              "export HF_DATASETS_TRUST_REMOTE_CODE=1  # social_iqa (not set by entropy.yaml)",
               "export MASTER_PORT=$((40000 + SLURM_JOB_ID % 10000))",
               f"CK={c['ckpt']}", f"OUT={c['ckpt']}/{name}", 'mkdir -p "$OUT"',
               "set -x", body]

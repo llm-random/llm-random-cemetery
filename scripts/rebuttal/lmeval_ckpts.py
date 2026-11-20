@@ -14,6 +14,10 @@ import json
 import os
 import sys
 
+# social_iqa ships a dataset script. lem.yaml exports this, entropy.yaml does not, and
+# without it the task aborts asking for interactive confirmation.
+os.environ.setdefault("HF_DATASETS_TRUST_REMOTE_CODE", "1")
+
 TASKS = ["arc_easy", "arc_challenge", "hellaswag", "piqa", "winogrande", "openbookqa",
          "sciq", "social_iqa", "lambada_openai"]
 
