@@ -1144,3 +1144,22 @@ class Residual(Residual_projected_compression):
                 },
             )
         return out + x
+
+
+class NoAttentionFeedForward(nn.Module):
+    """Reference model without token mixing: the attention sub-layer is replaced by a SwiGLU feed-forward layer.
+
+    Wraps ProjectedLlamaFeedForward so that it accepts (and ignores) the attention_mask the encoder passes to every
+    attention layer. Used for the "no attention" loss level on FineWeb-Edu (thesis Sec. 5.2).
+    """
+
+    def __init__(self, ff_pre_act_fn, ff_post_act_fn, gate_fn, **unused_attention_kwargs):
+        # The base model config merges attention keys (dmodel, q_heads, projections, rope) into attention_fn.
+        # They are ignored: this layer has no attention.
+        super().__init__()
+        from src.projected_compression.model import ProjectedLlamaFeedForward
+
+        self.ff = ProjectedLlamaFeedForward(ff_pre_act_fn, ff_post_act_fn, gate_fn)
+
+    def forward(self, x, attention_mask: Optional[torch.Tensor] = None):
+        return self.ff(x)

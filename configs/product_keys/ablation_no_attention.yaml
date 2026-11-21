@@ -1,0 +1,155 @@
+# @package _global_
+# No-attention reference on FineWeb-Edu (2026-11-21): attention replaced by a SwiGLU feed-forward layer.
+# Same model, data and schedule as the stability ablation (8k steps). Gives the loss of a model that cannot use the context.
+defaults:
+  - /_cluster/lem@_here_
+  - /_model/tiny@_here_
+  - /_trainer/llama@_here_
+  - /_dataset/fineweb@_here_
+  - /_misc/default@_here_
+  - _self_
+
+common:
+  sequence_length: 1024
+  batch_size: 64
+  dmodel: 1024
+  dff: 2724
+  datt: ${common.dmodel}
+  n_blocks: 16
+  q_heads: 16
+  kv_heads: 16
+  vocab_size: 50304
+  init_scale: 0.1
+
+trainer:
+  _target_: src.product_keys.trainer.MaskedLMTrainer
+  masking_percentage: 0.2
+  mask_token_id: 50257
+  unmaskable_special_tokens: [50256, 50257]  # <|endoftext|>
+  gradient_accumulation_steps: 2
+  n_steps: 8001
+  # Plain keys = defaults the launcher needs to resolve the tags before expanding the ^ grid.
+  learning_rate: 5e-4
+  ^learning_rate: [5e-4, 1e-3]
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.get_cosine_scheduler_with_warmup
+    final_lr_fraction: 0.1
+    # warmup_steps: ${eval:'int(${trainer.n_steps} * 0.10)'}
+    warmup_steps: 800
+  train_dataloader:
+    dataset:
+      # ^seed: [42, 123, 1000]
+      seed: 42
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+  eval_dataloader:
+    dataset:
+      tokenize_fn:
+        _target_: src.product_keys.datasets.gpt2_mask_tokenize_fn
+  checkpoint:
+    save:
+      interval: -1
+      path: null  # no checkpoints for the ablation
+    load:
+      path: null
+      only_weights: false # false not tested
+
+
+infrastructure:
+  metric_logger:
+    type: wandb
+    wandb_entity: ideas_cv
+    name: ablation_no_attention
+    project_name: tml-bgw
+    heavy_metrics_calculation_interval: 8000
+    heavy_logging_layers: [0, 10, 15]
+    tags:
+      - nano
+      - no_attention
+      - 2026.11.21
+      - ablation_stability
+      - attn=${model.encoder.block_fn.attention_fn._target_}
+      - fineweb
+      - lr=${trainer.learning_rate}
+      - seq_len=${common.sequence_length}
+      - n_layers=${common.n_blocks}
+      - dmodel=${common.dmodel}
+      - warmup_steps=${trainer.scheduler.warmup_steps}
+      - seed=${trainer.train_dataloader.dataset.seed}
+      - gres=${infrastructure.slurm.gres}
+  slurm:
+    gres: gpu:hopper:4
+    time: "02:00:00"
+    job-name: ${infrastructure.metric_logger.name}
+
+model:
+  _target_: src.projected_compression.model.LLM
+
+  embedding:
+    _target_: src.projected_compression.model.TransformerEmbedding
+    vocab_size: ${common.vocab_size}
+    dmodel: ${common.dmodel}
+    init_fn:
+      _target_: src.projected_compression.model.trunc_normal_
+      _partial_: true
+
+  encoder:
+    _target_: src.projected_compression.model.TransformerEncoder
+    n_blocks: ${common.n_blocks}
+    block_fn:
+      _target_: src.projected_compression.model.TransformerBlock
+      _partial_: true
+      norm_fn:
+        _target_: src.core.model.RMSNorm
+        _partial_: true
+        eps: 1e-5
+        normalized_shape: ${common.dmodel}
+
+      attention_fn:
+        # No attention: a second SwiGLU feed-forward layer in place of attention, so tokens never mix.
+        _target_: src.product_keys.model.NoAttentionFeedForward
+        _partial_: true
+        ff_pre_act_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+        ff_post_act_fn: ${model.encoder.block_fn.ff_layer_fn.ff_post_act_fn}
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+
+      ff_layer_fn:
+        _target_: src.projected_compression.model.ProjectedLlamaFeedForward
+        _partial_: true
+        ff_pre_act_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: ${common.init_scale}
+        ff_post_act_fn:
+          _target_: src.projected_compression.model.Linear
+          _partial_: true
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _target_: src.projected_compression.model.llm_random_weight_init
+            _partial_: true
+            scale: ${common.init_scale}
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+
+  head:
+    _target_: src.projected_compression.model.TransformerHead
+    linear_fn:
+      _target_: src.projected_compression.model.Linear
+      _partial_: true
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _target_: src.projected_compression.model.llm_random_weight_init
+        _partial_: true
+        scale: ${common.init_scale}
+    norm_fn:
+      _target_: src.core.model.RMSNorm
+      _partial_: true
+      eps: 1e-5
+      normalized_shape: ${common.dmodel}
