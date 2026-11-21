@@ -36,7 +36,7 @@ from grid_generator.sbatch_builder import generate_sbatch_script  # noqa: E402
 from main import dump_grid_configs  # noqa: E402
 
 RATIOS = {70: (960, 3840), 90: (448, 1728)}
-STEPS = {"1bt": 2048, "2bt": 4096}
+STEPS = {"1bt": 2048, "2bt": 4096, "4bt": 8192, "6bt": 12288}
 
 # Llama 3 8B (E5 peak memory only), from the logged configs of the 8B 90% Table 1 runs.
 SIZE_8B = {
@@ -86,6 +86,11 @@ REFERENCE_RUN = {
     ("hpd", 90, "1bt"): "hvd1i37o", ("hpd", 70, "1bt"): "xogsbrqa",
     ("pcd", 90, "2bt"): "k9ndr8i1", ("pcd", 70, "2bt"): "pk6lz5t9",
     ("hpd", 90, "2bt"): "pajazura", ("hpd", 70, "2bt"): "4yuyjuf9",
+    # E3 at the remaining Table 1 budgets (E3X)
+    ("pc", 70, "2bt"): "mvt98h80", ("pc", 70, "4bt"): "re7ji13d", ("pc", 70, "6bt"): "bhq2ysle",
+    ("pc", 90, "2bt"): "y7nhl0rc", ("pc", 90, "4bt"): "0ibnc42n", ("pc", 90, "6bt"): "l6u6t80m",
+    ("pcd", 70, "4bt"): "j66vre7a", ("pcd", 70, "6bt"): "qef5mvf0",
+    ("pcd", 90, "4bt"): "whk9g4c0", ("pcd", 90, "6bt"): "ciw4ajxz",
 }
 
 # Hours of the reference run on lem (documents/notes/table1_runs.md), for time limits.
@@ -96,6 +101,10 @@ HOURS = {
     ("hpd", 90, "1bt"): 1.51, ("hpd", 70, "1bt"): 1.79,
     ("pcd", 90, "2bt"): 3.33, ("pcd", 70, "2bt"): 3.96,
     ("hpd", 90, "2bt"): 3.00, ("hpd", 70, "2bt"): 3.54,
+    ("pc", 70, "2bt"): 2.23, ("pc", 70, "4bt"): 4.43, ("pc", 70, "6bt"): 6.60,
+    ("pc", 90, "2bt"): 1.60, ("pc", 90, "4bt"): 3.16, ("pc", 90, "6bt"): 4.71,
+    ("pcd", 70, "4bt"): 7.96, ("pcd", 70, "6bt"): 12.63,
+    ("pcd", 90, "4bt"): 6.65, ("pcd", 90, "6bt"): 9.93,
 }
 
 SHARDED = [
@@ -127,6 +136,13 @@ E3 = [job("e3", "pcd", 70, "2bt", mask=True, tag="masked", save="final"),
       job("e3", "pcd", 90, "2bt", mask=True, tag="masked", save="final"),
       job("e3", "pc", 70, "1bt", mask=True, tag="masked", save="final"),
       job("e3", "pc", 90, "1bt", mask=True, tag="masked", save="final")]
+# E3 at every other Table 1 budget (Maciej 11-22): PC-masked at 2/4/6B tokens, PCD-masked at
+# 1/4/6B tokens, 70% and 90%, entropy only. Same recipe as E3; only the reference cell changes.
+# Shortest first, which is also the submission order.
+E3X = sorted([job("e3", m, r, t, mask=True, tag="masked", save="final", clusters=("entropy",))
+              for (m, ts) in (("pc", ("2bt", "4bt", "6bt")), ("pcd", ("1bt", "4bt", "6bt")))
+              for t in ts for r in (90, 70)],
+             key=lambda j: HOURS[(j["method"], j["ratio"], j["tokens"])])
 # 50-step smokes of both mask modes (teacher-safe copies for PCD, in place for PC),
 # including the end-of-run save; run alongside E3, cancel E3 if they fail.
 E3_SMOKE = [job("e3smoke", "pcd", 90, "2bt", mask=True, tag="masked", save="final", n_steps=50),
@@ -150,7 +166,8 @@ E5 = ([job("e5", m, 90, "1bt", n_steps=30, size="8b", env=E5_ENV, clusters=("lem
 A10 = [job("a10", "pc", 90, "1bt", lr=n, tag=f"lr{n}") for n in (12, 14)] + \
       [job("a10", "hp", 90, "1bt", lr=n, tag=f"lr{n}") for n in (10, 12)]
 
-GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS, "e5": E5, "a10": A10}
+GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS, "e5": E5, "a10": A10,
+          "e3x": E3X}
 
 
 def time_limit(j):
@@ -158,7 +175,7 @@ def time_limit(j):
         return "0-01:30:00" if j["size"] == "8b" else "0-00:40:00"
     h = HOURS[(j["method"], j["ratio"], j["tokens"])]
     hours = int(h * 2.0 + 1.5)  # 2x the lem run plus startup margin
-    return f"0-{hours:02d}:00:00"
+    return f"{hours // 24}-{hours % 24:02d}:00:00"
 
 
 def yaml_for(j, cluster):
