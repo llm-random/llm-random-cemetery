@@ -143,6 +143,12 @@ E3X = sorted([job("e3", m, r, t, mask=True, tag="masked", save="final", clusters
               for (m, ts) in (("pc", ("2bt", "4bt", "6bt")), ("pcd", ("1bt", "4bt", "6bt")))
               for t in ts for r in (90, 70)],
              key=lambda j: HOURS[(j["method"], j["ratio"], j["tokens"])])
+# Moved to lem (Maciej 11-22: "move those pending jobs to lem, it is quite free"): the three
+# longest PCD cells, which entropy's single free slot would reach only on Mon-Tue. Their
+# entropy copies (43156-43158) are cancelled once these are queued.
+E3X_LEM = [dict(j, clusters=("lem",)) for j in E3X
+           if (j["method"], j["ratio"], j["tokens"]) in {("pcd", 70, "4bt"), ("pcd", 90, "6bt"),
+                                                         ("pcd", 70, "6bt")}]
 # 50-step smokes of both mask modes (teacher-safe copies for PCD, in place for PC),
 # including the end-of-run save; run alongside E3, cancel E3 if they fail.
 E3_SMOKE = [job("e3smoke", "pcd", 90, "2bt", mask=True, tag="masked", save="final", n_steps=50),
@@ -167,7 +173,7 @@ A10 = [job("a10", "pc", 90, "1bt", lr=n, tag=f"lr{n}") for n in (12, 14)] + \
       [job("a10", "hp", 90, "1bt", lr=n, tag=f"lr{n}") for n in (10, 12)]
 
 GROUPS = {"e1": E1, "e6": E6, "e3": E3, "e3smoke": E3_SMOKE, "rep": REPLICAS, "e5": E5, "a10": A10,
-          "e3x": E3X}
+          "e3x": E3X, "e3x_lem": E3X_LEM}
 
 
 def time_limit(j):
