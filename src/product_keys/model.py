@@ -600,8 +600,14 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         learnable_temp: bool = True,
         padding_mask_mode: str = "post",
         rope_pairing: str = "split",
+        weighting: str = "composite",
     ):
         super().__init__()
+        # weighting: "composite" (PK Attention) compares the query with the composite key [row sub-key ;
+        # column sub-key] of each selected cell. "own_key" keeps the PK selection but compares the query with
+        # the token's own key (after RoPE, halves normalised with k_norm1 / k_norm2), as dense attention does.
+        assert weighting in ("composite", "own_key"), weighting
+        self.weighting = weighting
 
         # will work only with constant seq_len, in encoder-only setting
         assert math.sqrt(seq_len).is_integer(), "seq_len must be a perfect square"
@@ -819,6 +825,8 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
             # padded keys contribute nothing to the row/column sums
             k = k * valid[:, None, :, None].to(k.dtype)
 
+        k_tokens = k  # (B, H, S, D), per-token keys after RoPE, used by weighting="own_key"
+
         # Split and aggregate keys (unnormalized)
         k = k.view(batch, self.q_heads, self.m, self.m, self.dhead)
         # if False:
@@ -932,6 +940,14 @@ class RoPEProductKeysEncoderAttentionOptimized(nn.Module):
         # --- Gather Final Values using the fast flat indexer ---
         # [OPTIMIZATION 1] Eliminates massive v.unsqueeze().expand() block
         final_v = self.__gather_flat(v, v_indices)  # (B, H, S, K, D)
+
+        if self.weighting == "own_key":
+            # Same selection, but each selected token is weighted by its own (normalised) key.
+            k_own = torch.cat(
+                [self.k_norm1(k_tokens[..., : self.dhead_half]), self.k_norm2(k_tokens[..., self.dhead_half :])],
+                dim=-1,
+            )
+            final_k = self.__gather_flat(k_own, v_indices)  # (B, H, S, K, D)
 
         # --- Attention: Softmax(Q @ K.T) @ V ---
         attn_scores = torch.matmul(q_normed.unsqueeze(-2), final_k.transpose(-2, -1))
