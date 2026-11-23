@@ -109,10 +109,12 @@ def _throughput_stub():
     stub.metric_logger = _RecordingLogger()
     stub._prev_log_time = None
     stub._prev_log_tokens = None
+    stub._prev_log_positions = None
     stub._flops_per_token = None
     stub._peak_flops = None
     stub._seq_len_for_flops = 16
     stub.processed_tokens = 0
+    stub._processed_positions = 0
     stub.model = torch.nn.Linear(2, 2)
     stub.device = torch.device("cpu")
     return stub
@@ -153,10 +155,29 @@ def test_mfu_is_tokens_per_second_times_flops_over_peak(monkeypatch):
     stub._peak_flops = 989e12
     stub._log_throughput()
     stub.processed_tokens = 1_048_576
+    stub._processed_positions = 1_048_576
     stub._log_throughput()
     logged = stub.metric_logger.logged
     expected = (1_048_576 / 1.0) * 2.0e9 / 989e12
     assert logged["train/mfu"] == pytest.approx(expected)
+
+
+def test_a_token_superposition_step_counts_positions_for_mfu(monkeypatch):
+    """Bags of 6 put 6 data tokens on each position: tokens/s is 6x, FLOPs are not."""
+    import src.core.trainer as trainer_module
+
+    clock = iter([100.0, 101.0])
+    monkeypatch.setattr(trainer_module.time, "time", lambda: next(clock))
+    stub = _throughput_stub()
+    stub._flops_per_token = 2.0e9
+    stub._peak_flops = 989e12
+    stub._log_throughput()
+    stub.processed_tokens = 6 * 1_048_576
+    stub._processed_positions = 1_048_576
+    stub._log_throughput()
+    logged = stub.metric_logger.logged
+    assert logged["train/tokens_per_s"] == pytest.approx(6 * 1_048_576)
+    assert logged["train/mfu"] == pytest.approx(1_048_576 * 2.0e9 / 989e12)
 
 
 @pytest.mark.parametrize("world_size", [1, 2, 4])
@@ -184,6 +205,7 @@ def test_the_mfu_denominator_is_the_peak_of_every_gpu(monkeypatch, world_size):
     stub._log_throughput()
     # one step of a job whose ranks together consumed 1,048,576 tokens
     stub.processed_tokens = 1_048_576
+    stub._processed_positions = 1_048_576
     stub._log_throughput()
 
     assert stub._peak_flops == pytest.approx(989e12 * world_size)
