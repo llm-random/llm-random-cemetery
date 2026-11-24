@@ -145,6 +145,8 @@ class Trainer:
     downstream_evaluator: Optional["Evaluator"]
     # Smaller global batches first: batch_sizes and steps per stage, then final_batch_size; null is off.
     batch_size_warmup: Optional[dict]
+    # {bag_size, steps}: token superposition (arXiv 2605.06546); steps 0 = off.
+    token_superposition: dict
     # The nanoGPT-style single-GPU configuration: a plain (unwrapped) module
     # whose forward+loss run under torch.autocast(bf16) while params, grads
     # and optimizer state stay fp32. Off by default; meant for runs with
@@ -315,11 +317,13 @@ class Trainer:
             return self._warmup_batches()
         if not self.start_step:
             return self.train_dataloader
+        # A token-superposition step took bag_size batches, every other step one.
+        skip = sum(self._bag_size(step) for step in range(self.start_step))
         logger.info(
-            f"Resuming at step {self.start_step}: skipping that many batches so the run "
+            f"Resuming at step {self.start_step}: skipping {skip} batches so the run "
             "does not repeat data it has already trained on."
         )
-        return itertools.islice(self.train_dataloader, self.start_step, None)
+        return itertools.islice(self.train_dataloader, skip, None)
 
     def _warmup_split(self, step):
         """How many steps share one loader batch at `step`: final/stage batch size, 1 after warmup."""
@@ -411,21 +415,23 @@ class Trainer:
         for step in range(self.start_step, self.n_steps):
             self._kernel_profile_tick(step)
             step_t0 = time.perf_counter()
+            bag_size = self._bag_size(step)
             # The host-side wait for the next batch (tokenizer workers,
             # collate, pinning) -- the H2D copy itself is timed as data_h2d
             # inside calculate_loss.
             with self._timers.host("data_fetch"):
                 try:
-                    batch = next(batches)
+                    rows = [next(batches) for _ in range(bag_size)]
                 except StopIteration:
                     break
+                batch = rows[0] if bag_size == 1 else self._splice_rows(rows)
             self.step = step
             self.metric_logger.set_step(step)
             self.metric_logger.set_tokens(self.processed_tokens)
             self.model.train()
-            # The model sees batch width - 1 tokens (the shift for next-token
+            # The model sees (batch width / bag_size) - 1 positions (the shift for
             # targets); that is the sequence length the FLOPs count must use.
-            self._seq_len_for_flops = batch.shape[-1] - 1
+            self._seq_len_for_flops = batch.shape[-1] // bag_size - 1
             n_chunks = self.gradient_accumulation_steps
             if self.batch_size_warmup is not None:
                 split = self._warmup_split(step)
@@ -436,16 +442,17 @@ class Trainer:
                 # Warmup's batch sizes made compiled graphs dynamic; recompile them static.
                 if step == sum(self.batch_size_warmup.steps):
                     torch._dynamo.reset()
-            loss_metrics = self.calculate_loss(batch, n_chunks)
+            loss_metrics = self.calculate_loss(batch, n_chunks, bag_size)
 
             with self._timers.gpu("clip"):
                 grad_norm = self.clip_gradient()
 
             with self._timers.host("log"):
-                self.log_metrics(loss_metrics, grad_norm)
+                self.log_metrics(loss_metrics, grad_norm, bag_size)
 
             with self._timers.gpu("optim"):
-                self.optimizer.step()
+                with self._rewarmed_lr(step):
+                    self.optimizer.step()
                 self.optimizer.zero_grad()
             self.scheduler.step()
 
@@ -614,6 +621,51 @@ class Trainer:
 
         return input_ids, target_ids
 
+    def _bag_size(self, step) -> int:
+        """Tokens per model position: bag_size for the first `steps` steps, then 1."""
+        if step >= self.token_superposition["steps"]:
+            return 1
+        return self.token_superposition["bag_size"]
+
+    def _rewarmup_factor(self, step) -> float:
+        """LR multiplier after the switch: linear up to 1 over rewarmup_steps."""
+        since_switch = step - self.token_superposition["steps"]
+        rewarmup = self.token_superposition["rewarmup_steps"]
+        if since_switch < 0 or since_switch >= rewarmup:
+            return 1.0
+        return (since_switch + 1) / rewarmup
+
+    @contextmanager
+    def _rewarmed_lr(self, step):
+        """Scale the LR for this optimizer step only; the scheduler never sees it."""
+        factor = self._rewarmup_factor(step)
+        if factor == 1.0:
+            yield
+            return
+        scheduled = [group["lr"] for group in self.optimizer.param_groups]
+        for group in self.optimizer.param_groups:
+            group["lr"] *= factor
+        try:
+            yield
+        finally:
+            for group, lr in zip(self.optimizer.param_groups, scheduled):
+                group["lr"] = lr
+
+    @staticmethod
+    def _splice_rows(rows):
+        """Concatenate loader batches along the sequence; re-pin for an async H2D."""
+        spliced = torch.cat(rows, dim=1)
+        return spliced.pin_memory() if rows[0].is_pinned() else spliced
+
+    @staticmethod
+    def _preprocess_bags(batch, bag_size):
+        """Input j is bag j (tokens j*s .. j*s+s-1), target bag j+1; [rows, pos, s]."""
+        rows, width = batch.shape
+        positions = width // bag_size - 1
+        input_ids = batch[:, : positions * bag_size].reshape(rows, positions, bag_size)
+        target_ids = batch[:, bag_size:].reshape(rows, positions, bag_size)
+        return input_ids, target_ids
+
     def _forward_ctx(self):
         if self.autocast_bf16:
             return torch.autocast("cuda", dtype=torch.bfloat16)
@@ -631,6 +683,9 @@ class Trainer:
 
         # Tensors should be on the same device for loss calculation #TODO check
         target_ids = target_ids.to(predicted_ids.device)
+
+        if target_ids.dim() == 3:
+            return self._bag_cross_entropy(predicted_ids, target_ids)
 
         if self._ce_fn is None:
             # Lazily, like _forward_loss_fn above: the save-type test stubs
@@ -661,7 +716,19 @@ class Trainer:
         )
         return mask_loss.mean()
 
-    def calculate_loss(self, batch, n_chunks: Optional[int] = None) -> LossMetrics:
+    @staticmethod
+    def _bag_cross_entropy(predicted_ids, target_ids):
+        """Eq. 3 of arXiv 2605.06546: mean CE of a position against each next-bag token.
+
+        One log_softmax serves the whole bag; s F.cross_entropy calls would each keep
+        a logits-sized buffer for backward.
+        """
+        log_probs = F.log_softmax(predicted_ids, dim=-1)
+        return -log_probs.gather(-1, target_ids.long()).mean()
+
+    def calculate_loss(
+        self, batch, n_chunks: Optional[int] = None, bag_size: int = 1
+    ) -> LossMetrics:
         # None: gradient_accumulation_steps; train() passes its own under batch size warmup.
         if n_chunks is None:
             n_chunks = self.gradient_accumulation_steps
@@ -697,9 +764,12 @@ class Trainer:
         reported_losses = []
         in_flight = _to_device(chunks[0])
         for i in range(len(chunks)):
-            input_ids, target_ids = self._preprocess_input(in_flight)
+            if bag_size == 1:
+                input_ids, target_ids = self._preprocess_input(in_flight)
+            else:
+                input_ids, target_ids = self._preprocess_bags(in_flight, bag_size)
             if self.model.training:
-                self._update_processed_tokens(input_ids)
+                self._update_processed_tokens(input_ids, bag_size)
 
             with self._timers.gpu("forward"):
                 loss, reported_loss = _hack_for_python_garbage_collection(
@@ -785,25 +855,32 @@ class Trainer:
                 )
                 return total_norm
 
-    def _update_processed_tokens(self, batch):
-        self.processed_tokens += batch.numel() * int(os.environ["WORLD_SIZE"])
+    def _update_processed_tokens(self, batch, bag_size):
+        # Positions computed: a bag of bag_size tokens counts once.
+        self.processed_tokens += (
+            batch.numel() // bag_size * int(os.environ["WORLD_SIZE"])
+        )
 
-    def log_metrics(self, loss_metrics: LossMetrics, grad_norm):
+    def log_metrics(self, loss_metrics: LossMetrics, grad_norm, bag_size):
         self.metric_logger.set_tokens(self.processed_tokens)
-        self.metric_logger.log("train/loss", loss_metrics.reported_loss.item())
-        self.metric_logger.log("train/lr", self.scheduler.get_last_lr()[0])
+        # Bag loss floors at log(bag_size): own key, kept out of the 100-step average.
+        loss_key = "train/loss" if bag_size == 1 else "train/bag_loss"
+        self.metric_logger.log(loss_key, loss_metrics.reported_loss.item())
+        lr = self.scheduler.get_last_lr()[0] * self._rewarmup_factor(self.step)
+        self.metric_logger.log("train/lr", lr)
         if grad_norm is not None:
             self.metric_logger.log("train/grad_norm", grad_norm.item())
 
-        self.loss_averaged_100.log(
-            self.metric_logger, loss_metrics.reported_loss.item()
-        )
+        if bag_size == 1:
+            self.loss_averaged_100.log(
+                self.metric_logger, loss_metrics.reported_loss.item()
+            )
         self.time_diff_averaged_100.log(self.metric_logger, time.time())
-        self._log_throughput()
+        self._log_throughput(bag_size)
 
         self.metric_logger.flush_accumulated_metrics()
 
-    def _log_throughput(self):
+    def _log_throughput(self, bag_size=1):
         """step_time, tokens/s and (on a known GPU) MFU, once per step.
 
         Pure observation: reads clocks and counters, touches no tensor, so a run
@@ -818,6 +895,11 @@ class Trainer:
                 tokens_per_s = tokens / step_time
                 self.metric_logger.log("train/step_time", step_time)
                 self.metric_logger.log("train/tokens_per_s", tokens_per_s)
+                if bag_size > 1:
+                    # What the loader delivered: bag_size data tokens per position.
+                    self.metric_logger.log(
+                        "train/data_tokens_per_s", tokens_per_s * bag_size
+                    )
                 if self._flops_per_token is None and torch.cuda.is_available():
                     self._flops_per_token = model_flops_per_token(
                         self.model, self._seq_len_for_flops

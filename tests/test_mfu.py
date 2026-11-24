@@ -159,6 +159,24 @@ def test_mfu_is_tokens_per_second_times_flops_over_peak(monkeypatch):
     assert logged["train/mfu"] == pytest.approx(expected)
 
 
+def test_a_token_superposition_step_logs_its_data_tokens_beside_positions(monkeypatch):
+    """processed_tokens counts positions; bags of 6 feed 6 data tokens to each one."""
+    import src.core.trainer as trainer_module
+
+    clock = iter([100.0, 101.0])
+    monkeypatch.setattr(trainer_module.time, "time", lambda: next(clock))
+    stub = _throughput_stub()
+    stub._flops_per_token = 2.0e9
+    stub._peak_flops = 989e12
+    stub._log_throughput(bag_size=6)
+    stub.processed_tokens = 1_048_576
+    stub._log_throughput(bag_size=6)
+    logged = stub.metric_logger.logged
+    assert logged["train/tokens_per_s"] == pytest.approx(1_048_576)
+    assert logged["train/data_tokens_per_s"] == pytest.approx(6 * 1_048_576)
+    assert logged["train/mfu"] == pytest.approx(1_048_576 * 2.0e9 / 989e12)
+
+
 @pytest.mark.parametrize("world_size", [1, 2, 4])
 def test_the_mfu_denominator_is_the_peak_of_every_gpu(monkeypatch, world_size):
     """processed_tokens counts global tokens, so the peak must be global too.
