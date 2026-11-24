@@ -1,0 +1,241 @@
+_run_: true
+
+cluster_switch:
+  eval_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/validation
+  eval_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+  train_path_c4: /lustre/pd01/plgrid/plgllmefficont2/datasets/c4/train
+  train_path_fineweb: /lustre/pd01/plgrid/plgllmefficont2/crewtool/proba2/fineweb-edu/train/train
+
+common:
+  attention:
+    qk_norm: true
+    type: gqa
+  batch_size: 64
+  dff: ${eval:'192 * ${common.h}'}
+  dhead: 64
+  dmodel: ${eval:'64 * ${common.h}'}
+  h: 16
+  kv_heads: ${eval:'${common.h} // 2'}
+  n_blocks: 4
+  q_heads: ${common.h}
+  sequence_length: 1024
+  vocab_size: 50304
+
+compile_blocks_full: true
+
+infrastructure:
+  cemetery_experiments_dir: ${oc.select:infrastructure.cluster_cemetery_dir,'~/llmrandom_cemetery'}
+  cluster_cemetery_dir: /lustre/pd03/plgrid/plgllmefficont3/nano/pretraining/$USER/llmrandom_cemetery
+  generated_configs_path: generated_configs
+  git:
+    remote_name: cemetery
+    remote_url: git@github.com:llm-random/llm-random-cemetery.git
+  max_concurrent_jobs: null
+  metric_logger:
+    heavy_metrics_calculation_interval: 100
+    name: mup_width_mup_h16
+    new_wandb_job: true
+    project_name: llm-random-test
+    tags:
+    - nano
+    - mup_width_sweep
+    - mup
+    - h16
+    - wsd
+    - qk_norm
+    - bs64
+    type: wandb
+    wandb_entity: ideascv_llms
+  script:
+  - ${export_env_variables_placeholders:}
+  - export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano/pretraining
+  - export HF_HOME=$PROJECT_HOME_PATH/hf_cache
+  - export HYDRA_FULL_ERROR=1
+  - export USER_HOME_PATH=$PROJECT_HOME_PATH/$USER
+  - export HF_DATASETS_CACHE="$USER_HOME_PATH/hf_datasets"
+  - export HF_MODULES_CACHE="$USER_HOME_PATH/hf_modules"
+  - export HF_HUB_CACHE="$USER_HOME_PATH/hf_cache"
+  - export HF_DATASETS_TRUST_REMOTE_CODE=1
+  - export PIXI_HOME=$USER_HOME_PATH/pixi
+  - export PATH="$HOME/.pixi/bin:$PATH"
+  - export XDG_DATA_HOME="$USER_HOME_PATH/data"
+  - export XDG_CACHE_HOME="$USER_HOME_PATH/cache"
+  - export XDG_STATE_HOME="$USER_HOME_PATH/state"
+  - export RATTLER_CACHE_DIR="$XDG_CACHE_HOME/rattler"
+  - export PIXI_CACHE_DIR="$XDG_CACHE_HOME/pixi"
+  - cd "$PIXI_HOME"
+  - eval "$(pixi shell-hook)"
+  - cd -
+  server: lem
+  slurm:
+    account: plgllmefficont3
+    cpus_per_gpu: 16
+    gres: gpu:hopper:1
+    job-name: ${infrastructure.metric_logger.name}
+    mem_per_gpu: 220G
+    nodes: 1
+    partition: plgrid-lem-gpu-h100
+    time: 01:00:00
+
+model:
+  _target_: src.core.model.LLM
+  embedding:
+    _target_: src.core.model.TransformerEmbedding
+    dmodel: ${common.dmodel}
+    init_fn:
+      _partial_: true
+      _target_: src.core.model.trunc_normal_
+    vocab_size: ${common.vocab_size}
+  encoder:
+    _target_: src.core.model.TransformerEncoder
+    block_fn:
+      _partial_: true
+      _target_: src.core.model.TransformerBlock
+      attention_fn:
+        _partial_: true
+        _target_: src.core.attention.build_attention
+        attention: ${common.attention}
+        dmodel: ${common.dmodel}
+        init_scale: 1
+        kv_heads: ${common.kv_heads}
+        n_blocks: ${common.n_blocks}
+        q_heads: ${common.q_heads}
+        rope_base: 10000
+        rope_scale_freqs: false
+        seq_len: ${common.sequence_length}
+      ff_layer_fn:
+        _partial_: true
+        _target_: src.core.model.GatedFeedForward
+        ff_post_act_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dff}
+          out_features: ${common.dmodel}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.llm_random_weight_init
+            scale: 1
+        ff_pre_act_fn:
+          _partial_: true
+          _target_: src.core.model.Linear
+          in_features: ${common.dmodel}
+          out_features: ${common.dff}
+          partial_init_fn:
+            _partial_: true
+            _target_: src.core.model.llm_random_weight_init
+            scale: 1
+        gate_fn: ${model.encoder.block_fn.ff_layer_fn.ff_pre_act_fn}
+      norm_fn:
+        _partial_: true
+        _target_: src.core.model.RMSNorm
+        eps: 1.0e-05
+        normalized_shape: ${common.dmodel}
+    n_blocks: ${common.n_blocks}
+  head:
+    _target_: src.core.model.TransformerHead
+    linear_fn:
+      _partial_: true
+      _target_: src.core.model.Linear
+      in_features: ${common.dmodel}
+      out_features: ${common.vocab_size}
+      partial_init_fn:
+        _partial_: true
+        _target_: src.core.model.llm_random_weight_init
+        scale: ${oc.select:optimizer.head_init_scale,1}
+    norm_fn:
+      _partial_: true
+      _target_: src.core.model.RMSNorm
+      eps: 1.0e-05
+      normalized_shape: ${common.dmodel}
+
+optimizer:
+  base_dmodel: 256
+  head_init_scale: ${eval:'(${optimizer.base_dmodel} / ${common.dmodel}) ** 0.5'}
+  roles:
+    embedding:
+      lr_multiplier: 1
+      weight_decay: 0.0
+    head:
+      lr_multiplier: ${eval:'${optimizer.base_dmodel} / ${common.dmodel}'}
+      weight_decay: ${eval:'${trainer.weight_decay} * ${common.dmodel} / ${optimizer.base_dmodel}'}
+    hidden:
+      lr_multiplier: ${optimizer.roles.head.lr_multiplier}
+      weight_decay: ${optimizer.roles.head.weight_decay}
+    vector:
+      lr_multiplier: 1
+      weight_decay: 0.0
+
+overrides:
+- trainer.learning_rate=6
+
+trainer:
+  _partial_: true
+  _target_: src.core.trainer.Trainer
+  batch_size_warmup: null
+  checkpoint:
+    load:
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      only_weights: true
+      path: null
+      training_state_filename: null
+      type: nano
+    save:
+      interval: -1
+      model_checkpoint_filename: __model_checkpoint_filename.pt
+      path: null
+      training_state_filename: __training_state_filename.pt
+      type: nano
+  distributed:
+    fsdp2:
+      modules_to_shard:
+      - ${model.embedding._target_}
+      - ${model.encoder.block_fn._target_}
+      - ${model.head._target_}
+  eval_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset:
+      _target_: src.core.datasets.FineWebEduDataset
+      holdout: eval
+      holdout_rows: 262144
+      max_samples: 8192
+      path: ${cluster_switch.eval_path_fineweb}
+      seed: 123
+      sequence_length: ${common.sequence_length}
+      shuffle: false
+      split: train
+      tokenize_fn:
+        _target_: src.core.datasets.gpt_neox_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: true
+    num_workers: 0
+    total_batch_size: ${common.batch_size}
+  eval_interval: 100
+  gradient_accumulation_steps: 1
+  gradient_clipping: 1.0
+  learning_rate: 6
+  n_eval_steps: 10
+  n_steps: 2000
+  scheduler:
+    _partial_: true
+    _target_: src.core.schedulers.WSDScheduler
+    decay_steps: 400
+    final_lr_fraction: 0.0
+    warmup_steps: 100
+  train_dataloader:
+    _target_: src.core.datasets.get_dataloader
+    dataset:
+      _target_: src.core.datasets.FineWebEduDataset
+      holdout: train
+      holdout_rows: 262144
+      path: ${cluster_switch.train_path_fineweb}
+      seed: 123
+      sequence_length: ${common.sequence_length}
+      shuffle: true
+      split: train
+      tokenize_fn:
+        _target_: src.core.datasets.gpt_neox_tokenize_fn
+      use_new_sampling_method: true
+      world_size_independent: false
+    num_workers: 2
+    total_batch_size: ${common.batch_size}
+  weight_decay: 0.1
