@@ -34,6 +34,7 @@ infrastructure:
       - qk_norm
       - jm_mfu_benchmarking
       - moe_profile
+      - torch211
       - moe
 
   slurm:
