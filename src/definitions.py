@@ -45,6 +45,15 @@ class AttentionSchema:
 
 
 @dataclass
+class LoopSchema:
+    # Looped depth (TransformerEncoder in src/core/model.py); n_loops 1 = plain stack.
+    n_loops: int = MISSING
+    n_prelude: int = MISSING
+    n_coda: int = MISSING
+    injection: str = MISSING
+
+
+@dataclass
 class CommonSchema:
     """The shared model-shape knobs every config sets (union over all runnable
     configs at 6874efe7). All required: a config that drops one fails the
@@ -61,6 +70,7 @@ class CommonSchema:
     sequence_length: int = MISSING
     batch_size: int = MISSING
     attention: AttentionSchema = field(default_factory=AttentionSchema)
+    loop: LoopSchema = field(default_factory=LoopSchema)
 
 
 @dataclass
