@@ -144,8 +144,10 @@ def setup_from_config(run, gpu, n_gpus):
     ff = run.config["model"]["encoder"]["block_fn"]["ff_layer_fn"]
     kind = ff["_target_"].rsplit(".", 1)[-1]
     if kind == "MoE":
-        n_experts, topk, dff = ff["num_experts"], ff["topk"], ff["dff"]
-        ff_matrices = 3 if ff["activation_function"] == "swiglu" else 2
+        n_experts, topk = ff["num_experts"], ff["topk"]
+        # src/core/moe.py builds SwiGLU experts from the dense partials; older runs logged dff
+        dff = ff["dff"] if "dff" in ff else ff["ff_pre_act_fn"]["out_features"]
+        ff_matrices = 3 if ff.get("activation_function", "swiglu") == "swiglu" else 2
     elif kind in FF_MATRICES:
         n_experts, topk, dff, ff_matrices = 1, 1, common["dff"], FF_MATRICES[kind]
     else:
