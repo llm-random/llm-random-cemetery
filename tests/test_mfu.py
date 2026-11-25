@@ -23,12 +23,15 @@ REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VOCAB = 50304
 
 
-def _h4(seq_len):
+def _h4(seq_len, overrides=()):
     with initialize_config_dir(
         version_base=None,
         config_dir=os.path.join(REPO_ROOT, "configs", "_model", "h_balanced"),
     ):
-        cfg = compose(config_name="h4", overrides=[f"common.sequence_length={seq_len}"])
+        cfg = compose(
+            config_name="h4",
+            overrides=[f"common.sequence_length={seq_len}", *overrides],
+        )
     with torch.device("meta"):
         return instantiate(cfg.model, _convert_="all")
 
@@ -49,6 +52,30 @@ def test_the_embedding_lookup_is_not_counted_but_the_head_is():
     model = _h4(s)
     without_head = 6 * (15 * L * d**2) + 12 * L * s * d
     assert model_flops_per_token(model, s) != without_head
+
+
+LOOP_P1_C2X2_C1 = (
+    "common.loop.n_loops=2",
+    "common.loop.n_prelude=1",
+    "common.loop.n_coda=1",
+)
+
+
+def test_a_looped_stack_costs_its_effective_depth():
+    """h4 with its middle 2 blocks looped twice runs 6 blocks a token, like a 6-block h4."""
+    s = 128
+    looped = _h4(s, LOOP_P1_C2X2_C1)
+    dense = _h4(s, ["common.n_blocks=6"])
+    assert model_flops_per_token(looped, s) == model_flops_per_token(dense, s)
+
+
+def test_concat_injection_adds_its_matrix_once_per_loop():
+    s, d = 128, 64 * 4
+    plain = _h4(s, LOOP_P1_C2X2_C1)
+    injected = _h4(s, [*LOOP_P1_C2X2_C1, "common.loop.injection=concat"])
+    assert model_flops_per_token(injected, s) - model_flops_per_token(
+        plain, s
+    ) == 6 * 2 * (2 * d * d)
 
 
 def test_an_mqa_layer_reports_its_smaller_kv_cost():

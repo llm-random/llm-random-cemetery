@@ -397,14 +397,61 @@ class TransformerEncoder(nn.Module):
         self,
         block_fn: Callable[[int], nn.Module],
         n_blocks: int,
+        dmodel: int,
+        loop,
     ):
         super().__init__()
         self.blocks = nn.ModuleList([block_fn(i) for i in range(n_blocks)])
+        # Looped depth: blocks [n_prelude, n_blocks - n_coda) run n_loops times.
+        self.n_loops = loop["n_loops"]
+        self.core_start = loop["n_prelude"]
+        self.core_end = n_blocks - loop["n_coda"]
+        if self.n_loops < 1:
+            raise ValueError(f"loop.n_loops must be >= 1, got {self.n_loops}")
+        if not 0 <= self.core_start < self.core_end <= n_blocks:
+            raise ValueError(
+                f"loop needs n_prelude, n_coda >= 0 and a non-empty core, got "
+                f"n_prelude={loop['n_prelude']}, n_coda={loop['n_coda']} of {n_blocks} blocks"
+            )
+        if loop["injection"] not in ("none", "concat"):
+            raise ValueError(
+                f"loop.injection must be none or concat, got {loop['injection']!r}"
+            )
+        self.injection = (
+            ConcatInjection(dmodel) if loop["injection"] == "concat" else None
+        )
+
+    def looped_modules(self):
+        """The modules forward runs n_loops times: the core blocks and the injection."""
+        core = list(self.blocks[self.core_start : self.core_end])
+        return core + ([self.injection] if self.injection is not None else [])
 
     def forward(self, x):
-        for block in self.blocks:
+        for block in self.blocks[: self.core_start]:
+            x = block(x)
+        prelude_out = x
+        for _ in range(self.n_loops):
+            if self.injection is not None:
+                x = self.injection(x, prelude_out)
+            for block in self.blocks[self.core_start : self.core_end]:
+                x = block(x)
+        for block in self.blocks[self.core_end :]:
             x = block(x)
         return x
+
+
+class ConcatInjection(nn.Module):
+    """Huginn-style input injection: x <- W [x; e], W init [I | 0] so it starts as plain looping."""
+
+    def __init__(self, dmodel):
+        super().__init__()
+        self.proj = nn.Linear(2 * dmodel, dmodel, bias=False)
+        with torch.no_grad():
+            self.proj.weight.zero_()
+            self.proj.weight[:, :dmodel].copy_(torch.eye(dmodel))
+
+    def forward(self, x, prelude_out):
+        return self.proj(torch.cat([x, prelude_out], dim=-1))
 
 
 class TransformerHead(nn.Module):
