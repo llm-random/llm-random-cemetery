@@ -189,12 +189,20 @@ class OptimizerRolesSchema:
 
 
 @dataclass
+class MuonSchema:
+    momentum: float = MISSING
+    ns_steps: int = MISSING
+
+
+@dataclass
 class OptimizerSchema:
     """Root `optimizer`, from configs/_trainer/_optimizer/; null roles is one group."""
 
     roles: Optional[OptimizerRolesSchema] = MISSING
     # simpleP's base width: hidden and head LR x base_dmodel / dmodel; null is off.
     base_dmodel: Optional[int] = MISSING
+    # Muon on the hidden matrices (src/core/optimizers.py); null is AdamW everywhere.
+    muon: Optional[MuonSchema] = MISSING
 
 
 @dataclass

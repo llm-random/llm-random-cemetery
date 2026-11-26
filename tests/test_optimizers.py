@@ -1,19 +1,33 @@
 """src/core/optimizers.py: parameter roles, param groups and their checkpoints."""
 
+import copy
 import os
 import warnings
 
 import pytest
 import torch
+import torch.distributed as dist
 import torch.distributed.checkpoint as dcp
+import torch.multiprocessing as mp
 from hydra import compose, initialize_config_dir
 from hydra.utils import instantiate
 from omegaconf import OmegaConf
+from torch.distributed.device_mesh import init_device_mesh
+from torch.distributed.fsdp import fully_shard
+from torch.distributed.tensor import distribute_tensor
 
 import resolver  # noqa: F401  (registers the repo's custom OmegaConf resolvers)
+from conftest import free_port
 from src.core.checkpointing import TrainingState, load_checkpoint_from_file
+from src.core.model import TransformerBlock, TransformerEmbedding, TransformerHead
 from src.core.moe import MoE
-from src.core.optimizers import ROLES, build_optimizer_and_scheduler, param_roles
+from src.core.optimizers import (
+    ROLES,
+    MuonWithAdamW,
+    build_optimizer_and_scheduler,
+    newton_schulz,
+    param_roles,
+)
 from src.core.schedulers import get_cosine_scheduler_with_warmup
 from test_distributed import _shard, cpu_process_group  # noqa: F401  (fixture)
 
@@ -262,3 +276,174 @@ def test_adamw_simplep_checkpoint_resumes(tmp_path):
     _check_resume(
         str(tmp_path), sharded=False, option="adamw_simplep", overrides=overrides
     )
+
+
+@pytest.mark.parametrize("dtype", [torch.bfloat16, torch.float32])
+@pytest.mark.parametrize("shape", [(32, 128), (128, 32), (3, 32, 128)])
+def test_newton_schulz_gives_singular_values_near_one(shape, dtype):
+    torch.manual_seed(0)
+    G = torch.randn(shape)
+    orthogonal = newton_schulz(G.to(dtype), 5).float()
+    singular_values = torch.linalg.svdvals(orthogonal)
+    # Keller's coefficients trade exactness for speed: about [0.68, 1.15] here.
+    assert singular_values.min() > 0.6 and singular_values.max() < 1.2
+    U, _, Vh = torch.linalg.svd(G, full_matrices=False)
+    cosine = torch.nn.functional.cosine_similarity(
+        orthogonal.flatten(-2), (U @ Vh).flatten(-2), dim=-1
+    )
+    assert (cosine > 0.98).all()
+
+
+def test_muon_puts_the_hidden_group_in_muon_and_the_rest_in_adamw():
+    _, optimizer, _ = _build("muon")
+    assert isinstance(optimizer, MuonWithAdamW)
+    groups = [
+        (g["role"], g["use_muon"], g["initial_lr"], g["weight_decay"])
+        for g in optimizer.param_groups
+    ]
+    # One LR for all: Moonlight's scale lets Muon take AdamW's LR and decay.
+    assert groups == [
+        ("vector", False, 1e-3, 0.0),
+        ("embedding", False, 1e-3, 0.0),
+        ("head", False, 1e-3, 0.1),
+        ("hidden", True, 1e-3, 0.1),
+    ]
+
+
+def test_muon_trains_every_moe_expert_and_the_router():
+    moe = ["+_ff_layer@model.encoder.block_fn.ff_layer_fn=moe"]
+    model, optimizer, _ = _build("muon", overrides=_width(4) + moe)
+    muon = {id(p) for g in optimizer.param_groups if g["use_muon"] for p in g["params"]}
+    moe_params = [
+        p for m in model.modules() if isinstance(m, MoE) for p in m.parameters()
+    ]
+    assert moe_params and all(id(p) in muon for p in moe_params)
+
+
+def test_muon_rejects_simplep():
+    with pytest.raises(AssertionError, match="base_dmodel"):
+        _build("muon", overrides=["optimizer.base_dmodel=128"])
+
+
+def test_muon_with_only_adamw_groups_matches_torchs_adamw():
+    reference = _build("adamw_groups")
+    ours = _build("muon")
+    for group in ours[1].param_groups:
+        group["use_muon"] = False
+    for _ in range(3):
+        _step(*reference)
+        _step(*ours)
+    for a, b in zip(reference[0].parameters(), ours[0].parameters()):
+        torch.testing.assert_close(a, b, rtol=0, atol=0)
+
+
+def test_muon_update_is_orthogonal_at_adamw_rms():
+    torch.manual_seed(0)
+    weight = torch.nn.Parameter(torch.randn(16, 48))
+    start = weight.detach().clone()
+    weight.grad = torch.randn(16, 48)
+    lr, decay = 0.01, 0.1
+    optimizer = MuonWithAdamW(
+        [{"params": [weight], "use_muon": True}],
+        lr=lr,
+        weight_decay=decay,
+        momentum=0.95,
+        ns_steps=5,
+        fused=False,
+    )
+    optimizer.step()
+    update = start * (1 - lr * decay) - weight.detach()
+    # From zero momentum: buffer (1 - 0.95) * grad, Nesterov step grad.lerp(buffer, 0.95).
+    grad = weight.grad
+    nesterov = grad.lerp(torch.zeros_like(grad).lerp(grad, 0.05), 0.95)
+    expected = lr * 0.2 * 48**0.5 * newton_schulz(nesterov, 5).float()
+    torch.testing.assert_close(update, expected)
+    # Moonlight's RMS match: about 0.2 * lr, like AdamW's update.
+    assert 0.15 * lr < update.square().mean().sqrt() < 0.22 * lr
+
+
+def test_muon_checkpoint_resumes(tmp_path):
+    _check_resume(str(tmp_path), sharded=False, option="muon")
+
+
+def test_muon_sharded_checkpoint_resumes(cpu_process_group, tmp_path):
+    _check_resume(str(tmp_path), sharded=True, option="muon")
+
+
+def _random_grads(model, sharded, seed):
+    """The same full gradients on every rank; sharded params get their own rows."""
+    torch.manual_seed(seed)
+    for p in model.parameters():
+        grad = torch.randn(p.shape)
+        p.grad = (
+            distribute_tensor(grad, p.device_mesh, p.placements) if sharded else grad
+        )
+
+
+def _assert_same(sharded, reference):
+    for p, q in zip(sharded.parameters(), reference.parameters()):
+        torch.testing.assert_close(p.full_tensor(), q, rtol=0, atol=0)
+
+
+def _two_rank_muon(rank, port, folder):
+    os.environ.update(MASTER_ADDR="localhost", MASTER_PORT=str(port), RANK=str(rank))
+    dist.init_process_group("gloo", rank=rank, world_size=2)
+    try:
+        mesh = init_device_mesh("cpu", (2,))
+        cfg = _cfg("muon")
+
+        def build(seed):
+            """h4 with an odd-row matrix and a 1-row one: shards of 2 and 1, 1 and 0 rows."""
+            torch.manual_seed(seed)
+            model = instantiate(cfg.model, _convert_="all")
+            model.odd = torch.nn.Sequential(
+                torch.nn.Linear(4, 3, bias=False), torch.nn.Linear(3, 1, bias=False)
+            )
+            return model
+
+        def shard(model):
+            # As setup_fsdp2_model, on a CPU mesh.
+            for m in model.modules():
+                if isinstance(
+                    m, (TransformerEmbedding, TransformerBlock, TransformerHead)
+                ):
+                    fully_shard(m, mesh=mesh)
+            return fully_shard(model, mesh=mesh)
+
+        reference = build(0)
+        sharded = shard(copy.deepcopy(reference))
+        runs = [
+            (model, *build_optimizer_and_scheduler(cfg, model, 1e-2), is_sharded)
+            for model, is_sharded in ((reference, False), (sharded, True))
+        ]
+        for seed in range(3):
+            for model, optimizer, scheduler, is_sharded in runs:
+                _random_grads(model, is_sharded, seed)
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+        _assert_same(sharded, reference)
+
+        # DCP: a fresh sharded run loads the momentum and AdamW state and steps the same.
+        _, optimizer, scheduler, _ = runs[1]
+        dcp.save(
+            {"app": TrainingState(sharded, optimizer, scheduler)}, checkpoint_id=folder
+        )
+        resumed = shard(build(99))
+        resumed_optimizer, resumed_scheduler = build_optimizer_and_scheduler(
+            cfg, resumed, 1e-2
+        )
+        dcp.load(
+            {"app": TrainingState(resumed, resumed_optimizer, resumed_scheduler)},
+            checkpoint_id=folder,
+        )
+        for model, optimizer in ((reference, runs[0][1]), (resumed, resumed_optimizer)):
+            _random_grads(model, model is resumed, 3)
+            optimizer.step()
+        _assert_same(resumed, reference)
+    finally:
+        dist.destroy_process_group()
+
+
+def test_muon_sharded_step_equals_unsharded_on_two_ranks(tmp_path):
+    mp.spawn(_two_rank_muon, args=(free_port(), str(tmp_path)), nprocs=2)
