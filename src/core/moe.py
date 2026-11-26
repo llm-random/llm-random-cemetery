@@ -1,18 +1,16 @@
-"""Token-choice top-k mixture-of-experts feed-forward, with a capacity factor.
+"""Dropless token-choice top-k mixture-of-experts feed-forward, on grouped matmuls.
 
-A port of src/core/moe.py on main (removed here in 3001bb62). Changes from it:
-- static shapes, so compile_blocks_full traces a block whole: an assignment over
-  capacity goes to a spare slot instead of being filtered out with a boolean mask;
-- experts are GatedFeedForward modules built from the dense ff_layer_fn partials, so
-  every expert weight is an ordinary 2D parameter and the config merges onto the
-  dense node (configs/_ff_layer/moe.yaml);
-- eval routes without dropping (capacity = token count), so right padding in the
-  downstream eval can't push real tokens out.
+Each of the T*k assignments gets its own row in a buffer grouped by expert, and each
+SwiGLU projection is one grouped matmul over all experts (F.grouped_mm). Nothing is
+dropped, so there is no capacity factor, train and eval route the same way, and right
+padding in the downstream eval can't touch real tokens. The buffer has a fixed number
+of rows (T*k plus per-expert alignment padding), so compile_blocks_full still traces a
+block whole; only the group boundaries depend on the routing.
 
-Follow-up, not built: grouped-GEMM kernels in place of the loop over experts.
+Expert weights are 3D parameters (num_experts, out, in), one per projection, stacked
+from the dense ff_layer_fn partials so their init matches the dense layer's. Muon has to
+treat them as a batch of matrices. FSDP2 shards them along the expert dimension.
 """
-
-import math
 
 import torch
 import torch.nn as nn
@@ -20,9 +18,12 @@ import torch.nn.functional as F
 
 from src.core.model import GatedFeedForward, llm_random_weight_init
 
+# rows per expert group are padded to a multiple of this, for the grouped GEMM kernels
+ALIGN = 16
+
 
 def load_balancing_loss(router_probs, expert_ids, num_experts):
-    """Switch-style balance term on pre-capacity routing; 1 under uniform routing."""
+    """Switch-style balance term on the routing; 1 under uniform routing."""
     one_hot = expert_ids.reshape(-1, 1) == torch.arange(
         num_experts, device=expert_ids.device
     )
@@ -30,9 +31,31 @@ def load_balancing_loss(router_probs, expert_ids, num_experts):
     return num_experts * (router_probs.mean(0) * assignment_share).sum()
 
 
+class TakeUniqueRows(torch.autograd.Function):
+    """x[index] for distinct row indices; the backward scatters instead of atomically adding."""
+
+    @staticmethod
+    def forward(ctx, x, index):
+        ctx.save_for_backward(index)
+        ctx.rows = x.shape[0]
+        return x.index_select(0, index)
+
+    @staticmethod
+    def backward(ctx, grad):
+        (index,) = ctx.saved_tensors
+        return grad.new_zeros(ctx.rows, grad.shape[-1]).index_copy(0, index, grad), None
+
+
+def grouped_linear(x, weight, ends):
+    """x @ weight[e].T for each expert's row group; rows past ends[-1] are ignored."""
+    if x.is_cuda:  # the CUDA kernels take bf16 only
+        return F.grouped_mm(x.bfloat16(), weight.bfloat16().mT, offs=ends).type_as(x)
+    return F.grouped_mm(x, weight.mT, offs=ends)
+
+
 class MoE(nn.Module):
     # what forward() stores in self.stats, logged by the trainer as train/moe_<name>
-    STAT_NAMES = ("balance_loss", "z_loss", "dropped_fraction")
+    STAT_NAMES = ("balance_loss", "z_loss", "max_load")
 
     def __init__(
         self,
@@ -41,45 +64,55 @@ class MoE(nn.Module):
         gate_fn,
         num_experts: int,
         topk: int,
-        capacity_factor: float,
         load_balancing_loss_factor: float,
         router_z_loss_factor: float,
     ):
         super().__init__()
         if not 0 < topk <= num_experts:
             raise ValueError(f"topk={topk} must be in [1, num_experts={num_experts}].")
-        if capacity_factor <= 0:
-            raise ValueError(f"capacity_factor must be > 0, got {capacity_factor}.")
         self.num_experts = num_experts
         self.topk = topk
-        self.capacity_factor = capacity_factor
         self.load_balancing_loss_factor = load_balancing_loss_factor
         self.router_z_loss_factor = router_z_loss_factor
 
-        self.experts = nn.ModuleList(
+        # built in the order the per-expert ModuleList used, so the init is unchanged
+        experts = [
             GatedFeedForward(ff_pre_act_fn, ff_post_act_fn, gate_fn)
             for _ in range(num_experts)
+        ]
+        self.pre_act_weight = nn.Parameter(
+            torch.stack([e.ff_pre_act.weight.detach() for e in experts])
         )
-        dmodel = self.experts[0].ff_pre_act.in_features
+        self.gate_weight = nn.Parameter(
+            torch.stack([e.gate.weight.detach() for e in experts])
+        )
+        self.post_act_weight = nn.Parameter(
+            torch.stack([e.ff_post_act.weight.detach() for e in experts])
+        )
+        dmodel = self.pre_act_weight.shape[-1]
         self.router_weight = nn.Parameter(torch.empty(num_experts, dmodel))
         llm_random_weight_init(dmodel, scale=1)(self.router_weight)
 
-    def capacity(self, n_tokens):
-        if not self.training:
-            return n_tokens  # no expert gets a token twice, so nothing is dropped
-        slots = math.ceil(
-            self.capacity_factor * n_tokens * self.topk / self.num_experts
-        )
-        return min(n_tokens, slots)
+    def expert_weights(self):
+        return (self.pre_act_weight, self.gate_weight, self.post_act_weight)
 
-    def slot_in_expert(self, expert_ids, weights):
-        """Each assignment's place in its expert's queue, higher router weight first."""
-        order = weights.argsort(descending=True, stable=True)
-        one_hot = expert_ids[order].unsqueeze(1) == torch.arange(
+    def group_by_expert(self, expert_ids):
+        """Buffer row of each assignment, with experts' groups contiguous and padded to ALIGN.
+
+        Returns (rows, ends, dest, load): a static row count, each group's end (int32),
+        each assignment's unique row, and the number of assignments per expert.
+        """
+        one_hot = expert_ids.unsqueeze(1) == torch.arange(
             self.num_experts, device=expert_ids.device
         )
-        sorted_slots = (one_hot.long().cumsum(0) * one_hot).sum(1) - 1
-        return torch.empty_like(sorted_slots).scatter_(0, order, sorted_slots)
+        load = one_hot.sum(0)
+        place = (one_hot.long().cumsum(0) * one_hot).sum(1) - 1
+        padded = (load + ALIGN - 1) // ALIGN * ALIGN
+        ends = padded.cumsum(0)
+        dest = (ends - padded)[expert_ids] + place
+        # one ALIGN block per expert more than any ends[-1], so ends[-1] < rows always
+        rows = expert_ids.numel() + self.num_experts * ALIGN
+        return rows, ends.int(), dest, load
 
     def forward(self, x):
         tokens = x.reshape(-1, x.shape[-1])
@@ -87,30 +120,18 @@ class MoE(nn.Module):
         logits = F.linear(tokens, self.router_weight).float()
         probs = logits.softmax(dim=-1)
         weights, expert_ids = probs.topk(self.topk, dim=-1)
-        expert_ids = expert_ids.reshape(
-            -1
-        )  # token-major: token t owns rows t*k..t*k+k-1
+        # token-major: token t owns assignments t*k..t*k+k-1
+        expert_ids = expert_ids.reshape(-1)
 
-        capacity = self.capacity(n_tokens)
-        slots = self.slot_in_expert(expert_ids, weights.reshape(-1))
-        kept = slots < capacity
-        # over-capacity assignments go to a spare row past the last expert's slots
-        spare = self.num_experts * capacity
-        dispatch = torch.where(kept, expert_ids * capacity + slots, spare)
-
-        expert_inputs = tokens.new_zeros(spare + 1, dmodel).index_add(
-            0, dispatch, tokens.repeat_interleave(self.topk, dim=0)
+        rows, ends, dest, load = self.group_by_expert(expert_ids)
+        grouped = tokens.new_zeros(rows, dmodel).index_copy(
+            0, dest, tokens.repeat_interleave(self.topk, dim=0)
         )
-        expert_outputs = [
-            expert(expert_input)
-            for expert, expert_input in zip(
-                self.experts, expert_inputs[:-1].view(self.num_experts, capacity, -1)
-            )
-        ]
-        # dropped assignments read the zero spare row
-        expert_outputs = torch.cat(expert_outputs + [tokens.new_zeros(1, dmodel)])
-        # not expert_outputs[dispatch]: its bf16 backward serializes the spare row's duplicates
-        per_assignment = expert_outputs.index_select(0, dispatch)
+        hidden = F.silu(grouped_linear(grouped, self.gate_weight, ends))
+        hidden = hidden * grouped_linear(grouped, self.pre_act_weight, ends)
+        expert_outputs = grouped_linear(hidden, self.post_act_weight, ends)
+        # dest is distinct per assignment, so no atomics in the backward (index_select's has them)
+        per_assignment = TakeUniqueRows.apply(expert_outputs, dest)
         per_assignment = per_assignment.view(n_tokens, self.topk, dmodel)
         output = (per_assignment * weights.unsqueeze(-1).to(tokens.dtype)).sum(1)
 
@@ -121,7 +142,7 @@ class MoE(nn.Module):
                 self.load_balancing_loss_factor * balance
                 + self.router_z_loss_factor * z_loss
             )
-            self.stats = torch.stack(
-                [balance, z_loss, 1 - kept.float().mean()]
-            ).detach()
+            # busiest expert's assignments over the mean (1 = balanced)
+            max_load = load.max() * self.num_experts / expert_ids.numel()
+            self.stats = torch.stack([balance, z_loss, max_load.float()]).detach()
         return output.reshape(x.shape)
