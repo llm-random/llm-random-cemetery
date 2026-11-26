@@ -27,6 +27,13 @@ common:
     type: gqa
     # per-head RMSNorm on q and k before RoPE (documents/notes/qk_norm_survey.md)
     qk_norm: true
+  # Looped depth: blocks [n_prelude, n_blocks - n_coda) run n_loops times; n_loops 1 = plain stack.
+  loop:
+    n_loops: 1
+    n_prelude: 0
+    n_coda: 0
+    # none | concat (re-feed the prelude output before each loop, Huginn-style)
+    injection: none
 
 
 model:
@@ -43,6 +50,8 @@ model:
   encoder:
     _target_: src.core.model.TransformerEncoder
     n_blocks: ${common.n_blocks}
+    dmodel: ${common.dmodel}
+    loop: ${common.loop}
     block_fn:
       _target_: src.core.model.TransformerBlock
       _partial_: true
