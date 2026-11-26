@@ -2,20 +2,23 @@
 
 ## Human
 
-New optimizer options, each off by default. Now: task 3/4, Muon, not started.
+New optimizer options, each off by default. Now: task 4/4, muP for Muon, not started. Muon is built; its h12 run is ready to launch.
 
 - [x] Param groups: no weight decay on gains and embeddings
 - [x] muP for AdamW, kept as simpleP (muP's LR rule only): best LR stays put across widths
-- [ ] Muon: Muon for matrices, AdamW for the rest
+- [x] Muon: Muon for matrices, AdamW for the rest
 - [ ] muP for Muon: best LR stays put with Muon
 - [ ] Later, own branch: weight decay that scales with width (papers in the simpleP note)
 
 **Needs Janek:**
 - The MoE width sweep is written and ready to launch: the same widths, no muP vs simpleP, 5 LRs per width around the dense best LRs. 50 short runs, about 6–8 GPU-hours.
 - After the merge: launch the h12 simpleP run together with the h12 param-groups run, its fair baseline (both configs are ready): about 4 GPU-hours each. simpleP uses the tuned LR shifted so the big layers train at exactly the baseline's LR.
+- Launch the h12 Muon run next to the h12 param-groups run, which is also its fair baseline: about 4 GPU-hours, same LR as the baseline. Its step time decides whether Muon on 2 GPUs needs a faster version; the estimate is a few percent slower.
+- Optional, after that run: Muon at 2× and ½ the LR, to check that reusing AdamW's LR is right. 2 runs, about 7.5 GPU-hours; config on request.
+- Launch the h12 MuonClip run (Kimi's version: Muon plus a cap on each attention head's scores, in place of our QK-norm) and compare it with the h12 Muon run: about 4 GPU-hours. Kimi's cap may never be reached at this size; the run logs the largest attention score, so we'll see.
 - Not line 2: 11 model-size tests still expect the old FFN width (4× instead of 3×), so they fail without this change too. Left alone.
 
-**Last change:** full muP dropped, simpleP kept. In the width sweep both kept the best LR at the same value from the smallest width to the largest (without them it fell 16×), and simpleP is simpler: it only scales each layer's LR with width. With it off, losses are unchanged.
+**Last change:** Muon added for the big matrices (attention, feed-forward, MoE experts and router), AdamW for the rest. Muon's step is scaled to AdamW's size, so every layer keeps one LR and decay and the tuned LR carries over. Kimi's MuonClip is a second switch on top: after every step it shrinks any attention head whose scores went over a cap. With both off, losses are unchanged.
 
 ## AI
 
@@ -62,7 +65,7 @@ it short and in plain words: no file paths, no sub-steps.
 | --- | --- | --- | --- |
 | 1 | Param groups | done | `src/core/optimizers.py`: `param_roles` and `build_optimizer_and_scheduler`, called once from `main.get_model_optimizer_scheduler`. Groups in `ROLES` order (vector, embedding, head, hidden), each with `role`. Options `configs/_trainer/_optimizer/{adamw,adamw_groups}.yaml` fill root `optimizer.roles`: null is one group; otherwise `optimizer.roles.<role>.weight_decay` for all four roles. Typed as `OptimizerSchema`. Cosine takes several groups if they share one LR. `only_weights` now loads the model only, as Task 1 allowed (see "As landed" there). Configs `tiny_local_param_groups`, `jm/h12_param_groups`. Cluster: not run yet. |
 | 2 | muP for AdamW | done | simpleP only (`documents/notes/simplep_over_mup.md`): option `configs/_trainer/_optimizer/adamw_simplep.yaml`, hidden and head LR ÷ m, m = `common.dmodel / optimizer.base_dmodel` (base 256, h4). One new key, `optimizer.base_dmodel`: null in `adamw`/`adamw_groups`, 256 in `adamw_simplep` (which is `adamw_groups` plus that key). When it is set, the builder multiplies the hidden and head groups' `lr` by `base_dmodel / dmodel`. Cosine and WSD both decay each group to its own final fraction (cosine made per-group at Janek's request, bit-identical with one LR). `validate()` rejects a `base_dmodel` ≤ 0. Rank 0 logs each param group once at build; `train/lr` logs the base LR; the model config and `trainer.py` are untouched. Full muP (`adamw_mup`) was built, swept and dropped (`455421d2`). Configs in `configs/jm/feature/`: `tiny_local_simplep`, `h12_simplep` (one LR, 2^-8.415), `mup_width_{sp,simplep}` (dense), `mup_width_moe_{sp,simplep}`. Script: `scripts/mup_coord_check.py`; plots: `jupyter_notebooks/mup_lr_plots.ipynb`. Cluster: dense width sweep done, 122 runs with the dropped muP arm; MoE sweep and `h12_simplep` not yet. |
-| 3 | Muon | todo | |
+| 3 | Muon | done | `src/core/optimizers.py`: `MuonWithAdamW` (subclasses `torch.optim.AdamW`) and `newton_schulz`. Option `configs/_trainer/_optimizer/muon.yaml` = `adamw_groups` + `muon: {momentum: 0.95, ns_steps: 5}`. One new key, `optimizer.muon` (typed `MuonSchema`), null in `adamw`/`adamw_groups`, as `base_dmodel`: no class key. Groups as `adamw_groups` plus `use_muon` (true on `hidden` only), `momentum`, `ns_steps`. Moonlight's update scale, so every group keeps `trainer.learning_rate` and its role's decay. The builder asserts `base_dmodel` is null with Muon. MoE router and experts: Muon. FSDP2: each rank gathers and orthogonalizes every matrix, batched by shape. The group log names each group's optimizer. Configs `jm/feature/{tiny_local_muon,h12_muon}`. MuonClip (Janek's request): attention switch `common.attention.qk_clip` (null off), K2's QK-Clip by an optimizer post-step hook, needs `qk_norm: false`; configs `jm/feature/{tiny_local_muon_clip,h12_muon_clip}`. Touches line 1's attention files (see "As landed"). Cluster: not run yet. |
 | 4 | muP for Muon | todo | |
 
 ### Today's code (at `a3f4efdb`, with task 2)
@@ -440,7 +443,128 @@ Checks:
   If your update scale doesn't reuse AdamW's LR, the inherited 2^-10 is in the wrong
   range: set one LR in this config and say why in a one-line comment.
 
+As landed:
+- Update scale: Moonlight's RMS match. A Muon step is
+  `p ← p·(1 − lr·wd) − lr·0.2·√max(rows, cols)·NS(Nesterov momentum)`, with the group's
+  own LR in the decay, before the update, as in Moonlight's `toy_train.py` and torch's
+  AdamW. Its update RMS is about 0.2·lr, AdamW's size. So the Muon group takes
+  `trainer.learning_rate` and `trainer.weight_decay` as they are. There is no new LR key,
+  `h12_muon` inherits the tuned 2^-10, and both schedulers work unchanged. For task 4 this
+  means the update's spectral norm grows as √width at the H family's fixed aspect ratios,
+  so the expected rule is Muon LR × m^-1/2. Under Keller's scale it would be
+  width-independent, but it needs its own LR (~0.02) and a second LR key.
+- MoE router: Muon. It stays `hidden`, with no new role rule. It is a hidden matrix: its
+  input is the residual stream, and its output feeds the routing softmax, not the network's
+  output. Keller's rule is Muon for hidden matrices. Moonlight's example filter (every ≥2D
+  parameter but embedding and head) would also put it in Muon, although that example
+  model is dense. If MoE Muon runs show load-balance trouble, move the router to AdamW
+  with a rule keyed on `MoE`.
+- FSDP2, first version as planned: each rank all-gathers every whole Nesterov update
+  (bf16 on GPU, ~85 MB per rank per step at h12) and orthogonalizes all of them, one
+  batched call per shape (4 at h12). Then it keeps its own rows (`torch.chunk`, as
+  `Shard(0)` splits). The 2-rank test shows this is exact. Estimated cost at h12: Newton–Schulz is
+  1.54e12 FLOPs per rank per step, 5.5% of a GPU's model FLOPs per step, so expect a
+  few percent on s/step. Measure it with `h12_muon` against `h12_param_groups`. Go
+  round-robin (halves Newton–Schulz at 2 GPUs) only if the gap is large;
+  `trainer.profile_timers=true` logs each step's `optim` ms per rank.
+- simpleP: the builder asserts `optimizer.base_dmodel` is null with Muon. simpleP was not
+  applied to the AdamW groups only; task 4 sets the Muon rule and the head's together.
+- Implementation:
+  - AdamW groups run torch 2.7.1's own `Adam.step` body per group (`_init_group` and the
+    functional `adam`). They are bit-identical to `torch.optim.AdamW` (tested), and fused
+    on CUDA.
+  - Muon groups: Keller's lerp form of Nesterov momentum (β 0.95, state
+    `momentum_buffer`, sharded like the param; Moonlight's `mul_/add_` form differs by a
+    constant factor, which Newton–Schulz removes), then quintic Newton–Schulz (Keller's
+    coefficients, 5 steps).
+  - Newton–Schulz runs in bf16 on GPU but fp32 on CPU: on CPU, bf16 matmuls were ~40×
+    slower, and `tiny_local_muon` would have taken ~25 min instead of ~1.5.
+  - `__setstate__` skips Adam's fix-up for old checkpoints. That fix-up reads
+    `state["step"]` for every param, so it would fail on Muon's momentum-only state in every
+    `load_state_dict`.
+  - `add_param_group` rejects Muon params that aren't 2D (no 3D experts on this branch)
+    and DTensor placements other than `Shard(0)`.
+  - torch is still 2.7.1, with no `torch.optim.Muon`. FP8 (line 6) hasn't landed: not
+    checked.
+- Stage 1 (CPU):
+  - With the switch off, `tiny_local` and `tiny_local_param_groups` give 202 `train/loss`
+    lines each, byte-identical to the pre-change baselines.
+  - `tiny_local_muon` trains: loss 10.88 → 8.17 (mean of the last 100 steps; a smoke run,
+    not a comparison).
+  - 14 new tests in `tests/test_optimizers.py`:
+    - Newton–Schulz singular values in (0.6, 1.2) and cosine > 0.98 to UVᵀ, in bf16 and
+      fp32.
+    - The option's groups; MoE experts and router in Muon; simpleP rejected.
+    - All-AdamW groups equal `torch.optim.AdamW` bit for bit.
+    - One Muon step equals Moonlight's update, with RMS ≈ 0.2·lr.
+    - Save and resume, non-sharded and DCP (1 rank).
+    - A 2-rank gloo run (`mp.spawn`): three sharded steps equal the unsharded ones bit
+      for bit, including a 3-row matrix (2 + 1 rows) and a 1-row one (1 + 0). A 2-rank DCP
+      save and a resume into a fresh model then step the same.
+  - Suite: 255 passed, 11 failed, all 11 the known dff = 4·dmodel tests. The hygiene
+    tests pass with the untracked configs included.
+- Stage 2: `jm/feature/h12_muon`, h12_chinchilla plus `muon`: 50_000 steps, 2^-10
+  inherited. It passes `run_exp.expand_and_check`, about 3.7 GPU-h. Compare it by loss
+  and s/step with `h12_param_groups` (like-for-like) and h12_chinchilla (`kiu7rawb`).
+- Optional LR sweep, not written: 2^-9 and 2^-11, after `h12_muon`, about 7.5 GPU-h.
+- MuonClip, Kimi K2's QK-Clip on top of Muon (arXiv 2507.20534). Added at Janek's
+  request (2026-11-26): "just add the code, don't coordinate with line 1, we will address
+  conflicts if they occur".
+  - Switch: `common.attention.qk_clip`, a threshold τ on each head's max logit, null for
+    off. It touches line 1's files: `SWITCHES` and `_rope_attention` in
+    `src/core/attention.py`, `RoPEAttention` in `src/core/model.py`, the null default in
+    `configs/_model/h_balanced/base.yaml`, `AttentionSchema`, and `SWITCHES_OFF` in
+    `tests/test_attention_registry.py`. It also adds one call in `main.py`. It works with
+    any optimizer; MuonClip is the `muon` option plus `qk_clip`.
+  - Tracking: with τ set, `RoPEAttention` keeps `max_logits` (one per query head), a
+    non-persistent buffer, so checkpoint keys don't change. It holds the largest causal
+    logit at SDPA's scale over training forwards since the last clip; eval forwards are not
+    tracked. SDPA never materializes the logits, so this is one extra no_grad `QKᵀ` per
+    layer. It survives whole-block compile: in a fullgraph compile on CPU, compiled equals
+    eager.
+  - Clip: `qk_clip_` in `src/core/optimizers.py` runs in an optimizer post-step hook,
+    `add_qk_clip`. `main.py` registers it after the checkpoint load, so DCP's state-init
+    step doesn't clip. Max logits are all-reduced (MAX) over ranks. Each query head gets
+    γ = τ / max(s, τ). Under GQA, the kv head's W_k rows take √(smallest γ in its group)
+    and W_q's rows the rest, so each head's logits scale by exactly its own γ; with one
+    query head per kv head this is K2's √γ on each side. The row scaling is FSDP2-aware
+    (`_own_rows`). Every step logs `train/max_attention_logit`, the max over all layers and
+    heads before the clip.
+  - QK-norm must be off (`RoPEAttention` rejects both on). Its RMSNorm undoes any scaling of
+    W_q and W_k, and its gains are shared across heads. K2 (MLA) has no QK-norm either.
+  - Stage 1, both switches off: `tiny_local` and `tiny_local_param_groups` are
+    byte-identical to the baselines again, and `tiny_local_muon` gives the same lines as
+    before the QK-Clip change. A tracking-only run (τ 1e9) peaked at a max logit of 5.4
+    in 200 steps, so `tiny_local_muon_clip` uses τ = 4. It trains, and the clip acts on 18
+    of 200 steps (pre-clip max 4.4, against 5.4 unclipped). 7 new tests:
+    - tracking equals a direct causal-logit max, and eval forwards are not tracked;
+    - after a clip every head's max logit is min(s, τ), with a kv pair split (one head
+      clipped, its partner not);
+    - QK-norm is rejected;
+    - off and on build the same init and checkpoint keys;
+    - the hook clips and logs once per step, and is absent when off;
+    - 2-rank gloo, with a different max logit per rank: the sharded clip equals the
+      unsharded one bit for bit.
+
+    Suite: 265 passed, the same 11 known failures. The hygiene tests pass with the
+    untracked configs included.
+  - Stage 2: `jm/feature/h12_muon_clip`, which is `h12_muon` with `qk_norm: false` and K2's
+    τ = 100: MuonClip against Muon with QK-norm, 50_000 steps, LR 2^-10. The extra `QKᵀ`
+    and masked max are not model FLOPs in `mfu.py`, so MFU reads low. Estimated cost at
+    micro 32: ~1.6 GB of memory traffic per layer per micro-batch, roughly 5–10% on s/step.
+    Caveat: if h12's max logit never reaches 100, the run measures Muon without QK-norm. A
+    control (`qk_norm: false`, no clip) is available on request.
+
 ### Task 4: muP for Muon
+
+Since task 3 (2026-11-26), read before the scope:
+- Muon groups use Moonlight's scale, `lr·0.2·√max(rows, cols)`, with
+  `trainer.learning_rate` and the role's decay (lr·wd). The update's spectral norm grows
+  as √width at fixed aspect ratio, so start from Muon LR × m^-1/2.
+- Replace the builder's assert (Muon with `base_dmodel` set) with the rule, and decide
+  the AdamW head's together with it (÷ m under simpleP).
+- The router (`num_experts × dmodel`) is in Muon. Its max dimension is dmodel, so it
+  scales like the other matrices.
 
 Scope:
 - Width rules for the Muon groups. The AdamW groups keep task 2's rules. In the H family
