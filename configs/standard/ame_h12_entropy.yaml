@@ -1,0 +1,73 @@
+# Entropy copy for U11 (review_upgrades.md), 2026-11-26: only the cluster, the gres and LEM's exclude differ.
+# The standard AME model at h12: S2-PS (AME + ALiBi ladder + KV shift + sink)
+# with the bank init sigma = 1e-4 and the banks at 4x the learning rate.
+# Decided by Maciej on 2026-11-21 (documents/notes/standard_model_improvements.md,
+# "Decisions"). One submit = 1 run.
+#
+# The recipe of W&B zdmv3qci (settle_runs_improve:
+# configs/ame_improve/ame_h12_ps_bank4_std1e4.yaml, final_ce 3.0312); only the
+# run name, tags and comments differ. Pair with zdmv3qci (or with 7te9jv9u,
+# kf4q4t4s, doi36p8k): the same seed, data order, steps and schedule.
+# No document mask and no bank gate (both rejected, 2026-11-21).
+#
+# Recipe v2 (2026-11-25; documents/notes/review_issues.md, N6-N8): each part of
+# the model now initializes from its own seed (src/core/init_rng.py), so the same
+# seed builds other weights than for the runs named above, and the QK-norm keeps
+# q and k in the compute dtype. These runs pair with those in data order, steps
+# and schedule, not in init: hence the _v2 run name and the standard_v2 tag.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  # shift: true learns (alpha_1, alpha_2) and (beta_1, beta_2) per head and
+  # layer. slopes is unset, so AME uses its ALiBi ladder (horizons 16 to 8192).
+  # The sink and bank_gate: none are defaults.
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: 1.0e-4 # N(0, sigma^2) bank rows; also the code default under the QK-norm since 2026-11-25
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32
+  mem_parallel_size: 1 # hand-managed bank path (Tier 2), banks unsharded
+  distributed: null # no FSDP2: one precision path with the h12 and h16 references
+  autocast_bf16: true
+
+  # Everything not set here is a llama-trainer default: AdamW, weight decay
+  # 0.1 (banks exempt), cosine schedule with 1% warmup to 10% of peak, eval
+  # every 100 steps, final_ce on the fixed 8192 x 2048 held-out set.
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step, as the references
+  n_tokens_b: null
+  learning_rate: 8 # LR = 2^-8
+  bank_lr_ratio: 4.0 # banks at 4 x 2^-8 for the whole schedule (also the default)
+  checkpoint:
+    save:
+      path: checkpoint # final checkpoint only
+
+infrastructure:
+  slurm:
+    gres: gpu:h100:1 # entropy's gres syntax
+    job-name: std_ame_h12
+    time: "0-07:00:00" # the run takes about 4.5 h on LEM; no mid-run checkpoints
+  metric_logger:
+    project_name: nano-ame
+    name: std_ame_h12_lr8_v2
+    tags:
+      - ame
+      - h12
+      - standard
+      - standard_v2
+      - bank_lr4
+      - bank_std1e4
