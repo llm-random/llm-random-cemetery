@@ -1,9 +1,12 @@
 # AME attention gates: a read gate and an output gate
 
-**Status: proposed, 2026-11-27 (Maciej). Not implemented yet: the
-[implementation plan](#implementation-plan) at the end is the brief for the build and its CPU
-tests; the GPU tests are a later, separate pass.** Code goes on branch `ame_gate` (worktree
-`~/code/nano-ame-gate`, cut from `ame_main`).
+**Status: implemented on `ame_gate` at `7d9af3f3` (2026-11-27), CPU-tested, GPU tests
+pending.** CPU gate: 672 passed, 0 skipped, 0 failed (baseline: 580 passed, 0 skipped, 0
+failed). Slow CPU tests: 9 passed, 0 failed (baseline: 7 passed). `black --check` clean.
+What was built, and where it departs from the plan: [As built](#as-built-on-ame_gate). The
+GPU tests are a later, separate pass ([listed below](#later-the-gpu-pass)). Branch `ame_gate`
+(worktree `~/code/nano-ame-gate`, cut from `ame_main`), not merged into `ame_main`. Designed
+2026-11-27 (Maciej).
 
 Two gates in the style of the feed-forward's SwiGLU gate, `φ(W_g h) ⊙ (…)`, put on AME's
 attention. Each works alone, and both together are a valid config:
@@ -28,7 +31,8 @@ would extend: [standard_model_improvements.md](standard_model_improvements.md). 
 | Parameters | matched to dense, as AME v4 is: every elementwise gate gives `dmodel/3` of FF width back ([Matching](#matching)) |
 | Score table | untouched: neither gate enters `q·k` ([The score table survives](#the-score-table-survives)) |
 
-Proposed config keys (the names are proposals; nothing reads them yet):
+Config keys, in `common.attention.ame` (`_AME_OPTIONS` in `src/core/attention.py`; built on
+`ame_gate`):
 
 ```yaml
 common:
@@ -329,7 +333,124 @@ reduces to `(2 + k)·dmodel² + 3·dmodel·dff` (plus `H·dmodel` for a headwise
    `B × n × dmodel` tensor per layer for backward, and the matched FF a little less. h16 is the
    tight case, as for v4.
 
+## As built on `ame_gate`
+
+Built 2026-11-27 from the [implementation plan](#implementation-plan) below. Three commits on
+`ame_gate`; nothing pushed, nothing merged into `ame_main`.
+
+| Commit | What |
+|---|---|
+| `9299e5aa` | `src/core/ame.py`, `src/core/attention.py`: the options, the parameters, the forward, the readout on the layer |
+| `b97c79d2` | `src/core/trainer.py`: `Trainer.eval` resets the readout and logs it |
+| `7d9af3f3` | the tests, listed below |
+
+**The layer** (`AMEAttention`):
+- Options `read_gate` (`none` | `elementwise` | `headwise`), `output_gate` (`none` |
+  `elementwise`) and `gate_activation` (unset | `sigmoid` | `silu`), registered in
+  `_AME_OPTIONS`. Unset means `sigmoid` once a gate is on. Each of these is a `ValueError`:
+  `gate_activation` set while both gates are `none`, any unknown value (the message names the
+  valid set), and `output_gate: headwise` (B has no heads to gate).
+- `read_gate_proj` (`dmodel → H·d` elementwise, `dmodel → H` headwise) and `output_gate_proj`
+  (`dmodel → dmodel`) are bias-free `nn.Linear`s. They are built last in `__init__`, after the
+  bank gates, so every existing entry keeps its place in the state dict. They take SwiGLU's
+  init from `private_generator("read_gate")` and `private_generator("output_gate")`, through
+  one helper, `_private_linear`. ST's gate now uses that helper too, and its weights are as
+  before, bit for bit (checked at seeds 0 and 11).
+- The forward:
+  1. The kernel's output, reshaped to `[B, n, H·d]`, is multiplied by
+     `φ(read_gate_proj(x))`. Headwise, each head's `d` channels are multiplied by its one
+     value.
+  2. Then `o_proj`.
+  3. Then the product with `φ(output_gate_proj(x))`.
+
+  `φ` runs in the linear's output dtype and is cast to the dtype of the tensor it multiplies.
+  Unchanged: the kernels, `_mixed_qkv`, `score_matrix`, `attention_diagnostics` and
+  `scores_read_hidden_state`.
+- The gate weights decay and count as matmul weights in the MFU accounting. `extra_repr`
+  shows the three options.
+
+**The readout** (plan step 7's design; it hit no blocker):
+- An eval forward (`self.training` false) passes each gate's values to `_record_gate`, a
+  `@torch.compiler.disable` method. It adds them to running sums, kept on the module as
+  tensors, so a batch costs no host sync.
+- In train mode the branch is a Python constant, so the training graph has neither the branch
+  nor a graph break (the CPU `fullgraph=True` test below). In an eval forward under compile it
+  is a graph break by design, as Residual's logging is.
+- `Trainer.eval` calls `reset_gate_statistics()` on every module before its batches. After
+  `eval/loss` it logs `gate_statistics()` as `eval/<layer>/<gate>/<statistic>`:
+
+  | Statistic | When | Meaning |
+  |---|---|---|
+  | `mean` | always | the mean gate value |
+  | `below_0.05` | always | the share of values below 0.05 |
+  | `below_0` | `silu` | the share of values below zero |
+  | `head_mean_min` | headwise A | the lowest per-head mean |
+
+- The hook is duck-typed, so a stack without gates logs nothing. A readout that raises is
+  warned about and skipped.
+- Rank-local: on several GPUs each rank's statistics cover its own eval batches, and W&B shows
+  rank 0's.
+- `final_eval`'s forwards are eval forwards, so they add to the sums, but `final_eval` logs
+  nothing from them.
+
+**Baseline** (plan step 2), on the tree at `06ddbbc0` with `data/` and `data_eval/` linked in:
+- CPU gate: 580 passed, 0 skipped, 0 failed (22 deselected, 697 s).
+- Slow CPU tests: 7 passed (268 s).
+- The h4 AME fingerprint at seed 1234: state dict `ab0e1527…` (63 entries), forward
+  `bbd75920…`.
+
+**Tests** at `7d9af3f3`, in the worktree with `data/` and `data_eval/` linked in:
+- CPU gate: 672 passed, 0 skipped, 0 failed (24 deselected, 396 s).
+- Slow CPU tests: 9 passed, 0 failed (184 s).
+- `black --check`: clean.
+
+The new tests:
+- `tests/test_ame_gates.py` (83):
+  - no regression: the fingerprint, and the default equal to an explicit `none`;
+  - validation;
+  - shapes and init per mode, including the init figures of the activation table;
+  - the math against a literal transcription of [the two gates](#the-two-gates), for every
+    combination under both activations;
+  - headwise A as elementwise A with tied rows; B as its gate times the ungated output; a head
+    closed under SiLU;
+  - the score table; gradients; the CPU compile; the state-dict round trip;
+  - the optimizer groups and the MFU count;
+  - [Matching](#matching) from `configs/standard`: the test reproduces the table to 0.01% and
+    v4's +590,336;
+  - the readout, on the layer and through `Trainer.eval`.
+- `tests/test_attention_registry.py` (+3): the options through `build_attention`, and into
+  every AME layer of a uniform and of a mixed stack.
+- `tests/test_init_rng.py` (+6 `SWITCHES`): each of A elementwise, A headwise, B, A+B, B beside
+  A, and `silu` against `sigmoid` moves no shared parameter and leaves the global stream as it
+  was.
+- `tests/test_training_smoke.py` (+2, slow): A elementwise + B, and A headwise + `silu`,
+  through `main.py` with evals at steps 5 and 10. Each run has finite losses, writes its
+  checkpoint and logs the readout (4 layers × 2 evals per statistic).
+
+**Departures from the plan, and where it was wrong:**
+- The CPU compile test uses `backend="aot_eager"`. That is dynamo with `fullgraph=True`, which
+  fails on any graph break, plus AOTAutograd's backward, with eager kernels. Inductor cannot be
+  used on the CPU: on torch 2.7.1 its compiled backward of the AME reference path corrupts the
+  heap (`malloc(): invalid size`, then an abort or a segfault).
+  - This happens with no gate at all, at `d_head` 8 and 64. The compiled forward alone runs
+    fine.
+  - It is a failure of the baseline that no baseline test exercised. Per the plan's rule it is
+    recorded here, not fixed. Inductor is left to the GPU pass.
+- The plan says "as `tests/test_ame.py` does", but that file's one `fullgraph=True` compile is
+  a GPU test, so the CPU compile test is new.
+- The `build_attention` and mix tests are in `tests/test_attention_registry.py`, which the plan
+  names, not in `tests/test_ame_gates.py`.
+- The forward half of the fingerprint test compares the digest bit for bit only on a CPU with
+  the recording's capability (AVX2), because the last bits of a CPU matmul depend on the
+  kernels torch dispatches to. Elsewhere it checks the logits' sums to 1e-6. The state-dict
+  digest is checked exactly everywhere.
+- A `configs/standard/` config has to be composed from its own directory, as
+  `--config-path configs/standard` does. Composed as `standard/<name>` from `configs/`, Hydra
+  nests the whole config under a `standard` key.
+
 ## Implementation plan
+
+Executed on 2026-11-27; the result is in [As built](#as-built-on-ame_gate).
 
 **Goal:** branch `ame_gate` holds both gates as this file specifies (the
 [decisions](#decisions-maciej-2026-11-27) and the proposed defaults of
@@ -457,6 +578,11 @@ Not part of this plan; it runs once the build is in.
 
 - flex against reference with gates: forward and backward, bf16 autocast.
 - The compiled training path: no new graph breaks.
-- FSDP2 and the memory-parallel controller with gates; checkpoint resume.
+- Inductor on the gated layer, forward and backward. The CPU tests run dynamo and AOTAutograd
+  only ([As built](#as-built-on-ame_gate)).
+- The eval path under `compile_blocks_full`: the readout's graph break, the recompiles it costs
+  against the recompile limit, and the eval time.
+- FSDP2 and the memory-parallel controller with gates, including the rank-local readout;
+  checkpoint resume.
 - Step time, MFU and peak memory at h16 for no gate, A, and A+B, matched
   ([open point](#open-points-proposed-defaults) 7).
