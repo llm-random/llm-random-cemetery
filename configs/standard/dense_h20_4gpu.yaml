@@ -1,0 +1,44 @@
+# dense_h20.yaml on one LEM node (4 H100): only the GPU count and what follows
+# from it differ. Asked by Maciej on 2026-11-27, to measure how much a run
+# changes between 1 and 4 GPUs.
+#
+# Both runs start from the same weights (every rank builds the whole model from
+# the seed before FSDP2 shards it, main.py) and read the same batches
+# (world_size_independent, since c5097166). Only the numerics differ:
+#   - FSDP2 shards the embedding, the blocks and the head, and computes in bf16
+#     through its MixedPrecisionPolicy, where the 1-GPU run uses autocast;
+#   - the micro-batch is 16 per GPU, 4 x 16 x 8 = 512, where the 1-GPU run uses 4;
+#   - gradients are reduced over 4 ranks.
+# This is the recipe dense_h20.yaml itself had until ed4dbaef (2026-11-27). Its
+# v1 smoke ran at 2.52 s/step on LEM, peak 50.9 GiB (standard_models_report.md).
+defaults:
+  - dense_h20
+  - _self_
+
+trainer:
+  gradient_accumulation_steps: 8 # micro-batch 16 = 512 / (4 GPUs x 8)
+  distributed:
+    fsdp2:
+      # _trainer/llama.yaml's list, restated: dense_h20.yaml sets distributed to null
+      modules_to_shard:
+        - ${model.embedding._target_}
+        - ${model.encoder.block_fn._target_}
+        - ${model.head._target_}
+      reshard_after_forward: false # O33, ame_optimization_report.md §1.10
+  autocast_bf16: false # bf16 comes from FSDP2's mixed precision
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:4 # one whole LEM node; LEM's gres syntax
+    job-name: std_dense_h20_4g
+    time: "1-00:00:00" # about 11 h on LEM (smoke 2.52 s/step), plus margin
+  metric_logger:
+    name: std_dense_h20_lr9_v3_4gpu
+    tags:
+      - dense
+      - h20
+      - standard
+      - standard_v3
+      - qk_norm
+      - kv_shift
+      - 4gpu

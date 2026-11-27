@@ -82,6 +82,13 @@ puts all six on one precision path, autocast bf16, at a 3-day limit, about 2 day
 data order does not depend on the GPU count, and no h20 run of v3 or v4 existed, so the
 names stay.
 
+**Each h16 and h20 config also has a 4-GPU twin**, `<config>_4gpu.yaml` (Maciej,
+2026-11-27), with run names ending in `_4gpu` and the tag `4gpu`. Each twin inherits its 1-GPU
+file and changes only the parallel settings: FSDP2, AME's banks column-sharded over the four
+GPUs, and micro-batch 16. The h20 twins are exactly the recipe h20 had until then. A twin
+starts from the same weights and reads the same batches as its 1-GPU run, so the two differ
+only in numerics.
+
 AME:
 
 ```yaml

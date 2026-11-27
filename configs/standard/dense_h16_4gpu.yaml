@@ -1,0 +1,47 @@
+# dense_h16.yaml on one LEM node (4 H100): only the GPU count and what follows
+# from it differ. Asked by Maciej on 2026-11-27, to measure how much a run
+# changes between 1 and 4 GPUs.
+#
+# Both runs start from the same weights (every rank builds the whole model from
+# the seed before FSDP2 shards it, main.py) and read the same batches
+# (world_size_independent, since c5097166), at the same micro-batch, 16. Only
+# the numerics differ:
+#   - FSDP2 shards the embedding, the blocks and the head, and computes in bf16
+#     through its MixedPrecisionPolicy, where the 1-GPU run uses autocast;
+#   - gradients are reduced over 4 ranks.
+# The parallel settings are those of the AME h16 4-GPU run, so both share one
+# setting, as their 1-GPU twins do. No standard h16 run has used 4 GPUs before.
+defaults:
+  - dense_h16
+  - _self_
+
+trainer:
+  gradient_accumulation_steps: 8 # micro-batch 16 = 512 / (4 GPUs x 8), as in the AME run
+  distributed:
+    fsdp2:
+      # _trainer/llama.yaml's list, restated: dense_h16.yaml sets distributed to null
+      modules_to_shard:
+        - ${model.embedding._target_}
+        - ${model.encoder.block_fn._target_}
+        - ${model.head._target_}
+      reshard_after_forward: false # O33, ame_optimization_report.md §1.10
+  autocast_bf16: false # bf16 comes from FSDP2's mixed precision
+
+infrastructure:
+  slurm:
+    gres: gpu:hopper:4 # one whole LEM node; LEM's gres syntax
+    job-name: std_dense_h16_4g
+    # About 3.3 h on LEM, an estimate: 42.78% MFU at micro-batch 16 on 4 GPUs on
+    # entropy (ame_optimization_report.md §1.16), +7% on LEM and for the QK-norm
+    # and shift, +4% for evals.
+    time: "0-08:00:00"
+  metric_logger:
+    name: std_dense_h16_lr9_v3_4gpu
+    tags:
+      - dense
+      - h16
+      - standard
+      - standard_v3
+      - qk_norm
+      - kv_shift
+      - 4gpu
