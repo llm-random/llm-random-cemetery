@@ -66,6 +66,23 @@ reaches the scores; "none" is the model above, bit for bit:
 `context` and `stem` read the hidden state, so their scores are no longer a
 function of ids and distance alone; the instrumentation that assumes they are
 (`score_matrix`, `attention_diagnostics`) refuses them rather than feed x = 0.
+
+**Attention gates** (`read_gate`, `output_gate`; documents/notes/ame_attention_gate.md).
+Two gates in the style of the feed-forward's SwiGLU gate, on the attention's output
+side, each on or off on its own. `x` is the layer's normalized input, `r` the heads'
+read (the kernel's output) and `phi` the one `gate_activation`, sigmoid unless set
+to silu; "none" for both is the model above, bit for bit:
+
+    read_gate    (A)  W_O (phi(W_A x) (.) r): before W_O mixes the heads, per
+                      channel (elementwise, W_A is dmodel -> H*d) or per head
+                      (headwise, dmodel -> H)
+    output_gate  (B)  phi(W_B x) (.) W_O r: the attention's output, per residual
+                      channel, before the residual add
+
+Neither enters q.k: the scores, the score table and the kernels are unchanged,
+and the gates decide from the context how much of the read is used. Their values
+are read out in eval forwards only (`gate_statistics`), so the training graph
+carries no readout.
 """
 
 import math
@@ -99,6 +116,19 @@ CONTEXT_GATE_INIT_BIAS = 3.0
 # 1e-4 would start attention uniform; sigma ~ 1 puts the scores at std ~1 there.
 BANK_INIT_STD = 1.0e-4
 BANK_INIT_STD_WITHOUT_QK_NORM = 1.0
+
+# The attention gates, one enum each. A, the read gate, scales a channel or a
+# whole head; B, the output gate, multiplies the output after W_O has summed the
+# heads, so it has no per-head form.
+READ_GATES = ("none", "elementwise", "headwise")
+OUTPUT_GATES = ("none", "elementwise")
+# One activation for both gates. Unset means sigmoid, Qwen's gated attention
+# (arXiv 2505.06708, the better of the two at A's position); silu is exactly
+# SwiGLU's gate.
+GATE_ACTIVATIONS = ("sigmoid", "silu")
+# The eval readout counts a gate value below this as closed; sigmoid gets there
+# only for a pre-activation below -2.94.
+GATE_CLOSED_BELOW = 0.05
 
 # Horizon of the steepest head, in tokens: a token at distance d competes only
 # while m*d <~ tau, so the ladder is specified in horizons (tau/m) and converted
@@ -302,6 +332,10 @@ class AMEAttention(nn.Module):
     # vectors are scales of the same kind as the sink. Names a layer does not
     # have -- or, for ST's bias-free gate, `gate.bias` resolving to None -- are
     # skipped by parameter_groups.
+    #
+    # The attention gates' weights (`read_gate_proj`, `output_gate_proj`) are
+    # not here on purpose: they decay like every Linear weight, and they are
+    # matmul weights to src.core.mfu and not banks to the optimizer.
     no_weight_decay_parameters = (
         "tau",
         "alpha",
@@ -338,6 +372,9 @@ class AMEAttention(nn.Module):
         bank_init_std=None,
         bank_gate="none",
         confidence_init=CONFIDENCE_INIT,
+        read_gate="none",
+        output_gate="none",
+        gate_activation=None,
         shift=True,
         pin_alpha=False,
         pin_beta=False,
@@ -369,8 +406,44 @@ class AMEAttention(nn.Module):
                 f"ame confidence_init={confidence_init!r} applies only to "
                 f"bank_gate=confidence, got bank_gate={bank_gate!r}"
             )
+        if read_gate not in READ_GATES:
+            raise ValueError(
+                f"unknown ame read_gate {read_gate!r}; expected one of "
+                f"{', '.join(READ_GATES)}"
+            )
+        if output_gate == "headwise":
+            raise ValueError(
+                "ame output_gate 'headwise' does not exist: B multiplies the output "
+                "after W_O has summed the heads, so it has no heads to gate (the "
+                "per-head gate is read_gate: headwise); expected one of "
+                f"{', '.join(OUTPUT_GATES)}"
+            )
+        if output_gate not in OUTPUT_GATES:
+            raise ValueError(
+                f"unknown ame output_gate {output_gate!r}; expected one of "
+                f"{', '.join(OUTPUT_GATES)}"
+            )
+        if gate_activation is not None and gate_activation not in GATE_ACTIVATIONS:
+            raise ValueError(
+                f"unknown ame gate_activation {gate_activation!r}; expected one of "
+                f"{', '.join(GATE_ACTIVATIONS)}, or unset for sigmoid"
+            )
+        gated = read_gate != "none" or output_gate != "none"
+        if gate_activation is not None and not gated:
+            # Not silently ignored, as confidence_init is not without its gate.
+            raise ValueError(
+                f"ame gate_activation={gate_activation!r} applies only to an "
+                "attention gate, and both are none: set read_gate "
+                f"({', '.join(READ_GATES[1:])}) or output_gate "
+                f"({', '.join(OUTPUT_GATES[1:])})"
+            )
         self.bank_gate = bank_gate
         self.confidence_init = confidence_init
+        self.read_gate = read_gate
+        self.output_gate = output_gate
+        # The activation that runs: unset is sigmoid once a gate is on, and
+        # None while both gates are off.
+        self.gate_activation = (gate_activation or "sigmoid") if gated else None
         self.dmodel = dmodel
         self.q_heads = q_heads
         # Kept so the registry's introspection (and get_model_dimensions) finds
@@ -470,6 +543,44 @@ class AMEAttention(nn.Module):
         # Last, so every parameter above keeps its place in the state dict, and
         # none of them draws from the global RNG (see the helpers' docstrings).
         self._init_gate(bank_gate, init_scale)
+        # The attention gates after that, for the same two reasons: their
+        # weights follow every entry above in the state dict, and they draw from
+        # private generators, so turning one on moves no other init.
+        self._init_attention_gates(init_scale)
+        # Their eval readout: running sums per gate (_record_gate).
+        self._gate_stats = {}
+
+    def _private_linear(self, width, tag, init_scale):
+        """A bias-free `dmodel -> width` linear, drawn by the SwiGLU gate's rule
+        (`llm_random_weight_init`) from the private generator `tag`.
+
+        Drawn on the CPU, where the private generator lives, even when the model
+        is built under a CUDA default device; then copied over. Nothing is drawn
+        on the meta device.
+        """
+        device = self.v_proj.weight.device
+        layer = _rng_neutral_linear(self.dmodel, width, False, device)
+        if not layer.weight.is_meta:
+            draw = torch.empty(width, self.dmodel, device="cpu")
+            llm_random_weight_init(self.dmodel, init_scale)(
+                draw, generator=private_generator(tag)
+            )
+            with torch.no_grad():
+                layer.weight.copy_(draw)
+        return layer
+
+    def _init_attention_gates(self, init_scale):
+        """A's and B's weights, as ST's gate is built: `W_A` is `dmodel -> H*d`
+        elementwise and `dmodel -> H` headwise, `W_B` is `dmodel -> dmodel`."""
+        if self.read_gate != "none":
+            per_head = self.dhead if self.read_gate == "elementwise" else 1
+            self.read_gate_proj = self._private_linear(
+                self.q_heads * per_head, "read_gate", init_scale
+            )
+        if self.output_gate != "none":
+            self.output_gate_proj = self._private_linear(
+                self.dmodel, "output_gate", init_scale
+            )
 
     def _init_gate(self, bank_gate, init_scale):
         """The parameters of the B2, B3 and ST gates. B1's live in the banks."""
@@ -490,16 +601,7 @@ class AMEAttention(nn.Module):
         elif bank_gate == "stem":
             # ST: a dmodel -> H*d gate under silu, initialized by the rule the
             # SwiGLU gate uses, drawn from a private generator.
-            self.gate = _rng_neutral_linear(self.dmodel, datt, False, device)
-            if not self.gate.weight.is_meta:
-                # On the CPU, where the private generator lives, even when the
-                # model is built under a CUDA default device; then copied over.
-                draw = torch.empty(datt, self.dmodel, device="cpu")
-                llm_random_weight_init(self.dmodel, init_scale)(
-                    draw, generator=private_generator("stem")
-                )
-                with torch.no_grad():
-                    self.gate.weight.copy_(draw)
+            self.gate = self._private_linear(datt, "stem", init_scale)
 
     @property
     def scores_read_hidden_state(self):
@@ -783,7 +885,98 @@ class AMEAttention(nn.Module):
         attend = self._attend_flex if use_flex else self._attend_reference
         out = attend(q, k, v)
         out = out.transpose(1, 2).reshape(batch, seq_len, self.q_heads * self.dhead)
-        return self.o_proj(out)
+        # The attention gates act on the kernel's output and on W_O's, never
+        # inside the kernel. With both off these are Python constants dynamo
+        # folds away, and the forward is the ungated one.
+        if self.read_gate != "none":
+            out = self._read_gated(x, out)
+        out = self.o_proj(out)
+        if self.output_gate != "none":
+            gate = self._gate_values(self.output_gate_proj, x, out.dtype)
+            if not self.training:
+                self._record_gate("output_gate", gate)
+            out = out * gate
+        return out
+
+    # ---- attention gates -------------------------------------------------------
+
+    def _gate_values(self, linear, x, dtype):
+        """`phi(W x)`, computed in the compute dtype -- the linear's output, as
+        for the feed-forward's SiLU -- and cast to `dtype`."""
+        z = linear(x)
+        gate = torch.sigmoid(z) if self.gate_activation == "sigmoid" else F.silu(z)
+        return gate.to(dtype)
+
+    def _read_gated(self, x, out):
+        """A on the heads' read `out`, `[B, n, H*d]`, before W_O: elementwise
+        per channel, headwise each head's d channels times its one value."""
+        gate = self._gate_values(self.read_gate_proj, x, out.dtype)
+        if not self.training:
+            self._record_gate("read_gate", gate)
+        if self.read_gate == "elementwise":
+            return out * gate
+        heads = out.unflatten(-1, (self.q_heads, self.dhead))
+        return (heads * gate.unsqueeze(-1)).flatten(-2)
+
+    @torch.compiler.disable
+    def _record_gate(self, which, gate):
+        """Fold one eval batch's gate values into the running sums.
+
+        Reached only from eval forwards, behind `if not self.training`: dynamo
+        specializes the training graph on `training`, so that graph has neither
+        this branch nor a break for it. In an eval forward under compile this is
+        a graph break by design, run eagerly between two compiled pieces, as
+        Residual's logging is. The sums stay tensors on the gate's device, so a
+        batch costs no host sync; gate_statistics syncs once per eval.
+        """
+        with torch.no_grad():
+            values = gate.detach().float()
+            batch = {
+                "sum": values.sum(dtype=torch.float64),
+                "closed": (values < GATE_CLOSED_BELOW).sum(),
+            }
+            if self.gate_activation == "silu":
+                batch["negative"] = (values < 0).sum()
+            if which == "read_gate" and self.read_gate == "headwise":
+                batch["head_sum"] = values.flatten(0, -2).sum(0, dtype=torch.float64)
+            stats = self._gate_stats.setdefault(which, {"count": 0})
+            stats["count"] += values.numel()
+            for key, value in batch.items():
+                stats[key] = stats[key] + value if key in stats else value
+
+    def reset_gate_statistics(self):
+        """Drop the gates' eval readout. Trainer.eval calls this first, so what
+        it logs covers that eval's batches and nothing else."""
+        self._gate_stats.clear()
+
+    @torch.no_grad()
+    def gate_statistics(self):
+        """The attention gates' values over the eval forwards since the last
+        reset, as plain floats per gate:
+
+        - `mean`, the mean gate value;
+        - `below_0.05`, the share of values below 0.05, i.e. closed;
+        - for silu, `below_0`, the share below zero (a flipped channel);
+        - for a headwise read gate, `head_mean_min`, the lowest per-head mean:
+          a head the gate has switched off.
+
+        Empty for a layer without gates and before any eval forward.
+        `src.core.trainer` picks this up by name off any module, as it does
+        `instrumentation`, and logs it at the end of every eval. Rank-local: on
+        several GPUs each rank sees only its own eval batches.
+        """
+        readout = {}
+        for which, stats in self._gate_stats.items():
+            count = stats["count"]
+            readout[f"{which}/mean"] = (stats["sum"] / count).item()
+            readout[f"{which}/below_0.05"] = (stats["closed"].double() / count).item()
+            if "negative" in stats:
+                share = stats["negative"].double() / count
+                readout[f"{which}/below_0"] = share.item()
+            if "head_sum" in stats:
+                per_head = stats["head_sum"] / (count // self.q_heads)
+                readout[f"{which}/head_mean_min"] = per_head.min().item()
+        return readout
 
     # ---- kernels -------------------------------------------------------------
     #
@@ -1114,4 +1307,6 @@ class AMEAttention(nn.Module):
                 if self.bank_gate == "confidence"
                 else ""
             )
+            + f", read_gate={self.read_gate}, output_gate={self.output_gate}, "
+            f"gate_activation={self.gate_activation}"
         )

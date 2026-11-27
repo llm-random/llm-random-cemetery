@@ -267,6 +267,10 @@ _AME_OPTIONS = (
     "bank_init_std",
     "bank_gate",
     "confidence_init",
+    # The attention gates (documents/notes/ame_attention_gate.md).
+    "read_gate",
+    "output_gate",
+    "gate_activation",
     "shift",
     "pin_alpha",
     "pin_beta",
