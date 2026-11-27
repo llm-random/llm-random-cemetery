@@ -1,6 +1,10 @@
 # Standard baselines: AME v4 and dense v3 at h12, h16 and h20
 
-**Status (2026-11-27 01:46 CET):** all six runs are queued on LEM, PENDING (Priority).
+**Status (2026-11-27 02:10 CET):**
+- The six 1-GPU runs are queued on LEM, PENDING (Priority).
+- The four 4-GPU twins are not queued yet. Both of LEM's Slurm controllers went down at
+  about 02:00, while the twins were being submitted. A retry loop submits them once the
+  controller answers, for up to 6 h.
 
 Maciej asked for this on 2026-11-27: run AME and dense at h12, h16 and h20 on LEM, one GPU
 each, with the tuned learning rates, the established token budgets and everything else as
@@ -9,6 +13,10 @@ in [`configs/standard/`](../../configs/standard/). These are the first runs of r
 on health checks alone ([comparing-runs.md](../concepts/comparing-runs.md#which-runs-pair)).
 The AME and dense runs at one H pair with each other in data order, steps and schedule, so
 the gap at each H is a paired gap.
+
+Maciej then asked for a 4-GPU twin of each h16 and h20 run as well: those should finish
+sooner, and comparing each pair shows what the GPU count changes
+([below](#1-gpu-against-4-gpus)).
 
 ## Runs
 
@@ -20,8 +28,19 @@ the gap at each H is a paired gap.
 | `dense_h16` | v3 | 2⁻⁹ | 8B (7630) | 16 × 32 | 24 h | ~14 h, 6.27 s/step | 6449448 | | PENDING | |
 | `ame_h20` | v4 | 2⁻⁸, banks 4× | 16B (15259) | 4 × 128 | 72 h | ~50 h, ~12 s/step | 6449449 | | PENDING | |
 | `dense_h20` | v3 | 2⁻⁹ | 16B (15259) | 4 × 128 | 72 h | ~47 h, ~11 s/step | 6449450 | | PENDING | |
+| `ame_h16_4gpu` | v4 | 2⁻⁸, banks 4× | 8B (7630) | 4 GPUs × 16 × 8 | 8 h | ~4 h, ~1.85 s/step | — | | not queued | |
+| `dense_h16_4gpu` | v3 | 2⁻⁹ | 8B (7630) | 4 GPUs × 16 × 8 | 8 h | ~3.3 h, ~1.5 s/step | — | | not queued | |
+| `ame_h20_4gpu` | v4 | 2⁻⁸, banks 4× | 16B (15259) | 4 GPUs × 16 × 8 | 24 h | ~14 h, 3.1 s/step | — | | not queued | |
+| `dense_h20_4gpu` | v3 | 2⁻⁹ | 16B (15259) | 4 GPUs × 16 × 8 | 24 h | ~11 h, 2.52 s/step | — | | not queued | |
 
-**Common to all six:**
+The first six use one H100 each. The `_4gpu` twins use one whole node each (4 H100), with
+FSDP2 and bf16 from its mixed precision; AME's banks are column-sharded over the four GPUs.
+The twins come from `66faba7c`; each inherits its 1-GPU config and changes only the parallel
+settings. The h20 twins are exactly the 4-GPU recipe h20 had until `ed4dbaef` (smokes: 2.96
+and 2.52 s/step, v1). The h16 twins take the settings of the best 4-GPU h16 cell measured
+(`configs/ame/h16_4gpu.yaml`).
+
+**Common to the first six:**
 - one H100 on LEM, r16-11 excluded;
 - seed 123, train `num_workers` 2, batch 512 × 2049 tokens;
 - autocast bf16 without FSDP2, `compile_blocks_full`;
@@ -48,6 +67,32 @@ Cemetery clones, under `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/l
 | `dense_h16` | `std_dense_h16_lr9_v3_2026-11-27_01-41-18` |
 | `ame_h20` | `std_ame_h20_lr8_v4_2026-11-27_01-41-36` |
 | `dense_h20` | `std_dense_h20_lr9_v3_2026-11-27_01-41-52` |
+| `ame_h16_4gpu` | `std_ame_h16_lr8_v4_4gpu_2026-11-27_01-57-38` |
+| `dense_h16_4gpu` | `std_dense_h16_lr9_v3_4gpu_2026-11-27_01-58-00` |
+| `ame_h20_4gpu` | `std_ame_h20_lr8_v4_4gpu_2026-11-27_01-58-20` |
+| `dense_h20_4gpu` | `std_dense_h20_lr9_v3_4gpu_2026-11-27_01-58-37` |
+
+## 1 GPU against 4 GPUs
+
+A twin and its 1-GPU run start from the same weights: every rank builds the whole model from
+the seed before FSDP2 shards it (`main.py`), and the banks' column shards slice the full draw.
+They read the same batches in the same order (`world_size_independent`). What differs is
+numerics:
+
+| | 1 GPU | 4 GPUs |
+|---|---|---|
+| bf16 from | autocast (fp32 weights, bf16 casts per op) | FSDP2's MixedPrecisionPolicy |
+| AME banks | whole, hand-managed path | column-sharded over the 4 GPUs |
+| micro-batch | 16 at h16, 4 at h20 | 16 |
+| gradient sum | over micro-batches | over micro-batches, then over 4 ranks |
+
+- **The measure:** the paired gap, the mean of (4 GPU − 1 GPU) `steps/train/loss` over the
+  last 500 steps (`scripts/paired_gap.py`, on branch `bank_sigma_grid`), with the `final_ce`
+  difference (±0.016) beside it.
+- **The step-0 loss** may differ in its last digits, because the precision path differs.
+- **The band:** a difference under 0.022 is a tie for AME (the h12 band; none is measured at
+  h16 or h20). Dense has no band; a dense gap is read with its loss curves
+  ([comparing-runs.md](../concepts/comparing-runs.md#when-a-difference-is-a-tie)).
 
 ## How each run is checked
 
@@ -92,3 +137,15 @@ Cemetery clones, under `/lustre/pd03/plgrid/plgllmefficont3/nano/plgmstefaniak/l
     line, the `#SBATCH` lines and the config values.
   - All six went to `sbatch` from one shell that read the W&B key from stdin.
   - 101 jobs were pending in the partition.
+- **2026-11-27, 01:50–02:10.**
+  - The 4-GPU twins were written (`66faba7c`). Resolved, the h20 twins equal the 4-GPU files
+    at `19d4d83e` except in name, tags and job name. Each twin differs from its 1-GPU config
+    only in the parallel settings. [tests/test_data_order.py](../../tests/test_data_order.py):
+    25 passed.
+  - The local halves pushed 01:57–01:58. The four clones were made over `ssh.github.com:443`
+    and checked.
+  - At about 02:00 all four `sbatch` calls failed with "Unable to contact slurm controller". At
+    02:03 `scontrol ping` reported both controllers DOWN (`slurm-1`, `slurm-2`), and
+    `slurm-db` timed out.
+  - A retry loop now submits the four when `squeue` answers again. It skips any job name
+    already in the queue, so a lost reply cannot make a duplicate.
