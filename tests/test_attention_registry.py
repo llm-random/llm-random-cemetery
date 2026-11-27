@@ -25,7 +25,7 @@ PLANNED = ("mla", "mamba2", "gated_deltanet")
 DIMS = dict(dmodel=64, q_heads=4, kv_heads=2, seq_len=16)
 
 # Every line-1 attention switch off; each task adds its key.
-SWITCHES_OFF = {"qk_norm": False, "output_gate": False}
+SWITCHES_OFF = {"qk_norm": False, "output_gate": False, "qk_clip": None}
 
 
 def _build(attention_type, seed=0, **overrides):
