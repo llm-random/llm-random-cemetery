@@ -255,6 +255,7 @@ class RoPEAttention(nn.Module):
         rope_base,
         rope_scale_freqs: bool,
         qk_norm: bool,
+        qk_clip,
         factor=32,
         low_freq_factor=1,
         high_freq_factor=4,
@@ -294,6 +295,28 @@ class RoPEAttention(nn.Module):
         if self.output_gate:
             self.g_proj = g_proj_fn()
 
+        # QK-Clip threshold (None = off): each head's max logit, for optimizers.qk_clip_.
+        self.qk_clip = qk_clip
+        if qk_clip is not None:
+            if qk_norm:
+                raise ValueError(
+                    "qk_clip scales W_q and W_k, which qk_norm normalizes away"
+                )
+            if qk_clip <= 0:
+                raise ValueError(f"qk_clip must be null or > 0, got {qk_clip}")
+            self.register_buffer(
+                "max_logits", torch.full((q_heads,), float("-inf")), persistent=False
+            )
+
+    @torch.no_grad()
+    def _track_max_logits(self, q, k):
+        """Each query head's largest causal logit (SDPA's scale) until qk_clip_ resets it."""
+        logits = q @ k.transpose(-2, -1) * self.dhead**-0.5
+        seq = logits.shape[-1]
+        future = torch.ones(seq, seq, dtype=torch.bool, device=q.device).triu(1)
+        head_max = logits.masked_fill(future, float("-inf")).amax(dim=(0, 2, 3))
+        self.max_logits.copy_(torch.maximum(self.max_logits, head_max.float()))
+
     def forward(self, x):
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
@@ -316,6 +339,8 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
+        if self.qk_clip is not None and self.training:
+            self._track_max_logits(q, k)
         attention_output = self.attention_mechanism(
             query=q, key=k, value=v, causal=True
         )
