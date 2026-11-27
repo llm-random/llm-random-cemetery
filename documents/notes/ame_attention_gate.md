@@ -1,8 +1,9 @@
 # AME attention gates: a read gate and an output gate
 
-**Status: proposed, 2026-11-27 (Maciej). Not implemented: this doc fixes the design before any
-code.** Code goes on branch `ame_gate` (worktree `~/code/nano-ame-gate`, cut from `ame_main` at
-`412fc774`).
+**Status: proposed, 2026-11-27 (Maciej). Not implemented yet: the
+[implementation plan](#implementation-plan) at the end is the brief for the build and its CPU
+tests; the GPU tests are a later, separate pass.** Code goes on branch `ame_gate` (worktree
+`~/code/nano-ame-gate`, cut from `ame_main`).
 
 Two gates in the style of the feed-forward's SwiGLU gate, `φ(W_g h) ⊙ (…)`, put on AME's
 attention. Each works alone, and both together are a valid config:
@@ -36,7 +37,7 @@ common:
     ame:
       read_gate: none           # A: none | elementwise | headwise
       output_gate: none         # B: none | elementwise
-      gate_activation: sigmoid  # sigmoid | silu
+      gate_activation: null     # sigmoid | silu; null = sigmoid when a gate is on
   dff: ...  # matched: 32 * round((26 - 2k) * H / 3), k = number of elementwise gates
 ```
 
@@ -311,29 +312,6 @@ reduces to `(2 + k)·dmodel² + 3·dmodel·dff` (plus `H·dmodel` for a headwise
   seed (as v4's did from v3); every other part keeps its init (per-component seeds,
   `src/core/init_rng.py`).
 
-## For the implementation (later; nothing is built)
-
-- **Where:** both in `AMEAttention.forward`, which already has `h` (its input, normalized by
-  `Residual`): A between the kernel's output, reshaped to `d_att`, and `o_proj`; B on
-  `o_proj`'s output. The kernels and `Residual` do not change.
-- **Parameters:** `Linear(dmodel → d_att or H)` for A and `Linear(dmodel → dmodel)` for B, no
-  bias, built last in `__init__` so every existing parameter keeps its place in the state dict.
-- **Init:** SwiGLU's rule (`llm_random_weight_init(dmodel, init_scale)`: a truncated normal,
-  std `1/√dmodel`), drawn from a private generator (`private_generator`, tags `read_gate` and
-  `output_gate`), as the ST gate is, so a gate switch moves no other weight's init.
-- **Optimizer:** weight decay as for every `Linear` weight; no bias, so nothing joins
-  `no_weight_decay_parameters`; not a bank, so `bank_lr_ratio` does not apply.
-- **Validation:** an unknown value fails at build with the offender named, and
-  `gate_activation` set while both gates are `none` is an error, as `confidence_init` is without
-  `bank_gate: confidence`.
-- **Readouts,** on the heavy-metric interval with the other AME readouts: per layer and head,
-  the mean gate and the share of gate values below 0.05 (Qwen's sparsity readout); for SiLU also
-  the share below 0.
-- **Tests:** gates off is bit-identical to today's layer (state dict and output); each gate
-  switch moves only its own parameters' init (`tests/test_init_rng.py`'s `SWITCHES`);
-  `score_matrix` is unchanged with the gates on; headwise A equals elementwise A with `W_A`'s
-  rows tied within each head; B equals scaling the module's output.
-
 ## Open points (proposed defaults)
 
 1. **Default activation:** `sigmoid`, on Qwen's G1 result; `silu` is the literal SwiGLU form.
@@ -350,3 +328,135 @@ reduces to `(2 + k)·dmodel² + 3·dmodel·dff` (plus `H·dmodel` for a headwise
 7. **Activation memory** is unmeasured: each elementwise gate keeps about one more
    `B × n × dmodel` tensor per layer for backward, and the matched FF a little less. h16 is the
    tight case, as for v4.
+
+## Implementation plan
+
+**Goal:** branch `ame_gate` holds both gates as this file specifies (the
+[decisions](#decisions-maciej-2026-11-27) and the proposed defaults of
+[open points](#open-points-proposed-defaults) 1–3) and passes every CPU test. Points 4–7 are
+for the runs, not for this build. The GPU tests are a later, separate pass
+([listed below](#later-the-gpu-pass)). This section is written for the agent that executes it.
+
+**Done when:**
+- `ame_gate` holds the build in logical commits.
+- In the worktree: the CPU gate has 0 failed and 0 errors, with no more skips than the
+  baseline (step 2); the slow CPU tests have 0 failed; `black --check` is clean. The final
+  report quotes the pytest summary lines and black's output.
+- This file's status says: implemented on `ame_gate` at `<sha>`, CPU-tested (with counts), GPU
+  tests pending.
+- Nothing is pushed; `ame_main` gained only doc commits; no GPU test or cluster job ran.
+
+**Rules:**
+- Never change the session's working directory. Reach `~/code/nano-ame-gate` by absolute path
+  and `git -C`. Run pytest and black in a subshell:
+  `(cd ~/code/nano-ame-gate && ~/code/nano/.pixi/envs/default/bin/python -m pytest …)`.
+- Code goes on `ame_gate`. This file is edited in `~/code/nano` and committed on `ame_main`,
+  staging only your own hunks (other sessions edit there), then cherry-picked onto `ame_gate`.
+- Do not merge `ame_gate` into `ame_main`. Push nothing.
+- No GPU test, no cluster job.
+- The decisions are final. If the code contradicts this plan or a decision is missing, ask
+  Maciej instead of guessing.
+- A failure already in the baseline is not yours: record it here, don't fix it.
+
+### Steps
+
+1. **Set up.** Symlink the gitignored `~/code/nano/data` and `~/code/nano/data_eval` into the
+   worktree (they stay untracked) so the slow smoke tests run. Read this file in full, then
+   `src/core/ame.py` (`AMEAttention.__init__`, `_init_gate`'s `stem` branch, `forward`,
+   `instrumentation`), `src/core/attention.py` (`_AME_OPTIONS`, `_build_ame`),
+   `src/core/init_rng.py`, `src/core/trainer.py` (`eval`, `_log_layer_instrumentation`),
+   `tests/test_init_rng.py` and the AME tests in `tests/test_training_smoke.py`.
+2. **Baseline,** on the untouched tree: the CPU gate from `.github/workflows/tests.yml`
+   (`pytest -m "not gpu and not slow and not network"`) and the slow CPU tests
+   (`-m "slow and not gpu and not network"`). Record passed, skipped and failed here. Save a
+   fingerprint of the h4 AME model at seed 1234 (every parameter, and a forward on fixed ids)
+   for the no-regression test (step 8).
+3. **Options** in `common.attention.ame`, added to `_AME_OPTIONS` and to `AMEAttention`'s
+   keyword-only arguments:
+   - `read_gate`: `none` (default) | `elementwise` | `headwise`
+   - `output_gate`: `none` (default) | `elementwise`
+   - `gate_activation`: unset (default) | `sigmoid` | `silu`. Unset means `sigmoid` when a gate
+     is on. Setting it while both gates are `none` is a `ValueError`, as `confidence_init` is
+     without `bank_gate: confidence`.
+   - An unknown value is a `ValueError` that names the valid set.
+4. **Parameters,** built last in `__init__` (after `_init_gate`), so every existing parameter
+   keeps its place in the state dict:
+   - `read_gate_proj`: `Linear(dmodel → d_att)` elementwise, `Linear(dmodel → q_heads)` headwise.
+   - `output_gate_proj`: `Linear(dmodel → dmodel)`.
+   - No bias. Build them with `_rng_neutral_linear` and initialize them with SwiGLU's rule,
+     `llm_random_weight_init(dmodel, init_scale)` (a truncated normal, std `1/√dmodel`), drawn
+     on the CPU from `private_generator("read_gate")` and `private_generator("output_gate")`,
+     exactly as the `stem` gate is (no draw on the meta device). No other parameter's init may
+     move.
+5. **Forward,** with `x` the layer's normalized input:
+   `out = attend(q, k, v)`, reshaped to `d_att` → A: elementwise `out ⊙ φ(read_gate_proj(x))`,
+   headwise each head's `dhead` channels times its scalar → `o = o_proj(out)` →
+   B: `o ⊙ φ(output_gate_proj(x))`. `φ` runs in the compute dtype (as the FF's SiLU) and is cast
+   to `out`'s dtype. Unchanged: the kernels (flex and reference), `_mixed_qkv`, the scores,
+   `score_matrix`, `attention_diagnostics`, `scores_read_hidden_state`.
+6. **Optimizer and accounting.** The gate weights decay like every `Linear` weight: they are not
+   in `no_weight_decay_parameters`, not banks (`bank_lr_ratio` does not apply) and not in
+   `non_matmul_parameters`, so `src/core/mfu.py` counts them as matmul weights. `extra_repr`
+   shows the three options.
+7. **Readouts that leave the training graph untouched.** This replaces the design's "on the
+   heavy-metric interval":
+   - Gate statistics are collected only in eval forwards (`self.training` is `False`), so dynamo
+     specializes the train graph without a branch or a graph break. A
+     `@torch.compiler.disable` helper accumulates them over the eval batches.
+   - They are reset at the start of each `Trainer.eval()` and logged at its end, per AME layer
+     and gate: the mean gate, the share below 0.05, for `silu` the share below 0, and for
+     headwise A the lowest per-head mean.
+   - The hook is duck-typed like `instrumentation()`, so a stack without gates logs nothing and
+     pays nothing.
+   - The statistics are rank-local on multi-GPU; record that here.
+   - If this design hits a blocker, choose another that keeps the training path unchanged and
+     record why.
+8. **Tests,** in a new `tests/test_ame_gates.py` unless noted:
+   - **No regression:** without gate options, the h4 fingerprint matches step 2's bit for bit;
+     the default layer equals one with explicit `none` (state-dict keys, parameters, output).
+   - **Validation:** every bad value, `output_gate: headwise` and `gate_activation` without a
+     gate raise a `ValueError` naming the valid set. The three keys pass `build_attention`
+     (`tests/test_attention_registry.py`) and reach every AME layer, including AME layers in a
+     `mix`.
+   - **Shapes, no bias and init,** per mode: weight std ≈ `0.88/√dmodel` (the truncation),
+     `|w| ≤ 2/√dmodel`; a sigmoid gate on unit-RMS input averages ≈ 0.50 at init.
+   - **Math** (reference backend, fp32): the output equals a manual computation from the layer's
+     own parameters for A elementwise, A headwise, B and A+B, under both activations. Headwise A
+     equals elementwise A with `W_A`'s rows tied within each head. B equals `φ(W_B x) ⊙` the
+     ungated output with the same parameters.
+   - **Score table:** `score_matrix` and `attention_diagnostics` are identical with gates on and
+     off; `scores_read_hidden_state` stays `False`.
+   - **Training path:** gradients are finite and nonzero for both gate weights. The CPU
+     fullgraph compile of the layer (as `tests/test_ame.py` does) works with gates on, in train
+     mode. A gated `state_dict` round-trips into a fresh model with identical outputs.
+   - **Optimizer and accounting:** the gate weights land in `parameter_groups`' decay group, not
+     the bank group; the MFU matmul-parameter count rises by exactly the gate weights.
+   - **Init isolation** (`tests/test_init_rng.py`'s `SWITCHES`): read gate elementwise, read
+     gate headwise, output gate, and both move only `read_gate_proj`/`output_gate_proj`, and
+     the global stream after build is unchanged; `gate_activation` `silu` against `sigmoid`
+     (with a gate on) moves no parameter.
+   - **Matching:** compose `configs/standard/{ame,dense}_h{12,16,20}.yaml` on the meta device,
+     AME with gates and `dff = 32·round((26 − 2k)·H/3)`. Active parameters (a bank counts one
+     row per layer) are within ±0.3% of dense, reproducing the [matching](#matching) table.
+   - **End to end** (`tests/test_training_smoke.py`, slow): AME with A elementwise + B, and with
+     A headwise + `silu`, trains through `main.py` on the CPU: finite losses, a checkpoint
+     written, the gate readouts in the log (set the eval interval so an eval runs inside the
+     run).
+9. **Gate.** Rerun the CPU gate and the slow CPU tests as in step 2, plus
+   `~/code/nano/.pixi/envs/default/bin/black --check --extend-exclude='\.ipynb$' .`, and
+   compare with the baseline.
+10. **Update this file:** the status at the top (implemented on `ame_gate` at `<sha>`,
+    CPU-tested with counts, GPU tests pending), what was built, the readout mechanism, and
+    anything that departs from this plan. Commit it on `ame_main`, then cherry-pick it onto
+    `ame_gate`. End with a report: what was built, test counts before and after, the commits,
+    what is left open.
+
+### Later: the GPU pass
+
+Not part of this plan; it runs once the build is in.
+
+- flex against reference with gates: forward and backward, bf16 autocast.
+- The compiled training path: no new graph breaks.
+- FSDP2 and the memory-parallel controller with gates; checkpoint resume.
+- Step time, MFU and peak memory at h16 for no gate, A, and A+B, matched
+  ([open point](#open-points-proposed-defaults) 7).
