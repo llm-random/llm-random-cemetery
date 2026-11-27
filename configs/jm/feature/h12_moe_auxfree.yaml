@@ -1,0 +1,29 @@
+# h12_moe balanced by DeepSeek-V3's aux-loss-free expert bias (arXiv 2408.15664) instead of the balance loss.
+defaults:
+  - ../h12_chinchilla@_global_
+  - ../../_ff_layer@model.encoder.block_fn.ff_layer_fn: moe
+  - _self_
+
+model:
+  encoder:
+    block_fn:
+      ff_layer_fn:
+        load_balancing_loss_factor: 0.0
+        expert_bias_update_rate: 0.001
+
+trainer:
+  # FLOPs-matched: 50_000 * 854_544_384 / 854_986_752 FLOPs/token (router +0.05%) = 49_974 -> 49_970
+  n_steps: 49_970
+
+infrastructure:
+  metric_logger:
+    name: h12_moe_auxfree
+    tags:
+      - nano
+      - h12
+      - chinchilla
+      - wsd
+      - qk_norm
+      - bs64
+      - moe
+      - auxfree
