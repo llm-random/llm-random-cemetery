@@ -930,6 +930,10 @@ class Trainer:
         self.model.eval()
         saved_step = self.step
         self.metric_logger.set_step(None)  # disables heavy logging
+        # AME's attention-gate readout (src.core.ame) accumulates over eval-mode
+        # forwards; start it here, so what is logged below covers exactly this
+        # eval's batches.
+        self._reset_gate_statistics()
         losses = []
         eval_fingerprint = []
         # Restart the eval stream every time. The iterator used to be created once and
@@ -950,12 +954,46 @@ class Trainer:
                 self.metric_logger.flush_accumulated_metrics()
             avg_loss = torch.stack(losses).mean()
             self.metric_logger.log("eval/loss", avg_loss.item())
+        self._log_gate_statistics()
 
         if self._should_log_eval_input:
             self.metric_logger.log("eval/batch", str(eval_fingerprint))
 
         self.step = saved_step  # Restore step
         self.metric_logger.set_step(saved_step)
+
+    def _reset_gate_statistics(self):
+        for module in self.model.modules():
+            reset = getattr(module, "reset_gate_statistics", None)
+            if reset is not None:
+                reset()
+
+    def _log_gate_statistics(self):
+        """Per-layer readouts taken during this eval, from any module that offers
+        them: AME's attention gates (src.core.ame, `gate_statistics`).
+
+        Duck-typed like _log_layer_instrumentation, on a `gate_statistics()`
+        method returning `{name: float}`, so a stack without attention gates
+        logs nothing. Logged at every eval as `eval/<module>/<name>`. Rank-local:
+        each rank's readout covers its own eval batches, so a multi-GPU run's
+        W&B history shows rank 0's.
+        """
+        for module_name, module in self.model.named_modules():
+            read = getattr(module, "gate_statistics", None)
+            if read is None:
+                continue
+            # A readout must never kill a run (see _log_layer_instrumentation);
+            # this one only reads sums the eval forwards left on the module.
+            try:
+                items = read().items()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    f"gate statistics for {module_name} failed and are skipped "
+                    f"for this eval: {type(exc).__name__}: {exc}"
+                )
+                continue
+            for key, value in items:
+                self.metric_logger.log(f"eval/{module_name}/{key}", value)
 
     def clip_gradient(self):
         if self.gradient_clipping is not None:
