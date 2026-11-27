@@ -90,6 +90,42 @@ SWITCHES = [
         )
         for gate in ("confidence", "context", "backoff", "stem")
     ],
+    # The attention gates (documents/notes/ame_attention_gate.md): their weights
+    # are new parameters, so "changes only what it switches" means no shared
+    # parameter moves at all.
+    *[
+        (f"AME {name}", AME, AME + [f"++common.attention.ame={{{options}}}"], ())
+        for name, options in (
+            ("read gate elementwise", "read_gate: elementwise"),
+            ("read gate headwise", "read_gate: headwise"),
+            ("output gate", "output_gate: elementwise"),
+            (
+                "read and output gates",
+                "read_gate: elementwise, output_gate: elementwise",
+            ),
+        )
+    ],
+    (
+        "AME output gate beside a read gate",
+        AME + ["++common.attention.ame={read_gate: headwise}"],
+        AME
+        + ["++common.attention.ame={read_gate: headwise, output_gate: elementwise}"],
+        (),
+    ),
+    (
+        "AME gate activation",
+        AME
+        + [
+            "++common.attention.ame={read_gate: elementwise, "
+            "output_gate: elementwise, gate_activation: sigmoid}"
+        ],
+        AME
+        + [
+            "++common.attention.ame={read_gate: elementwise, "
+            "output_gate: elementwise, gate_activation: silu}"
+        ],
+        (),
+    ),
     ("dense NoPE", DENSE, DENSE + ["++common.attention.gqa={rope: false}"], ()),
     ("attention type", DENSE, AME, ("attention_layer.layer",)),
     (

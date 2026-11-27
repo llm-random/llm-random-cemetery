@@ -190,6 +190,79 @@ def test_an_ame_stack_trains_end_to_end_through_main(tmp_path):
     )
 
 
+def _gated_ame_run(tmp_path, name, options):
+    """An AME stack with attention gates (documents/notes/ame_attention_gate.md)
+    through main.py, evaluated at steps 5 and 10 so the eval-time gate readout
+    fires inside the run: finite losses for every step and the final checkpoint,
+    as for the ungated stack."""
+    save_path, output = _run(
+        tmp_path,
+        "nano",
+        name=name,
+        extra=[
+            "common.attention.type=ame",
+            f"++common.attention.ame={options}",
+            "trainer.eval_interval=5",
+            "trainer.n_eval_steps=2",
+        ],
+    )
+    losses = _losses_by_step(output)
+    assert len(losses) >= N_STEPS, f"expected >= {N_STEPS} losses, got {len(losses)}"
+    values = [float(v) for v in losses.values()]
+    assert all(0 < v < float("inf") for v in values), f"bad losses {values}"
+    step_dir = os.path.join(save_path, f"step_{N_STEPS - 1}")
+    assert os.path.isdir(step_dir), f"no checkpoint at {step_dir}"
+    assert output.count("eval/loss:") == 2, "expected the evals at steps 5 and 10"
+    return output
+
+
+def _gate_readouts(output):
+    """`<gate>/<statistic>` -> the values logged for it, one per AME layer and
+    eval, from the eval/<layer>/<gate>/<statistic> lines."""
+    found = {}
+    pattern = (
+        r"-> eval/encoder\.blocks\.\d+\.attention_layer\.layer/(\w+/[\w.]+): (\S+)"
+    )
+    for line in output.splitlines():
+        match = re.search(pattern, line)
+        if match:
+            found.setdefault(match.group(1), []).append(float(match.group(2)))
+    return found
+
+
+def test_an_ame_stack_with_both_attention_gates_trains_end_to_end(tmp_path):
+    """A elementwise and B together, the sigmoid default."""
+    output = _gated_ame_run(
+        tmp_path, "ame_gates", "{read_gate: elementwise, output_gate: elementwise}"
+    )
+    readouts = _gate_readouts(output)
+    assert set(readouts) == {
+        "read_gate/mean",
+        "read_gate/below_0.05",
+        "output_gate/mean",
+        "output_gate/below_0.05",
+    }, "the gate readout never reached the metric logger"
+    for key, values in readouts.items():
+        assert len(values) == 4 * 2, f"{key}: 4 AME layers x 2 evals, got {values}"
+        assert all(0.0 <= v <= 1.0 for v in values), f"{key} out of [0, 1]: {values}"
+
+
+def test_an_ame_stack_with_a_headwise_silu_read_gate_trains_end_to_end(tmp_path):
+    output = _gated_ame_run(
+        tmp_path, "ame_gate_headwise", "{read_gate: headwise, gate_activation: silu}"
+    )
+    readouts = _gate_readouts(output)
+    assert set(readouts) == {
+        "read_gate/mean",
+        "read_gate/below_0.05",
+        "read_gate/below_0",
+        "read_gate/head_mean_min",
+    }, "the gate readout never reached the metric logger"
+    for key, values in readouts.items():
+        assert len(values) == 4 * 2, f"{key}: 4 AME layers x 2 evals, got {values}"
+        assert all(v == v and abs(v) < float("inf") for v in values), key
+
+
 def test_a_token_budget_trains_for_the_steps_it_resolves_to(tmp_path):
     """trainer.n_tokens_b through the real entry point. The dumped/composed
     config says tokens and leaves n_steps null; main.run must turn that into

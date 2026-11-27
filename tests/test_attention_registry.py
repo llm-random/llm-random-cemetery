@@ -263,3 +263,45 @@ def test_the_error_names_the_types_that_do_take_options():
         _build("gqa", attention={"type": "gqa", "nonsense": {}})
     assert "'ame'" in str(caught.value)
     assert "mamba2" not in str(caught.value)
+
+
+# ---------------------------------------------------------------------------
+# AME's attention gates (documents/notes/ame_attention_gate.md; the layer's own
+# tests are tests/test_ame_gates.py): three options of the `attention.ame` block,
+# which reach every AME layer, base or mix.
+
+GATE_OPTIONS = {
+    "read_gate": "headwise",
+    "output_gate": "elementwise",
+    "gate_activation": "silu",
+}
+
+
+def test_the_attention_gate_options_pass_build_attention():
+    layer = _build("ame", attention={"type": "ame", "ame": GATE_OPTIONS})
+    assert {key: getattr(layer, key) for key in GATE_OPTIONS} == GATE_OPTIONS
+    with pytest.raises(ValueError, match="unknown attention.ame options") as caught:
+        _build("ame", attention={"type": "ame", "ame": {"read_gates": "headwise"}})
+    for key in GATE_OPTIONS:
+        assert key in str(caught.value), "the error lists the valid options"
+
+
+@pytest.mark.parametrize("stack", ["uniform", "mix"])
+def test_the_attention_gate_options_reach_every_ame_layer(stack):
+    options = "{read_gate: headwise, output_gate: elementwise, gate_activation: silu}"
+    overrides = [f"+common.attention.ame={options}"]
+    if stack == "uniform":
+        overrides.append("common.attention.type=ame")
+    else:
+        overrides.append("+common.attention.mix={type: ame, layers: every_2nd}")
+    model = _h4_model(overrides)
+    layers = [block.attention_layer.layer for block in model.encoder.blocks]
+    ame = [layer for layer in layers if type(layer).__name__ == "AMEAttention"]
+    assert len(ame) == (4 if stack == "uniform" else 2)
+    for layer in ame:
+        assert {key: getattr(layer, key) for key in GATE_OPTIONS} == GATE_OPTIONS
+        assert layer.read_gate_proj.weight.shape == (layer.q_heads, layer.dmodel)
+        assert layer.output_gate_proj.weight.shape == (layer.dmodel, layer.dmodel)
+    for layer in layers:
+        if all(layer is not gated for gated in ame):
+            assert not hasattr(layer, "read_gate_proj")
