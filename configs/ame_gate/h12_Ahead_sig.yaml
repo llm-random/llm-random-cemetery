@@ -1,0 +1,67 @@
+# AME attention gates at h12, arm `Ahead_sig`: read_gate headwise, output_gate none, sigmoid.
+# Stage 1 of the screen in documents/notes/ame_attention_gate.md ("Experiments at h12").
+#
+# A copy of configs/standard/ame_h12.yaml (AME v4). Only these differ:
+#   - the cluster: entropy, one H100 (gres as configs/ame/h12_1gpu.yaml), no LEM exclude,
+#     a 6 h limit (the run takes about 4 h there);
+#   - common.dff = 3328, matched: 32 * round((26 - 2k) * H / 3) with k = 0 elementwise
+#     gate(s);
+#   - the gate options in common.attention.ame;
+#   - the final checkpoint on /storage_nvme_3 (h100a only), not in the cemetery: entropy's
+#     $HOME holds the cemetery and has a 120G quota, about 13 GB per AME h12 checkpoint;
+#   - the run name, job name and tags.
+# Same seed, data order, steps and schedule as every other arm, so every pair is paired.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/h_balanced@_here_: h12
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  dff: 3328 # 32 * round((26 - 2 * 0) * 12 / 3)
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: 1.0e-4
+      read_gate: headwise
+      gate_activation: sigmoid
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 16 # micro-batch 32
+  mem_parallel_size: 1 # hand-managed bank path (Tier 2), banks unsharded
+  distributed: null
+  autocast_bf16: true
+  n_steps: 3815 # D = 4B tokens / 1,048,576 tokens per step
+  n_tokens_b: null
+  learning_rate: 8 # LR = 2^-8
+  bank_lr_ratio: 4.0 # banks at 4 x 2^-8
+  checkpoint:
+    save:
+      path: /storage_nvme_3/mstefaniak/ame_gate_h12/Ahead_sig # final checkpoint only
+
+infrastructure:
+  slurm:
+    gres: gpu:h100:1 # entropy's gres syntax
+    job-name: gate_h12_Ahead_sig
+    time: "0-06:00:00"
+  metric_logger:
+    project_name: nano-ame
+    name: gate_h12_Ahead_sig_lr8
+    tags:
+      - ame
+      - h12
+      - ame_gate
+      - gate_Ahead_sig
+      - standard_v4
+      - bank_lr4
+      - bank_std1e4
+      - dff_matched
