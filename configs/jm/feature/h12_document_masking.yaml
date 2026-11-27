@@ -1,0 +1,20 @@
+# h12_chinchilla with document masking (flex BlockMask from EOS tokens); mfu.py keeps the dense count, so 50_000 steps.
+defaults:
+  - ../h12_chinchilla@_global_
+  - _self_
+
+common:
+  attention:
+    document_masking: true
+
+infrastructure:
+  metric_logger:
+    name: h12_document_masking
+    tags:
+      - nano
+      - h12
+      - chinchilla
+      - wsd
+      - qk_norm
+      - bs64
+      - document_masking

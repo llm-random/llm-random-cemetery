@@ -31,10 +31,15 @@ common:
     output_gate: false
     # layers that skip RoPE (NoPE), same syntax as mix.layers; null = RoPE everywhere
     no_rope_layers: null
+    # attend only within each document; LLM finds the boundaries from EOS tokens
+    document_masking: false
 
 
 model:
   _target_: src.core.model.LLM
+  document_masking: ${common.attention.document_masking}
+  # GPT-NeoX <|endoftext|>, which ends every document (checked 2026-11-12)
+  eos_token_id: 0
 
   embedding:
     _target_: src.core.model.TransformerEmbedding

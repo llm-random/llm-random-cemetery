@@ -7,6 +7,7 @@ from typing import Callable, Optional
 import torch.nn.functional as F
 import torch.distributed as dist
 from torch.nn.attention import SDPBackend
+from torch.nn.attention.flex_attention import create_block_mask, flex_attention
 from torch.nn.init import trunc_normal_ as trunc_normal_
 from torch.nn import (
     LayerNorm as LayerNorm,
@@ -65,9 +66,9 @@ class Residual(nn.Module):
     def set_metric_logger(self, metric_logger):
         self.metric_logger = metric_logger
 
-    def forward(self, x):
+    def forward(self, x, **layer_kwargs):
         normalized = self.norm(x)
-        out = self.layer(normalized)
+        out = self.layer(normalized, **layer_kwargs)
         if self.metric_logger is not None:
             self._accumulate_intermediate_metrics(x, out)
         return out + x
@@ -298,7 +299,7 @@ class RoPEAttention(nn.Module):
         if self.output_gate:
             self.g_proj = g_proj_fn()
 
-    def forward(self, x):
+    def forward(self, x, block_mask):
         query_states = self.q_proj(x)
         key_states = self.k_proj(x)
         value_states = self.v_proj(x)
@@ -321,9 +322,13 @@ class RoPEAttention(nn.Module):
 
         k = repeat_kv(k, self.q_heads // self.kv_heads)
         v = repeat_kv(v, self.q_heads // self.kv_heads)
-        attention_output = self.attention_mechanism(
-            query=q, key=k, value=v, causal=True
-        )
+        if block_mask is None:
+            attention_output = self.attention_mechanism(
+                query=q, key=k, value=v, causal=True
+            )
+        else:
+            # Document masking; default scale 1/sqrt(dhead), as SDPA and QK-norm use.
+            attention_output = _flex_attention(q, k, v, block_mask=block_mask)
 
         attention_output = attention_output.transpose(1, 2).contiguous().flatten(-2)
         if self.output_gate:
@@ -396,8 +401,8 @@ class TransformerBlock(nn.Module):
             log_name=f"{self.log_name}/residual_feedforward",
         )
 
-    def forward(self, x):
-        x = self.attention_layer(x)
+    def forward(self, x, block_mask):
+        x = self.attention_layer(x, block_mask=block_mask)
         x = self.ff_layer(x)
         return x
 
@@ -424,9 +429,9 @@ class TransformerEncoder(nn.Module):
         super().__init__()
         self.blocks = nn.ModuleList([block_fn(i) for i in range(n_blocks)])
 
-    def forward(self, x):
+    def forward(self, x, block_mask):
         for block in self.blocks:
-            x = block(x)
+            x = block(x, block_mask)
         return x
 
 
@@ -448,17 +453,47 @@ class LLM(nn.Module):
         embedding: nn.Module,
         encoder: nn.Module,
         head: nn.Module,
+        document_masking: bool,
+        eos_token_id: int,
     ):
         super().__init__()
         self.embedding = embedding
         self.encoder = encoder
         self.head = head
+        self.document_masking = document_masking
+        self.eos_token_id = eos_token_id
 
-    def forward(self, *args, **kwargs):
-        x = self.embedding(*args, **kwargs)
-        x = self.encoder(x)
+    def forward(self, input_ids):
+        x = self.embedding(input_ids)
+        block_mask = (
+            self.document_block_mask(input_ids) if self.document_masking else None
+        )
+        x = self.encoder(x, block_mask)
         x = self.head(x)
         return x
+
+    def document_block_mask(self, input_ids):
+        """Causal AND same document; one BlockMask per forward, shared by every layer."""
+        if input_ids.dim() != 2:
+            raise ValueError(
+                "document_masking needs [batch, seq] input_ids, not token bags"
+            )
+        is_eos = input_ids == self.eos_token_id
+        # EOSs strictly before each position: an EOS belongs to the document it ends.
+        doc_ids = torch.cumsum(is_eos, dim=1) - is_eos.long()
+
+        def mask_mod(b, h, q_idx, kv_idx):
+            return (kv_idx <= q_idx) & (doc_ids[b, q_idx] == doc_ids[b, kv_idx])
+
+        batch, seq_len = input_ids.shape
+        return create_block_mask(
+            mask_mod,
+            B=batch,
+            H=None,
+            Q_LEN=seq_len,
+            KV_LEN=seq_len,
+            device=input_ids.device,
+        )
 
 
 def attention_mechanism(
@@ -478,6 +513,21 @@ def attention_mechanism(
             attn_mask=None,
             is_causal=causal,
         )
+
+
+_COMPILED_FLEX = None
+
+
+def _flex_attention(q, k, v, **kwargs):
+    """flex_attention, compiled; bare, it materializes every score (origin/ame_improve)."""
+    # A compiled block lowers flex in its own graph; CPU can't compile flex with grads.
+    if torch.compiler.is_compiling() or not q.is_cuda:
+        return flex_attention(q, k, v, **kwargs)
+    global _COMPILED_FLEX
+    if _COMPILED_FLEX is None:
+        # dynamic=False: seq_len is fixed per run.
+        _COMPILED_FLEX = torch.compile(flex_attention, dynamic=False)
+    return _COMPILED_FLEX(q, k, v, **kwargs)
 
 
 class AttentionMechanism(nn.Module):
