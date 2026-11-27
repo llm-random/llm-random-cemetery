@@ -8,6 +8,7 @@ common:
     qk_norm: true
     output_gate: true
     no_rope_layers: every_4th
+    document_masking: true
 
 infrastructure:
   metric_logger:

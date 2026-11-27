@@ -1,0 +1,21 @@
+# tiny_local with document masking at seq 256 (76% of sequences hold a boundary, 8.5% at 16). Run: pixi run python main.py --config-path configs/jm/feature --config-name tiny_local_document_masking
+defaults:
+  - ../../tiny_local@_global_
+  - _self_
+
+common:
+  sequence_length: 256
+  attention:
+    document_masking: true
+
+trainer:
+  train_dataloader:
+    dataset:
+      sequence_length: ${common.sequence_length}
+  eval_dataloader:
+    dataset:
+      sequence_length: ${common.sequence_length}
+
+infrastructure:
+  metric_logger:
+    type: stdout

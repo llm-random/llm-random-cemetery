@@ -45,6 +45,7 @@ class AttentionSchema:
     output_gate: bool = MISSING
     # Layers that skip RoPE, same syntax as mix.layers; null = RoPE everywhere.
     no_rope_layers: Any = MISSING
+    document_masking: bool = MISSING
 
 
 @dataclass

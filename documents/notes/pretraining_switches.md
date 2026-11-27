@@ -22,7 +22,7 @@ after the survey in `open_model_architectures.md`.
 | QK-norm | Exists | `common.attention.qk_norm`: per-head RMSNorm before RoPE (`qk_norm_survey.md`) | `pre_attn_fn` on `origin/ctx_scl` |
 | SwiGLU | Exists | Default FF; GELU MLP via `_target_` swap | |
 | GQA | Exists | Default; `common.attention.type` picks gqa, mha or mqa | |
-| Document masking | Missing | Documents are joined with EOS and attend across each other | Compiled `flex_attention` wrapper (`_flex_attention` in `src/core/ame.py` on `origin/ame_improve`, an unrelated project; borrow the code only) |
+| Document masking | Exists | `common.attention.document_masking`: `LLM` builds a flex block mask from EOS tokens (line 1 task 4) | Compiled `flex_attention` wrapper (`_flex_attention` in `src/core/ame.py` on `origin/ame_improve`, an unrelated project; borrow the code only) |
 | Attention output gate | Missing | No code | None found |
 | Wider residual stream? | Missing | One residual stream, in `Residual` | None found |
 | Indexer sparse attention? | Missing | No code | None found |
