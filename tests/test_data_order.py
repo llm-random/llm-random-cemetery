@@ -161,7 +161,9 @@ def test_the_standard_runs_read_the_whole_stream_and_split_evenly(name):
 
 def test_the_job_gpu_count_comes_from_the_gres():
     assert job_gpu_count(_standard("ame_h12")) == 1
-    assert job_gpu_count(_standard("ame_h20")) == 4
+    assert job_gpu_count(_standard("ame_h20")) == 1
+    four = _standard("ame_h20", ["infrastructure.slurm.gres=gpu:hopper:4"])
+    assert job_gpu_count(four) == 4
     two_nodes = OmegaConf.create(
         {"infrastructure": {"slurm": {"gres": "gpu:h100:4", "nodes": 2}}}
     )

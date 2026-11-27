@@ -75,6 +75,13 @@ pairs with:
 [comparing-runs.md](../concepts/comparing-runs.md#which-runs-pair). Neither config has a
 `document_mask` key: it exists only on the rejected branch `doc_mask`.
 
+**All six run on one H100 since 2026-11-27** (Maciej). h12 and h16 always did; h20 ran on 4
+GPUs under FSDP2. At h20 both models now train at micro-batch 4 × 128 without FSDP2: 4 is
+the largest AME h20 fits beside its whole banks, and dense matches it as at h12 and h16. That
+puts all six on one precision path, autocast bf16, at a 3-day limit, about 2 days a run. The
+data order does not depend on the GPU count, and no h20 run of v3 or v4 existed, so the
+names stay.
+
 AME:
 
 ```yaml
