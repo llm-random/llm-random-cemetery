@@ -1239,6 +1239,8 @@ class AMEAttention(nn.Module):
         instead of the full `[B, H, n, n]` -- about 21 MB rather than 336 MB at
         h20, once per heavy-metric interval.
 
+        With a sink, `sink_mass/mean` is the share of the attention it takes.
+
         Entropy is reported twice. The raw mean is in nats; it is dominated by
         position, because query row `i` can only see `i + 1` keys and an early
         row is near-zero whatever the head is doing. The **normalized** figure
@@ -1279,7 +1281,7 @@ class AMEAttention(nn.Module):
         ceiling = visible.log().clamp_min(1e-6).view(1, 1, -1)
         k_eff = min(top_k, weights.shape[-1])
 
-        return {
+        readout = {
             "attention_entropy/nats": entropy.mean().item(),
             "attention_entropy/normalized": (entropy / ceiling).mean().item(),
             f"top{k_eff}_mass/mean": weights.topk(k_eff, dim=-1)
@@ -1287,6 +1289,13 @@ class AMEAttention(nn.Module):
             .mean()
             .item(),
         }
+        if offset:
+            # The share of attention the learned sink (kv column 0) takes,
+            # over the sampled rows and every head. Qwen's gated attention
+            # reads the gate as doing the sink's job, so this is the readout
+            # that says whether AME's attention gates do (ame_attention_gate.md).
+            readout["sink_mass/mean"] = weights[..., :offset].sum(-1).mean().item()
+        return readout
 
     def attention_score_flops_per_token(self, seq_len):
         """QK^T and AV, the PaLM convention: 2*s*datt each per token forward,

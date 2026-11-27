@@ -1139,6 +1139,7 @@ _DIAGNOSTIC_KEYS = {
     "attention_entropy/nats",
     "attention_entropy/normalized",
     "top8_mass/mean",
+    "sink_mass/mean",  # every layer here has the default sink
 }
 
 
@@ -1169,6 +1170,23 @@ def test_a_collapsed_head_reads_as_collapsed():
 
     assert after["attention_entropy/normalized"] < 0.1, after
     assert after["top8_mass/mean"] > before["top8_mass/mean"]
+
+
+def test_the_sink_mass_is_the_attention_on_the_sink_column():
+    """The share of every sampled row's softmax that lands on kv column 0, the
+    learned sink, averaged over rows and heads: recomputed here from
+    score_matrix, which forms the same scores in full."""
+    layer = _layer()
+    with torch.no_grad():  # off its zero init, so the sink's share is not 1/(i+2)
+        layer.k_sink.copy_(torch.randn(layer.k_sink.shape) * 3.0)
+    _, token_ids = _batch(layer)
+    readout = layer.attention_diagnostics(token_ids, max_rows=10_000)
+    weights = layer.score_matrix(token_ids[:1]).softmax(dim=-1)
+    assert readout["sink_mass/mean"] == pytest.approx(
+        weights[..., 0].mean().item(), rel=1e-5
+    )
+    # Without a sink there is nothing to report, not a zero.
+    assert "sink_mass/mean" not in _layer(sink=False).attention_diagnostics(token_ids)
 
 
 def test_the_diagnostics_need_no_activations():
