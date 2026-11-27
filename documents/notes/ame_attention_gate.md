@@ -653,6 +653,44 @@ Qwen did not measure B under SiLU.
 
 Record the pytest summary lines and the smoke table here. A failure stops the plan: ask Maciej.
 
+**Stage 0 results (2026-11-27): passed.**
+1. **The sink-mass readout:** `e01d9b25` on `ame_gate`, tested against the scores
+   `score_matrix` forms (`tests/test_ame.py`).
+2. **GPU tests:** job 47279 on h100a, two H100s, from the committed tree `b0badea3`:
+   `39 passed, 251 deselected, 1 warning in 123.91s (0:02:03)`. That is the 26 new gate tests of
+   the list above and AME's 13 existing GPU tests. One CPU test was added beside them: with the
+   gates on, the hand-managed bank path stays bit-identical to the ordinary one
+   (`tests/test_memory_parallel.py`).
+3. **Smokes:** jobs 47280–47288, 60 steps each at micro-batch 32. Every arm trained to step 59
+   and logged its gate readout and the sink mass. All fit at micro-batch 32, so no arm changed
+   its micro-batch.
+
+   | Arm | W&B | Step-0 loss | s/step | Against control | Peak GiB | Against control |
+   |---|---|---:|---:|---:|---:|---:|
+   | `control` | `ngw15i0m` | 11.1875 | 3.468 | | 70.7 | |
+   | `Ahead_sig` | `uqbtr814` | 11.2500 | 3.557 | +2.6% | 73.0 | +3.2% |
+   | `Ahead_silu` | `6sjtpfc6` | 11.2500 | 3.560 | +2.7% | 72.8 | +2.9% |
+   | `Aelem_sig` | `bw5rq6dd` | 11.1875 | 3.543 | +2.2% | 73.0 | +3.2% |
+   | `Aelem_silu` | `yb922zef` | 11.2500 | 3.580 | +3.2% | 73.0 | +3.2% |
+   | `B_sig` | `5g8danh8` | 11.1875 | 3.530 | +1.8% | 73.0 | +3.2% |
+   | `B_silu` | `0yntp96b` | 11.1875 | 3.528 | +1.7% | 73.0 | +3.2% |
+   | `AelemB_sig` | `ig5m8umj` | 11.1875 | 3.601 | +3.9% | 73.9 | +4.5% |
+   | `AelemB_silu` | `4vka4xed` | 11.1875 | 3.636 | +4.8% | 74.1 | +4.8% |
+
+   The step-0 losses sit at ln V + 0.36 to 0.42, as for any fresh model here (bf16 rounds them
+   to steps of 1/16). s/step is the median from step 10 on.
+
+**On entropy, two changes to the usual setup:**
+- `$HOME` was at its 120G quota, 86G of it the cemetery, so a new clone could not be written.
+  The rattler download cache (`~/.cache/rattler`, 7.6G) was deleted to make room; no checkpoint
+  and no log was touched.
+- The final checkpoints go to `/storage_nvme_3/mstefaniak/ame_gate_h12/<arm>`, not into the
+  cemetery: at about 13 GB each they would not fit in `$HOME`.
+
+**Stage 1 submitted** on 2026-11-27 at 19:13: jobs 47294 (`control`) to 47302 (`AelemB_silu`), in
+the table's order. The cemetery branches are `gate_h12_<arm>_lr8_2026-11-27_19-0*`, with code
+`b0badea3`.
+
 ### Stage 1: the screen, 9 runs
 
 | # | Arm | `read_gate` | `output_gate` | `gate_activation` | k | `dff` |
