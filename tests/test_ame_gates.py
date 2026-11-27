@@ -831,3 +831,364 @@ def test_an_eval_without_gates_logs_the_loss_only():
     stub = _eval_stub(_h4_model(), batches)
     stub.eval()
     assert list(stub.metric_logger.logged) == ["eval/loss"]
+
+
+# ---------------------------------------------------------------------------
+# GPU: Stage 0 of ame_attention_gate.md's "Experiments at h12". Built at the H
+# family's d_head of 64: flex's compiled kernel needs at least 16, and a GPU test
+# at a shape the runs never use would prove nothing about them.
+
+GPU_DIMS = dict(dmodel=256, q_heads=4, kv_heads=2, seq_len=64)
+GATED_H4 = [
+    "+common.attention.ame="
+    "{read_gate: headwise, output_gate: elementwise, gate_activation: silu}"
+]
+BF16_EPS = 2.0**-8
+
+
+def _cuda_layer(read_gate, output_gate, activation, seed=0):
+    torch.manual_seed(seed)
+    layer = AMEAttention(
+        **GPU_DIMS,
+        vocab_size=VOCAB,
+        read_gate=read_gate,
+        output_gate=output_gate,
+        gate_activation=activation,
+    ).cuda()
+    assert layer.dhead == 64
+    return _perturb_sink(layer)
+
+
+def _cuda_batch(seed=1, batch=2):
+    generator = torch.Generator().manual_seed(seed)
+    token_ids = torch.randint(
+        0, VOCAB, (batch, GPU_DIMS["seq_len"]), generator=generator
+    )
+    x = torch.randn(batch, GPU_DIMS["seq_len"], GPU_DIMS["dmodel"], generator=generator)
+    target = torch.randn(x.shape, generator=generator)
+    return x.cuda(), token_ids.cuda(), target.cuda()
+
+
+def _forward_backward(layer, x, token_ids, target, autocast=False, call=None):
+    """The output and the gradient of <output, target> for every parameter of
+    `layer` and for x. `call` runs the forward instead of the layer itself (a
+    compiled wrapper); the gradients are read off the layer either way."""
+    layer.zero_grad(set_to_none=True)
+    x = x.clone().requires_grad_(True)
+    with torch.autocast("cuda", dtype=torch.bfloat16, enabled=autocast):
+        out = (call or layer)(x, token_ids)
+    (out.float() * target).sum().backward()
+    grads = {n: p.grad.detach().float().clone() for n, p in layer.named_parameters()}
+    grads["x"] = x.grad.detach().float().clone()
+    return out.detach().float(), grads
+
+
+def _relative(a, b):
+    """max |a - b| over max |b|: an error on the scale of the tensor."""
+    return ((a - b).abs().max() / b.abs().max().clamp_min(1e-12)).item()
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize(
+    "read_gate, output_gate, activation", GATED, ids=[_ids(c) for c in GATED]
+)
+def test_on_cuda_flex_matches_the_reference_kernel_under_every_gate(
+    read_gate, output_gate, activation
+):
+    """fp32: the production kernel and the materialized reference compute the
+    same gated layer, forward and backward, for every parameter and the input."""
+    layer = _cuda_layer(read_gate, output_gate, activation)
+    x, token_ids, target = _cuda_batch()
+    layer.backend = "reference"
+    out_ref, grads_ref = _forward_backward(layer, x, token_ids, target)
+    layer.backend = "flex"
+    out_flex, grads_flex = _forward_backward(layer, x, token_ids, target)
+    torch.testing.assert_close(out_flex, out_ref, rtol=1e-4, atol=1e-5)
+    errors = {n: _relative(grads_flex[n], grads_ref[n]) for n in grads_ref}
+    assert max(errors.values()) < 1e-3, errors
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize(
+    "read_gate, output_gate, activation", GATED, ids=[_ids(c) for c in GATED]
+)
+def test_on_cuda_bf16_costs_flex_what_it_costs_the_reference_under_every_gate(
+    read_gate, output_gate, activation
+):
+    """Under bf16 autocast both kernels lose resolution; flex may not lose more
+    than 4x what the reference loses against fp32, in the output or in any
+    gradient (the CPU test_the_backends_still_agree_under_bf16, with gates)."""
+    layer = _cuda_layer(read_gate, output_gate, activation)
+    x, token_ids, target = _cuda_batch()
+    layer.backend = "reference"
+    out32, grads32 = _forward_backward(layer, x, token_ids, target)
+    results = {}
+    for backend in ("reference", "flex"):
+        layer.backend = backend
+        results[backend] = _forward_backward(layer, x, token_ids, target, autocast=True)
+    (out_ref, grads_ref), (out_flex, grads_flex) = results["reference"], results["flex"]
+    cost = max(_relative(out_ref, out32), BF16_EPS)
+    assert _relative(out_flex, out32) <= 4 * cost
+    for name, truth in grads32.items():
+        assert torch.isfinite(grads_flex[name]).all(), name
+        allowed = 4 * max(_relative(grads_ref[name], truth), BF16_EPS)
+        assert _relative(grads_flex[name], truth) <= allowed, name
+
+
+@pytest.mark.gpu
+@pytest.mark.parametrize(
+    "read_gate, output_gate, activation",
+    [
+        ("elementwise", "elementwise", "sigmoid"),
+        ("headwise", "elementwise", "silu"),
+        ("elementwise", "none", "silu"),
+    ],
+    ids=["Aelem_B_sigmoid", "Ahead_B_silu", "Aelem_silu"],
+)
+def test_on_cuda_inductor_compiles_the_gated_layer(read_gate, output_gate, activation):
+    """Inductor on the production path (flex): the compiled gated layer equals
+    the eager one, forward and backward. The CPU tests cannot run this: on torch
+    2.7.1 inductor's CPU backward of the AME reference path corrupts the heap."""
+    torch._dynamo.reset()
+    layer = _cuda_layer(read_gate, output_gate, activation)
+    x, token_ids, target = _cuda_batch()
+    out_eager, grads_eager = _forward_backward(layer, x, token_ids, target)
+    compiled = torch.compile(layer)
+    out_comp, grads_comp = _forward_backward(layer, x, token_ids, target, call=compiled)
+    torch.testing.assert_close(out_comp, out_eager, rtol=1e-4, atol=1e-5)
+    errors = {n: _relative(grads_comp[n], grads_eager[n]) for n in grads_eager}
+    assert max(errors.values()) < 1e-3, errors
+
+
+def _train_graph_breaks(model, token_ids):
+    """Graph breaks in one compile_blocks_full training step under bf16
+    autocast, as main.py compiles the stack: block.compile() per block."""
+    from torch._dynamo.utils import counters
+
+    torch._dynamo.reset()
+    counters.clear()
+    for block in model.encoder.blocks:
+        block.compile()
+    model.train()
+    with torch.autocast("cuda", dtype=torch.bfloat16):
+        logits = model(token_ids)
+    logits.float().sum().backward()
+    return sum(counters["graph_break"].values())
+
+
+@pytest.mark.gpu
+def test_on_cuda_compile_blocks_full_gains_no_graph_break_from_the_gates():
+    """The training graph carries no readout: a gated stack breaks no more
+    often than the ungated one. In eval the readout is a break by design, and
+    it still records under the compiled blocks."""
+    generator = torch.Generator().manual_seed(0)
+    token_ids = torch.randint(0, 96, (2, 16), generator=generator).cuda()
+    plain = _train_graph_breaks(_h4_model(device="cuda"), token_ids)
+    gated_model = _h4_model(GATED_H4, device="cuda")
+    gated = _train_graph_breaks(gated_model, token_ids)
+    assert gated <= plain, f"{gated} graph breaks with the gates, {plain} without"
+
+    gated_model.eval()
+    for layer in _ame_layers(gated_model):
+        layer.reset_gate_statistics()
+    with torch.no_grad(), torch.autocast("cuda", dtype=torch.bfloat16):
+        gated_model(token_ids)
+    for layer in _ame_layers(gated_model):
+        assert set(layer.gate_statistics()) == {
+            "read_gate/mean",
+            "read_gate/below_0.05",
+            "read_gate/below_0",
+            "read_gate/head_mean_min",
+            "output_gate/mean",
+            "output_gate/below_0.05",
+            "output_gate/below_0",
+        }
+
+
+@pytest.mark.gpu
+def test_on_cuda_the_memory_parallel_controller_trains_with_the_gates():
+    """The h12 recipe's bank path (mem_parallel_size 1), as main.py builds it on
+    a bf16 stack: the banks in the controller, the gate weights in the backbone
+    AdamW, and both move."""
+    from src.core.memory_parallel import MemoryParallelController, ShardedBank
+
+    model = _h4_model(GATED_H4, device="cuda")
+    banks = MemoryParallelController(model, 1, compute_dtype=torch.bfloat16)
+    gates = _gate_weights(model)
+    ignored = {id(p) for p in banks.ignored_parameters()}
+    assert len(gates) == 2 * 4 and all(id(p) not in ignored for p in gates.values())
+    optimizer = torch.optim.AdamW(
+        parameter_groups(
+            model, 0.1, exclude=banks.ignored_parameters(), lr=1e-3, bank_lr_ratio=4.0
+        ),
+        lr=1e-3,
+    )
+    banks.build_optimizer(lr=4e-3, weight_decay=0.0)
+    stepped = {id(p) for group in optimizer.param_groups for p in group["params"]}
+    assert all(id(p) in stepped for p in gates.values())
+
+    sharded = [m for m in model.modules() if isinstance(m, ShardedBank)]
+    assert len(sharded) == 2 * 4
+    gates_before = {n: p.detach().clone() for n, p in gates.items()}
+    banks_before = [m.weight.detach().clone() for m in sharded]
+    generator = torch.Generator().manual_seed(0)
+    losses = []
+    model.train()
+    for _ in range(3):
+        banks.materialize()
+        batch = torch.randint(0, 96, (4, 17), generator=generator).cuda()
+        with torch.autocast("cuda", dtype=torch.bfloat16):
+            logits = model(batch[:, :-1])
+        loss = F.cross_entropy(logits.float().flatten(0, 1), batch[:, 1:].reshape(-1))
+        loss.backward()
+        banks.reduce()
+        optimizer.step()
+        optimizer.zero_grad()
+        banks.step(lr=4e-3)
+        banks.zero_grad()
+        losses.append(loss.item())
+    assert all(math.isfinite(v) for v in losses), losses
+    for name, weight in gates.items():
+        assert not torch.equal(weight, gates_before[name]), name
+    for module, before in zip(sharded, banks_before):
+        assert not torch.equal(module.weight, before)
+
+
+FSDP2_SHARDED = [
+    "src.core.model.TransformerEmbedding",
+    "src.core.model.TransformerBlock",
+    "src.core.model.TransformerHead",
+]
+
+
+def _fsdp2_worker(rank, world_size, port, folder, out_path):
+    """One rank: the gated h4 stack under the production FSDP2 setup (bf16
+    mixed precision), 2 steps, a dcp checkpoint through the trainer's
+    TrainingState, 2 more steps; then a fresh model from another seed resumes
+    from the checkpoint and takes the same 2 steps; then an eval forward."""
+    import json
+
+    import torch.distributed as dist
+    import torch.distributed.checkpoint as dcp
+    from omegaconf import OmegaConf
+
+    from src.core.checkpointing import TrainingState
+    from src.core.distributed_training import setup_fsdp2_model
+
+    os.environ.update(
+        MASTER_ADDR="127.0.0.1",
+        MASTER_PORT=str(port),
+        RANK=str(rank),
+        WORLD_SIZE=str(world_size),
+        LOCAL_RANK=str(rank),
+    )
+    torch.cuda.set_device(rank)
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    try:
+        fsdp = OmegaConf.create({"modules_to_shard": FSDP2_SHARDED})
+
+        def build(seed):
+            model = setup_fsdp2_model(
+                _h4_model(GATED_H4, seed=seed, device="cuda"), fsdp
+            )
+            optimizer = torch.optim.AdamW(parameter_groups(model, 0.1), lr=1e-3)
+            scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lambda _: 1.0)
+            return model, optimizer, scheduler
+
+        def step(state, batch):
+            model, optimizer, scheduler = state
+            model.train()
+            logits = model(batch[:, :-1])
+            loss = F.cross_entropy(
+                logits.float().flatten(0, 1), batch[:, 1:].reshape(-1)
+            )
+            loss.backward()
+            optimizer.step()
+            optimizer.zero_grad()
+            scheduler.step()
+            return loss.item()
+
+        generator = torch.Generator().manual_seed(100 + rank)  # each rank its data
+        batches = [
+            torch.randint(0, 96, (2, 17), generator=generator).cuda() for _ in range(4)
+        ]
+        straight = build(seed=0)
+        gates = _gate_weights(straight[0])
+        sharded = all(hasattr(p, "full_tensor") for p in gates.values())
+        before = {n: p.full_tensor().clone() for n, p in gates.items()}
+        first = [step(straight, b) for b in batches[:2]]
+        dcp.save({"app": TrainingState(*straight)}, checkpoint_id=folder)
+        after = [step(straight, b) for b in batches[2:]]
+        moved = all(
+            not torch.equal(p.full_tensor(), before[n]) for n, p in gates.items()
+        )
+
+        resumed = build(seed=1)
+        dcp.load({"app": TrainingState(*resumed)}, checkpoint_id=folder)
+        again = [step(resumed, b) for b in batches[2:]]
+
+        model = resumed[0]
+        model.eval()
+        for layer in _ame_layers(model):
+            layer.reset_gate_statistics()
+        with torch.no_grad():
+            model(batches[0][:, :-1])
+        readouts = [sorted(layer.gate_statistics()) for layer in _ame_layers(model)]
+
+        if rank == 0:
+            with open(out_path, "w") as f:
+                json.dump(
+                    dict(
+                        first=first,
+                        after=after,
+                        again=again,
+                        sharded=sharded,
+                        moved=moved,
+                        readouts=readouts,
+                    ),
+                    f,
+                )
+    finally:
+        dist.destroy_process_group()
+
+
+@pytest.mark.gpu
+def test_on_two_gpus_fsdp2_trains_resumes_and_reads_out_the_gates(tmp_path):
+    """The 4-GPU twins' path at two ranks: the gate weights are sharded DTensors
+    and train; a resumed run takes the steps the uninterrupted one took; the
+    eval readout works per rank."""
+    import json
+
+    import torch.multiprocessing as mp
+
+    from conftest import free_port
+
+    if torch.cuda.device_count() < 2:
+        pytest.fail("this test needs 2 GPUs; submit the GPU suite with two")
+    out = tmp_path / "fsdp2.json"
+    mp.spawn(
+        _fsdp2_worker,
+        args=(2, free_port(), str(tmp_path / "checkpoint"), str(out)),
+        nprocs=2,
+        join=True,
+    )
+    result = json.loads(out.read_text())
+    assert result["sharded"], "the gate weights are not FSDP2-sharded"
+    assert result["moved"], "a gate weight did not train under FSDP2"
+    assert all(math.isfinite(v) for v in result["first"] + result["after"])
+    torch.testing.assert_close(
+        torch.tensor(result["again"]), torch.tensor(result["after"]), rtol=1e-4, atol=0
+    )
+    assert len(result["readouts"]) == 4
+    for keys in result["readouts"]:
+        assert keys == sorted(
+            [
+                "read_gate/mean",
+                "read_gate/below_0.05",
+                "read_gate/below_0",
+                "read_gate/head_mean_min",
+                "output_gate/mean",
+                "output_gate/below_0.05",
+                "output_gate/below_0",
+            ]
+        )

@@ -51,7 +51,7 @@ CLIP = 1.0
 
 
 class ToyBlock(nn.Module):
-    def __init__(self):
+    def __init__(self, **gates):
         super().__init__()
         # sigma = 1, the regime these gates were built in. At the default 1e-4
         # the QK-norm scales a bank row's gradient by 1/|row|, so the banks'
@@ -66,6 +66,7 @@ class ToyBlock(nn.Module):
             vocab_size=VOCAB,
             bank_init_std=1.0,
             backend="reference",
+            **gates,
         )
         self.norm = nn.LayerNorm(DMODEL)
         self.ff = nn.Sequential(
@@ -78,10 +79,10 @@ class ToyBlock(nn.Module):
 
 
 class ToyAME(nn.Module):
-    def __init__(self):
+    def __init__(self, **gates):
         super().__init__()
         self.embedding = nn.Embedding(VOCAB, DMODEL)
-        self.blocks = nn.ModuleList(ToyBlock() for _ in range(BLOCKS))
+        self.blocks = nn.ModuleList(ToyBlock(**gates) for _ in range(BLOCKS))
         self.head = nn.Linear(DMODEL, VOCAB)
 
     def forward(self, ids):
@@ -91,9 +92,11 @@ class ToyAME(nn.Module):
         return self.head(x)
 
 
-def build_model(dtype=torch.float64, seed=0):
+def build_model(dtype=torch.float64, seed=0, **gates):
+    """`gates`: AME's attention-gate options (read_gate, output_gate,
+    gate_activation), none by default."""
     torch.manual_seed(seed)
-    model = ToyAME()
+    model = ToyAME(**gates)
     return model.to(dtype)
 
 
@@ -225,6 +228,44 @@ def test_toy_model_parameter_equivalence_without_clipping():
         "frozen bank is not a gate"
     )
 
+    differing = {
+        name: (expected[name] - actual[name]).abs().max().item()
+        for name in expected
+        if not torch.equal(expected[name], actual[name])
+    }
+    assert not differing, f"the hand-managed path is not bit-identical: {differing}"
+
+
+@pytest.mark.parametrize(
+    "gates",
+    [
+        dict(read_gate="elementwise", output_gate="elementwise"),
+        dict(read_gate="headwise", output_gate="elementwise", gate_activation="silu"),
+    ],
+    ids=["Aelem_B_sigmoid", "Ahead_B_silu"],
+)
+def test_the_attention_gates_train_identically_on_the_hand_managed_path(gates):
+    """AME's attention gates (documents/notes/ame_attention_gate.md) are plain
+    Linears, outside the controller: the backbone AdamW steps them on both
+    paths, and with them on the hand-managed path stays bit-identical to the
+    ordinary one -- the gate above, with gates."""
+    batches = micro_batches()
+
+    baseline = build_model(**gates)
+    train(baseline, batches, clip=None)
+
+    managed = build_model(**gates)
+    banks = MemoryParallelController(managed, 1, compute_dtype=torch.float64)
+    ignored = {id(p) for p in banks.ignored_parameters()}
+    gate_weights = {n: p for n, p in managed.named_parameters() if "gate_proj" in n}
+    assert len(gate_weights) == 2 * BLOCKS
+    assert all(id(p) not in ignored for p in gate_weights.values())
+    train(managed, batches, banks=banks, clip=None)
+
+    before = named_tensors(build_model(**gates))
+    expected, actual = named_tensors(baseline), named_tensors(managed)
+    moved = [n for n in gate_weights if not torch.equal(expected[n], before[n])]
+    assert moved == list(gate_weights), "a gate weight was not trained"
     differing = {
         name: (expected[name] - actual[name]).abs().max().item()
         for name in expected
