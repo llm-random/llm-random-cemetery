@@ -1,8 +1,7 @@
 # Standard baselines: AME v4 and dense v3 at h12, h16 and h20
 
-**Status (2026-11-27 02:15 CET):** all ten runs are queued on LEM, PENDING: the six 1-GPU
-runs and the four 4-GPU twins. The twins went in after a Slurm outage of about 15 minutes
-(Log).
+**Status (2026-11-27 14:35 CET):** the two h12 runs are running on LEM, since 14:06 and
+14:08, and both passed their start checks (Log). The other eight are queued, PENDING.
 
 Maciej asked for this on 2026-11-27: run AME and dense at h12, h16 and h20 on LEM, one GPU
 each, with the tuned learning rates, the established token budgets and everything else as
@@ -20,8 +19,8 @@ sooner, and comparing each pair shows what the GPU count changes
 
 | Config | Recipe | LR | Tokens (steps) | Micro-batch × steps | Limit | Expected | Job | W&B | State | `final_ce` |
 |---|---|---|---|---|---|---|---|---|---|---:|
-| `ame_h12` | v4 | 2⁻⁸, banks 4× | 4B (3815) | 32 × 16 | 7 h | ~4.5 h, 3.9 s/step | 6449445 | | PENDING | |
-| `dense_h12` | v3 | 2⁻⁸ | 4B (3815) | 32 × 16 | 7 h | ~4 h, 3.45 s/step | 6449446 | | PENDING | |
+| `ame_h12` | v4 | 2⁻⁸, banks 4× | 4B (3815) | 32 × 16 | 7 h | ~4.5 h, 3.9 s/step | 6449445 | `b4jgmwco` | RUNNING since 11-27 14:06 | |
+| `dense_h12` | v3 | 2⁻⁸ | 4B (3815) | 32 × 16 | 7 h | ~4 h, 3.45 s/step | 6449446 | `m8iemgcw` | RUNNING since 11-27 14:08 | |
 | `ame_h16` | v4 | 2⁻⁸, banks 4× | 8B (7630) | 16 × 32 | 24 h | ~15.5 h, 7.1 s/step | 6449447 | | PENDING | |
 | `dense_h16` | v3 | 2⁻⁹ | 8B (7630) | 16 × 32 | 24 h | ~14 h, 6.27 s/step | 6449448 | | PENDING | |
 | `ame_h20` | v4 | 2⁻⁸, banks 4× | 16B (15259) | 4 × 128 | 72 h | ~50 h, ~12 s/step | 6449449 | | PENDING | |
@@ -150,3 +149,22 @@ numerics:
 - **2026-11-27, 02:15.** The controller answered, and the loop queued the twins as jobs
   6449479–6449482. The six 1-GPU jobs were still queued after the outage, and each of the
   ten job names appears in the queue exactly once.
+- **2026-11-27, 14:06–14:35.** Both h12 jobs started on node r14-3, at 14:06 and 14:08: two
+  days before Slurm's estimate of 11-29 03:20. Both passed the start check:
+
+  | | `ame_h12` (`b4jgmwco`) | `dense_h12` (`m8iemgcw`) |
+  |---|---|---|
+  | step-0 loss | 11.1875 | 11.25 |
+  | s/step, median from step 20 (expected) | 3.876 (3.9) | 3.388 (3.45) |
+  | non-finite loss | none, to step 283 | none, to step 319 |
+  | clipping | none (`clip_factor` 1) | none |
+  | eval loss at step 200 | 4.53 | 5.09 |
+  | AME readouts | logged: α, β, τ, entropy, top-8 mass, horizon | |
+
+  - Setup took 5.7 and 3.4 minutes, most of it building the eval and train holdouts.
+  - The bank LR is 4× the LR, as configured.
+  - MFU is not logged: LEM's GPUs report as `NVIDIA H100`, a name
+    [src/core/mfu.py](../../src/core/mfu.py) does not know. tokens/s is logged: AME 270k,
+    dense 309k.
+  - At the mean s/step with evals (4.03 and 3.60), AME ends about 18:30 and dense about
+    18:00.
