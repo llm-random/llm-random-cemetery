@@ -1,0 +1,17 @@
+# tiny_local_moe balanced by DeepSeek-V3's aux-loss-free expert bias instead of the balance loss.
+# Run: pixi run python main.py --config-path configs/jm/feature --config-name tiny_local_moe_auxfree
+defaults:
+  - ../../tiny_local@_global_
+  - ../../_ff_layer@model.encoder.block_fn.ff_layer_fn: moe
+  - _self_
+
+model:
+  encoder:
+    block_fn:
+      ff_layer_fn:
+        load_balancing_loss_factor: 0.0
+        expert_bias_update_rate: 0.001
+
+infrastructure:
+  metric_logger:
+    type: stdout
