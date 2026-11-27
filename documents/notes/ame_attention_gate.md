@@ -1,12 +1,13 @@
 # AME attention gates: a read gate and an output gate
 
-**Status: implemented on `ame_gate` at `7d9af3f3` (2026-11-27), CPU-tested, GPU tests
-pending.** CPU gate: 672 passed, 0 skipped, 0 failed (baseline: 580 passed, 0 skipped, 0
-failed). Slow CPU tests: 9 passed, 0 failed (baseline: 7 passed). `black --check` clean.
-What was built, and where it departs from the plan: [As built](#as-built-on-ame_gate). The
-GPU tests are a later, separate pass ([listed below](#later-the-gpu-pass)). Branch `ame_gate`
-(worktree `~/code/nano-ame-gate`, cut from `ame_main`), not merged into `ame_main`. Designed
-2026-11-27 (Maciej). Next: [Experiments at h12](#experiments-at-h12), planned, not started.
+**Status: implemented on `ame_gate` at `7d9af3f3` (2026-11-27), CPU- and GPU-tested; the h12
+screen is running.** CPU gate: 672 passed, 0 skipped, 0 failed (baseline: 580 passed, 0
+skipped, 0 failed). Slow CPU tests: 9 passed, 0 failed (baseline: 7 passed). `black --check`
+clean. GPU tests: 39 passed on h100a ([Stage 0](#stage-0-before-any-run)). What was built, and
+where it departs from the plan: [As built](#as-built-on-ame_gate). Branch `ame_gate` (worktree
+`~/code/nano-ame-gate`, cut from `ame_main`), not merged into `ame_main`. Designed 2026-11-27
+(Maciej). [Experiments at h12](#experiments-at-h12): Stage 0 passed; in Stage 1, 4 of 9 runs
+have finished, and `Aelem_sig` is the only win so far.
 
 Two gates in the style of the feed-forward's SwiGLU gate, `φ(W_g h) ⊙ (…)`, put on AME's
 attention. Each works alone, and both together are a valid config:
@@ -591,8 +592,9 @@ Scheduled as Stage 0 of [Experiments at h12](#experiments-at-h12).
 
 ## Experiments at h12
 
-**Status: planned 2026-11-27, not started.** Maciej agreed to the plan, with every gate under
-both activations. Stages 0 and 1 are the brief for the agent that runs them. Stage 2 waits for
+**Status: Stage 0 passed; Stage 1 is running, with 4 of 9 runs finished on 2026-11-27 and 5
+queued on entropy ([results so far](#stage-1-the-screen-9-runs)).** Maciej agreed to the plan,
+with every gate under both activations. Stages 0 and 1 are the brief for the agent that runs them. Stage 2 waits for
 Maciej's choice after Stage 1.
 
 **The question.** At matched active parameters, does a gate beat the ungated AME h12, which
@@ -726,6 +728,60 @@ the table's order. The cemetery branches are `gate_h12_<arm>_lr8_2026-11-27_19-0
 **Output:** a results table here, one row per run: W&B id, `final_ce`, the last-500 gap,
 s/step, peak memory, verdict. Below it, the readouts and a recommendation from Stage 2's list.
 Stop there.
+
+**Stage 1 results so far: 4 of 9 runs finished (2026-11-27, 23:11).** The other five have been
+queued since 19:13 on h100a. Higher-priority jobs of other users fill the node, and only
+lukaskoz's may be preempted by ours. At 23:14 the scheduler expected the first of the five at
+04:10 on 11-28. The gaps and the health numbers come from `paired_gap.py` (`gaps`,
+`window_mean`, `health`). s/step is the median over the run; peak memory is the run's maximum.
+
+| # | Arm | W&B | `final_ce` | Last-500 gap | s/step | Peak GiB | Verdict |
+|---|---|---|---:|---:|---:|---:|---|
+| 0 | `control` | `pl7uweqs` | 3.1465 | | 3.483 | 70.5 | |
+| 1 | `Ahead_sig` | `to1rtqyu` | 3.2197 | +0.0776 | 3.560 (+2.2%) | 73.0 (+3.5%) | loss |
+| 2 | `Ahead_silu` | `v1p7ci03` | 3.1924 | +0.0488 | 3.560 (+2.2%) | 73.0 (+3.5%) | loss |
+| 3 | `Aelem_sig` | `f61hxi18` | 3.1211 | −0.0287 | 3.540 (+1.7%) | 73.0 (+3.5%) | win |
+| 4 | `Aelem_silu` | queued, job 47298 | | | | | |
+| 5 | `B_sig` | queued, job 47299 | | | | | |
+| 6 | `B_silu` | queued, job 47300 | | | | | |
+| 7 | `AelemB_sig` | queued, job 47301 | | | | | |
+| 8 | `AelemB_silu` | queued, job 47302 | | | | | |
+
+**Each headwise arm lost to one blow-up, not to a steady deficit.** The gap to `control` by
+window of steps:
+
+| Arm | 0–100 | 100–250 | 250–500 | 500–1000 | 1000–1500 | 1500–2000 | 2000–2500 | 2500–3000 | 3000–3315 | last 500 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| `Ahead_sig` | −0.063 | −0.061 | +0.380 | +0.414 | +0.162 | +0.116 | +0.095 | +0.085 | +0.080 | +0.078 |
+| `Ahead_silu` | −0.007 | +0.550 | +0.285 | +0.141 | +0.090 | +0.069 | +0.059 | +0.054 | +0.051 | +0.049 |
+| `Aelem_sig` | −0.135 | −0.163 | −0.107 | −0.059 | −0.038 | −0.032 | −0.030 | −0.029 | −0.028 | −0.029 |
+
+- `Ahead_sig` led until step ~440. Over steps 442–500 its loss rose to as much as 6 nats above
+  the control's: grad norm 8.2 at step 465, where the control's 99th percentile is 0.27. It
+  never caught up.
+- `Ahead_silu` jumped at steps 101–108, to 1.3 above the control, and was still 0.05 behind at
+  the end.
+- `Aelem_sig` led the whole way without a spike. Its lead fell from 0.16 early to a steady 0.03
+  from step 1500 on.
+- The headwise and elementwise gates have the same init, LR and weight decay. They differ only
+  in the width of `read_gate_proj`: 12 against 768. With one seed each, it is not known whether
+  every headwise run blows up.
+
+**Readouts at the last eval**, each the mean over the 12 layers:
+- `head_mean_min` is the lowest head's mean gate, the minimum over the layers.
+- Entropy and sink mass come from the last heavy-metric step.
+- Loss spikes are steps after step 100 that sit more than 0.1 above the median of the 50 steps
+  before them.
+
+| Arm | Attention entropy (norm.) | Sink mass | A mean | A below 0.05 | A below 0 | A `head_mean_min` | Loss spikes |
+|---|---:|---:|---:|---:|---:|---:|---:|
+| `control` | 0.534 | 0.181 | | | | | 0 |
+| `Ahead_sig` | 0.510 | 0.176 | 0.467 | 0.016 | | 0.067 | 62 |
+| `Ahead_silu` | 0.546 | 0.134 | 0.591 | 0.469 | 0.440 | −0.246 | 5 |
+| `Aelem_sig` | 0.531 | 0.127 | 0.335 | 0.127 | | | 0 |
+
+The elementwise sigmoid gate cut the sink's share of attention from 0.18 to 0.13: the gate does
+part of the sink's job, which is Qwen's mechanism.
 
 ### Stage 2: follow-ups, chosen by Maciej after Stage 1
 
