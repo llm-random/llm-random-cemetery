@@ -1,10 +1,8 @@
 # Standard baselines: AME v4 and dense v3 at h12, h16 and h20
 
-**Status (2026-11-27 02:10 CET):**
-- The six 1-GPU runs are queued on LEM, PENDING (Priority).
-- The four 4-GPU twins are not queued yet. Both of LEM's Slurm controllers went down at
-  about 02:00, while the twins were being submitted. A retry loop submits them once the
-  controller answers, for up to 6 h.
+**Status (2026-11-27 02:15 CET):** all ten runs are queued on LEM, PENDING: the six 1-GPU
+runs and the four 4-GPU twins. The twins went in after a Slurm outage of about 15 minutes
+(Log).
 
 Maciej asked for this on 2026-11-27: run AME and dense at h12, h16 and h20 on LEM, one GPU
 each, with the tuned learning rates, the established token budgets and everything else as
@@ -28,10 +26,10 @@ sooner, and comparing each pair shows what the GPU count changes
 | `dense_h16` | v3 | 2⁻⁹ | 8B (7630) | 16 × 32 | 24 h | ~14 h, 6.27 s/step | 6449448 | | PENDING | |
 | `ame_h20` | v4 | 2⁻⁸, banks 4× | 16B (15259) | 4 × 128 | 72 h | ~50 h, ~12 s/step | 6449449 | | PENDING | |
 | `dense_h20` | v3 | 2⁻⁹ | 16B (15259) | 4 × 128 | 72 h | ~47 h, ~11 s/step | 6449450 | | PENDING | |
-| `ame_h16_4gpu` | v4 | 2⁻⁸, banks 4× | 8B (7630) | 4 GPUs × 16 × 8 | 8 h | ~4 h, ~1.85 s/step | — | | not queued | |
-| `dense_h16_4gpu` | v3 | 2⁻⁹ | 8B (7630) | 4 GPUs × 16 × 8 | 8 h | ~3.3 h, ~1.5 s/step | — | | not queued | |
-| `ame_h20_4gpu` | v4 | 2⁻⁸, banks 4× | 16B (15259) | 4 GPUs × 16 × 8 | 24 h | ~14 h, 3.1 s/step | — | | not queued | |
-| `dense_h20_4gpu` | v3 | 2⁻⁹ | 16B (15259) | 4 GPUs × 16 × 8 | 24 h | ~11 h, 2.52 s/step | — | | not queued | |
+| `ame_h16_4gpu` | v4 | 2⁻⁸, banks 4× | 8B (7630) | 4 GPUs × 16 × 8 | 8 h | ~4 h, ~1.85 s/step | 6449479 | | PENDING | |
+| `dense_h16_4gpu` | v3 | 2⁻⁹ | 8B (7630) | 4 GPUs × 16 × 8 | 8 h | ~3.3 h, ~1.5 s/step | 6449480 | | PENDING | |
+| `ame_h20_4gpu` | v4 | 2⁻⁸, banks 4× | 16B (15259) | 4 GPUs × 16 × 8 | 24 h | ~14 h, 3.1 s/step | 6449481 | | PENDING | |
+| `dense_h20_4gpu` | v3 | 2⁻⁹ | 16B (15259) | 4 GPUs × 16 × 8 | 24 h | ~11 h, 2.52 s/step | 6449482 | | PENDING | |
 
 The first six use one H100 each. The `_4gpu` twins use one whole node each (4 H100), with
 FSDP2 and bf16 from its mixed precision; AME's banks are column-sharded over the four GPUs.
@@ -147,5 +145,8 @@ numerics:
   - At about 02:00 all four `sbatch` calls failed with "Unable to contact slurm controller". At
     02:03 `scontrol ping` reported both controllers DOWN (`slurm-1`, `slurm-2`), and
     `slurm-db` timed out.
-  - A retry loop now submits the four when `squeue` answers again. It skips any job name
-    already in the queue, so a lost reply cannot make a duplicate.
+  - A retry loop then submitted the four once `squeue` answered again. It skipped any job
+    name already in the queue, so a lost reply could not make a duplicate.
+- **2026-11-27, 02:15.** The controller answered, and the loop queued the twins as jobs
+  6449479–6449482. The six 1-GPU jobs were still queued after the outage, and each of the
+  ten job names appears in the queue exactly once.
