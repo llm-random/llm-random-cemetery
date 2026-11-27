@@ -6,7 +6,7 @@ failed). Slow CPU tests: 9 passed, 0 failed (baseline: 7 passed). `black --check
 What was built, and where it departs from the plan: [As built](#as-built-on-ame_gate). The
 GPU tests are a later, separate pass ([listed below](#later-the-gpu-pass)). Branch `ame_gate`
 (worktree `~/code/nano-ame-gate`, cut from `ame_main`), not merged into `ame_main`. Designed
-2026-11-27 (Maciej).
+2026-11-27 (Maciej). Next: [Experiments at h12](#experiments-at-h12), planned, not started.
 
 Two gates in the style of the feed-forward's SwiGLU gate, `φ(W_g h) ⊙ (…)`, put on AME's
 attention. Each works alone, and both together are a valid config:
@@ -586,3 +586,121 @@ Not part of this plan; it runs once the build is in.
   checkpoint resume.
 - Step time, MFU and peak memory at h16 for no gate, A, and A+B, matched
   ([open point](#open-points-proposed-defaults) 7).
+
+Scheduled as Stage 0 of [Experiments at h12](#experiments-at-h12).
+
+## Experiments at h12
+
+**Status: planned 2026-11-27, not started.** Maciej agreed to the plan, with every gate under
+both activations. Stages 0 and 1 are the brief for the agent that runs them. Stage 2 waits for
+Maciej's choice after Stage 1.
+
+**The question.** At matched active parameters, does a gate beat the ungated AME h12, which
+gate does, and under which activation? If Qwen's gains carried over
+([Evidence](#evidence-qwens-gated-attention); loss = ln PPL), the expected gaps are:
+
+| Gate | Expected gap |
+|---|---|
+| A elementwise, sigmoid | −0.045 |
+| A headwise, sigmoid | −0.040 |
+| A elementwise, SiLU | −0.034 |
+| B, sigmoid | −0.002 |
+
+Qwen did not measure B under SiLU.
+
+**Settings, for every run:**
+- **Recipe:** `configs/standard/ame_h12.yaml` (AME v4):
+  - 4B tokens: 3815 steps of 1,048,576 tokens;
+  - LR 2⁻⁸, banks at 4× the LR, bank init σ 1e-4;
+  - micro-batch 32 × 16, `mem_parallel_size: 1`, `compile_blocks_full`;
+  - its seed and data order, so every run is paired with every other.
+- **What changes:** only `common.dff`, set to the matched value, and the gate options. The
+  cluster is entropy: `_cluster@_here_: entropy` and `gres: gpu:h100:1`, as
+  `configs/ame/h12_1gpu.yaml` sets them.
+- **Configs:** one file per run in `configs/ame_gate/`, on `ame_gate`, each a copy of
+  `configs/standard/ame_h12.yaml`.
+  - W&B project `nano-ame`; tags `ame_gate`, `h12` and the run's arm.
+  - Names `gate_h12_<arm>_lr8`.
+- **Code:** branch `ame_gate`, never merged into `ame_main`. Submit with `run_exp.py` from the
+  worktree, by absolute path in a subshell. The W&B key goes on stdin only.
+- **Cluster:** entropy only, as `mstefaniak`, within its own 8-GPU cap, where preempting other
+  users is allowed.
+  - Every run of one comparison stays on one cluster, hence the control run on entropy.
+  - Entropy runs sit level with LEM or up to 0.016 behind: three entropy replicates of a LEM
+    AME h12 run paired at +0.0157, +0.0002 and +0.0053 over the last 500 steps (2026-11-10).
+    Pairing entropy runs with LEM's `b4jgmwco` would bias against the gates.
+
+### Stage 0: before any run
+
+1. **Sink-mass readout.** `attention_diagnostics` also reports `sink_mass/mean`, the share of
+   attention on the learned sink (kv column 0), computed from the id-only scores it already
+   forms. It gets a CPU test and is committed on `ame_gate`. This is the readout for Qwen's
+   mechanism, the gate doing the sink's job.
+2. **GPU tests** in `tests/test_ame_gates.py`, marked `gpu`. Run `pytest -m gpu
+   tests/test_ame.py tests/test_ame_gates.py tests/test_memory_parallel.py` on an entropy
+   h100a node, from the committed tree (the recipe of `archive/doc_mask_report.md`).
+   - flex against the reference kernel, for every gate combination under both activations:
+     forward and backward, in fp32 and under bf16 autocast;
+   - inductor: the gated layer compiled, forward and backward, against eager;
+   - `compile_blocks_full` on a gated h4 stack: no more train-mode graph breaks than without
+     gates, and an eval forward still records the readout;
+   - the memory-parallel controller (`mem_parallel_size: 1`) with gates: it trains, and the
+     gate weights step with the backbone optimizer;
+   - FSDP2 on 2 GPUs with gates; checkpoint resume.
+3. **Smokes.** A 60-step smoke of every Stage 1 config on entropy, at micro-batch 32: the
+   first loss, s/step and peak memory, each against the control. A config that does not fit
+   runs at micro-batch 16 × 32 (the same tokens per step), and the change is recorded here.
+
+Record the pytest summary lines and the smoke table here. A failure stops the plan: ask Maciej.
+
+### Stage 1: the screen, 9 runs
+
+| # | Arm | `read_gate` | `output_gate` | `gate_activation` | k | `dff` |
+|---|---|---|---|---|---|---|
+| 0 | `control` | `none` | `none` | unset | 0 | 3328 |
+| 1 | `Ahead_sig` | `headwise` | `none` | `sigmoid` | 0 | 3328 |
+| 2 | `Ahead_silu` | `headwise` | `none` | `silu` | 0 | 3328 |
+| 3 | `Aelem_sig` | `elementwise` | `none` | `sigmoid` | 1 | 3072 |
+| 4 | `Aelem_silu` | `elementwise` | `none` | `silu` | 1 | 3072 |
+| 5 | `B_sig` | `none` | `elementwise` | `sigmoid` | 1 | 3072 |
+| 6 | `B_silu` | `none` | `elementwise` | `silu` | 1 | 3072 |
+| 7 | `AelemB_sig` | `elementwise` | `elementwise` | `sigmoid` | 2 | 2816 |
+| 8 | `AelemB_silu` | `elementwise` | `elementwise` | `silu` | 2 | 2816 |
+
+- **Cost:** about 4 h per run on entropy, 38 GPU-h in all. The cap runs 8 at once, then one
+  more, about 9 h of wall time. The control goes in the first wave.
+- **Supervision** (the long-run rule): check each job about 2 minutes after it starts:
+  running, a sane step-0 loss, s/step near its smoke. Check it again only at its expected end,
+  when `final_ce` is logged.
+
+**Judging, fixed before the runs:**
+- **The measure:** each arm against the control.
+  - The paired train-loss gap over the last 500 steps, from `scripts/paired_gap.py` on branch
+    `bank_sigma_grid` (`git show bank_sigma_grid:scripts/paired_gap.py`).
+  - `final_ce`, which is bf16-quantized: ±0.008 per run.
+- **The verdict:** a gap of −0.022 or less is a win, within ±0.022 a tie, +0.022 or more a
+  loss. 0.022 is AME h12's band, 3 sd of same-seed runs.
+- **Also reported per arm:**
+  - s/step and peak memory against the control: a tie that costs time is a loss;
+  - the gate readout at the last eval: `mean`, `below_0.05`, `below_0`, `head_mean_min`;
+  - attention entropy and sink mass against the control.
+
+**Output:** a results table here, one row per run: W&B id, `final_ce`, the last-500 gap,
+s/step, peak memory, verdict. Below it, the readouts and a recommendation from Stage 2's list.
+Stop there.
+
+### Stage 2: follow-ups, chosen by Maciej after Stage 1
+
+- **If A wins:**
+  - the winner at LR 2⁻⁷ (Qwen trained gated models at an LR where the ungated one diverged);
+  - A headwise with the sink off, under sigmoid and SiLU: does the gate take over the sink;
+  - a second seed of the winner and the control, if its gap is between 0.022 and 0.044;
+  - the winner at h16 (8B tokens, ~15.5 h), against the standard AME h16.
+- **If sigmoid and SiLU tie at A:** 3 more seeds of each, 6 runs. Qwen's gap between them,
+  0.011, is half the band.
+- **A headwise + B**, under both activations.
+- **If A ties:** an open init, `W = 0` plus a bias, so the gate starts close to fully open.
+  Needs a code change.
+- **AME against dense with gates on both:** needs the gates on the dense layer (code).
+- **Mixed activations** (A sigmoid, B SiLU): needs one switch per gate (code). Only if the
+  screen shows each gate preferring a different activation.
