@@ -1,0 +1,6 @@
+# muP for Muon (plan/lines/line2_optimizer.md, task 4): muon plus width rules, m = dmodel / base_dmodel: Muon LR / sqrt(m), MoE router / m, AdamW head / m (simpleP).
+defaults:
+  - muon
+  - _self_
+
+base_dmodel: 256

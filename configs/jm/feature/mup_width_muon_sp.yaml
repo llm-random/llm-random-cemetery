@@ -1,0 +1,49 @@
+# Dense width sweep, Muon arm without a width rule (muon): LR x width at depth 4, short WSD runs on 1 GPU; 35 runs.
+defaults:
+  # no /base_schema: `^` sweep keys under trainer are rejected by it (see src/definitions.py)
+  - ../../_cluster@_here_: lem
+  - ../../_model/h_balanced@_here_: h12
+  - ../../_trainer@_here_: nano
+  - ../../_dataset@_here_: fineweb
+  - ../../_checkpoints@_here_: none
+  - ../../_misc@_here_: default
+  - override ../../_trainer/_optimizer@optimizer: muon
+  - _self_
+
+# One grid point per (h, lr): Muon's best LR is unknown, so 7 LR exponents at every width.
+^sweep:
+  - ^h: [2, 4, 8, 12, 16]
+    ^lr: [3, 4, 5, 6, 7, 8, 9]
+
+common:
+  h: ${sweep.h}
+  n_blocks: 4
+  sequence_length: 1024
+  batch_size: 64
+
+trainer:
+  # micro 64 x 1024 on 1 GPU
+  gradient_accumulation_steps: 1
+  # 131M tokens, as the AdamW sweeps; costs and results in plan/lines/line2_optimizer.md (task 4)
+  n_steps: 2_000
+  learning_rate: ${sweep.lr}
+  scheduler:
+    warmup_steps: 100
+    decay_steps: 400
+
+infrastructure:
+  metric_logger:
+    name: mup_width_muon_sp
+    tags:
+      - nano
+      - mup_width_sweep
+      - muon
+      - muon_sp
+      - wsd
+      - qk_norm
+      - bs64
+
+  slurm:
+    time: "01:00:00"
+    gres: gpu:hopper:1
+    job-name: ${infrastructure.metric_logger.name}
