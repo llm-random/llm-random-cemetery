@@ -2,15 +2,17 @@
 
 ## Human
 
-New optimizer options, each off by default. Now: task 4/4, muP for Muon, not started. Muon's h12 run is in: lower loss than the AdamW baseline at the same steps; after the speed work each step is 3% slower.
+New optimizer options, each off by default. Now: all 4 tasks are built; muP for Muon waits for its cluster runs. Muon's h12 run is in: lower loss than the AdamW baseline at the same steps; after the speed work each step is 3% slower.
 
 - [x] Param groups: no weight decay on gains and embeddings
 - [x] muP for AdamW, kept as simpleP (muP's LR rule only): best LR stays put across widths
 - [x] Muon: Muon for matrices, AdamW for the rest
-- [ ] muP for Muon: best LR stays put with Muon
+- [x] muP for Muon: Muon's LR shrinks with the square root of width (built; the width sweep will show whether the best LR stays put)
 - [ ] Later, own branch: weight decay that scales with width (papers in the simpleP note)
 
 **Needs Janek:**
+- muP for Muon, width sweep, ready to launch: Muon without and with the width rule, 5 widths × 7 LRs each. 70 short runs, about 7.5 GPU-hours. Muon's best LR at small width is unknown, so the grid is wide. The arm without the rule can be skipped to halve the cost.
+- muP for Muon, h12 run, ready to launch: about 3.8 GPU-hours. Its big matrices train at exactly the h12 Muon run's LR, so it differs from that run only in the head (LR ÷ 1.7) and the gains and embedding (× 1.7).
 - The MoE width sweep is written and ready to launch: the same widths, no muP vs simpleP, 5 LRs per width around the dense best LRs. 50 short runs, about 6–8 GPU-hours.
 - After the merge: launch the h12 simpleP run together with the h12 param-groups run, its fair baseline (both configs are ready): about 4 GPU-hours each. simpleP uses the tuned LR shifted so the big layers train at exactly the baseline's LR.
 - The h12 param-groups run is also Muon's fair baseline. Until it runs, we can't tell how much of Muon's gain is Muon and how much is the param groups.
@@ -18,7 +20,7 @@ New optimizer options, each off by default. Now: task 4/4, muP for Muon, not sta
 - MuonClip stays as an option, off by default. At h12 it was not better: Kimi's cap was never reached (largest attention score 76, cap 100), so the run was just Muon without QK-norm, with slightly worse loss. It is now 3% faster per step than Muon with QK-norm (it skips QK-norm), not enough to make up the loss. Keep QK-norm on for now.
 - Optional, later: Muon at 2× and ½ the LR, to check that reusing AdamW's LR is right. 2 runs, about 7.5 GPU-hours; config on request.
 
-**Last change:** second round of profiles. Muon's step is 3% slower than AdamW's (was 16%). MuonClip's cap is nearly free (was 14%): it reads the attention kernel's own output, which matched the exact largest score within 0.2.
+**Last change:** muP for Muon. Muon's LR is divided by the square root of the width ratio; the MoE router's by the full ratio, since its output size is fixed. The AdamW parts keep simpleP. On CPU the rule keeps each layer's update size nearly flat from h2 to h16, against 2–4× growth without it.
 
 ## AI
 
@@ -66,7 +68,7 @@ it short and in plain words: no file paths, no sub-steps.
 | 1 | Param groups | done | `src/core/optimizers.py`: `param_roles` and `build_optimizer_and_scheduler`, called once from `main.get_model_optimizer_scheduler`. Groups in `ROLES` order (vector, embedding, head, hidden), each with `role`. Options `configs/_trainer/_optimizer/{adamw,adamw_groups}.yaml` fill root `optimizer.roles`: null is one group; otherwise `optimizer.roles.<role>.weight_decay` for all four roles. Typed as `OptimizerSchema`. Cosine takes several groups if they share one LR. `only_weights` now loads the model only, as Task 1 allowed (see "As landed" there). Configs `tiny_local_param_groups`, `jm/h12_param_groups`. Cluster: not run yet. |
 | 2 | muP for AdamW | done | simpleP only (`documents/notes/simplep_over_mup.md`): option `configs/_trainer/_optimizer/adamw_simplep.yaml`, hidden and head LR ÷ m, m = `common.dmodel / optimizer.base_dmodel` (base 256, h4). One new key, `optimizer.base_dmodel`: null in `adamw`/`adamw_groups`, 256 in `adamw_simplep` (which is `adamw_groups` plus that key). When it is set, the builder multiplies the hidden and head groups' `lr` by `base_dmodel / dmodel`. Cosine and WSD both decay each group to its own final fraction (cosine made per-group at Janek's request, bit-identical with one LR). `validate()` rejects a `base_dmodel` ≤ 0. Rank 0 logs each param group once at build; `train/lr` logs the base LR; the model config and `trainer.py` are untouched. Full muP (`adamw_mup`) was built, swept and dropped (`455421d2`). Configs in `configs/jm/feature/`: `tiny_local_simplep`, `h12_simplep` (one LR, 2^-8.415), `mup_width_{sp,simplep}` (dense), `mup_width_moe_{sp,simplep}`. Script: `scripts/mup_coord_check.py`; plots: `jupyter_notebooks/mup_lr_plots.ipynb`. Cluster: dense width sweep done, 122 runs with the dropped muP arm; MoE sweep and `h12_simplep` not yet. |
 | 3 | Muon | done | `src/core/optimizers.py`: `MuonWithAdamW` (subclasses `torch.optim.AdamW`) and `newton_schulz`. Option `configs/_trainer/_optimizer/muon.yaml` = `adamw_groups` + `muon: {momentum: 0.95, ns_steps: 5}`. One new key, `optimizer.muon` (typed `MuonSchema`), null in `adamw`/`adamw_groups`, as `base_dmodel`: no class key. Groups as `adamw_groups` plus `use_muon` (true on `hidden` only), `momentum`, `ns_steps`. Moonlight's update scale, so every group keeps `trainer.learning_rate` and its role's decay. The builder asserts `base_dmodel` is null with Muon. MoE router and experts: Muon. FSDP2: each rank gathers and orthogonalizes every matrix, batched by shape. The group log names each group's optimizer. Configs `jm/feature/{tiny_local_muon,h12_muon}`. MuonClip (Janek's request): attention switch `common.attention.qk_clip` (null off), K2's QK-Clip by an optimizer post-step hook, needs `qk_norm: false`; configs `jm/feature/{tiny_local_muon_clip,h12_muon_clip}`. Touches line 1's attention files (see "As landed"). Cluster (2026-11-27, results under "As landed"): `h12_muon` (`e703v6py`) final_ce 3.0913 against h12_chinchilla's 3.1063, at +15.6% s/step. `h12_muon_clip` (`ci4m5vs9`) 3.0995; the clip never fired (max logit 75.5). `h12_param_groups` not run yet. Profiles (2026-11-28), after a per-shape rewrite of the Muon step: Muon +5.6% s/step (was +15.6%); QK-Clip's logit tracking +14%. Since then Newton–Schulz is split across ranks and QK-Clip on GPU tracks flash attention's logsumexp. Round-2 profiles: Muon +3.1% s/step, QK-Clip +0.6%. |
-| 4 | muP for Muon | todo | |
+| 4 | muP for Muon | done | Option `configs/_trainer/_optimizer/muon_mup.yaml` = `muon` + `base_dmodel: 256` (h4); no new key. The builder's Muon/simpleP assert is replaced by the rule, m = `common.dmodel / optimizer.base_dmodel`: Muon matrices LR × m^-1/2, MoE routers (`MoE.router_weight`, keyed on module type) × 1/m, AdamW groups as simpleP (head ÷ m, gains and embedding × 1); decay unscaled. With MoE the `hidden` role becomes two Muon groups (rest, routers), both `role: hidden`; dense and `muon` keep one. No init or model change. `scripts/mup_coord_check.py` takes the Muon options and `--moe` (a router row); `mup_lr_plots.ipynb` has `opt = "muon"`. Configs in `configs/jm/feature/`: `tiny_local_muon_mup`, `h12_muon_mup` (one LR, 2^-9.2075), `mup_width_muon_{sp,mup}` (dense, 35 runs each). Cluster: not run yet. |
 
 ### Today's code (at `a3f4efdb`, with task 2)
 
@@ -154,7 +156,8 @@ edit the optimizer.
   `SCHEDULER_SCHEMAS` does. Task 1 has no class key, because AdamW is the only class.
 - Task 2 added `optimizer.base_dmodel` (every option sets it; null is off). The width
   rule is in the builder, not in config: no per-role LR keys. Options don't touch model
-  keys: full muP's head-init key went with it.
+  keys: full muP's head-init key went with it. Task 4 reuses the key for Muon
+  (`muon_mup`): the builder picks the rule by optimizer.
 
 #### Acceptance check (every task)
 
@@ -715,8 +718,8 @@ Since task 3 (2026-11-26), read before the scope:
   as √width at fixed aspect ratio, so start from Muon LR × m^-1/2.
 - Replace the builder's assert (Muon with `base_dmodel` set) with the rule, and decide
   the AdamW head's together with it (÷ m under simpleP).
-- The router (`num_experts × dmodel`) is in Muon. Its max dimension is dmodel, so it
-  scales like the other matrices.
+- The router (`num_experts × dmodel`) is in Muon. Its max dimension is dmodel, but its
+  fan_out is fixed, so it takes m^-1, not the other matrices' m^-1/2 (see As landed).
 
 Scope:
 - Width rules for the Muon groups. The AdamW groups keep task 2's rules. In the H family
@@ -736,6 +739,119 @@ Reuse `scripts/mup_coord_check.py` (add the Muon option), the paired-grid sweep 
 Checks: as in task 2, a CPU coordinate check at fixed depth. Then stage 2,
 `configs/jm/feature/h12_muon_mup.yaml` with a base width below h12, and on top of it a width sweep
 with Muon.
+
+As landed:
+- Option `muon_mup` = `muon` (its defaults list) plus `base_dmodel: 256` (h4). No new key:
+  the builder applies Muon's rule to Muon groups and simpleP's to AdamW groups, in place
+  of task 3's assert. At h4 (the base) it steps exactly as `muon` (tested bit for bit).
+  With m = `common.dmodel / optimizer.base_dmodel`, LR relative to
+  `trainer.learning_rate`:
+
+  | Role | Optimizer | Init | LR | Weight decay |
+  | --- | --- | --- | --- | --- |
+  | `vector` | AdamW | unchanged | × 1 | 0 |
+  | `embedding` | AdamW | unchanged | × 1 | 0 |
+  | `head` | AdamW | unchanged | × 1/m | `trainer.weight_decay` |
+  | `hidden`: attention, FFN, MoE experts | Muon | unchanged | × m^-1/2 | `trainer.weight_decay` |
+  | `hidden`: MoE router | Muon | unchanged | × 1/m | `trainer.weight_decay` |
+
+- Why m^-1/2: a Moonlight step is lr·0.2·√max(rows, cols)·NS(·). Newton–Schulz's singular
+  values are near 1, so the update's spectral norm is about 0.2·lr·√max(rows, cols). The
+  spectral condition asks for √(fan_out/fan_in), a constant for every H-family hidden
+  matrix (fixed aspect ratios), so lr ∝ max(rows, cols)^-1/2 ∝ m^-1/2. Put differently,
+  each matrix keeps its base-width update scale, 0.2·√max(rows₀, cols₀).
+- Router: m^-1 (decided here). It is num_experts × dmodel, so fan_out is fixed and the
+  spectral target √(E/dmodel) falls as m^-1/2, while Moonlight's norm grows as √dmodel:
+  lr ∝ 1/m, the same reason AdamW's head takes ÷ m. The coordinate check confirms it
+  (router table below). The router stays role `hidden`, with its decay from
+  `roles.hidden`, and no role rule changes. The builder picks it by module type
+  (`MoE.router_weight`), so under `muon_mup` with MoE the hidden role becomes two Muon
+  groups, both `role: hidden`: the rest (÷ √m), then the routers (÷ m). Dense models and
+  `muon` keep one hidden group, so `muon`'s groups and checkpoints are unchanged. Resume
+  with the five groups is tested, non-sharded and DCP.
+- Weight decay unscaled, as simpleP: lr·wd falls as m^-1/2 on Muon matrices and as 1/m
+  on the router and head. A width rule for decay stays the later item.
+- No init change, so no model key. Caveat, from the router check: the router's
+  standard init (std 1/√fan_in) lets its logits move through its input (W₀·Δx), and
+  that term grows with width under any router LR. muP's fix for fixed-fan_out layers is
+  an init × m^-1/2: the rule full muP's head init had, dropped in task 2. Not built.
+- `train/lr` still logs group 0 (`vector`, the base LR); the startup group log shows
+  every group's LR. The `roles: null` assert now says muP, not simpleP.
+- Coordinate check, `scripts/mup_coord_check.py --options muon muon_mup` (task 2's
+  setup: 2 blocks, constant LR 2^-7, one batch of 4×32, 4 steps). New: the Muon options
+  and `--moe`, which adds a `router` row, the RMS of the router's logits. Cells are RMS
+  of the change since step 0. Dense:
+
+  | role | arm | h2 | h4 | h8 | h16 |
+  | --- | --- | --- | --- | --- | --- |
+  | hidden | muon | 0.232 | 0.314 | 0.429 | 0.517 |
+  | hidden | muon_mup | 0.287 | 0.314 | 0.339 | 0.354 |
+  | head | muon | 0.845 | 1.69 | 3.31 | 3.13 |
+  | head | muon_mup | 1.94 | 1.69 | 1.63 | 1.26 |
+  | vector | muon | 0.259 | 0.353 | 0.466 | 0.540 |
+  | vector | muon_mup | 0.316 | 0.353 | 0.376 | 0.391 |
+  | embedding | muon | 0.028 | 0.026 | 0.024 | 0.021 |
+  | embedding | muon_mup | 0.026 | 0.026 | 0.026 | 0.025 |
+
+  Without the rule, hidden grows 2.2× from h2 to h16 and the head 3.7×. With it, hidden
+  grows 1.23×, by less at each doubling (+9%, +8%, +4%), and the head falls (1.94 → 1.26),
+  as simpleP's head did from h2 to h8. With `--moe`:
+
+  | role | arm | h2 | h4 | h8 | h16 |
+  | --- | --- | --- | --- | --- | --- |
+  | hidden | muon | 0.757 | 0.802 | 0.824 | 0.849 |
+  | hidden | muon_mup | 0.784 | 0.802 | 0.797 | 0.796 |
+  | head | muon | 0.836 | 1.71 | 3.66 | 5.90 |
+  | head | muon_mup | 2.04 | 1.71 | 1.74 | 1.41 |
+  | router | muon | 0.283 | 0.413 | 0.727 | 1.31 |
+  | router | muon_mup (÷ m) | 0.390 | 0.413 | 0.509 | 0.703 |
+  | router | muon_mup, router ÷ √m (one-off) | 0.354 | 0.413 | 0.555 | 0.825 |
+
+  Halving the router's LR barely moves its row, so most of its change comes from its
+  input. A one-off split (`$CLAUDE_JOB_DIR/tmp/coord_router_terms.py`, not in the repo) of
+  logits_T − logits_0 into the router's own update, (W_T − W_0)·x_T, and its input change,
+  W_0·(x_T − x_0):
+
+  | router LR | term | h2 | h4 | h8 | h16 |
+  | --- | --- | --- | --- | --- | --- |
+  | no rule | own update | 0.092 | 0.157 | 0.280 | 0.546 |
+  | ÷ √m | own update | 0.126 | 0.157 | 0.202 | 0.285 |
+  | ÷ m | own update | 0.179 | 0.157 | 0.143 | 0.143 |
+  | any rule | input change | 0.30 | 0.33 | 0.41 | 0.59 |
+
+  The own update grows as m without a rule (5.9×), as √m at ÷ √m (2.3×), and is flat at
+  ÷ m, as derived. The input term is the init caveat above (no rule: 0.25 → 0.88).
+- Stage 1 (CPU):
+  - Switch off: `tiny_local`, `tiny_local_param_groups`, `tiny_local_simplep` and
+    `tiny_local_muon` give 202 `train/loss` lines each, byte-identical to the pre-change
+    runs.
+  - `tiny_local_muon_mup` (base h2, so m = 2 at h4) trains: loss 10.88 → 8.42, mean of the
+    last 100 steps; a smoke run, not a comparison. Group log: Muon hidden at lr/√2, head
+    at lr/2.
+  - 6 new tests in `tests/test_optimizers.py`, replacing "Muon rejects simpleP": group
+    LRs and decay at m = 1 and 2; the MoE router group at ÷ m and the experts at ÷ √m; at
+    the base width `muon_mup` steps as `muon` bit for bit; save and resume with MoE at
+    base h2 (five groups, four LRs, WSD), non-sharded and DCP.
+  - Suite: 301 passed, 0 failed (task 3's 296, plus 6 new, minus the one replaced). The
+    hygiene tests pass with the untracked configs included, checked by having a
+    deliberately broken probe config fail first.
+- Stage 2: `jm/feature/h12_muon_mup`, h12_chinchilla plus `muon_mup` (m = 3), 50_000 steps
+  (no FLOPs change). One LR, `learning_rate: 9.2075` = 10 − log2(3)/2, so h12's Muon
+  matrices train at h12_muon's 2^-10. Against `h12_muon` it changes only the AdamW
+  groups: head 2^-10.79 (÷ √3), gains and embedding 2^-9.21 (× √3). About 3.8 GPU-h
+  (h12_chinchilla's 3.7 plus Muon's 3%).
+- Width sweep, on top of stage 2: `mup_width_muon_sp` (`muon`, no width rule) and
+  `mup_width_muon_mup` (`muon_mup`, base h4), task 2's dense sweep setup (depth 4, 2000
+  steps at 64 × 1024, WSD 100/400, 1 H100, no checkpoints). Muon's best LR at depth 4 is
+  unknown, so both arms run 2^-3..2^-9 at h2, h4, h8, h12 and h16: 35 runs each. Tags
+  `mup_width_sweep`, `muon`, and `muon_sp` or `muon_mup`; plot with
+  `mup_lr_plots.ipynb`, `opt = "muon"` (its AdamW view now excludes the `muon` tag).
+  Cost from task 2's 5.2–7.3 min per run plus a few % for Muon on 1 GPU: about 3.7
+  GPU-h per arm, 7.5 for both. Expected: without the rule the best LR falls with width
+  (by about half a power of 2 per doubling for the matrices; the head pulls toward a
+  full one); with it, it stays put.
+- `h12_muon_mup` and both sweep arms pass `run_exp.expand_and_check` (1, 35 and 35
+  points).
 
 ### Out of scope for line 2
 

@@ -1,14 +1,16 @@
-"""muP coordinate check for the AdamW options (plan/lines/line2_optimizer.md, task 2).
+"""muP coordinate check for the optimizer options (plan/lines/line2_optimizer.md, tasks 2, 4).
 
 Trains the tiny_local model at several widths (common.h) and one fixed depth for a few
-AdamW steps on one fixed batch, and prints, per parameter role, the RMS of the role's
-module outputs and of their change since step 0. Under SP (adamw_groups) the change
-grows with width; under simpleP (adamw_simplep, muP's LR rule) it does not.
+steps on one fixed batch, and prints, per parameter role, the RMS of the role's module
+outputs and of their change since step 0. Without a width rule (adamw_groups, muon) the
+change grows with width; with one (adamw_simplep, muon_mup) it does not. With --moe the
+router gets its own row, its logits.
 
 Usage, from the repo root:
 
     pixi run python scripts/mup_coord_check.py
     pixi run python scripts/mup_coord_check.py --widths 2 4 8 16 --steps 4 --lr 7
+    pixi run python scripts/mup_coord_check.py --options muon muon_mup --moe
 """
 
 import argparse
@@ -26,16 +28,20 @@ import src.definitions  # noqa: F401  (registers base_schema, used by tiny_local
 from hydra import compose, initialize_config_dir
 from hydra.utils import instantiate
 
+from src.core.moe import MoE
 from src.core.optimizers import ROLES, build_optimizer_and_scheduler, param_roles
 from src.core.utils import solve_config_lr
 
+# Table rows: the roles, then MoE routers (role hidden) on their own.
+ROWS = (*ROLES, "router")
 
-def build(option, h, n_blocks, lr, seq):
+
+def build(option, h, n_blocks, lr, seq, moe):
     """tiny_local's model at width h, and its optimizer, as tests/test_optimizers.py builds them."""
     warnings.filterwarnings("ignore")
     overrides = [
         f"_trainer/_optimizer@optimizer={option}",
-        # Constant LR: WSD with no warmup or decay (cosine rejects muP's group LRs).
+        # Constant LR: WSD with no warmup or decay.
         "_trainer/_scheduler@trainer.scheduler=wsd",
         "trainer.scheduler.warmup_steps=0",
         "trainer.scheduler.decay_steps=0",
@@ -43,6 +49,8 @@ def build(option, h, n_blocks, lr, seq):
         f"common.n_blocks={n_blocks}",
         f"common.sequence_length={seq}",
     ]
+    if moe:
+        overrides.append("+_ff_layer@model.encoder.block_fn.ff_layer_fn=moe")
     with initialize_config_dir(
         version_base=None, config_dir=os.path.abspath("configs")
     ):
@@ -54,29 +62,38 @@ def build(option, h, n_blocks, lr, seq):
 
 
 def role_modules(model):
-    """Modules that own a parameter directly, keyed by that parameter's role."""
+    """Modules that own a parameter directly, keyed by that parameter's role; an MoE's own
+    parameter is its router."""
     role_of = {id(p): role for role, ps in param_roles(model).items() for p in ps}
-    out = {role: [] for role in ROLES}
+    out = {row: [] for row in ROWS}
     for module in model.modules():
         own = list(module.parameters(recurse=False))
         if own:
-            out[role_of[id(own[0])]].append(module)
+            row = "router" if isinstance(module, MoE) else role_of[id(own[0])]
+            out[row].append(module)
     return out
+
+
+def produced(module, args, out):
+    """What a module's own parameter produces: an MoE's router logits, else its output."""
+    if isinstance(module, MoE):
+        return F.linear(args[0], module.router_weight).detach()
+    return out.detach()
 
 
 def rms(x):
     return x.float().pow(2).mean().sqrt().item()
 
 
-def coord_check(option, h, n_blocks, lr, steps, batch, seq):
-    """Per role, after `steps` updates: mean over its modules of RMS(output), RMS(output - output at step 0)."""
-    model, optimizer, vocab_size = build(option, h, n_blocks, lr, seq)
+def coord_check(option, h, n_blocks, lr, steps, batch, seq, moe):
+    """Per row, after `steps` updates: mean over its modules of RMS(output), RMS(output - output at step 0)."""
+    model, optimizer, vocab_size = build(option, h, n_blocks, lr, seq, moe)
     outputs = {}
-    for role, modules in role_modules(model).items():
+    for row, modules in role_modules(model).items():
         for i, module in enumerate(modules):
             module.register_forward_hook(
-                lambda m, args, out, key=(role, i): outputs.__setitem__(
-                    key, out.detach()
+                lambda m, args, out, key=(row, i): outputs.__setitem__(
+                    key, produced(m, args, out)
                 )
             )
     generator = torch.Generator().manual_seed(1)
@@ -90,13 +107,14 @@ def coord_check(option, h, n_blocks, lr, steps, batch, seq):
         optimizer.step()
         optimizer.zero_grad()
     model(tokens[:, :-1])
-    row = {}
-    for role in ROLES:
-        keys = [k for k in outputs if k[0] == role]
-        act = sum(rms(outputs[k]) for k in keys) / len(keys)
-        delta = sum(rms(outputs[k] - first[k]) for k in keys) / len(keys)
-        row[role] = (act, delta)
-    return row
+    cells = {}
+    for row in ROWS:
+        keys = [k for k in outputs if k[0] == row]
+        if keys:
+            act = sum(rms(outputs[k]) for k in keys) / len(keys)
+            delta = sum(rms(outputs[k] - first[k]) for k in keys) / len(keys)
+            cells[row] = (act, delta)
+    return cells
 
 
 def main():
@@ -112,25 +130,32 @@ def main():
     parser.add_argument(
         "--options", nargs="+", default=["adamw_groups", "adamw_simplep"]
     )
+    parser.add_argument(
+        "--moe", action="store_true", help="the MoE feed-forward, with a router row"
+    )
     args = parser.parse_args()
     lr, _ = solve_config_lr(args.lr)
     print(
         f"n_blocks={args.n_blocks}, lr={lr:.3g}, step {args.steps}, batch "
-        f"{args.batch}x{args.seq}. Cells: activation RMS / change since step 0."
+        f"{args.batch}x{args.seq}{', MoE' if args.moe else ''}. "
+        "Cells: activation RMS / change since step 0."
     )
     header = "| option | role | " + " | ".join(f"h{h}" for h in args.widths) + " |"
     print(header)
     print("|" + " --- |" * (2 + len(args.widths)))
     for option in args.options:
-        rows = {
+        by_width = {
             h: coord_check(
-                option, h, args.n_blocks, lr, args.steps, args.batch, args.seq
+                option, h, args.n_blocks, lr, args.steps, args.batch, args.seq, args.moe
             )
             for h in args.widths
         }
-        for role in ROLES:
-            cells = ["{:.3g} / {:.3g}".format(*rows[h][role]) for h in args.widths]
-            print(f"| {option} | {role} | " + " | ".join(cells) + " |")
+        for row in ROWS:
+            if row in by_width[args.widths[0]]:
+                cells = [
+                    "{:.3g} / {:.3g}".format(*by_width[h][row]) for h in args.widths
+                ]
+                print(f"| {option} | {row} | " + " | ".join(cells) + " |")
 
 
 if __name__ == "__main__":

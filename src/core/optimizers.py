@@ -14,6 +14,7 @@ from torch.optim.adam import adam
 from torch.profiler import record_function
 
 from src.core.model import RoPEAttention, TransformerHead
+from src.core.moe import MoE
 
 logger = logging.getLogger(__name__)
 
@@ -341,29 +342,42 @@ def build_optimizer_and_scheduler(cfg, model, learning_rate):
     base_dmodel = cfg.optimizer.base_dmodel
     muon = cfg.optimizer.muon
     if roles is None:
-        assert base_dmodel is None, "simpleP (optimizer.base_dmodel) needs param groups"
+        assert base_dmodel is None, "muP (optimizer.base_dmodel) needs param groups"
         assert muon is None, "Muon (optimizer.muon) needs param groups"
         params = model.parameters()
     else:
-        # simpleP's LR / m is AdamW's rule; Muon's width rule is line 2, task 4.
-        assert (
-            muon is None or base_dmodel is None
-        ), "Muon takes no optimizer.base_dmodel"
-        # simpleP (muP's LR rule): hidden and head LR / m, m = dmodel / base_dmodel.
+        # muP's LR rules (plan, tasks 2 and 4): scale = 1 / m, m = dmodel / base_dmodel.
         scale = 1 if base_dmodel is None else base_dmodel / cfg.common.dmodel
-        params = [
-            {
-                "params": ps,
-                "role": role,
-                "lr": learning_rate * (scale if role in ("hidden", "head") else 1),
-                "weight_decay": roles[role].weight_decay,
-            }
-            for role, ps in param_roles(model).items()
-            if ps
-        ]
-        if muon is not None:
-            for group in params:
-                group["use_muon"] = group["role"] == "hidden"
+        routers = {
+            id(module.router_weight)
+            for module in model.modules()
+            if isinstance(module, MoE)
+        }
+        params = []
+        for role, ps in param_roles(model).items():
+            use_muon = muon is not None and role == "hidden"
+            if not use_muon:
+                # AdamW, simpleP: hidden and head LR / m.
+                splits = [(ps, scale if role in ("hidden", "head") else 1)]
+            elif base_dmodel is None:
+                splits = [(ps, 1)]
+            else:
+                # Muon: / sqrt(m) (update norm ~ sqrt(width)); routers, fixed rows: / m.
+                splits = [
+                    ([p for p in ps if id(p) not in routers], scale**0.5),
+                    ([p for p in ps if id(p) in routers], scale),
+                ]
+            for group_params, lr_scale in splits:
+                if group_params:
+                    group = {
+                        "params": group_params,
+                        "role": role,
+                        "lr": learning_rate * lr_scale,
+                        "weight_decay": roles[role].weight_decay,
+                    }
+                    if muon is not None:
+                        group["use_muon"] = use_muon
+                    params.append(group)
         log_param_groups(model, params)
     if muon is None:
         optimizer = torch.optim.AdamW(
