@@ -328,9 +328,64 @@ def test_muon_trains_every_moe_expert_and_the_router():
     assert moe_params and all(id(p) in muon for p in moe_params)
 
 
-def test_muon_rejects_simplep():
-    with pytest.raises(AssertionError, match="base_dmodel"):
-        _build("muon", overrides=["optimizer.base_dmodel=128"])
+@pytest.mark.parametrize("h, m", [(4, 1), (8, 2)])
+def test_muon_mup_scales_muon_by_root_m_and_the_head_by_m(h, m):
+    _, optimizer, _ = _build("muon_mup", overrides=_width(h))
+    groups = [
+        (g["role"], g["use_muon"], g["initial_lr"], g["weight_decay"])
+        for g in optimizer.param_groups
+    ]
+    assert groups == [
+        ("vector", False, 1e-3, 0.0),
+        ("embedding", False, 1e-3, 0.0),
+        ("head", False, pytest.approx(1e-3 / m), 0.1),
+        ("hidden", True, pytest.approx(1e-3 / m**0.5), 0.1),
+    ]
+
+
+def test_muon_mup_gives_the_moe_router_lr_over_m():
+    moe = ["+_ff_layer@model.encoder.block_fn.ff_layer_fn=moe"]
+    model, optimizer, _ = _build("muon_mup", overrides=_width(8) + moe)
+    hidden = [g for g in optimizer.param_groups if g["role"] == "hidden"]
+    # Experts and attention at / sqrt(m), the router at / m; both Muon, with hidden's decay.
+    assert [(g["use_muon"], g["initial_lr"], g["weight_decay"]) for g in hidden] == [
+        (True, pytest.approx(1e-3 / 2**0.5), 0.1),
+        (True, pytest.approx(1e-3 / 2), 0.1),
+    ]
+    moes = [m for m in model.modules() if isinstance(m, MoE)]
+    assert [id(p) for p in hidden[1]["params"]] == [id(m.router_weight) for m in moes]
+    in_first = {id(p) for p in hidden[0]["params"]}
+    assert all(id(p) in in_first for m in moes for p in m.experts.parameters())
+
+
+def test_muon_mup_at_the_base_width_steps_as_muon():
+    reference = _build("muon")
+    ours = _build("muon_mup")  # tiny_local is h4, the option's base width
+    for _ in range(3):
+        _step(*reference)
+        _step(*ours)
+    for a, b in zip(reference[0].parameters(), ours[0].parameters()):
+        torch.testing.assert_close(a, b, rtol=0, atol=0)
+
+
+MUON_MUP_MOE = [
+    "_trainer/_scheduler@trainer.scheduler=wsd",
+    "optimizer.base_dmodel=128",
+    "+_ff_layer@model.encoder.block_fn.ff_layer_fn=moe",
+]
+
+
+def test_muon_mup_moe_checkpoint_resumes(tmp_path):
+    # Base h2 and MoE: five groups, two of them hidden, with four different LRs.
+    _check_resume(
+        str(tmp_path), sharded=False, option="muon_mup", overrides=MUON_MUP_MOE
+    )
+
+
+def test_muon_mup_moe_sharded_checkpoint_resumes(cpu_process_group, tmp_path):
+    _check_resume(
+        str(tmp_path), sharded=True, option="muon_mup", overrides=MUON_MUP_MOE
+    )
 
 
 def test_muon_with_only_adamw_groups_matches_torchs_adamw():
