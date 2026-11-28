@@ -1,0 +1,79 @@
+# AME attention gates at h16 on 4 GPUs, arm `AelemB_sig`: read_gate elementwise, output_gate elementwise, sigmoid.
+# The h16 screen in documents/notes/ame_attention_gate.md: Stage 1's nine arms at h16,
+# asked by Maciej on 2026-11-28.
+#
+# A copy of configs/standard/ame_h16_4gpu.yaml (AME v4: configs/standard/ame_h16.yaml on 4
+# GPUs). Only these differ:
+#   - the cluster: entropy, 4 H100 (gres as configs/ame/h16_4gpu.yaml), no LEM exclude,
+#     a 6 h limit (the run takes about 4 h there);
+#   - common.dff = 3744, matched: 32 * round((26 - 2k) * H / 3) with k = 2 elementwise
+#     gate(s);
+#   - the gate options in common.attention.ame;
+#   - the final checkpoint on /storage_nvme_3 (h100a only), not in the cemetery: entropy's
+#     $HOME holds the cemetery and has a 120G quota, about 23 GB per AME h16 checkpoint;
+#   - the run name, job name and tags.
+# Same seed, data order, steps and schedule as every other arm, so every pair is paired.
+# With the banks column-sharded, attention entropy and sink mass are not logged (they need
+# the whole banks); the gate readout is.
+defaults:
+  - /base_schema
+  - ../_misc@_here_: default
+  - ../_cluster@_here_: entropy
+  - ../_model/h_balanced@_here_: h16
+  - ../_trainer@_here_: llama
+  - ../_dataset@_here_: fineweb
+  - ../_checkpoints@_here_: none # save.path below switches on the final checkpoint
+  - _self_
+
+common:
+  sequence_length: 2049 # the model sees 2048 = 16 x 128, so flex blocks align
+  batch_size: 512 # sequences per optimizer step = 1,048,576 tokens
+  dff: 3744 # 32 * round((26 - 2 * 2) * 16 / 3)
+  attention:
+    type: ame
+    ame:
+      shift: true
+      bank_init_std: 1.0e-4
+      read_gate: elementwise
+      output_gate: elementwise
+      gate_activation: sigmoid
+
+compile_blocks_full: true
+
+trainer:
+  gradient_accumulation_steps: 8 # micro-batch 16 = 512 / (4 GPUs x 8); 32 runs out of memory
+  mem_parallel_size: 4 # banks column-sharded over the 4 GPUs (Tier 3)
+  distributed:
+    fsdp2:
+      modules_to_shard:
+        - ${model.embedding._target_}
+        - ${model.encoder.block_fn._target_}
+        - ${model.head._target_}
+      reshard_after_forward: false # O33, ame_optimization_report.md section 1.10
+  autocast_bf16: false # bf16 comes from FSDP2's mixed precision
+  n_steps: 7630 # D = 8B tokens / 1,048,576 tokens per step, rounded up
+  n_tokens_b: null
+  learning_rate: 8 # LR = 2^-8, AME h16's best n
+  bank_lr_ratio: 4.0 # banks at 4 x 2^-8
+  checkpoint:
+    save:
+      path: /storage_nvme_3/mstefaniak/ame_gate_h16/AelemB_sig # final checkpoint only
+
+infrastructure:
+  slurm:
+    gres: gpu:h100:4 # entropy's gres syntax
+    job-name: gate_h16_AelemB_sig
+    time: "0-06:00:00"
+  metric_logger:
+    project_name: nano-ame
+    name: gate_h16_AelemB_sig_lr8
+    tags:
+      - ame
+      - h16
+      - ame_gate
+      - gate_AelemB_sig
+      - standard_v4
+      - bank_lr4
+      - bank_std1e4
+      - dff_matched
+      - 4gpu
