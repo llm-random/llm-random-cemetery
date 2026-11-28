@@ -25,8 +25,18 @@ PLANNED = ("mla", "mamba2", "gated_deltanet")
 DIMS = dict(dmodel=64, q_heads=4, kv_heads=2, seq_len=16)
 
 # Every line-1 attention switch off, and an on value for each; each task adds its key.
-SWITCHES_OFF = {"qk_norm": False, "output_gate": False, "no_rope_layers": None}
-SWITCHES_ON = {"qk_norm": True, "output_gate": True, "no_rope_layers": "all"}
+SWITCHES_OFF = {
+    "qk_norm": False,
+    "output_gate": False,
+    "no_rope_layers": None,
+    "document_masking": False,
+}
+SWITCHES_ON = {
+    "qk_norm": True,
+    "output_gate": True,
+    "no_rope_layers": "all",
+    "document_masking": True,
+}
 
 
 def _build(attention_type, seed=0, **overrides):
@@ -50,7 +60,7 @@ def test_mha_is_gqa_with_a_kv_head_per_query_head():
     x = torch.randn(
         2, DIMS["seq_len"], DIMS["dmodel"], generator=torch.Generator().manual_seed(7)
     )
-    torch.testing.assert_close(mha(x), gqa(x), rtol=0, atol=0)
+    torch.testing.assert_close(mha(x, None), gqa(x, None), rtol=0, atol=0)
 
 
 def test_mqa_keeps_exactly_one_kv_head():
@@ -60,7 +70,7 @@ def test_mqa_keeps_exactly_one_kv_head():
     assert mqa.k_proj.weight.shape == (dhead, DIMS["dmodel"])
     assert mqa.v_proj.weight.shape == (dhead, DIMS["dmodel"])
     x = torch.randn(2, DIMS["seq_len"], DIMS["dmodel"])
-    assert mqa(x).shape == x.shape
+    assert mqa(x, None).shape == x.shape
 
 
 def test_gqa_rejects_a_head_count_that_does_not_divide():
@@ -73,7 +83,7 @@ def test_planned_types_construct_but_refuse_to_run(name):
     module = _build(name)
     x = torch.randn(2, DIMS["seq_len"], DIMS["dmodel"])
     with pytest.raises(NotImplementedError, match="registered interface"):
-        module(x)
+        module(x, None)
 
 
 @pytest.mark.parametrize("switch", SWITCHES_ON)

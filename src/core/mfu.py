@@ -7,6 +7,7 @@ means the same thing):
   parameters costs 2P per token forward and 4P backward; attention scores add
   12 * s * datt per layer (QK^T and AV each cost 2 * s * datt per token forward),
   with no discount for causal masking.
+- Document masking keeps the dense count, so its MFU overstates useful work; compare it in tokens/s.
 - P is *measured*, not assumed: every 2-D weight in the live model except the
   embedding lookup (norms are 1-D and drop out naturally; the untied head counts).
   This way mha/mqa/gqa and future attention types report their true cost.

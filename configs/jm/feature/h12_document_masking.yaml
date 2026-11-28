@@ -1,0 +1,42 @@
+# h12_chinchilla with document masking (flex BlockMask from EOS tokens); mfu.py keeps the dense count, so 50_000 steps.
+defaults:
+  - ../h12_chinchilla@_global_
+  - _self_
+
+common:
+  attention:
+    document_masking: true
+
+infrastructure:
+  # lem has no pack for this pixi.lock (cf69ad40a59f5c76): lem.yaml's preamble with the installed $USER_HOME_PATH/pixi env (same lock) instead.
+  script:
+    - '${export_env_variables_placeholders:}'
+    - 'export PROJECT_HOME_PATH=/lustre/pd03/plgrid/plgllmefficont3/nano/pretraining'
+    - 'export HF_HOME=$PROJECT_HOME_PATH/hf_cache'
+    - 'export HYDRA_FULL_ERROR=1'
+    - 'export USER_HOME_PATH=$PROJECT_HOME_PATH/$USER'
+    - 'export HF_DATASETS_CACHE="$USER_HOME_PATH/hf_datasets"'
+    - 'export HF_MODULES_CACHE="$USER_HOME_PATH/hf_modules"'
+    - 'export HF_HUB_CACHE="$USER_HOME_PATH/hf_cache"'
+    - 'export HF_DATASETS_TRUST_REMOTE_CODE=1'
+    - 'export XDG_DATA_HOME="$USER_HOME_PATH/data"'
+    - 'export XDG_CACHE_HOME="$USER_HOME_PATH/cache"'
+    - 'export XDG_STATE_HOME="$USER_HOME_PATH/state"'
+    - 'export PIXI_HOME=$USER_HOME_PATH/pixi'
+    - 'export PATH="$HOME/.pixi/bin:$PATH"'
+    - 'export RATTLER_CACHE_DIR="$XDG_CACHE_HOME/rattler"'
+    - 'export PIXI_CACHE_DIR="$XDG_CACHE_HOME/pixi"'
+    - 'cd "$PIXI_HOME"'
+    - 'eval "$(pixi shell-hook)"'
+    - 'cd -'
+
+  metric_logger:
+    name: h12_document_masking
+    tags:
+      - nano
+      - h12
+      - chinchilla
+      - wsd
+      - qk_norm
+      - bs64
+      - document_masking

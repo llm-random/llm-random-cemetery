@@ -2,13 +2,13 @@
 
 ## Human
 
-Line 1 adds seven model-code switches, one task at a time. Now: Task 3/7, NoPE, done.
+Line 1 adds seven model-code switches, one task at a time. Now: Task 4/7, Document masking, done.
 Every switch is off by default, and off means identical training to before.
 
 - [x] QK-norm: per-head RMSNorm on q, k before RoPE
 - [x] Output gate: sigmoid gate on attention output; extra projection, FLOPs-matched h12 run
 - [x] NoPE: skip RoPE on chosen layers; h12 (every 4th) ties baseline
-- [ ] Document masking: attend only within each document
+- [x] Document masking: attend only within each document; h12 run pending
 - [ ] Indexer sparse attention (tentative): attend to top-k keys
 - [ ] Wider residual (tentative): several parallel residual streams
 - [ ] nGPT: weights and activations on the unit sphere
@@ -16,8 +16,9 @@ Every switch is off by default, and off means identical training to before.
 **Needs Janek:**
 - Run tasks 5 and 6 in parallel once 4 lands? Recommended: yes.
 - Before task 5: still wanted, and at what sequence length and k?
+- Launch the h12 document-masking run: the first compiled run of the new attention path.
 
-**Last change:** 2026-11-27: h12 NoPE run ties the baseline (final loss +0.002, same speed); kept as a feature, no more tests.
+**Last change:** 2026-11-27: document masking landed (mask built in the model from end-of-document tokens; off is unchanged); h12 config ready.
 
 ## AI
 
@@ -78,7 +79,7 @@ Janek can't review everything, so most calls are yours.
 | 1 | QK-norm | done | `common.attention.qk_norm`, on (`true`) in `base.yaml` since 2026-11-17, off before. Pick: per-head RMSNorm over `dhead` (eps 1e-6) on q and k before RoPE, k on kv heads before `repeat_kv`, SDPA's default scale, because 3 of the 4 surveyed models with full QK-norm use it (Qwen3.8, MiniMax-M3.1, Gemma 4; `documents/notes/qk_norm_survey.md`). Gain `(1 + w)`, w zero-init (`ZeroCenteredRMSNorm`, as Qwen3.8 and MiniMax), so weight decay pulls it to 1, not 0. No `scale` argument. Plumbing: `SWITCHES` in `attention.py`, `SWITCHES_OFF` in `tests/test_attention_registry.py`. Configs in `configs/jm/feature/`: `tiny_local_qk_norm`, `tiny_local_line1_all`, `h12_qk_norm`. |
 | 2 | Attention output gate | done | `common.attention.output_gate`, off (`false`) in `base.yaml`. `_rope_attention` turns it into `g_proj_fn` (a `_linear_fn(dmodel → q_heads·dhead)`, or `None` when off) for `RoPEAttention`, which builds `g_proj` last, after the QK-norm gains, and multiplies the flattened attention output by `sigmoid(g_proj(x))` before `o_proj`. Matches Qwen3-Next's fused-`q_proj` gate exactly (throwaway check, max diff 0). At h12 it adds 7.08M params and 4.97% FLOPs/token, so `h12_output_gate` runs 47_630 steps instead of 50_000 (FLOPs-matched). `h12_output_gate` drops `h12_chinchilla`'s `baseline` tag. Configs in `configs/jm/feature/`: `tiny_local_output_gate`, `h12_output_gate`, and the switch in `tiny_local_line1_all`. |
 | 3 | NoPE (RoPE off switch) | done | `common.attention.no_rope_layers`, off (`null`) in `base.yaml`; same syntax as `mix.layers` (`all`, `every_2nd`, `every_4th`, index list). Not in `SWITCHES`: `build_attention` resolves it per layer (`_layer_indices`, factored out of `resolve_layer_types`) and passes `rope: bool` to every builder; `RoPEAttention(rope=False)` builds no `RoPE` module and skips the rotation; `_planned` raises naming `no_rope_layers` when `rope` is false. Tests: `SWITCHES_ON` (an on value per key) beside `SWITCHES_OFF`. No `mfu.py` change. `h12_no_rope` uses `every_4th` (layers 3, 7, 11), 50_000 steps, drops the `baseline` tag. Configs in `configs/jm/feature/`: `tiny_local_no_rope` (`every_4th`), `h12_no_rope`, and `every_4th` in `tiny_local_line1_all`. h12 result (`cfk0xvh4` vs baseline `kiu7rawb`): `final_ce` 3.1085 vs 3.1063 (+0.002, a tie), bf16 `eval/loss` both 3.1094; ahead ~0.006 at 5k–15k steps, behind ~0.002–0.003 from 30k; downstream mean 41.1 vs 41.8% (noise: the gate's lower loss also scored 40.9%); tokens/s within the baseline grid's spread. Janek, 2026-11-27: kept as a feature, no further testing. |
-| 4 | Document masking | todo | |
+| 4 | Document masking | done | `common.attention.document_masking`, off (`false`) in `base.yaml`, in `SWITCHES` (planned types raise). `LLM` takes `document_masking` (interpolated) and `eos_token_id` (`0` in `base.yaml`'s model node). When on, `LLM.document_block_mask` builds one `create_block_mask(B=batch, H=None)` per forward: causal AND equal `doc_ids` (exclusive EOS cumsum); RoPE stays global. `block_mask` goes `TransformerEncoder.forward(x, block_mask)` → `TransformerBlock.forward(x, block_mask)` → attention `Residual(x, block_mask=...)` (`Residual.forward(x, **layer_kwargs)`; the FF residual gets none) → `RoPEAttention.forward(x, block_mask)`, which calls `_flex_attention` (borrowed from `origin/ame_improve`, default scale) or, on `None`, the untouched SDPA call. Departures: `block_mask` is a required argument (no default) at every level, including `_PlannedAttention.forward`; `LLM.forward(*args, **kwargs)` became `forward(input_ids)`; token-superposition bags (3-D input) raise with the switch on. `mfu.py`: one docstring line, count stays dense, so `h12_document_masking` keeps 50_000 steps (drops the `baseline` tag). Configs in `configs/jm/feature/`: `tiny_local_document_masking` (seq 256: 76% of its training sequences hold a boundary, 8.5% at 16), `h12_document_masking` (it also overrides `infrastructure.script` to run on lem's installed pixi env, because lem has no pack for this `pixi.lock`; drop that block once one is packed), and the switch in `tiny_local_line1_all`. **Compiled path untested until the h12 run.** |
 | 5 | Indexer sparse attention (tentative) | todo | |
 | 6 | Wider residual stream (tentative) | todo | |
 | 7 | nGPT | todo | |
@@ -390,6 +391,20 @@ and into your report, not into the diff. Don't add new test files unless your se
 - **MFU:** see Cross-cutting issues. The count stays dense, so `h12_document_masking` keeps
   50_000 steps.
 - **Combines with tasks 1–3:** works together.
+- **As built (2026-11-27):**
+  - `block_mask` has no default anywhere on the path, so a later rewrite of `Residual` or the block
+    that forgets it fails instead of silently dropping the mask. Tests that call a layer directly
+    pass `None`.
+  - `RoPEAttention` gets no constructor argument: `_rope_attention` accepts `document_masking` and
+    drops it, because the layer only needs the mask it's handed at forward.
+  - Check (a) holds to 4e-6 in fp32. In fp64 it's 2e-6 with RoPE and 9e-15 with NoPE everywhere:
+    RoPE's sin/cos tables are built in fp32, so relative position is exact only to fp32.
+  - Check (b): eval batches are right-padded with id 0, which is EOS, so pad positions become their
+    own documents. Real tokens are unaffected (log-probs match off to 4e-6), and scores match.
+  - To watch in the h12 run: the `BlockMask` is an input to each compiled block. h12's shapes are
+    static (micro 32 × 1023; eval runs under `force_eager`), so the dynamic-shape lowering failure
+    in `_block_mask`'s docstring shouldn't trigger. A batch-size ramp would change `B` and might.
+    s=1023 also leaves a ragged last 128-block in flex, which costs speed on its own.
 
 #### 5. Indexer sparse attention (tentative)
 

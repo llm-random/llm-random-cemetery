@@ -26,7 +26,7 @@ import torch.nn as nn
 from src.core.model import Linear, RoPEAttention, llm_random_weight_init
 
 # Line-1 switch keys in common.attention, passed to every builder; base.yaml holds their defaults.
-SWITCHES = ("qk_norm", "output_gate")
+SWITCHES = ("qk_norm", "output_gate", "document_masking")
 # no_rope_layers is not in SWITCHES: build_attention resolves it to each layer's `rope`.
 
 
@@ -50,7 +50,9 @@ def _rope_attention(
     rope,
     qk_norm,
     output_gate,
+    document_masking,
 ):
+    # document_masking needs nothing at build: LLM passes the layer a block_mask at forward.
     dhead = dmodel // q_heads
     g_proj_fn = _linear_fn(dmodel, dhead * q_heads, init_scale) if output_gate else None
     return RoPEAttention(
@@ -113,7 +115,7 @@ class _PlannedAttention(nn.Module):
         self.kv_heads = kv_heads
         self.seq_len = seq_len
 
-    def forward(self, x):
+    def forward(self, x, block_mask):
         raise NotImplementedError(
             f"{type(self).__name__} is a registered interface without an "
             f"implementation yet ({self.PLANNED})."
